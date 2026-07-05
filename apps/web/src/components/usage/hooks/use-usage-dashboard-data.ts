@@ -13,10 +13,7 @@ import {
 import { enabledProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { usageDashboardQueryOptions } from '@/lib/queries/usage';
 
-export type ProviderOption = {
-  providerId: string;
-  providerName: string;
-};
+export type ProviderOption = { providerId: string; providerName: string };
 
 export type ModelOption = {
   label: string;
@@ -57,10 +54,7 @@ export function useUsageDashboardData() {
     const used = new Set(usageRangeData?.usedProviders ?? []);
     return providerModels
       .filter((provider) => used.has(provider.providerId))
-      .map((provider) => ({
-        providerId: provider.providerId,
-        providerName: provider.providerName,
-      }));
+      .map((provider) => ({ providerId: provider.providerId, providerName: provider.providerName }));
   }, [providerModels, usageRangeData?.usedProviders]);
 
   const availableModels = React.useMemo<ModelOption[]>(() => {
@@ -92,21 +86,14 @@ export function useUsageDashboardData() {
 
   React.useEffect(() => {
     if (modelFilter === ALL_FILTER) return;
-    const isStillAvailable = availableModels.some(
-      (m) => encodeModelFilter(m.providerId, m.modelId) === modelFilter,
-    );
+    const isStillAvailable = availableModels.some((m) => encodeModelFilter(m.providerId, m.modelId) === modelFilter);
     if (!isStillAvailable) setModelFilter(ALL_FILTER);
   }, [availableModels, modelFilter]);
 
   const usageFilters = React.useMemo(() => {
     const decodedModel = modelFilter === ALL_FILTER ? null : decodeModelFilter(modelFilter);
-    const providerIdFromModel =
-      providerFilter === ALL_FILTER ? decodedModel?.providerId : providerFilter;
-    return {
-      range: rangeFilter,
-      providerId: providerIdFromModel,
-      modelId: decodedModel?.modelId,
-    };
+    const providerIdFromModel = providerFilter === ALL_FILTER ? decodedModel?.providerId : providerFilter;
+    return { range: rangeFilter, providerId: providerIdFromModel, modelId: decodedModel?.modelId };
   }, [modelFilter, providerFilter, rangeFilter]);
 
   const { data: usageData, isFetching } = useQuery({
@@ -124,10 +111,7 @@ export function useUsageDashboardData() {
       new Map(
         availableModels.map(
           (model) =>
-            [
-              encodeModelFilter(model.providerId, model.modelId),
-              `${model.providerName} · ${model.modelName}`,
-            ] as const,
+            [encodeModelFilter(model.providerId, model.modelId), `${model.providerName} · ${model.modelName}`] as const,
         ),
       ),
     [availableModels],
@@ -136,18 +120,10 @@ export function useUsageDashboardData() {
   return {
     availableModels,
     availableProviders,
-    filters: {
-      provider: providerFilter,
-      model: modelFilter,
-      range: rangeFilter,
-    },
+    filters: { provider: providerFilter, model: modelFilter, range: rangeFilter },
     labels: {
-      provider:
-        providerFilter === ALL_FILTER
-          ? 'All providers'
-          : (providerLabelById.get(providerFilter) ?? 'Provider'),
-      model:
-        modelFilter === ALL_FILTER ? 'All models' : (modelLabelByValue.get(modelFilter) ?? 'Model'),
+      provider: providerFilter === ALL_FILTER ? 'All providers' : (providerLabelById.get(providerFilter) ?? 'Provider'),
+      model: modelFilter === ALL_FILTER ? 'All models' : (modelLabelByValue.get(modelFilter) ?? 'Model'),
       range: RANGE_LABELS[rangeFilter],
     },
     isFetching,

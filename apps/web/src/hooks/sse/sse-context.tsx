@@ -178,11 +178,7 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  return (
-    <SseContext.Provider value={{ isConnected, lastHeartbeat, subscribe }}>
-      {children}
-    </SseContext.Provider>
-  );
+  return <SseContext.Provider value={{ isConnected, lastHeartbeat, subscribe }}>{children}</SseContext.Provider>;
 }
 
 function useSseContext(): SseContextValue {

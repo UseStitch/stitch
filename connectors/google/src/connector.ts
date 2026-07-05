@@ -154,16 +154,8 @@ export const googleConnectorModule: ConnectorModule = {
       scopeDescriptions: GOOGLE_SCOPES,
       serviceAccessOptions: [...SERVICE_ACCESS_OPTIONS],
       scopeApiMap: GOOGLE_SCOPE_API_MAP,
-      additionalParams: {
-        access_type: 'offline',
-        prompt: 'consent',
-      },
-      incrementalAuth: {
-        enabled: true,
-        params: {
-          include_granted_scopes: 'true',
-        },
-      },
+      additionalParams: { access_type: 'offline', prompt: 'consent' },
+      incrementalAuth: { enabled: true, params: { include_granted_scopes: 'true' } },
     },
     setupInstructions: [
       {
@@ -199,10 +191,7 @@ export const googleConnectorModule: ConnectorModule = {
           return { accountEmail: null, accountInfo: null };
         }
         const info = (await res.json()) as { email?: string; name?: string; picture?: string };
-        return {
-          accountEmail: info.email ?? null,
-          accountInfo: info as Record<string, unknown>,
-        };
+        return { accountEmail: info.email ?? null, accountInfo: info as Record<string, unknown> };
       } catch (error) {
         logger.warn({ error }, 'Google onAuthorized hook profile fetch failed');
         return { accountEmail: null, accountInfo: null };
@@ -216,9 +205,7 @@ export const googleConnectorModule: ConnectorModule = {
         headers: { Authorization: `Bearer ${instance.accessToken}` },
       });
       if (!res.ok) {
-        const tokenRes = await fetch(
-          `https://oauth2.googleapis.com/tokeninfo?access_token=${instance.accessToken}`,
-        );
+        const tokenRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${instance.accessToken}`);
         if (!tokenRes.ok) {
           throw new Error(`Google API returned ${tokenRes.status}`);
         }

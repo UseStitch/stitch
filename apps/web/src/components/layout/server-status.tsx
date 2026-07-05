@@ -46,8 +46,7 @@ export function ServerStatus() {
     <Popover>
       <PopoverTrigger
         className="relative flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-muted/50"
-        aria-label="Server status"
-      >
+        aria-label="Server status">
         <HardDrive className="h-3.75 w-3.75 text-muted-foreground" />
         <div
           className={`absolute top-1 right-1 h-2 w-2 rounded-full border-[1.5px] border-background transition-colors ${overallHealthy ? 'bg-success' : 'bg-destructive'}`}
@@ -56,20 +55,11 @@ export function ServerStatus() {
       <PopoverContent
         side="bottom"
         align="start"
-        className="w-70 overflow-hidden rounded-xl border-border p-0 shadow-lg"
-      >
+        className="w-70 overflow-hidden rounded-xl border-border p-0 shadow-lg">
         {/* Header Tabs */}
         <div className="flex items-center gap-5 border-b border-border bg-muted/30 px-4 pt-3 text-[13px]">
-          <TabButton
-            label="Servers"
-            active={activeTab === 'servers'}
-            onClick={() => setActiveTab('servers')}
-          />
-          <TabButton
-            label="Info"
-            active={activeTab === 'info'}
-            onClick={() => setActiveTab('info')}
-          />
+          <TabButton label="Servers" active={activeTab === 'servers'} onClick={() => setActiveTab('servers')} />
+          <TabButton label="Info" active={activeTab === 'info'} onClick={() => setActiveTab('info')} />
         </div>
 
         {/* Tab Content */}
@@ -80,9 +70,7 @@ export function ServerStatus() {
               <StatusItem
                 active={isSseConnected}
                 label="Event Bus"
-                subtitle={
-                  lastHeartbeat ? `Last heartbeat ${formatRelativeTime(lastHeartbeat)}` : undefined
-                }
+                subtitle={lastHeartbeat ? `Last heartbeat ${formatRelativeTime(lastHeartbeat)}` : undefined}
               />
             </>
           ) : (
@@ -94,11 +82,7 @@ export function ServerStatus() {
   );
 }
 
-type StatusItemProps = {
-  active: boolean;
-  label: string;
-  subtitle?: string;
-};
+type StatusItemProps = { active: boolean; label: string; subtitle?: string };
 
 function StatusItem({ active, label, subtitle }: StatusItemProps) {
   return (
@@ -108,9 +92,7 @@ function StatusItem({ active, label, subtitle }: StatusItemProps) {
           className={`h-2 w-2 shrink-0 rounded-full ${active ? 'shadow-success-glow bg-success' : 'shadow-destructive-glow bg-destructive'}`}
         />
         <div className="flex flex-col gap-0.5">
-          <span
-            className={`text-[13px] ${active ? 'font-medium text-foreground' : 'text-muted-foreground'}`}
-          >
+          <span className={`text-[13px] ${active ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
             {label}
           </span>
           {subtitle && <span className="text-[11px] text-muted-foreground">{subtitle}</span>}
@@ -128,11 +110,7 @@ function formatRelativeTime(date: Date): string {
   return `${Math.floor(seconds / 60)}m ago`;
 }
 
-type TabButtonProps = {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-};
+type TabButtonProps = { label: string; active: boolean; onClick: () => void };
 
 function TabButton({ label, active, onClick }: TabButtonProps) {
   return (
@@ -143,8 +121,7 @@ function TabButton({ label, active, onClick }: TabButtonProps) {
         active
           ? 'border-primary font-medium text-foreground'
           : 'border-transparent text-muted-foreground hover:text-foreground'
-      }`}
-    >
+      }`}>
       {label}
     </button>
   );
@@ -158,10 +135,7 @@ function InfoPanel() {
   );
 }
 
-type InfoRowProps = {
-  label: string;
-  value: string;
-};
+type InfoRowProps = { label: string; value: string };
 
 function InfoRow({ label, value }: InfoRowProps) {
   return (

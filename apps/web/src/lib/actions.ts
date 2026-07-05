@@ -16,40 +16,19 @@ export function useActions(): Action[] {
   const navigate = useNavigate();
   const params = useParams({ strict: false });
   const sessionId = params?.id;
-  const { commandPaletteOpen, setCommandPaletteOpen, renameSessionOpen, setRenameSessionOpen } =
-    useDialogContext();
+  const { commandPaletteOpen, setCommandPaletteOpen, renameSessionOpen, setRenameSessionOpen } = useDialogContext();
   const abortStream = useStreamStore((s) => s.abortStream);
 
   const actions: Action[] = [
-    {
-      id: 'command-palette',
-      label: 'Command palette',
-      run: () => setCommandPaletteOpen(!commandPaletteOpen),
-    },
-    {
-      id: 'open-settings',
-      label: 'Open settings',
-      run: () => void navigate({ to: '/settings/general' }),
-    },
+    { id: 'command-palette', label: 'Command palette', run: () => setCommandPaletteOpen(!commandPaletteOpen) },
+    { id: 'open-settings', label: 'Open settings', run: () => void navigate({ to: '/settings/general' }) },
     { id: 'open-chat', label: 'Chat', run: () => void navigate({ to: '/' }) },
     { id: 'open-memories', label: 'Memories', run: () => void navigate({ to: '/memories' }) },
-    {
-      id: 'open-recordings',
-      label: 'Recordings',
-      run: () => void navigate({ to: '/recordings' }),
-    },
-    {
-      id: 'open-automations',
-      label: 'Automations',
-      run: () => void navigate({ to: '/automations' }),
-    },
+    { id: 'open-recordings', label: 'Recordings', run: () => void navigate({ to: '/recordings' }) },
+    { id: 'open-automations', label: 'Automations', run: () => void navigate({ to: '/automations' }) },
     { id: 'open-usage', label: 'Usage', run: () => void navigate({ to: '/usage' }) },
     { id: 'new-session', label: 'New session', run: () => void navigate({ to: '/' }) },
-    {
-      id: 'rename-session',
-      label: 'Rename session',
-      run: () => setRenameSessionOpen(!renameSessionOpen),
-    },
+    { id: 'rename-session', label: 'Rename session', run: () => setRenameSessionOpen(!renameSessionOpen) },
   ];
 
   if (sessionId) {
@@ -60,11 +39,7 @@ export function useActions(): Action[] {
         void serverFetch(`/chat/sessions/${sessionId}/compact`, { method: 'POST' });
       },
     });
-    actions.push({
-      id: 'stop-stream',
-      label: 'Stop stream',
-      run: () => void abortStream(sessionId),
-    });
+    actions.push({ id: 'stop-stream', label: 'Stop stream', run: () => void abortStream(sessionId) });
   }
 
   return actions;

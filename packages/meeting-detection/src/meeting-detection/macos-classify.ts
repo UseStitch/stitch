@@ -85,8 +85,8 @@ function toBrowserObservation(row: WatchRow): MeetingObservation | null {
 }
 
 function classifyRow(row: WatchRow): MeetingObservation[] {
-  return [toDesktopObservation(row), toBrowserObservation(row)].filter(
-    (value): value is MeetingObservation => Boolean(value),
+  return [toDesktopObservation(row), toBrowserObservation(row)].filter((value): value is MeetingObservation =>
+    Boolean(value),
   );
 }
 
@@ -95,8 +95,4 @@ export function classifyMacosRows(rows: WatchRow[]): MeetingObservation[] {
   return mergeObservations(observations);
 }
 
-export const internal = {
-  toDesktopObservation,
-  toBrowserObservation,
-  classifyRow,
-};
+export const internal = { toDesktopObservation, toBrowserObservation, classifyRow };

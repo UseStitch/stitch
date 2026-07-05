@@ -40,8 +40,7 @@ export function CopyButton({
       className={cn('text-muted-foreground hover:text-foreground', className)}
       title={copied ? copiedLabel : copyLabel}
       aria-label={copied ? copiedLabel : copyLabel}
-      {...props}
-    >
+      {...props}>
       <span className="relative inline-flex size-3 shrink-0">
         <CopyIcon
           className={cn(

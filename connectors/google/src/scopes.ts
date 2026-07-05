@@ -10,8 +10,7 @@ export const GOOGLE_SCOPE_USERINFO_EMAIL = 'https://www.googleapis.com/auth/user
 export const GOOGLE_SCOPE_GMAIL_READONLY = 'https://www.googleapis.com/auth/gmail.readonly';
 export const GOOGLE_SCOPE_GMAIL_SEND = 'https://www.googleapis.com/auth/gmail.send';
 export const GOOGLE_SCOPE_GMAIL_MODIFY = 'https://www.googleapis.com/auth/gmail.modify';
-export const GOOGLE_SCOPE_GMAIL_SETTINGS_BASIC =
-  'https://www.googleapis.com/auth/gmail.settings.basic';
+export const GOOGLE_SCOPE_GMAIL_SETTINGS_BASIC = 'https://www.googleapis.com/auth/gmail.settings.basic';
 
 export const GOOGLE_SCOPE_DRIVE_READONLY = 'https://www.googleapis.com/auth/drive.readonly';
 export const GOOGLE_SCOPE_DRIVE_FILE = 'https://www.googleapis.com/auth/drive.file';
@@ -25,23 +24,11 @@ export const GOOGLE_SCOPE_DOCS_READONLY = 'https://www.googleapis.com/auth/docum
 export const GOOGLE_SCOPE_DOCS = 'https://www.googleapis.com/auth/documents';
 
 /** Scope groups by Google service. */
-const GMAIL_SCOPES = [
-  GOOGLE_SCOPE_GMAIL_READONLY,
-  GOOGLE_SCOPE_GMAIL_SEND,
-  GOOGLE_SCOPE_GMAIL_MODIFY,
-] as const;
+const GMAIL_SCOPES = [GOOGLE_SCOPE_GMAIL_READONLY, GOOGLE_SCOPE_GMAIL_SEND, GOOGLE_SCOPE_GMAIL_MODIFY] as const;
 
-const DRIVE_SCOPES = [
-  GOOGLE_SCOPE_DRIVE_READONLY,
-  GOOGLE_SCOPE_DRIVE_FILE,
-  GOOGLE_SCOPE_DRIVE,
-] as const;
+const DRIVE_SCOPES = [GOOGLE_SCOPE_DRIVE_READONLY, GOOGLE_SCOPE_DRIVE_FILE, GOOGLE_SCOPE_DRIVE] as const;
 
-const CALENDAR_SCOPES = [
-  GOOGLE_SCOPE_CALENDAR_READONLY,
-  GOOGLE_SCOPE_CALENDAR_EVENTS,
-  GOOGLE_SCOPE_CALENDAR,
-] as const;
+const CALENDAR_SCOPES = [GOOGLE_SCOPE_CALENDAR_READONLY, GOOGLE_SCOPE_CALENDAR_EVENTS, GOOGLE_SCOPE_CALENDAR] as const;
 
 const DOCS_SCOPES = [GOOGLE_SCOPE_DOCS_READONLY, GOOGLE_SCOPE_DOCS] as const;
 
@@ -71,17 +58,13 @@ export function hasServiceAccess(grantedScopes: string[], service: GoogleService
 /** Check if the granted scopes include write access for a service. */
 export function hasWriteAccess(grantedScopes: string[], service: GoogleService): boolean {
   if (service === 'gmail') {
-    return grantedScopes.some(
-      (s) => s === GOOGLE_SCOPE_GMAIL_SEND || s === GOOGLE_SCOPE_GMAIL_MODIFY,
-    );
+    return grantedScopes.some((s) => s === GOOGLE_SCOPE_GMAIL_SEND || s === GOOGLE_SCOPE_GMAIL_MODIFY);
   }
   if (service === 'drive') {
     return grantedScopes.some((s) => s === GOOGLE_SCOPE_DRIVE_FILE || s === GOOGLE_SCOPE_DRIVE);
   }
   if (service === 'calendar') {
-    return grantedScopes.some(
-      (s) => s === GOOGLE_SCOPE_CALENDAR_EVENTS || s === GOOGLE_SCOPE_CALENDAR,
-    );
+    return grantedScopes.some((s) => s === GOOGLE_SCOPE_CALENDAR_EVENTS || s === GOOGLE_SCOPE_CALENDAR);
   }
   if (service === 'docs') {
     return grantedScopes.some((s) => s === GOOGLE_SCOPE_DOCS);
@@ -91,9 +74,7 @@ export function hasWriteAccess(grantedScopes: string[], service: GoogleService):
 
 /** Check if granted scopes can send Gmail messages. */
 export function hasGmailSendAccess(grantedScopes: string[]): boolean {
-  return grantedScopes.some(
-    (s) => s === GOOGLE_SCOPE_GMAIL_SEND || s === GOOGLE_SCOPE_GMAIL_MODIFY,
-  );
+  return grantedScopes.some((s) => s === GOOGLE_SCOPE_GMAIL_SEND || s === GOOGLE_SCOPE_GMAIL_MODIFY);
 }
 
 /** Check if granted scopes can modify Gmail resources (labels, message labels). */

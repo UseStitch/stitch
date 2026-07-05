@@ -23,12 +23,7 @@ function McpServersContent() {
   }
 
   if (view.type === 'preview') {
-    return (
-      <McpToolsPreview
-        server={view.server}
-        onBack={() => setView({ type: 'home', tab: view.returnTab })}
-      />
-    );
+    return <McpToolsPreview server={view.server} onBack={() => setView({ type: 'home', tab: view.returnTab })} />;
   }
 
   if (view.type === 'install') {
@@ -42,16 +37,8 @@ function McpServersContent() {
   }
 
   return (
-    <SettingPage
-      title={page.title}
-      description={page.description}
-      icon={<Icon className="size-5" />}
-    >
-      <Tabs
-        value={view.tab}
-        onValueChange={(tab) => setView({ type: 'home', tab: tab as Tab })}
-        className="space-y-4"
-      >
+    <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
+      <Tabs value={view.tab} onValueChange={(tab) => setView({ type: 'home', tab: tab as Tab })} className="space-y-4">
         <TabsList variant="line">
           <TabsTrigger value="configured">Configured</TabsTrigger>
           <TabsTrigger value="marketplace">Marketplace</TabsTrigger>

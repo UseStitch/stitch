@@ -1,10 +1,4 @@
-type PaginatedResult<T> = {
-  items: T[];
-  page: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
-};
+type PaginatedResult<T> = { items: T[]; page: number; pageSize: number; total: number; totalPages: number };
 
 /**
  * Compute totalPages from a total count and pageSize.
@@ -25,9 +19,7 @@ export function computeTotalPages(total: number, pageSize: number): number {
  * @param transform  - Optional row mapper applied to each data row
  */
 export async function paginatedQuery<TRow, TOut = TRow>(input: {
-  dataQuery: {
-    limit: (n: number) => { offset: (n: number) => Promise<TRow[]> | PromiseLike<TRow[]> };
-  };
+  dataQuery: { limit: (n: number) => { offset: (n: number) => Promise<TRow[]> | PromiseLike<TRow[]> } };
   countQuery: PromiseLike<{ total: number }[]>;
   page: number;
   pageSize: number;
@@ -35,10 +27,7 @@ export async function paginatedQuery<TRow, TOut = TRow>(input: {
 }): Promise<PaginatedResult<TOut>> {
   const offset = (input.page - 1) * input.pageSize;
 
-  const [rows, countRows] = await Promise.all([
-    input.dataQuery.limit(input.pageSize).offset(offset),
-    input.countQuery,
-  ]);
+  const [rows, countRows] = await Promise.all([input.dataQuery.limit(input.pageSize).offset(offset), input.countQuery]);
 
   const total = Number(countRows[0]?.total ?? 0);
   const transform = input.transform ?? ((row: TRow) => row as unknown as TOut);

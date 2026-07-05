@@ -76,8 +76,7 @@ export function AutomationsTable({
             <Link
               to="/automations/$automationId"
               params={{ automationId: row.original.id }}
-              className="text-foreground hover:underline"
-            >
+              className="text-foreground hover:underline">
               {row.original.title}
             </Link>
           </Table.Title>
@@ -88,9 +87,7 @@ export function AutomationsTable({
         header: 'Model',
         cell: ({ row }) => {
           const automation = row.original;
-          const label =
-            modelLabelByKey.get(`${automation.providerId}:${automation.modelId}`) ??
-            automation.modelId;
+          const label = modelLabelByKey.get(`${automation.providerId}:${automation.modelId}`) ?? automation.modelId;
           return <Table.Badge>{label}</Table.Badge>;
         },
       }),
@@ -101,9 +98,7 @@ export function AutomationsTable({
       columnHelper.display({
         id: 'schedule',
         header: 'Schedule',
-        cell: ({ row }) => (
-          <Table.Text>{getAutomationScheduleLabel(row.original.schedule)}</Table.Text>
-        ),
+        cell: ({ row }) => <Table.Text>{getAutomationScheduleLabel(row.original.schedule)}</Table.Text>,
       }),
       columnHelper.accessor('updatedAt', {
         header: 'Updated',
@@ -119,16 +114,14 @@ export function AutomationsTable({
               size="icon-sm"
               onClick={() => onRun(row.original)}
               disabled={runPending}
-              aria-label={`Run ${row.original.title}`}
-            >
+              aria-label={`Run ${row.original.title}`}>
               <PlayIcon className="size-3.5" />
             </Button>
             <Button
               variant="ghost"
               size="icon-sm"
               onClick={() => onEdit(row.original.id)}
-              aria-label={`Edit ${row.original.title}`}
-            >
+              aria-label={`Edit ${row.original.title}`}>
               <PencilIcon className="size-3.5" />
             </Button>
             <Button
@@ -136,8 +129,7 @@ export function AutomationsTable({
               size="icon-sm"
               onClick={() => onDelete(row.original)}
               disabled={deletePending}
-              aria-label={`Delete ${row.original.title}`}
-            >
+              aria-label={`Delete ${row.original.title}`}>
               <Trash2Icon className="size-3.5 text-destructive" />
             </Button>
           </Table.Actions>
@@ -184,9 +176,7 @@ export function AutomationsTable({
               <Table.Row key={headerGroup.id} className="hover:bg-transparent">
                 {headerGroup.headers.map((header) => (
                   <Table.Head key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </Table.Head>
                 ))}
               </Table.Row>
@@ -200,18 +190,14 @@ export function AutomationsTable({
                     <BotIcon className="size-10 text-muted-foreground/30" />
                   </EmptyMedia>
                   <EmptyTitle>No automations yet</EmptyTitle>
-                  <EmptyDescription>
-                    Create your first automation to speed up recurring workflows.
-                  </EmptyDescription>
+                  <EmptyDescription>Create your first automation to speed up recurring workflows.</EmptyDescription>
                 </Empty>
               </Table.EmptyRow>
             ) : (
               table.getRowModel().rows.map((row) => (
                 <Table.Row key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <Table.Cell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </Table.Cell>
+                    <Table.Cell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</Table.Cell>
                   ))}
                 </Table.Row>
               ))
@@ -254,8 +240,7 @@ export function AutomationsTable({
                         onClick={(event) => {
                           event.preventDefault();
                           onPageChange(pageNumber + 1);
-                        }}
-                      >
+                        }}>
                         {pageNumber + 1}
                       </PaginationLink>
                     </PaginationItem>

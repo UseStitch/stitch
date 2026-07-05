@@ -63,11 +63,7 @@ configRouter.get('/mcp-tools', async (c) => {
 configRouter.get('/toolsets', async (c) => {
   const toolsets = listToolsets()
     .map((toolset) => {
-      const view = toToolsetView(toolset, {
-        active: false,
-        persisted: false,
-        includeTools: true,
-      });
+      const view = toToolsetView(toolset, { active: false, persisted: false, includeTools: true });
       return {
         id: view.id,
         name: view.name,
@@ -77,10 +73,7 @@ configRouter.get('/toolsets', async (c) => {
         toolCount: view.tools?.length ?? 0,
         hasInstructions: view.hasInstructions,
         promptCount: view.promptCount,
-        tools: (view.tools ?? []).map((tool) => ({
-          toolName: tool.name,
-          displayName: tool.displayName,
-        })),
+        tools: (view.tools ?? []).map((tool) => ({ toolName: tool.name, displayName: tool.displayName })),
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -100,11 +93,7 @@ configRouter.get('/apps/enabled', async (c) => {
 
 configRouter.put('/tools/enabled', zValidator('json', upsertToolEnabledSchema), async (c) => {
   const body = c.req.valid('json');
-  await setToolEnabledState({
-    scope: body.scope,
-    identifier: body.identifier,
-    enabled: body.enabled,
-  });
+  await setToolEnabledState({ scope: body.scope, identifier: body.identifier, enabled: body.enabled });
   return c.body(null, 204);
 });
 
@@ -115,11 +104,7 @@ configRouter.get('/permissions', async (c) => {
 
 configRouter.put('/permissions', zValidator('json', upsertPermissionSchema), async (c) => {
   const body = c.req.valid('json');
-  await upsertPerm({
-    toolName: body.toolName,
-    pattern: body.pattern ?? null,
-    permission: body.permission,
-  });
+  await upsertPerm({ toolName: body.toolName, pattern: body.pattern ?? null, permission: body.permission });
   return c.body(null, 204);
 });
 

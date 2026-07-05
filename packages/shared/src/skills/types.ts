@@ -1,20 +1,8 @@
 import { z } from 'zod';
 
-export type Skill = {
-  name: string;
-  description: string;
-  content: string;
-  location: string;
-  files: string[];
-};
+export type Skill = { name: string; description: string; content: string; location: string; files: string[] };
 
-export type SkillSearchResult = {
-  name: string;
-  slug: string;
-  source: string;
-  installs: number;
-  isImported: boolean;
-};
+export type SkillSearchResult = { name: string; slug: string; source: string; installs: number; isImported: boolean };
 
 const SKILL_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 

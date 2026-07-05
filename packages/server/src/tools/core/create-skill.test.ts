@@ -28,13 +28,8 @@ describe('createSkillFromTool', () => {
       content: '# Release Flow\n\nDo the release.',
     });
 
-    expect(result).toMatchObject({
-      name: 'release-flow',
-      description: 'Run the release flow.',
-    });
-    expect(await fs.readFile(path.join(tempDir, 'release-flow', 'SKILL.md'), 'utf8')).toContain(
-      '# Release Flow',
-    );
+    expect(result).toMatchObject({ name: 'release-flow', description: 'Run the release flow.' });
+    expect(await fs.readFile(path.join(tempDir, 'release-flow', 'SKILL.md'), 'utf8')).toContain('# Release Flow');
   });
 
   test('returns an error when the skill already exists', async () => {

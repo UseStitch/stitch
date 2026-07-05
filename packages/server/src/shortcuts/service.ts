@@ -36,10 +36,7 @@ export async function listShortcuts(): Promise<ServiceResult<ShortcutRow[]>> {
   );
 }
 
-export async function saveShortcut(
-  actionId: string,
-  hotkeyValue: unknown,
-): Promise<ServiceResult<null>> {
+export async function saveShortcut(actionId: string, hotkeyValue: unknown): Promise<ServiceResult<null>> {
   if (!isAllowedActionId(actionId)) {
     return err('Invalid action ID', 400);
   }

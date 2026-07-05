@@ -10,29 +10,17 @@ import {
 
 describe('shell preferences', () => {
   test('infers pwsh from PowerShell profile metadata', () => {
-    expect(
-      inferWindowsShellFromProfile({
-        name: 'PowerShell',
-        source: 'Windows.Terminal.PowershellCore',
-      }),
-    ).toBe('pwsh');
+    expect(inferWindowsShellFromProfile({ name: 'PowerShell', source: 'Windows.Terminal.PowershellCore' })).toBe(
+      'pwsh',
+    );
   });
 
   test('infers cmd from command prompt profile metadata', () => {
-    expect(
-      inferWindowsShellFromProfile({
-        name: 'Command Prompt',
-      }),
-    ).toBe('cmd');
+    expect(inferWindowsShellFromProfile({ name: 'Command Prompt' })).toBe('cmd');
   });
 
   test('returns null for unrelated profile metadata', () => {
-    expect(
-      inferWindowsShellFromProfile({
-        name: 'Ubuntu',
-        source: 'Microsoft.WSL',
-      }),
-    ).toBeNull();
+    expect(inferWindowsShellFromProfile({ name: 'Ubuntu', source: 'Microsoft.WSL' })).toBeNull();
   });
 
   test('prefers pwsh when available', () => {

@@ -1,23 +1,12 @@
 import type { PrefixedString } from '../id/index.js';
 
-export type SessionTitleUpdatePayload = {
-  sessionId: PrefixedString<'ses'>;
-  title: string;
-};
+export type SessionTitleUpdatePayload = { sessionId: PrefixedString<'ses'>; title: string };
 
-export type SessionTodosUpdatedPayload = {
-  sessionId: PrefixedString<'ses'>;
-};
+export type SessionTodosUpdatedPayload = { sessionId: PrefixedString<'ses'> };
 
-export type CompactionStartPayload = {
-  sessionId: PrefixedString<'ses'>;
-  messageId: PrefixedString<'msg'>;
-};
+export type CompactionStartPayload = { sessionId: PrefixedString<'ses'>; messageId: PrefixedString<'msg'> };
 
-export type CompactionCompletePayload = {
-  sessionId: PrefixedString<'ses'>;
-  summaryMessageId: PrefixedString<'msg'>;
-};
+export type CompactionCompletePayload = { sessionId: PrefixedString<'ses'>; summaryMessageId: PrefixedString<'msg'> };
 
 export const SESSION_EVENT_NAMES = [
   'session-title-update',

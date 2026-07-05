@@ -25,10 +25,7 @@ const pendingPermissionRequests = new Map<string, Promise<PermissionDecisionResu
 
 const permissionResponseStore = new Map<PrefixedString<'permres'>, PermissionResponse>();
 
-type SetPermissionRule = {
-  permission: ToolPermissionValue;
-  pattern?: string | null;
-};
+type SetPermissionRule = { permission: ToolPermissionValue; pattern?: string | null };
 
 export async function upsertPerm(opts: {
   toolName: string;
@@ -58,10 +55,7 @@ export async function upsertPerm(opts: {
     })
     .onConflictDoUpdate({
       target: [toolPermissions.toolName, toolPermissions.pattern],
-      set: {
-        permission: opts.permission,
-        updatedAt: now,
-      },
+      set: { permission: opts.permission, updatedAt: now },
     });
 }
 
@@ -81,10 +75,7 @@ export async function getPermissionDecision(opts: {
   patternTargets?: string[];
 }): Promise<ToolPermissionValue> {
   const db = getDb();
-  const rows = await db
-    .select()
-    .from(toolPermissions)
-    .where(eq(toolPermissions.toolName, opts.toolName));
+  const rows = await db.select().from(toolPermissions).where(eq(toolPermissions.toolName, opts.toolName));
 
   return resolvePermissionFromRules(rows, opts.patternTargets ?? []);
 }
@@ -102,9 +93,7 @@ type RequestPermissionResponseOptions = {
   abortSignal?: AbortSignal;
 };
 
-async function createPermissionResponse(
-  opts: RequestPermissionResponseOptions,
-): Promise<PermissionDecisionResult> {
+async function createPermissionResponse(opts: RequestPermissionResponseOptions): Promise<PermissionDecisionResult> {
   const id = createPermissionResponseId();
 
   const permissionResponse: PermissionResponse = {
@@ -208,32 +197,21 @@ export async function allowPermissionResponse(
   permissionResponseId: PrefixedString<'permres'>,
   setPermission?: SetPermissionRule,
 ): Promise<ServiceResult<null>> {
-  return resolvePermissionResponse({
-    permissionResponseId,
-    decision: { decision: 'allow' },
-    setPermission,
-  });
+  return resolvePermissionResponse({ permissionResponseId, decision: { decision: 'allow' }, setPermission });
 }
 
 export async function rejectPermissionResponse(
   permissionResponseId: PrefixedString<'permres'>,
   setPermission?: SetPermissionRule,
 ): Promise<ServiceResult<null>> {
-  return resolvePermissionResponse({
-    permissionResponseId,
-    decision: { decision: 'reject' },
-    setPermission,
-  });
+  return resolvePermissionResponse({ permissionResponseId, decision: { decision: 'reject' }, setPermission });
 }
 
 export async function alternativePermissionResponse(
   permissionResponseId: PrefixedString<'permres'>,
   entry: string,
 ): Promise<ServiceResult<null>> {
-  return resolvePermissionResponse({
-    permissionResponseId,
-    decision: { decision: 'alternative', entry },
-  });
+  return resolvePermissionResponse({ permissionResponseId, decision: { decision: 'alternative', entry } });
 }
 
 export async function getPendingPermissionResponses(
@@ -262,28 +240,16 @@ export async function abortPermissionResponses(sessionId: PrefixedString<'ses'>)
   for (const row of pending) {
     const streamRunId = streamRunIds.get(row.id);
 
-    internalBus.emit('permission.resolved', {
-      permissionResponseId: row.id,
-      sessionId,
-    });
+    internalBus.emit('permission.resolved', { permissionResponseId: row.id, sessionId });
 
     log.info(
-      {
-        event: 'stream.permission.aborted',
-        streamRunId,
-        sessionId,
-        permissionResponseId: row.id,
-      },
+      { event: 'stream.permission.aborted', streamRunId, sessionId, permissionResponseId: row.id },
       'permission aborted',
     );
   }
 
   log.info(
-    {
-      event: 'stream.permission.aborted',
-      sessionId,
-      count: pending.length,
-    },
+    { event: 'stream.permission.aborted', sessionId, count: pending.length },
     'aborted pending permission responses',
   );
 }

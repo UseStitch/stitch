@@ -8,22 +8,14 @@ import { THEMES } from '@/lib/theme';
 import type { ThemeTokens } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 
-const MODE_LABELS: Record<AppearanceMode, string> = {
-  light: 'Light',
-  dark: 'Dark',
-  system: 'System',
-};
+const MODE_LABELS: Record<AppearanceMode, string> = { light: 'Light', dark: 'Dark', system: 'System' };
 
 export function AppearanceSettings() {
   const page = SETTINGS_PAGE_BY_ID.appearance;
   const Icon = page.icon;
 
   return (
-    <SettingPage
-      title={page.title}
-      description={page.description}
-      icon={<Icon className="size-5" />}
-    >
+    <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
       <AppearanceSelector />
     </SettingPage>
   );
@@ -33,11 +25,7 @@ export function AppearanceSelector() {
   const { mode, themeName, setMode, setTheme } = useTheme();
 
   const effectiveMode =
-    mode === 'system'
-      ? window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light'
-      : mode;
+    mode === 'system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : mode;
 
   return (
     <>
@@ -52,8 +40,7 @@ export function AppearanceSelector() {
                 mode === m
                   ? 'border-primary bg-primary/5 ring-2 ring-primary/20 text-foreground shadow-sm'
                   : 'border-border bg-background text-muted-foreground hover:text-foreground hover:bg-accent/50',
-              )}
-            >
+              )}>
               {MODE_LABELS[m]}
             </button>
           ))}
@@ -71,8 +58,7 @@ export function AppearanceSelector() {
                 themeName === t.name
                   ? 'border-primary bg-primary/5 ring-2 ring-primary/20 shadow-sm'
                   : 'border-border bg-background hover:bg-accent/50 hover:border-foreground/20',
-              )}
-            >
+              )}>
               <ThemePreview tokens={effectiveMode === 'dark' ? t.dark : t.light} />
               <span className="text-xs font-medium">{t.label}</span>
             </button>
@@ -87,8 +73,7 @@ function ThemePreview({ tokens }: { tokens: ThemeTokens }) {
   return (
     <div
       className="flex h-12 gap-1 overflow-hidden rounded-md p-1.5"
-      style={{ background: tokens['background'], border: `1px solid ${tokens['border']}` }}
-    >
+      style={{ background: tokens['background'], border: `1px solid ${tokens['border']}` }}>
       <div className="w-5 shrink-0 rounded-sm" style={{ background: tokens['sidebar'] }} />
       <div className="flex flex-1 flex-col gap-1">
         <div className="h-2 w-3/4 rounded-sm" style={{ background: tokens['muted'] }} />

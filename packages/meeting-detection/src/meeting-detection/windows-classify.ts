@@ -52,10 +52,7 @@ function classifyRow(row: WatchRow): MeetingObservation[] {
     });
   }
 
-  if (
-    (processName === 'teams' || processName === 'ms-teams') &&
-    hasCallHint('teams', windowTitle)
-  ) {
+  if ((processName === 'teams' || processName === 'ms-teams') && hasCallHint('teams', windowTitle)) {
     observations.push({
       key: 'desktop:teams',
       platform: 'teams',
@@ -88,10 +85,7 @@ function classifyRow(row: WatchRow): MeetingObservation[] {
     });
   }
 
-  if (
-    (processName === 'chrome' || processName === 'msedge') &&
-    GOOGLE_MEET_TITLE_RE.test(windowTitle.toLowerCase())
-  ) {
+  if ((processName === 'chrome' || processName === 'msedge') && GOOGLE_MEET_TITLE_RE.test(windowTitle.toLowerCase())) {
     observations.push({
       key: `browser:google-meet:${processName}`,
       platform: 'google-meet',
@@ -110,6 +104,4 @@ export function classifyWindowsRows(rows: WatchRow[]): MeetingObservation[] {
   return mergeObservations(observations);
 }
 
-export const internal = {
-  classifyRow,
-};
+export const internal = { classifyRow };

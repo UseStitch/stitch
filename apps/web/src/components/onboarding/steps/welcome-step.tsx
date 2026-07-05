@@ -11,8 +11,8 @@ export function WelcomeStep({ onContinue }: { onContinue: () => void }) {
       <div className="max-w-lg space-y-2">
         <h2 className="text-2xl font-semibold tracking-tight">Welcome to Stitch</h2>
         <p className="text-sm text-muted-foreground">
-          Let&apos;s personalize your profile and connect your first provider so you can start
-          chatting in less than a minute.
+          Let&apos;s personalize your profile and connect your first provider so you can start chatting in less than a
+          minute.
         </p>
       </div>
       <Button size="lg" onClick={onContinue}>

@@ -8,10 +8,7 @@ import { DEFAULT_URL } from './url.js';
 
 import type { PersistedBrowserState, SessionTabState, TabInfo } from './types.js';
 
-type Persistence = {
-  load: () => PersistedBrowserState;
-  save: (state: PersistedBrowserState) => void;
-};
+type Persistence = { load: () => PersistedBrowserState; save: (state: PersistedBrowserState) => void };
 
 function getStatePath(): string {
   return join(app.getPath('home'), '.stitch', 'browser-state.json');

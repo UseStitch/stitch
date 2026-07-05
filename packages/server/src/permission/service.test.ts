@@ -93,18 +93,12 @@ describe('permission service interactions', () => {
 
     const permissionResponseId = requestedData.permissionResponse.id;
 
-    expect(allowPermissionResponse(permissionResponseId)).resolves.toEqual({
-      data: null,
-      error: null,
-    });
+    expect(allowPermissionResponse(permissionResponseId)).resolves.toEqual({ data: null, error: null });
     expect(promise).resolves.toEqual({ decision: 'allow' });
 
     const resolvedEvent = emittedEvents.find(([name]) => name === 'permission.resolved');
     expect(resolvedEvent).toBeDefined();
-    expect(resolvedEvent![1]).toEqual({
-      permissionResponseId,
-      sessionId,
-    });
+    expect(resolvedEvent![1]).toEqual({ permissionResponseId, sessionId });
   });
 
   test('deduplicates concurrent permission requests with the same key', async () => {
@@ -133,9 +127,9 @@ describe('permission service interactions', () => {
 
     await waitForRequestedEvents(1);
 
-    const requestedEvents = emittedEvents.filter(
-      ([name]) => name === 'permission.requested',
-    ) as Array<[string, InternalEventMap['permission.requested']]>;
+    const requestedEvents = emittedEvents.filter(([name]) => name === 'permission.requested') as Array<
+      [string, InternalEventMap['permission.requested']]
+    >;
     expect(requestedEvents).toHaveLength(1);
 
     await allowPermissionResponse(requestedEvents[0][1].permissionResponse.id);
@@ -166,9 +160,9 @@ describe('permission service interactions', () => {
 
     await waitForRequestedEvents(2);
 
-    const requestedEvents = emittedEvents.filter(
-      ([name]) => name === 'permission.requested',
-    ) as Array<[string, InternalEventMap['permission.requested']]>;
+    const requestedEvents = emittedEvents.filter(([name]) => name === 'permission.requested') as Array<
+      [string, InternalEventMap['permission.requested']]
+    >;
     expect(requestedEvents).toHaveLength(2);
 
     await rejectPermissionResponse(requestedEvents[0][1].permissionResponse.id);
@@ -211,9 +205,9 @@ describe('permission service interactions', () => {
 
     await waitForRequestedEvents(2);
 
-    const requestedEvents = emittedEvents.filter(
-      ([name]) => name === 'permission.requested',
-    ) as Array<[string, InternalEventMap['permission.requested']]>;
+    const requestedEvents = emittedEvents.filter(([name]) => name === 'permission.requested') as Array<
+      [string, InternalEventMap['permission.requested']]
+    >;
     expect(requestedEvents).toHaveLength(2);
 
     await rejectPermissionResponse(requestedEvents[1][1].permissionResponse.id);
@@ -279,13 +273,11 @@ describe('permission service interactions', () => {
     )![1] as InternalEventMap['permission.requested'];
     const permissionResponseId = requestedData.permissionResponse.id;
 
-    expect(
-      alternativePermissionResponse(permissionResponseId, 'Use read instead'),
-    ).resolves.toEqual({ data: null, error: null });
-    expect(promise).resolves.toEqual({
-      decision: 'alternative',
-      entry: 'Use read instead',
+    expect(alternativePermissionResponse(permissionResponseId, 'Use read instead')).resolves.toEqual({
+      data: null,
+      error: null,
     });
+    expect(promise).resolves.toEqual({ decision: 'alternative', entry: 'Use read instead' });
   });
 
   test('abortPermissionResponses rejects pending permissions for the session', async () => {
@@ -310,16 +302,14 @@ describe('permission service interactions', () => {
 
     await waitForEvents(2);
 
-    const requestedEvents = emittedEvents.filter(
-      ([name]) => name === 'permission.requested',
-    ) as Array<[string, InternalEventMap['permission.requested']]>;
+    const requestedEvents = emittedEvents.filter(([name]) => name === 'permission.requested') as Array<
+      [string, InternalEventMap['permission.requested']]
+    >;
 
-    const firstId = requestedEvents.find(
-      ([, data]) => data.permissionResponse.sessionId === sessionId,
-    )?.[1].permissionResponse.id;
-    const secondId = requestedEvents.find(
-      ([, data]) => data.permissionResponse.sessionId === otherSessionId,
-    )?.[1].permissionResponse.id;
+    const firstId = requestedEvents.find(([, data]) => data.permissionResponse.sessionId === sessionId)?.[1]
+      .permissionResponse.id;
+    const secondId = requestedEvents.find(([, data]) => data.permissionResponse.sessionId === otherSessionId)?.[1]
+      .permissionResponse.id;
 
     await abortPermissionResponses(sessionId);
 
@@ -358,10 +348,7 @@ describe('upsertPerm', () => {
 
     await upsertPerm({ toolName: 'bash', permission: 'allow', pattern: '/home/*' });
 
-    const rows = await db
-      .select()
-      .from(toolPermissions)
-      .where(eq(toolPermissions.toolName, 'bash'));
+    const rows = await db.select().from(toolPermissions).where(eq(toolPermissions.toolName, 'bash'));
     expect(rows).toHaveLength(1);
     expect(rows[0]?.pattern).toBe('/home/*');
   });

@@ -30,16 +30,10 @@ describe('parseSlashCommand', () => {
   });
 
   test('parses arguments after the command name', () => {
-    expect(parseSlashCommand('/rename my new title')).toEqual({
-      name: 'rename',
-      args: 'my new title',
-    });
+    expect(parseSlashCommand('/rename my new title')).toEqual({ name: 'rename', args: 'my new title' });
   });
 
   test('trims surrounding whitespace from arguments', () => {
-    expect(parseSlashCommand('/rename   spaced out   ')).toEqual({
-      name: 'rename',
-      args: 'spaced out',
-    });
+    expect(parseSlashCommand('/rename   spaced out   ')).toEqual({ name: 'rename', args: 'spaced out' });
   });
 });

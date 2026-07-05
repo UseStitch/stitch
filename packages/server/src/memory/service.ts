@@ -55,15 +55,8 @@ export async function addSemanticMemory(
   sourceId: string,
 ): Promise<SemanticMemory> {
   const embedder = await getEmbedder();
-  const [embedResult, table] = await Promise.all([
-    embedder.embed(fact.content),
-    getSemanticTable(embedder.dimensions),
-  ]);
-  void recordEmbeddingUsage({
-    providerId: embedder.providerId,
-    modelId: embedder.modelId,
-    tokens: embedResult.tokens,
-  });
+  const [embedResult, table] = await Promise.all([embedder.embed(fact.content), getSemanticTable(embedder.dimensions)]);
+  void recordEmbeddingUsage({ providerId: embedder.providerId, modelId: embedder.modelId, tokens: embedResult.tokens });
   const timestamp = now();
   const id = randomUUID();
 
@@ -95,17 +88,12 @@ type SemanticMemoryUpdate = {
   confidence?: SemanticMemory['confidence'];
 };
 
-export async function updateSemanticMemory(
-  id: string,
-  updates: SemanticMemoryUpdate,
-): Promise<ServiceResult<void>> {
+export async function updateSemanticMemory(id: string, updates: SemanticMemoryUpdate): Promise<ServiceResult<void>> {
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
   const timestamp = now();
 
-  const columns: Record<string, string> = {
-    updatedAt: `'${escapeSql(timestamp)}'`,
-  };
+  const columns: Record<string, string> = { updatedAt: `'${escapeSql(timestamp)}'` };
   if (updates.category !== undefined) {
     columns.category = `'${escapeSql(updates.category)}'`;
   }
@@ -187,24 +175,12 @@ export async function searchSemanticMemories(input: {
   const table = await getSemanticTable(embedder.dimensions);
 
   const [count, embedResult] = await Promise.all([table.countRows(), embedder.embed(input.query)]);
-  void recordEmbeddingUsage({
-    providerId: embedder.providerId,
-    modelId: embedder.modelId,
-    tokens: embedResult.tokens,
-  });
+  void recordEmbeddingUsage({ providerId: embedder.providerId, modelId: embedder.modelId, tokens: embedResult.tokens });
   if (count === 0) {
-    return ok({
-      memories: [],
-      page: input.page,
-      pageSize: input.pageSize,
-      total: 0,
-      totalPages: 0,
-    });
+    return ok({ memories: [], page: input.page, pageSize: input.pageSize, total: 0, totalPages: 0 });
   }
 
-  let search = (table.search(embedResult.embedding) as VectorQuery)
-    .distanceType('cosine')
-    .limit(MAX_SEARCH_RESULTS);
+  let search = (table.search(embedResult.embedding) as VectorQuery).distanceType('cosine').limit(MAX_SEARCH_RESULTS);
 
   const filters: string[] = [];
   if (input.sourceFilter) {
@@ -306,10 +282,7 @@ export async function touchSemanticMemories(ids: string[]): Promise<void> {
 
   const escapedList = ids.map((id) => `'${escapeSql(id)}'`).join(', ');
   await table.update({
-    valuesSql: {
-      accessCount: 'accessCount + 1',
-      lastAccessedAt: `'${escapeSql(timestamp)}'`,
-    },
+    valuesSql: { accessCount: 'accessCount + 1', lastAccessedAt: `'${escapeSql(timestamp)}'` },
     where: `id IN (${escapedList})`,
   });
 }
@@ -318,12 +291,7 @@ export async function pinSemanticMemory(id: string, pinned: boolean): Promise<Se
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
 
-  await table.update({
-    valuesSql: {
-      pinned: pinned ? '1' : '0',
-    },
-    where: `id = '${escapeSql(id)}'`,
-  });
+  await table.update({ valuesSql: { pinned: pinned ? '1' : '0' }, where: `id = '${escapeSql(id)}'` });
   log.info({ id, pinned }, 'updated memory pin status');
   return ok(undefined);
 }
@@ -388,12 +356,7 @@ export async function pruneStaleMemories(config: {
 
   // Second, delete any unpinned memory that is stale AND never accessed
   for (const item of scored) {
-    if (
-      !item.pinned &&
-      !toDelete.has(item.id) &&
-      item.daysSince > config.staleDays &&
-      item.accessCount === 0
-    ) {
+    if (!item.pinned && !toDelete.has(item.id) && item.daysSince > config.staleDays && item.accessCount === 0) {
       toDelete.add(item.id);
     }
   }
@@ -403,10 +366,7 @@ export async function pruneStaleMemories(config: {
       .map((id) => `'${escapeSql(id)}'`)
       .join(', ');
     await table.delete(`id IN (${escapedList})`);
-    log.info(
-      { count: toDelete.size, totalWas: count, cap: config.maxMemories },
-      'pruned low-value/stale memories',
-    );
+    log.info({ count: toDelete.size, totalWas: count, cap: config.maxMemories }, 'pruned low-value/stale memories');
   }
 
   return ok(undefined);
@@ -426,10 +386,7 @@ export async function deduplicateMemories(similarityThreshold = 0.92): Promise<n
     if (toDelete.has(id)) continue;
 
     const vector = row.vector as number[];
-    const results = await (table.search(vector) as VectorQuery)
-      .distanceType('cosine')
-      .limit(4)
-      .toArray();
+    const results = await (table.search(vector) as VectorQuery).distanceType('cosine').limit(4).toArray();
 
     for (const neighbor of results) {
       const neighborId = neighbor.id as string;
@@ -456,10 +413,7 @@ export async function deduplicateMemories(similarityThreshold = 0.92): Promise<n
       .map((id) => `'${escapeSql(id)}'`)
       .join(', ');
     await table.delete(`id IN (${escapedList})`);
-    log.info(
-      { count: toDelete.size, threshold: similarityThreshold },
-      'dedup sweep removed near-duplicate memories',
-    );
+    log.info({ count: toDelete.size, threshold: similarityThreshold }, 'dedup sweep removed near-duplicate memories');
   }
 
   return toDelete.size;

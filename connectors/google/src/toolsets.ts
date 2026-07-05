@@ -44,12 +44,7 @@ const GOOGLE_DEFAULT_CAPABILITIES = [
   GOOGLE_CAPABILITY_DOCS_WRITE,
 ] as const;
 
-export const GOOGLE_TOOLSET_IDS = [
-  'google-gmail',
-  'google-drive',
-  'google-calendar',
-  'google-docs',
-] as const;
+export const GOOGLE_TOOLSET_IDS = ['google-gmail', 'google-drive', 'google-calendar', 'google-docs'] as const;
 
 export type GoogleToolsetDefinition = {
   id: string;
@@ -97,31 +92,18 @@ function hasCapability(capabilities: string[], capability: string): boolean {
   return capabilities.includes(capability);
 }
 
-export function canActivateToolset(
-  toolsetId: string,
-  scopes: string[],
-  capabilities: string[],
-): boolean {
+export function canActivateToolset(toolsetId: string, scopes: string[], capabilities: string[]): boolean {
   if (toolsetId === 'google-gmail') {
-    return (
-      hasServiceAccess(scopes, 'gmail') && hasCapability(capabilities, GOOGLE_CAPABILITY_GMAIL_READ)
-    );
+    return hasServiceAccess(scopes, 'gmail') && hasCapability(capabilities, GOOGLE_CAPABILITY_GMAIL_READ);
   }
   if (toolsetId === 'google-drive') {
-    return (
-      hasServiceAccess(scopes, 'drive') && hasCapability(capabilities, GOOGLE_CAPABILITY_DRIVE_READ)
-    );
+    return hasServiceAccess(scopes, 'drive') && hasCapability(capabilities, GOOGLE_CAPABILITY_DRIVE_READ);
   }
   if (toolsetId === 'google-calendar') {
-    return (
-      hasServiceAccess(scopes, 'calendar') &&
-      hasCapability(capabilities, GOOGLE_CAPABILITY_CALENDAR_READ)
-    );
+    return hasServiceAccess(scopes, 'calendar') && hasCapability(capabilities, GOOGLE_CAPABILITY_CALENDAR_READ);
   }
   if (toolsetId === 'google-docs') {
-    return (
-      hasServiceAccess(scopes, 'docs') && hasCapability(capabilities, GOOGLE_CAPABILITY_DOCS_READ)
-    );
+    return hasServiceAccess(scopes, 'docs') && hasCapability(capabilities, GOOGLE_CAPABILITY_DOCS_READ);
   }
   return false;
 }
@@ -163,14 +145,12 @@ function createGmailToolset(
       'Do not add SPAM and TRASH in the same gmail_modify_messages call. Apply those actions in separate steps if needed.',
     ].join('\n'),
     tools: () => summarizeTools(createGmailTools(SUMMARY_RESOLVER, permissions, config)),
-    activate: (resolveClient) =>
-      wrapGoogleToolErrors(createGmailTools(resolveClient, permissions, config)),
+    activate: (resolveClient) => wrapGoogleToolErrors(createGmailTools(resolveClient, permissions, config)),
   };
 }
 
 function createDriveToolset(scopes: string[], capabilities: string[]): GoogleToolsetDefinition {
-  const canWrite =
-    hasWriteAccess(scopes, 'drive') && hasCapability(capabilities, GOOGLE_CAPABILITY_DRIVE_WRITE);
+  const canWrite = hasWriteAccess(scopes, 'drive') && hasCapability(capabilities, GOOGLE_CAPABILITY_DRIVE_WRITE);
 
   return {
     id: 'google-drive',
@@ -195,9 +175,7 @@ function createDriveToolset(scopes: string[], capabilities: string[]): GoogleToo
 }
 
 function createCalendarToolset(scopes: string[], capabilities: string[]): GoogleToolsetDefinition {
-  const canWrite =
-    hasWriteAccess(scopes, 'calendar') &&
-    hasCapability(capabilities, GOOGLE_CAPABILITY_CALENDAR_WRITE);
+  const canWrite = hasWriteAccess(scopes, 'calendar') && hasCapability(capabilities, GOOGLE_CAPABILITY_CALENDAR_WRITE);
 
   return {
     id: 'google-calendar',
@@ -222,8 +200,7 @@ function createCalendarToolset(scopes: string[], capabilities: string[]): Google
 }
 
 function createDocsToolset(scopes: string[], capabilities: string[]): GoogleToolsetDefinition {
-  const canWrite =
-    hasWriteAccess(scopes, 'docs') && hasCapability(capabilities, GOOGLE_CAPABILITY_DOCS_WRITE);
+  const canWrite = hasWriteAccess(scopes, 'docs') && hasCapability(capabilities, GOOGLE_CAPABILITY_DOCS_WRITE);
 
   return {
     id: 'google-docs',
@@ -249,42 +226,26 @@ function createDocsToolset(scopes: string[], capabilities: string[]): GoogleTool
  * Build the list of Google toolset definitions based on the granted scopes.
  * Only services that the user has authorized will be included.
  */
-export function buildGoogleToolsets(
-  input: string[] | BuildGoogleToolsetsInput,
-): GoogleToolsetDefinition[] {
-  const normalizedInput: BuildGoogleToolsetsInput = Array.isArray(input)
-    ? { scopes: input }
-    : input;
+export function buildGoogleToolsets(input: string[] | BuildGoogleToolsetsInput): GoogleToolsetDefinition[] {
+  const normalizedInput: BuildGoogleToolsetsInput = Array.isArray(input) ? { scopes: input } : input;
   const scopes = normalizedInput.scopes;
   const capabilities = normalizedInput.capabilities ?? [...GOOGLE_DEFAULT_CAPABILITIES];
   const tempPath = normalizedInput.tempPath;
   const toolsets: GoogleToolsetDefinition[] = [];
 
-  if (
-    hasServiceAccess(scopes, 'gmail') &&
-    hasCapability(capabilities, GOOGLE_CAPABILITY_GMAIL_READ)
-  ) {
+  if (hasServiceAccess(scopes, 'gmail') && hasCapability(capabilities, GOOGLE_CAPABILITY_GMAIL_READ)) {
     toolsets.push(createGmailToolset(scopes, capabilities, { tempPath }));
   }
 
-  if (
-    hasServiceAccess(scopes, 'drive') &&
-    hasCapability(capabilities, GOOGLE_CAPABILITY_DRIVE_READ)
-  ) {
+  if (hasServiceAccess(scopes, 'drive') && hasCapability(capabilities, GOOGLE_CAPABILITY_DRIVE_READ)) {
     toolsets.push(createDriveToolset(scopes, capabilities));
   }
 
-  if (
-    hasServiceAccess(scopes, 'calendar') &&
-    hasCapability(capabilities, GOOGLE_CAPABILITY_CALENDAR_READ)
-  ) {
+  if (hasServiceAccess(scopes, 'calendar') && hasCapability(capabilities, GOOGLE_CAPABILITY_CALENDAR_READ)) {
     toolsets.push(createCalendarToolset(scopes, capabilities));
   }
 
-  if (
-    hasServiceAccess(scopes, 'docs') &&
-    hasCapability(capabilities, GOOGLE_CAPABILITY_DOCS_READ)
-  ) {
+  if (hasServiceAccess(scopes, 'docs') && hasCapability(capabilities, GOOGLE_CAPABILITY_DOCS_READ)) {
     toolsets.push(createDocsToolset(scopes, capabilities));
   }
 

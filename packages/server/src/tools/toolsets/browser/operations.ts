@@ -45,10 +45,7 @@ export function shouldReturnFreshSnapshot(input: OperationInput): boolean {
   return false;
 }
 
-export async function executeOperation(
-  input: OperationInput,
-  signal?: AbortSignal,
-): Promise<unknown> {
+export async function executeOperation(input: OperationInput, signal?: AbortSignal): Promise<unknown> {
   const browser = getBrowserManager();
 
   if (input.tool === 'snapshot') {
@@ -72,14 +69,7 @@ export async function executeOperation(
       }
       case 'search': {
         if (!input.query) throw new Error('Missing required field: query');
-        return {
-          output: await browser.search(
-            input.query,
-            input.engine ?? 'google',
-            signal,
-            input.timeoutMs,
-          ),
-        };
+        return { output: await browser.search(input.query, input.engine ?? 'google', signal, input.timeoutMs) };
       }
       case 'go_back': {
         return { output: await browser.goBack(signal, input.timeoutMs) };
@@ -157,22 +147,16 @@ export async function executeOperation(
       case 'select_dropdown': {
         if (!input.ref) throw new Error('Missing required field: ref');
         if (!input.text) throw new Error('Missing required field: text');
-        return {
-          output: await browser.selectDropdown(input.ref, input.text, signal, input.timeoutMs),
-        };
+        return { output: await browser.selectDropdown(input.ref, input.text, signal, input.timeoutMs) };
       }
       case 'scroll': {
         if (!input.direction) throw new Error('Missing required field: direction');
-        return {
-          output: await browser.scroll(input.ref, input.direction as ScrollDirection, signal),
-        };
+        return { output: await browser.scroll(input.ref, input.direction as ScrollDirection, signal) };
       }
       case 'evaluate': {
         if (!input.fn) throw new Error('Missing required field: fn');
         const result = await browser.evaluate(input.fn, signal);
-        return {
-          output: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
-        };
+        return { output: typeof result === 'string' ? result : JSON.stringify(result, null, 2) };
       }
       default:
         throw new Error(`Invalid op for interact tool: ${op}`);
@@ -197,11 +181,7 @@ export async function executeOperation(
       fullPage: input.fullPage,
       ref: input.ref,
     });
-    return {
-      output: `Screenshot taken (${result.format})`,
-      data: result.data,
-      format: result.format,
-    };
+    return { output: `Screenshot taken (${result.format})`, data: result.data, format: result.format };
   }
 
   if (input.tool === 'dialog') {
@@ -215,12 +195,8 @@ export async function executeOperation(
       const message = state.message ? `\nMessage: ${state.message}` : '';
       const url = state.url ? `\nURL: ${state.url}` : '';
       const disposition = state.disposition ? `\nDisposition: ${state.disposition}` : '';
-      const defaultPrompt = state.defaultPromptText
-        ? `\nDefault prompt text: ${state.defaultPromptText}`
-        : '';
-      return {
-        output: `Dialog/popup state: ${status} (${state.type})${message}${url}${disposition}${defaultPrompt}`,
-      };
+      const defaultPrompt = state.defaultPromptText ? `\nDefault prompt text: ${state.defaultPromptText}` : '';
+      return { output: `Dialog/popup state: ${status} (${state.type})${message}${url}${disposition}${defaultPrompt}` };
     }
     if (op === 'handle') {
       if (!input.dialogAction) throw new Error('Missing required field: dialogAction');
@@ -241,9 +217,7 @@ export async function executeOperation(
           outputSchema: input.outputSchema,
         });
         const selectorNote = input.selector ? `\n**Selector:** ${input.selector}` : '';
-        return {
-          output: `${formatExtractContent(input.query, content)}${selectorNote}`,
-        };
+        return { output: `${formatExtractContent(input.query, content)}${selectorNote}` };
       }
       case 'search_page': {
         if (!input.pattern) throw new Error('Missing required field: pattern');

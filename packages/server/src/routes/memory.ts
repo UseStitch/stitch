@@ -33,13 +33,9 @@ const patchSchema = z.object({
   confidence: z.enum(MEMORY_CONFIDENCES).optional(),
 });
 
-const bulkDeleteSchema = z.object({
-  ids: z.array(z.string()).min(1),
-});
+const bulkDeleteSchema = z.object({ ids: z.array(z.string()).min(1) });
 
-const pinSchema = z.object({
-  pinned: z.boolean(),
-});
+const pinSchema = z.object({ pinned: z.boolean() });
 
 export const memoryRouter = new Hono();
 
@@ -50,10 +46,7 @@ async function ensureMemoryActive(c: Context): Promise<Response | null> {
   }
 
   return c.json(
-    {
-      error:
-        'Memory is unavailable. Enable memory and configure an embedding provider/model first.',
-    },
+    { error: 'Memory is unavailable. Enable memory and configure an embedding provider/model first.' },
     409,
   );
 }
@@ -77,12 +70,7 @@ memoryRouter.get('/semantic', zValidator('query', semanticQuerySchema), async (c
     return unwrapResult(c, result);
   }
 
-  const result = await getAllSemanticMemories({
-    page,
-    pageSize,
-    sourceFilter: source,
-    categoryFilter: category,
-  });
+  const result = await getAllSemanticMemories({ page, pageSize, sourceFilter: source, categoryFilter: category });
   return unwrapResult(c, result);
 });
 
@@ -99,10 +87,7 @@ memoryRouter.post('/prune', async (c) => {
   if (inactiveResponse) return inactiveResponse;
 
   const config = await getMemoryConfig();
-  const result = await pruneStaleMemories({
-    maxMemories: config.maxMemories,
-    staleDays: config.staleDays,
-  });
+  const result = await pruneStaleMemories({ maxMemories: config.maxMemories, staleDays: config.staleDays });
   return unwrapResult(c, result, 204);
 });
 

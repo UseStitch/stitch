@@ -1,9 +1,6 @@
 import type { ModelSummary, ProviderModels } from '@/lib/queries/providers';
 
-type ProviderModelSelection = {
-  providerId: string;
-  modelId: string;
-};
+type ProviderModelSelection = { providerId: string; modelId: string };
 
 type ProviderModelOption = {
   providerId: string;
@@ -25,10 +22,7 @@ export function buildProviderModelOptions(providerModels: ProviderModels[]): Pro
   );
 }
 
-export function filterProviderModels(
-  providerModels: ProviderModels[],
-  query: string,
-): ProviderModels[] {
+export function filterProviderModels(providerModels: ProviderModels[], query: string): ProviderModels[] {
   const trimmedQuery = query.trim();
   if (!trimmedQuery) return providerModels;
   const lowered = trimmedQuery.toLowerCase();
@@ -37,9 +31,7 @@ export function filterProviderModels(
     .map((provider) => ({
       ...provider,
       models: provider.models.filter(
-        (model) =>
-          model.name.toLowerCase().includes(lowered) ||
-          provider.providerName.toLowerCase().includes(lowered),
+        (model) => model.name.toLowerCase().includes(lowered) || provider.providerName.toLowerCase().includes(lowered),
       ),
     }))
     .filter((provider) => provider.models.length > 0);
@@ -52,8 +44,6 @@ export function findProviderModelOption(
   if (!selected) return null;
 
   return (
-    options.find(
-      (option) => option.providerId === selected.providerId && option.modelId === selected.modelId,
-    ) ?? null
+    options.find((option) => option.providerId === selected.providerId && option.modelId === selected.modelId) ?? null
   );
 }

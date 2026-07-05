@@ -22,15 +22,9 @@ function focusWindow(getWindow: () => BrowserWindow | null): void {
 
 function buildContextMenu(getWindow: () => BrowserWindow | null): Electron.Menu {
   return Menu.buildFromTemplate([
-    {
-      label: 'Open Stitch',
-      click: () => focusWindow(getWindow),
-    },
+    { label: 'Open Stitch', click: () => focusWindow(getWindow) },
     { type: 'separator' },
-    {
-      label: 'Quit',
-      click: () => app.quit(),
-    },
+    { label: 'Quit', click: () => app.quit() },
   ]);
 }
 

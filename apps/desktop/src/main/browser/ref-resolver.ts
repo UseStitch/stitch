@@ -43,16 +43,13 @@ export class RefResolver {
     return this.unwrapRefCoordinates(ref, result);
   }
 
-  async resolveRefBounds(
-    ref: string,
-  ): Promise<{ x: number; y: number; width: number; height: number }> {
+  async resolveRefBounds(ref: string): Promise<{ x: number; y: number; width: number; height: number }> {
     const result = await (
       await this.getBrowser()
     ).executeJavaScript(
       this.refActionScript(
         ref,
-        (element) =>
-          `${element}.scrollIntoView({ block: 'center', inline: 'center' }); return true;`,
+        (element) => `${element}.scrollIntoView({ block: 'center', inline: 'center' }); return true;`,
       ),
       true,
     );
@@ -120,12 +117,6 @@ export class RefResolver {
       throw new Error(`${error}: ${ref}. Take a fresh browser_snapshot before retrying.`);
     }
 
-    return result as unknown as {
-      result: unknown;
-      x?: unknown;
-      y?: unknown;
-      width?: unknown;
-      height?: unknown;
-    };
+    return result as unknown as { result: unknown; x?: unknown; y?: unknown; width?: unknown; height?: unknown };
   }
 }

@@ -62,10 +62,7 @@ describe('mapAIError', () => {
   });
 
   test('maps named SDK-style errors without APICallError shape', () => {
-    const result = mapAIError({
-      name: 'UnsupportedFunctionalityError',
-      message: 'tool choice type is unsupported',
-    });
+    const result = mapAIError({ name: 'UnsupportedFunctionalityError', message: 'tool choice type is unsupported' });
 
     expect(result.category).toBe('unsupported');
     expect(result.aiErrorName).toBe('UnsupportedFunctionalityError');
@@ -93,14 +90,8 @@ describe('mapAIError', () => {
   });
 
   test('maps retry exhaustion and no-output classes', () => {
-    const retryExhausted = mapAIError({
-      name: 'RetryError',
-      message: 'All retry attempts exhausted',
-    });
-    const noOutput = mapAIError({
-      name: 'NoObjectGeneratedError',
-      message: 'No object was generated',
-    });
+    const retryExhausted = mapAIError({ name: 'RetryError', message: 'All retry attempts exhausted' });
+    const noOutput = mapAIError({ name: 'NoObjectGeneratedError', message: 'No object was generated' });
 
     expect(retryExhausted.category).toBe('retry_exhausted');
     expect(retryExhausted.isRetryable).toBe(false);

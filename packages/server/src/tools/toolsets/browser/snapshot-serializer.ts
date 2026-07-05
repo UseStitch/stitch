@@ -14,11 +14,7 @@ const LOW_VALUE_PATTERNS = [
   /^\s*[{[]"(?:props|state|__|data|payload)/i,
 ];
 
-type BrowserSnapshotSerializeOptions = {
-  maxChars?: number;
-  maxElements?: number;
-  textPerLineChars?: number;
-};
+type BrowserSnapshotSerializeOptions = { maxChars?: number; maxElements?: number; textPerLineChars?: number };
 
 type SerializedBrowserSnapshot = {
   text: string;
@@ -37,9 +33,7 @@ function isMetadataLine(line: string): boolean {
 }
 
 function isInteractiveLine(line: string): boolean {
-  return /\b(?:\[ref=e\d+\]|ref=e\d+|button|link|input|textarea|select|combobox|checkbox|menuitem|tab)\b/i.test(
-    line,
-  );
+  return /\b(?:\[ref=e\d+\]|ref=e\d+|button|link|input|textarea|select|combobox|checkbox|menuitem|tab)\b/i.test(line);
 }
 
 function isLowValueLine(line: string): boolean {

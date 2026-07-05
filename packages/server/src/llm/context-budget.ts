@@ -2,23 +2,14 @@ import { estimate } from '@/utils/token.js';
 import type { ModelMessage } from 'ai';
 
 const DEFAULT_TOOL_RESULT_BUDGET_TOKENS = 1_000;
-const TOOL_RESULT_BUDGET_TOKENS: Record<string, number> = {
-  browser: 600,
-  webfetch: 700,
-  bash: 900,
-};
+const TOOL_RESULT_BUDGET_TOKENS: Record<string, number> = { browser: 600, webfetch: 700, bash: 900 };
 
 const TOOL_RESULT_PREVIEW_CHARS = 1_600;
 const PRESERVE_RECENT_TOOL_RESULTS = 3;
 const PRESERVE_RECENT_BROWSER_TOOL_RESULTS = 1;
 const RECENT_BROWSER_TOOL_RESULT_BUDGET_TOKENS = 3_000;
 
-type CompactableToolResult = {
-  toolName: string;
-  output: unknown;
-  truncated?: boolean;
-  outputPath?: string | null;
-};
+type CompactableToolResult = { toolName: string; output: unknown; truncated?: boolean; outputPath?: string | null };
 
 type ToolResultContentPart = {
   type: 'tool-result';
@@ -27,11 +18,7 @@ type ToolResultContentPart = {
   output: { type: string; value: unknown };
 };
 
-type MediaContentPart = {
-  type: 'image' | 'file';
-  mediaType?: string;
-  filename?: string;
-};
+type MediaContentPart = { type: 'image' | 'file'; mediaType?: string; filename?: string };
 
 export function isToolResultError(output: unknown): boolean {
   return output !== null && output !== undefined && typeof output === 'object' && 'error' in output;
@@ -114,9 +101,7 @@ function stripMediaPart(part: MediaContentPart): { type: 'text'; text: string } 
   return { type: 'text', text: `[Attached ${mediaType}${label} already processed by model]` };
 }
 
-function toToolResultOutput(
-  value: unknown,
-): { type: 'text'; value: string } | { type: 'json'; value: unknown } {
+function toToolResultOutput(value: unknown): { type: 'text'; value: string } | { type: 'json'; value: unknown } {
   return typeof value === 'string' ? { type: 'text', value } : { type: 'json', value };
 }
 
@@ -160,13 +145,9 @@ function countBrowserToolResults(conversation: ModelMessage[]): number {
 
 export function compactConversationForStep(
   conversation: ModelMessage[],
-  options?: {
-    preserveRecentToolResults?: number;
-    compactToolResults?: boolean;
-  },
+  options?: { preserveRecentToolResults?: number; compactToolResults?: boolean },
 ): ModelMessage[] {
-  const preserveRecentToolResults =
-    options?.preserveRecentToolResults ?? PRESERVE_RECENT_TOOL_RESULTS;
+  const preserveRecentToolResults = options?.preserveRecentToolResults ?? PRESERVE_RECENT_TOOL_RESULTS;
   const compactToolResults = options?.compactToolResults ?? true;
   const lastUserMessageIndex = findLastUserMessageIndex(conversation);
   let remainingProtectedToolResults = preserveRecentToolResults;
@@ -175,11 +156,7 @@ export function compactConversationForStep(
   let changed = false;
 
   const compacted = conversation.map((message, messageIndex): ModelMessage => {
-    if (
-      message.role === 'user' &&
-      Array.isArray(message.content) &&
-      messageIndex !== lastUserMessageIndex
-    ) {
+    if (message.role === 'user' && Array.isArray(message.content) && messageIndex !== lastUserMessageIndex) {
       let contentChanged = false;
       const content = message.content.map((part) => {
         if (!isMediaContentPart(part)) {
@@ -217,10 +194,7 @@ export function compactConversationForStep(
       if (!compactToolResults || isProtected) {
         if (compactToolResults && isBrowserTool && isProtected) {
           const compactedOutput = compactToolResultOutput(
-            {
-              toolName: part.toolName,
-              output: part.output.value,
-            },
+            { toolName: part.toolName, output: part.output.value },
             RECENT_BROWSER_TOOL_RESULT_BUDGET_TOKENS,
           );
           if (compactedOutput !== part.output.value) {
@@ -231,10 +205,7 @@ export function compactConversationForStep(
         return part;
       }
 
-      const compactedOutput = compactToolResultOutput({
-        toolName: part.toolName,
-        output: part.output.value,
-      });
+      const compactedOutput = compactToolResultOutput({ toolName: part.toolName, output: part.output.value });
       if (compactedOutput === part.output.value) {
         return part;
       }

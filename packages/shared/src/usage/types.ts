@@ -24,31 +24,15 @@ export type UsageTokenMetrics = {
   totalTokens: number;
 };
 
-export type UsageBucket = {
-  start: number;
-  end: number;
-  label: string;
-  costUsdBySource: Record<string, number>;
-};
+export type UsageBucket = { start: number; end: number; label: string; costUsdBySource: Record<string, number> };
 
 export type UsageDashboardResponse = {
-  range: {
-    from: number;
-    to: number;
-    granularity: UsageBucketGranularity;
-    bucketCount: number;
-  };
-  filters: {
-    providerId: string | null;
-    modelId: string | null;
-  };
+  range: { from: number; to: number; granularity: UsageBucketGranularity; bucketCount: number };
+  filters: { providerId: string | null; modelId: string | null };
   usedProviders: string[];
   usedModels: Array<{ providerId: string; modelId: string }>;
   sources: string[];
-  totals: {
-    costUsd: number;
-    tokenMetrics: UsageTokenMetrics;
-  };
+  totals: { costUsd: number; tokenMetrics: UsageTokenMetrics };
   buckets: UsageBucket[];
 };
 
@@ -61,23 +45,12 @@ export type SttUsageBucket = {
 };
 
 export type SttUsageDashboardResponse = {
-  range: {
-    from: number;
-    to: number;
-    granularity: UsageBucketGranularity;
-    bucketCount: number;
-  };
-  filters: {
-    providerId: string | null;
-    modelId: string | null;
-  };
+  range: { from: number; to: number; granularity: UsageBucketGranularity; bucketCount: number };
+  filters: { providerId: string | null; modelId: string | null };
   usedProviders: string[];
   usedModels: Array<{ providerId: string; modelId: string }>;
   services: string[];
-  totals: {
-    costUsd: number;
-    durationMs: number;
-  };
+  totals: { costUsd: number; durationMs: number };
   buckets: SttUsageBucket[];
 };
 
@@ -90,21 +63,10 @@ export type EmbeddingUsageBucket = {
 };
 
 export type EmbeddingUsageDashboardResponse = {
-  range: {
-    from: number;
-    to: number;
-    granularity: UsageBucketGranularity;
-    bucketCount: number;
-  };
-  filters: {
-    providerId: string | null;
-    modelId: string | null;
-  };
+  range: { from: number; to: number; granularity: UsageBucketGranularity; bucketCount: number };
+  filters: { providerId: string | null; modelId: string | null };
   usedProviders: string[];
   usedModels: Array<{ providerId: string; modelId: string }>;
-  totals: {
-    costUsd: number;
-    totalTokens: number;
-  };
+  totals: { costUsd: number; totalTokens: number };
   buckets: EmbeddingUsageBucket[];
 };

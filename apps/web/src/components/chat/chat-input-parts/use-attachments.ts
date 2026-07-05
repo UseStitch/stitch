@@ -76,10 +76,7 @@ const TEXT_FILE_ACCEPT = [
 
 export const ATTACHMENT_ACCEPT = `image/*,.pdf,${TEXT_FILE_ACCEPT}`;
 
-type UseAttachmentsOptions = {
-  pendingAttachments?: Attachment[];
-  onPendingAttachmentsConsumed?: () => void;
-};
+type UseAttachmentsOptions = { pendingAttachments?: Attachment[]; onPendingAttachmentsConsumed?: () => void };
 
 export function useAttachments(options: UseAttachmentsOptions) {
   const { pendingAttachments, onPendingAttachmentsConsumed } = options;
@@ -115,9 +112,7 @@ export function useAttachments(options: UseAttachmentsOptions) {
       if (imageItems.length === 0) return;
 
       event.preventDefault();
-      const files = imageItems
-        .map((item) => item.getAsFile())
-        .filter((file): file is File => file !== null);
+      const files = imageItems.map((item) => item.getAsFile()).filter((file): file is File => file !== null);
       await addFiles(files);
     },
     [addFiles],

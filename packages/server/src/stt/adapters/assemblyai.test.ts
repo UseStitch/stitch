@@ -36,12 +36,7 @@ describe('createAssemblyAIMessageParser', () => {
       text: 'hello',
       offsetMs: 10,
     });
-    expect(final?.transcript).toMatchObject({
-      id: 'assemblyai-turn-3',
-      kind: 'final',
-      text: 'Hello.',
-      offsetMs: 10,
-    });
+    expect(final?.transcript).toMatchObject({ id: 'assemblyai-turn-3', kind: 'final', text: 'Hello.', offsetMs: 10 });
   });
 
   test('does not emit duplicate finals for unformatted end-of-turn messages', () => {
@@ -107,10 +102,6 @@ describe('createAssemblyAIMessageParser', () => {
       }),
     );
 
-    expect(result?.transcript).toMatchObject({
-      id: 'assemblyai-turn-5',
-      kind: 'final',
-      text: '',
-    });
+    expect(result?.transcript).toMatchObject({ id: 'assemblyai-turn-5', kind: 'final', text: '' });
   });
 });

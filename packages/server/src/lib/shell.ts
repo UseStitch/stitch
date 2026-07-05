@@ -4,41 +4,17 @@ import path from 'node:path';
 
 type WindowsShellPreference = 'pwsh' | 'cmd' | null;
 
-type TerminalProfile = {
-  name?: string;
-  source?: string;
-  commandline?: string;
-};
+type TerminalProfile = { name?: string; source?: string; commandline?: string };
 
-type TerminalSettings = {
-  defaultProfile?: string;
-  profiles?: {
-    list?: TerminalProfileWithGuid[];
-  };
-};
+type TerminalSettings = { defaultProfile?: string; profiles?: { list?: TerminalProfileWithGuid[] } };
 
-type TerminalProfileWithGuid = TerminalProfile & {
-  guid?: string;
-};
+type TerminalProfileWithGuid = TerminalProfile & { guid?: string };
 
-type ShellResolution = {
-  shell: string;
-  exe: string;
-  source: string;
-  buildArgv: (command: string) => string[];
-};
+type ShellResolution = { shell: string; exe: string; source: string; buildArgv: (command: string) => string[] };
 
 export function buildPowerShellArgv(command: string): string[] {
   const encodedCommand = Buffer.from(command, 'utf16le').toString('base64');
-  return [
-    '-NoLogo',
-    '-NoProfile',
-    '-NonInteractive',
-    '-ExecutionPolicy',
-    'Bypass',
-    '-EncodedCommand',
-    encodedCommand,
-  ];
+  return ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encodedCommand];
 }
 
 export function buildCmdArgv(command: string): string[] {
@@ -116,22 +92,12 @@ export function resolvePreferredShell(): ShellResolution {
   }
 
   if (process.env.SHELL && process.env.SHELL.trim().length > 0) {
-    return {
-      shell: process.env.SHELL,
-      exe: process.env.SHELL,
-      source: 'process.env.SHELL',
-      buildArgv: buildPosixArgv,
-    };
+    return { shell: process.env.SHELL, exe: process.env.SHELL, source: 'process.env.SHELL', buildArgv: buildPosixArgv };
   }
 
   const shell = process.platform === 'darwin' ? '/bin/zsh' : '/bin/sh';
 
-  return {
-    shell,
-    exe: shell,
-    source: 'platform-default',
-    buildArgv: buildPosixArgv,
-  };
+  return { shell, exe: shell, source: 'platform-default', buildArgv: buildPosixArgv };
 }
 
 function readWindowsTerminalDefaultProfile(): TerminalProfile | null {

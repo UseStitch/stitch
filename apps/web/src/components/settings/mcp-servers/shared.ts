@@ -1,10 +1,4 @@
-import type {
-  McpAuthConfig,
-  McpAuthType,
-  McpRegistryServer,
-  McpServer,
-  McpTransport,
-} from '@stitch/shared/mcp/types';
+import type { McpAuthConfig, McpAuthType, McpRegistryServer, McpServer, McpTransport } from '@stitch/shared/mcp/types';
 
 export const AUTH_TYPE_LABELS: Record<McpAuthType, { label: string; description: string }> = {
   none: { label: 'No auth', description: 'Open server, no credentials needed' },
@@ -79,12 +73,7 @@ export function buildAuthConfig(form: AddFormState): McpAuthConfig {
 
 export function applyAuthConfigToForm(form: AddFormState, authConfig: McpAuthConfig): AddFormState {
   if (authConfig.type === 'api_key') {
-    return {
-      ...form,
-      authType: 'api_key',
-      apiKey: authConfig.apiKey,
-      headers: [],
-    };
+    return { ...form, authType: 'api_key', apiKey: authConfig.apiKey, headers: [] };
   }
 
   if (authConfig.type === 'headers') {
@@ -108,12 +97,7 @@ export function applyAuthConfigToForm(form: AddFormState, authConfig: McpAuthCon
     };
   }
 
-  return {
-    ...form,
-    authType: 'none',
-    apiKey: '',
-    headers: [],
-  };
+  return { ...form, authType: 'none', apiKey: '', headers: [] };
 }
 
 export function describeAuthConfig(authConfig: McpAuthConfig): string {

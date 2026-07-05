@@ -20,12 +20,7 @@ type SessionDeleteDialogProps = {
   onDeleted?: () => void;
 };
 
-export function SessionDeleteDialog({
-  sessionId,
-  open,
-  onOpenChange,
-  onDeleted,
-}: SessionDeleteDialogProps) {
+export function SessionDeleteDialog({ sessionId, open, onOpenChange, onDeleted }: SessionDeleteDialogProps) {
   const navigate = useNavigate();
   const deleteSession = useDeleteSession();
 
@@ -42,8 +37,7 @@ export function SessionDeleteDialog({
         <DialogHeader>
           <DialogTitle>Delete session?</DialogTitle>
           <DialogDescription>
-            This permanently removes the session and all of its messages. This action cannot be
-            undone.
+            This permanently removes the session and all of its messages. This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -55,8 +49,7 @@ export function SessionDeleteDialog({
             onClick={() => {
               void handleDeleteSession();
             }}
-            disabled={deleteSession.isPending}
-          >
+            disabled={deleteSession.isPending}>
             {deleteSession.isPending ? 'Deleting...' : 'Delete session'}
           </Button>
         </DialogFooter>

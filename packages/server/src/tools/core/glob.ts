@@ -24,17 +24,10 @@ Example:
 
 const globInputSchema = z.object({
   pattern: z.string().describe('The glob pattern to match files against'),
-  path: z
-    .string()
-    .describe(
-      'Absolute directory path to search in. Required to keep searches scoped and performant.',
-    ),
+  path: z.string().describe('Absolute directory path to search in. Required to keep searches scoped and performant.'),
 });
 
-type GlobResult = {
-  output: string;
-  path: string;
-};
+type GlobResult = { output: string; path: string };
 
 export async function globPaths(input: z.infer<typeof globInputSchema>): Promise<GlobResult> {
   const parsed = globInputSchema.parse(input);
@@ -44,19 +37,12 @@ export async function globPaths(input: z.infer<typeof globInputSchema>): Promise
     throw new Error('path must point to a directory');
   }
 
-  const matches = await Glob.scan(parsed.pattern, {
-    cwd: searchPath,
-    absolute: true,
-    dot: true,
-  });
+  const matches = await Glob.scan(parsed.pattern, { cwd: searchPath, absolute: true, dot: true });
 
   const withMtime = await Promise.all(
     matches.map(async (filePath) => {
       const fileStats = await fs.stat(filePath).catch(() => null);
-      return {
-        filePath,
-        mtime: fileStats?.mtimeMs ?? 0,
-      };
+      return { filePath, mtime: fileStats?.mtimeMs ?? 0 };
     }),
   );
 
@@ -65,10 +51,7 @@ export async function globPaths(input: z.infer<typeof globInputSchema>): Promise
   const finalPaths = truncated ? sorted.slice(0, MAX_RESULTS) : sorted;
 
   if (finalPaths.length === 0) {
-    return {
-      output: 'No files found',
-      path: searchPath,
-    };
+    return { output: 'No files found', path: searchPath };
   }
 
   const outputLines = [...finalPaths];
@@ -79,18 +62,11 @@ export async function globPaths(input: z.infer<typeof globInputSchema>): Promise
     );
   }
 
-  return {
-    output: outputLines.join('\n'),
-    path: searchPath,
-  };
+  return { output: outputLines.join('\n'), path: searchPath };
 }
 
 function createGlobTool() {
-  return tool({
-    description: DESCRIPTION,
-    inputSchema: globInputSchema,
-    execute: async (input) => globPaths(input),
-  });
+  return tool({ description: DESCRIPTION, inputSchema: globInputSchema, execute: async (input) => globPaths(input) });
 }
 
 function getPatternTargets(input: unknown): string[] {

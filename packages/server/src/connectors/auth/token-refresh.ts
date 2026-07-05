@@ -3,10 +3,7 @@ import { eq, and, isNotNull, lt } from 'drizzle-orm';
 import type { OAuthConfig } from '@stitch/shared/connectors/types';
 
 import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
-import {
-  refreshAccessToken as refreshAccessTokenDefault,
-  requiresOAuthReauth,
-} from '@/connectors/auth/oauth2.js';
+import { refreshAccessToken as refreshAccessTokenDefault, requiresOAuthReauth } from '@/connectors/auth/oauth2.js';
 import type { refreshAccessToken as RefreshAccessTokenFn } from '@/connectors/auth/oauth2.js';
 import { withRefreshLock } from '@/connectors/auth/refresh-lock.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
@@ -107,10 +104,7 @@ export async function refreshExpiringTokens(deps?: {
         })
         .where(eq(connectorInstances.id, instance.id));
 
-      log.info(
-        { event: 'token-refresh.success', instanceId: instance.id },
-        `Token refreshed for ${instance.label}`,
-      );
+      log.info({ event: 'token-refresh.success', instanceId: instance.id }, `Token refreshed for ${instance.label}`);
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       const requiresReauth = requiresOAuthReauth(e);
@@ -130,11 +124,7 @@ export async function refreshExpiringTokens(deps?: {
       if (requiresReauth) {
         await db
           .update(connectorInstances)
-          .set({
-            status: 'error',
-            authIssue: 'reauthorization_required',
-            updatedAt: Date.now(),
-          })
+          .set({ status: 'error', authIssue: 'reauthorization_required', updatedAt: Date.now() })
           .where(eq(connectorInstances.id, instance.id));
       }
     }

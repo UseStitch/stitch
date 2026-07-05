@@ -17,15 +17,9 @@ import type { STTConnection } from '@/stt/adapter-iface.js';
 import { resolveSttAuth } from '@/stt/auth.js';
 import { CapabilityNegotiationError, resolve } from '@/stt/capabilities.js';
 import { calculateCost } from '@/stt/cost.js';
-import {
-  createDiarizationFallback,
-  type DiarizationFallback,
-} from '@/stt/fallbacks/diarization.js';
+import { createDiarizationFallback, type DiarizationFallback } from '@/stt/fallbacks/diarization.js';
 import { createVadFallback, type VadFallback } from '@/stt/fallbacks/vad.js';
-import {
-  createTranscriptOrderingBuffer,
-  type SourcedTranscriptEvent,
-} from '@/stt/ordering-buffer.js';
+import { createTranscriptOrderingBuffer, type SourcedTranscriptEvent } from '@/stt/ordering-buffer.js';
 import { getAdapter } from '@/stt/registry.js';
 import type { CommitStrategy, STTConnectionConfig } from '@/stt/types.js';
 
@@ -43,11 +37,7 @@ type STTSessionConfig = {
   inputSampleRateHz: number;
 };
 
-export type STTSessionResult = {
-  costUsd: number;
-  usage: STTUsage;
-  capabilityResolution: CapabilityResolution;
-};
+export type STTSessionResult = { costUsd: number; usage: STTUsage; capabilityResolution: CapabilityResolution };
 
 export type STTSession = {
   readonly sttSessionId: string;
@@ -71,8 +61,7 @@ export class STTSessionError extends Error {
 }
 
 export async function createSTTSession(config: STTSessionConfig): Promise<STTSession> {
-  const { sttSessionId, providerId, modelId, service, capabilityRequest, language, keyterms } =
-    config;
+  const { sttSessionId, providerId, modelId, service, capabilityRequest, language, keyterms } = config;
 
   log.info({ sttSessionId, providerId, modelId }, 'creating STT session');
 
@@ -103,10 +92,7 @@ export async function createSTTSession(config: STTSessionConfig): Promise<STTSes
   // Resolve auth
   const auth = await resolveSttAuth(providerId);
   if (!auth) {
-    throw new STTSessionError(
-      `No credentials configured for provider: ${providerId}`,
-      'no_credentials',
-    );
+    throw new STTSessionError(`No credentials configured for provider: ${providerId}`, 'no_credentials');
   }
 
   // Determine commit strategy
@@ -124,10 +110,7 @@ export async function createSTTSession(config: STTSessionConfig): Promise<STTSes
     const { 'profile.name': profileName } = await getSettings(['profile.name'] as const);
     const micName = profileName.trim() || 'You';
 
-    diarizationFallback = createDiarizationFallback({
-      micSpeakerName: micName,
-      speakerSpeakerName: 'Them',
-    });
+    diarizationFallback = createDiarizationFallback({ micSpeakerName: micName, speakerSpeakerName: 'Them' });
   }
 
   const useDualStream = diarizationFallback !== null;
@@ -260,21 +243,11 @@ export async function createSTTSession(config: STTSessionConfig): Promise<STTSes
     const endedAt = Date.now();
 
     const db = getDb();
-    await db.insert(sttUsageEvents).values({
-      id: randomUUID(),
-      providerId,
-      modelId,
-      service,
-      costUsd,
-      rawData: totalUsage,
-      startedAt,
-      endedAt,
-    });
+    await db
+      .insert(sttUsageEvents)
+      .values({ id: randomUUID(), providerId, modelId, service, costUsd, rawData: totalUsage, startedAt, endedAt });
 
-    log.info(
-      { sttSessionId, providerId, modelId, costUsd, durationMs: totalUsage.durationMs },
-      'session stopped',
-    );
+    log.info({ sttSessionId, providerId, modelId, costUsd, durationMs: totalUsage.durationMs }, 'session stopped');
 
     return { costUsd, usage: totalUsage, capabilityResolution };
   }

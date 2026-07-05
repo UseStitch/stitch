@@ -40,13 +40,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
@@ -64,11 +58,7 @@ import {
   useDeleteMeetingNoteTemplate,
   useUpdateMeetingNoteTemplate,
 } from '@/lib/queries/recordings';
-import {
-  deleteSettingMutationOptions,
-  saveSettingMutationOptions,
-  settingsQueryOptions,
-} from '@/lib/queries/settings';
+import { deleteSettingMutationOptions, saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 
 const RECORDING_MODEL_PREFERENCES = [
   {
@@ -87,8 +77,7 @@ const RECORDING_MODEL_PREFERENCES = [
 
 const SYSTEM_DEFAULT_VALUE = '__system_default__';
 
-const EMPTY_TEMPLATE_CONTENT =
-  '# Meeting Notes\n\n## Summary\n- \n\n## Decisions\n- \n\n## Action Items\n- [ ] \n';
+const EMPTY_TEMPLATE_CONTENT = '# Meeting Notes\n\n## Summary\n- \n\n## Decisions\n- \n\n## Action Items\n- [ ] \n';
 
 function PermissionStatus() {
   const { data: permissions, refetch } = useQuery(audioPermissionsQueryOptions);
@@ -127,17 +116,14 @@ function PermissionStatus() {
           <p className="text-sm font-medium text-warning">Missing Permissions</p>
           <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
             {micDenied ? <li>Microphone access is required to capture audio.</li> : null}
-            {screenDenied ? (
-              <li>System audio recording access is required to capture system audio.</li>
-            ) : null}
+            {screenDenied ? <li>System audio recording access is required to capture system audio.</li> : null}
           </ul>
         </div>
         <button
           type="button"
           className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           disabled={requesting}
-          onClick={() => void handleGrantPermissions()}
-        >
+          onClick={() => void handleGrantPermissions()}>
           {requesting ? 'Requesting...' : 'Grant Permissions'}
         </button>
       </div>
@@ -186,10 +172,7 @@ function AudioDeviceSettings() {
     <SettingRows>
       <SettingRow label="Input Device" description="Microphone used for recording.">
         <SettingRowControl size="lg">
-          <Select
-            value={currentInputDevice || SYSTEM_DEFAULT_VALUE}
-            onValueChange={handleInputDeviceChange}
-          >
+          <Select value={currentInputDevice || SYSTEM_DEFAULT_VALUE} onValueChange={handleInputDeviceChange}>
             <SelectTrigger className="w-full">
               <SelectValue>{currentInputDevice || 'System Default'}</SelectValue>
             </SelectTrigger>
@@ -207,10 +190,7 @@ function AudioDeviceSettings() {
 
       <SettingRow label="Output Device" description="Speaker or system audio source for recording.">
         <SettingRowControl size="lg">
-          <Select
-            value={currentOutputDevice || SYSTEM_DEFAULT_VALUE}
-            onValueChange={handleOutputDeviceChange}
-          >
+          <Select value={currentOutputDevice || SYSTEM_DEFAULT_VALUE} onValueChange={handleOutputDeviceChange}>
             <SelectTrigger className="w-full">
               <SelectValue>{currentOutputDevice || 'System Default'}</SelectValue>
             </SelectTrigger>
@@ -239,24 +219,18 @@ function RecordingsContent() {
     saveSettingMutationOptions('recordings.autoAnalyze', queryClient, { silent: true }),
   );
   const saveDefaultTemplateMutation = useMutation(
-    saveSettingMutationOptions('recordings.analysis.defaultTemplateId', queryClient, {
-      silent: true,
-    }),
+    saveSettingMutationOptions('recordings.analysis.defaultTemplateId', queryClient, { silent: true }),
   );
 
   const autoAnalyzeEnabled = settings['recordings.autoAnalyze'] === 'true';
   const defaultTemplateId = settings['recordings.analysis.defaultTemplateId'];
   const defaultTemplate =
-    templateData.templates.find((template) => template.id === defaultTemplateId) ??
-    templateData.templates[0];
+    templateData.templates.find((template) => template.id === defaultTemplateId) ?? templateData.templates[0];
   const hasTranscriptionModel =
-    !!settings['recordings.transcription.providerId'] &&
-    !!settings['recordings.transcription.modelId'];
-  const hasAnalysisModel =
-    !!settings['recordings.analysis.providerId'] && !!settings['recordings.analysis.modelId'];
+    !!settings['recordings.transcription.providerId'] && !!settings['recordings.transcription.modelId'];
+  const hasAnalysisModel = !!settings['recordings.analysis.providerId'] && !!settings['recordings.analysis.modelId'];
   const canEnableAutoAnalyze = hasTranscriptionModel && hasAnalysisModel && !!defaultTemplate;
-  const autoAnalyzeDisabled =
-    saveAutoAnalyzeMutation.isPending || (!autoAnalyzeEnabled && !canEnableAutoAnalyze);
+  const autoAnalyzeDisabled = saveAutoAnalyzeMutation.isPending || (!autoAnalyzeEnabled && !canEnableAutoAnalyze);
 
   // Map STT models to ProviderModels shape for the model select component
   const transcriptionProviderModels: ProviderModels[] = sttProviderModels.map((p) => ({
@@ -270,36 +244,28 @@ function RecordingsContent() {
     return llmProviderModels;
   };
 
-  const noModelsAvailable =
-    transcriptionProviderModels.length === 0 && llmProviderModels.length === 0;
+  const noModelsAvailable = transcriptionProviderModels.length === 0 && llmProviderModels.length === 0;
 
   return (
     <>
       <SettingRows>
         <SettingRow
           label="Auto analyze recordings"
-          description="Automatically run transcription and analysis after a recording ends."
-        >
+          description="Automatically run transcription and analysis after a recording ends.">
           <Switch
             checked={autoAnalyzeEnabled}
-            onCheckedChange={(checked) =>
-              saveAutoAnalyzeMutation.mutate(checked ? 'true' : 'false')
-            }
+            onCheckedChange={(checked) => saveAutoAnalyzeMutation.mutate(checked ? 'true' : 'false')}
             disabled={autoAnalyzeDisabled}
           />
         </SettingRow>
         <SettingRow
           label="Default notes template"
-          description="Template used when recordings are analyzed automatically or from the default action."
-        >
+          description="Template used when recordings are analyzed automatically or from the default action.">
           <SettingRowControl>
             <Select
               value={defaultTemplate?.id ?? ''}
               onValueChange={(value) => value && saveDefaultTemplateMutation.mutate(value)}
-              disabled={
-                saveDefaultTemplateMutation.isPending || templateData.templates.length === 0
-              }
-            >
+              disabled={saveDefaultTemplateMutation.isPending || templateData.templates.length === 0}>
               <SelectTrigger className="w-full">
                 <SelectValue>{defaultTemplate?.name ?? 'No templates available'}</SelectValue>
               </SelectTrigger>
@@ -361,9 +327,7 @@ function MarkdownHelpDialog() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Markdown basics</DialogTitle>
-            <DialogDescription>
-              Use Markdown to shape how the note template should be filled in.
-            </DialogDescription>
+            <DialogDescription>Use Markdown to shape how the note template should be filled in.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm">
             <div>
@@ -451,9 +415,7 @@ function MeetingNoteTemplatesSettings() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <Select value={selectedId ?? undefined} onValueChange={setSelectedId}>
           <SelectTrigger className="w-full sm:w-80">
-            <SelectValue placeholder="Select a template">
-              {selectedTemplate?.name ?? 'Select a template'}
-            </SelectValue>
+            <SelectValue placeholder="Select a template">{selectedTemplate?.name ?? 'Select a template'}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             {data.templates.map((template) => (
@@ -480,8 +442,7 @@ function MeetingNoteTemplatesSettings() {
                         variant="destructive"
                         size="icon-sm"
                         aria-label="Delete template"
-                        disabled={!selectedTemplate || deleteMutation.isPending}
-                      >
+                        disabled={!selectedTemplate || deleteMutation.isPending}>
                         <TrashIcon />
                       </Button>
                     }
@@ -497,8 +458,7 @@ function MeetingNoteTemplatesSettings() {
                 </AlertDialogMedia>
                 <AlertDialogTitle>Delete template?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently delete “{selectedTemplate?.name ?? 'this template'}”. This
-                  cannot be undone.
+                  This will permanently delete “{selectedTemplate?.name ?? 'this template'}”. This cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -506,8 +466,7 @@ function MeetingNoteTemplatesSettings() {
                 <AlertDialogAction
                   variant="destructive"
                   disabled={deleteMutation.isPending}
-                  onClick={handleDeleteTemplate}
-                >
+                  onClick={handleDeleteTemplate}>
                   Delete
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -518,8 +477,7 @@ function MeetingNoteTemplatesSettings() {
               size="icon-sm"
               aria-label="Save template"
               disabled={!canSave || isSaving}
-              onClick={handleSaveTemplate}
-            >
+              onClick={handleSaveTemplate}>
               <SaveIcon />
             </Button>
           </SettingsIconButtonTooltip>
@@ -561,11 +519,7 @@ export function RecordingsSettings() {
   const Icon = page.icon;
 
   return (
-    <SettingPage
-      title={page.title}
-      description={page.description}
-      icon={<Icon className="size-5" />}
-    >
+    <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
       <Tabs defaultValue="settings" className="min-h-0">
         <TabsList variant="line">
           <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -591,8 +545,7 @@ export function RecordingsSettings() {
           <SettingSection
             title="Meeting Note Templates"
             description="Create and edit markdown templates used to summarize meeting transcripts."
-            className="mt-0"
-          >
+            className="mt-0">
             <MeetingNoteTemplatesSettings />
           </SettingSection>
         </TabsContent>

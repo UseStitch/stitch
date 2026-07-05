@@ -13,10 +13,7 @@ export async function getProviderCredentials(providerId: string): Promise<Servic
   }
 
   const db = getDb();
-  const [config] = await db
-    .select()
-    .from(providerConfig)
-    .where(eq(providerConfig.providerId, providerId));
+  const [config] = await db.select().from(providerConfig).where(eq(providerConfig.providerId, providerId));
   if (!config) {
     return err('Provider not configured', 404);
   }
@@ -24,18 +21,12 @@ export async function getProviderCredentials(providerId: string): Promise<Servic
   return ok(config.credentials);
 }
 
-export async function upsertProviderCredentials(
-  providerId: string,
-  body: unknown,
-): Promise<ServiceResult<null>> {
+export async function upsertProviderCredentials(providerId: string, body: unknown): Promise<ServiceResult<null>> {
   if (!isAllowedProvider(providerId)) {
     return err('Provider not found', 404);
   }
 
-  const parsed = ProviderCredentialsSchema.safeParse({
-    ...(body as Record<string, unknown>),
-    providerId,
-  });
+  const parsed = ProviderCredentialsSchema.safeParse({ ...(body as Record<string, unknown>), providerId });
   if (!parsed.success) {
     return err('Invalid credentials', 400, parsed.error.flatten());
   }

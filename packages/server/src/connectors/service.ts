@@ -31,10 +31,7 @@ import type { ServiceResult } from '@/lib/service-result.js';
 const log = Log.create({ service: 'connectors' });
 const REFRESH_BUFFER_MS = 60_000;
 
-function toSafe(
-  instance: ConnectorInstance,
-  definition: ConnectorDefinition | undefined,
-): ConnectorInstanceSafe {
+function toSafe(instance: ConnectorInstance, definition: ConnectorDefinition | undefined): ConnectorInstanceSafe {
   const { clientSecret, accessToken, refreshToken, apiKey, ...rest } = instance;
   const appliedVersion = Number.isFinite(instance.appliedVersion) ? instance.appliedVersion : 1;
   const storedCapabilities = Array.isArray(instance.capabilities) ? instance.capabilities : [];
@@ -48,12 +45,7 @@ function toSafe(
   const upgrade =
     definition === undefined
       ? null
-      : buildUpgradeState({
-          definition,
-          appliedVersion,
-          scopes: instance.scopes,
-          capabilities: effectiveCapabilities,
-        });
+      : buildUpgradeState({ definition, appliedVersion, scopes: instance.scopes, capabilities: effectiveCapabilities });
 
   return {
     ...rest,
@@ -69,10 +61,7 @@ function toSafe(
 
 export async function listConnectorInstances(): Promise<ServiceResult<ConnectorInstanceSafe[]>> {
   const db = getDb();
-  const rows = await db
-    .select()
-    .from(connectorInstances)
-    .orderBy(asc(connectorInstances.createdAt));
+  const rows = await db.select().from(connectorInstances).orderBy(asc(connectorInstances.createdAt));
   return ok(
     rows.map((r) => {
       const instance = r as ConnectorInstance;
@@ -81,9 +70,7 @@ export async function listConnectorInstances(): Promise<ServiceResult<ConnectorI
   );
 }
 
-export async function getConnectorInstance(
-  id: string,
-): Promise<ServiceResult<ConnectorInstanceSafe>> {
+export async function getConnectorInstance(id: string): Promise<ServiceResult<ConnectorInstanceSafe>> {
   const db = getDb();
   const [row] = await db
     .select()
@@ -214,17 +201,12 @@ export async function authorizeOAuthInstance(
 
   const config = definition.authConfig as OAuthConfig;
   const useIncrementalRefresh =
-    options?.scopes === undefined &&
-    config.incrementalAuth?.enabled === true &&
-    instance.status === 'connected';
+    options?.scopes === undefined && config.incrementalAuth?.enabled === true && instance.status === 'connected';
   const scopes =
     options?.scopes ??
-    (useIncrementalRefresh
-      ? config.defaultScopes
-      : (instance.scopes as string[]) || config.defaultScopes);
+    (useIncrementalRefresh ? config.defaultScopes : (instance.scopes as string[]) || config.defaultScopes);
   const additionalParams =
-    options?.additionalParams ??
-    (useIncrementalRefresh ? config.incrementalAuth?.params : undefined);
+    options?.additionalParams ?? (useIncrementalRefresh ? config.incrementalAuth?.params : undefined);
 
   const { authUrl, waitForTokens } = await (deps?.startOAuthFlow ?? startOAuthFlowDefault)(
     config,
@@ -243,11 +225,7 @@ export async function authorizeOAuthInstance(
       let accountInfo: Record<string, unknown> | null = null;
       const module = getConnectorModule(instance.connectorId);
       if (module?.hooks?.onAuthorized) {
-        const hookResult = await module.hooks.onAuthorized({
-          instance,
-          accessToken: tokens.accessToken,
-          logger: log,
-        });
+        const hookResult = await module.hooks.onAuthorized({ instance, accessToken: tokens.accessToken, logger: log });
         accountEmail = hookResult.accountEmail;
         accountInfo = hookResult.accountInfo;
       }
@@ -268,26 +246,16 @@ export async function authorizeOAuthInstance(
         })
         .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
 
-      log.info(
-        { event: 'connector.authorized', instanceId, accountEmail },
-        `Connector authorized: ${instance.label}`,
-      );
+      log.info({ event: 'connector.authorized', instanceId, accountEmail }, `Connector authorized: ${instance.label}`);
 
       await refreshConnectorToolsetsFor(instance.connectorId);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await db
         .update(connectorInstances)
-        .set({
-          status: 'error' as ConnectorStatus,
-          authIssue: 'temporary_failure',
-          updatedAt: Date.now(),
-        })
+        .set({ status: 'error' as ConnectorStatus, authIssue: 'temporary_failure', updatedAt: Date.now() })
         .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
-      log.warn(
-        { event: 'connector.authorize.failed', instanceId, error: message },
-        'connector authorization failed',
-      );
+      log.warn({ event: 'connector.authorize.failed', instanceId, error: message }, 'connector authorization failed');
       throw error;
     }
   };
@@ -332,10 +300,7 @@ export async function upgradeConnectorInstance(
 ): Promise<ServiceResult<{ type: 'reauthorize'; authUrl: string } | { type: 'updated' }>> {
   const db = getDb();
   const typedInstanceId = instanceId as PrefixedString<'conn'>;
-  const [instance] = await db
-    .select()
-    .from(connectorInstances)
-    .where(eq(connectorInstances.id, typedInstanceId));
+  const [instance] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, typedInstanceId));
 
   if (!instance) return err('Connector instance not found', 404);
 
@@ -345,12 +310,7 @@ export async function upgradeConnectorInstance(
   const appliedVersion = Number.isFinite(instance.appliedVersion) ? instance.appliedVersion : 1;
   const capabilities = Array.isArray(instance.capabilities) ? instance.capabilities : [];
 
-  const upgrade = buildUpgradeState({
-    definition,
-    appliedVersion,
-    scopes: instance.scopes ?? null,
-    capabilities,
-  });
+  const upgrade = buildUpgradeState({ definition, appliedVersion, scopes: instance.scopes ?? null, capabilities });
 
   if (!upgrade) {
     return err('Connector is already up to date', 400);
@@ -408,21 +368,13 @@ export async function upgradeConnectorInstance(
       authIssue: null;
       updatedAt: number;
       apiKey?: string | null;
-    } = {
-      scopes: nextScopes,
-      status: 'awaiting_auth' as ConnectorStatus,
-      authIssue: null,
-      updatedAt: now,
-    };
+    } = { scopes: nextScopes, status: 'awaiting_auth' as ConnectorStatus, authIssue: null, updatedAt: now };
 
     if (requiresApiKeyRotation) {
       setValues.apiKey = input.apiKey?.trim() ?? null;
     }
 
-    await db
-      .update(connectorInstances)
-      .set(setValues)
-      .where(eq(connectorInstances.id, typedInstanceId));
+    await db.update(connectorInstances).set(setValues).where(eq(connectorInstances.id, typedInstanceId));
 
     const config = definition.authConfig as OAuthConfig;
     const authScopes = config.incrementalAuth?.enabled ? upgrade.missingScopes : nextScopes;
@@ -457,9 +409,7 @@ export async function deleteConnectorInstance(instanceId: string): Promise<Servi
 
   if (!existing) return err('Connector instance not found', 404);
 
-  await db
-    .delete(connectorInstances)
-    .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
+  await db.delete(connectorInstances).where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
 
   const module = getConnectorModule(existing.connectorId);
   if (module?.hooks?.onDeleted) {
@@ -467,10 +417,7 @@ export async function deleteConnectorInstance(instanceId: string): Promise<Servi
   }
   await refreshConnectorToolsetsFor(existing.connectorId);
 
-  log.info(
-    { event: 'connector.deleted', instanceId },
-    `Connector instance deleted: ${existing.label}`,
-  );
+  log.info({ event: 'connector.deleted', instanceId }, `Connector instance deleted: ${existing.label}`);
 
   return ok(null);
 }
@@ -495,8 +442,7 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
       definition.authType === 'oauth2' &&
       instance.refreshToken &&
       (instance.accessToken === null ||
-        (instance.tokenExpiresAt !== null &&
-          instance.tokenExpiresAt <= Date.now() + REFRESH_BUFFER_MS))
+        (instance.tokenExpiresAt !== null && instance.tokenExpiresAt <= Date.now() + REFRESH_BUFFER_MS))
     ) {
       const creds = await resolveOAuthCredentials(instance);
       if (creds) {
@@ -542,19 +488,12 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     const requiresReauth = requiresOAuthReauth(e);
-    log.error(
-      { event: 'connector.test.failed', instanceId, requiresReauth, error: message },
-      'Connection test failed',
-    );
+    log.error({ event: 'connector.test.failed', instanceId, requiresReauth, error: message }, 'Connection test failed');
 
     if (requiresReauth) {
       await db
         .update(connectorInstances)
-        .set({
-          status: 'error' as ConnectorStatus,
-          authIssue: 'reauthorization_required',
-          updatedAt: Date.now(),
-        })
+        .set({ status: 'error' as ConnectorStatus, authIssue: 'reauthorization_required', updatedAt: Date.now() })
         .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
     }
 

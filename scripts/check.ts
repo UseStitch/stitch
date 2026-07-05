@@ -7,26 +7,11 @@ const steps = [
   { name: 'test', cmd: ['bun', 'run', 'test'] },
   {
     name: 'lint',
-    cmd: [
-      'bunx',
-      'oxlint',
-      '--config',
-      'oxlint.json',
-      '--type-aware',
-      '--fix',
-      '--fix-suggestions',
-      '.',
-    ],
+    cmd: ['bunx', 'oxlint', '--config', 'oxlint.json', '--type-aware', '--fix', '--fix-suggestions', '.'],
   },
-  {
-    name: 'lint:check',
-    cmd: ['bunx', 'oxlint', '--config', 'oxlint.json', '--type-aware', '--deny-warnings', '.'],
-  },
+  { name: 'lint:check', cmd: ['bunx', 'oxlint', '--config', 'oxlint.json', '--type-aware', '--deny-warnings', '.'] },
   { name: 'catalogs', cmd: ['bun', 'run', 'scripts/check-catalogs.ts'] },
-  {
-    name: 'format:changed:check',
-    cmd: ['bun', 'run', 'format:changed:check'],
-  },
+  { name: 'format:changed:check', cmd: ['bun', 'run', 'format:changed:check'] },
 ];
 
 for (const step of steps) {

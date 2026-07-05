@@ -21,10 +21,7 @@ export function OnboardingDialog() {
       <DialogHeader className="sr-only">
         <DialogTitle>Stitch Onboarding</DialogTitle>
       </DialogHeader>
-      <DialogContent
-        className="flex h-140 max-w-3xl! flex-col gap-0 overflow-hidden p-0"
-        showCloseButton={false}
-      >
+      <DialogContent className="flex h-140 max-w-3xl! flex-col gap-0 overflow-hidden p-0" showCloseButton={false}>
         <div className="flex h-full flex-col p-8">
           {state.step === 'welcome' && <WelcomeStep onContinue={() => state.goToStep('profile')} />}
 
@@ -37,25 +34,16 @@ export function OnboardingDialog() {
             />
           )}
 
-          {state.step === 'appearance' && (
-            <AppearanceStep onContinue={() => state.goToStep('apps')} />
-          )}
+          {state.step === 'appearance' && <AppearanceStep onContinue={() => state.goToStep('apps')} />}
 
           {state.step === 'apps' && (
-            <AppsStep
-              onContinue={() => state.goToStep(state.hasEnabledProvider ? 'memory' : 'provider')}
-            />
+            <AppsStep onContinue={() => state.goToStep(state.hasEnabledProvider ? 'memory' : 'provider')} />
           )}
 
-          {state.step === 'provider' && (
-            <ProviderStep onConnected={() => state.goToStep('memory')} />
-          )}
+          {state.step === 'provider' && <ProviderStep onConnected={() => state.goToStep('memory')} />}
 
           {state.step === 'memory' && (
-            <MemoryStep
-              onComplete={state.completeOnboarding}
-              onBackToProviders={() => state.goToStep('provider')}
-            />
+            <MemoryStep onComplete={state.completeOnboarding} onBackToProviders={() => state.goToStep('provider')} />
           )}
 
           {state.step === 'success' && <SuccessStep />}

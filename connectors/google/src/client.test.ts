@@ -32,22 +32,14 @@ describe('GoogleClient', () => {
         ),
       )
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ ok: true }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }),
+        new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
       );
 
     globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-    const client = new GoogleClient({
-      getAccessToken: async () => 'token',
-      quotaAccountKey: 'retry-test-account',
-    });
+    const client = new GoogleClient({ getAccessToken: async () => 'token', quotaAccountKey: 'retry-test-account' });
 
-    const result = await client.request<{ ok: boolean }>(
-      'https://www.googleapis.com/drive/v3/files',
-    );
+    const result = await client.request<{ ok: boolean }>('https://www.googleapis.com/drive/v3/files');
 
     expect(result.ok).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -56,25 +48,14 @@ describe('GoogleClient', () => {
   test('forces one token refresh retry after a 401 response', async () => {
     const fetchMock = mock<typeof fetch>()
       .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            error: {
-              message: 'Invalid Credentials',
-              status: 'UNAUTHENTICATED',
-            },
-          }),
-          {
-            status: 401,
-            statusText: 'Unauthorized',
-            headers: { 'Content-Type': 'application/json' },
-          },
-        ),
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ ok: true }), {
-          status: 200,
+        new Response(JSON.stringify({ error: { message: 'Invalid Credentials', status: 'UNAUTHENTICATED' } }), {
+          status: 401,
+          statusText: 'Unauthorized',
           headers: { 'Content-Type': 'application/json' },
         }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
       );
 
     const getAccessToken = mock<(options?: { forceRefresh?: boolean }) => Promise<string>>()
@@ -83,14 +64,9 @@ describe('GoogleClient', () => {
 
     globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-    const client = new GoogleClient({
-      getAccessToken,
-      quotaAccountKey: 'reauth-test-account',
-    });
+    const client = new GoogleClient({ getAccessToken, quotaAccountKey: 'reauth-test-account' });
 
-    const result = await client.request<{ ok: boolean }>(
-      'https://www.googleapis.com/drive/v3/files',
-    );
+    const result = await client.request<{ ok: boolean }>('https://www.googleapis.com/drive/v3/files');
 
     expect(result.ok).toBe(true);
     expect(getAccessToken).toHaveBeenCalledTimes(2);
@@ -99,9 +75,7 @@ describe('GoogleClient', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       'https://www.googleapis.com/drive/v3/files',
-      expect.objectContaining({
-        headers: expect.objectContaining({ Authorization: 'Bearer fresh-token' }),
-      }),
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer fresh-token' }) }),
     );
   });
 
@@ -116,20 +90,13 @@ describe('GoogleClient', () => {
             details: [{ reason: 'ACCESS_TOKEN_SCOPE_INSUFFICIENT' }],
           },
         }),
-        {
-          status: 403,
-          statusText: 'Forbidden',
-          headers: { 'Content-Type': 'application/json' },
-        },
+        { status: 403, statusText: 'Forbidden', headers: { 'Content-Type': 'application/json' } },
       ),
     );
 
     globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-    const client = new GoogleClient({
-      getAccessToken: async () => 'token',
-      quotaAccountKey: 'scope-test-account',
-    });
+    const client = new GoogleClient({ getAccessToken: async () => 'token', quotaAccountKey: 'scope-test-account' });
 
     try {
       await client.request('https://www.googleapis.com/drive/v3/files');
@@ -161,10 +128,7 @@ describe('GoogleClient', () => {
         {
           status: 403,
           statusText: 'Forbidden',
-          headers: {
-            'Content-Type': 'application/json',
-            'WWW-Authenticate': 'Bearer error="insufficient_scope"',
-          },
+          headers: { 'Content-Type': 'application/json', 'WWW-Authenticate': 'Bearer error="insufficient_scope"' },
         },
       ),
     );
@@ -181,10 +145,7 @@ describe('GoogleClient', () => {
     }).find((toolset) => toolset.id === 'google-drive');
     const tools = driveToolset?.activate(async () => ({ client, usedAccount: 'me@example.com' }));
 
-    const result = await tools?.drive_info.execute?.(
-      { fileId: 'file-1' },
-      { toolCallId: 'call-1', messages: [] },
-    );
+    const result = await tools?.drive_info.execute?.({ fileId: 'file-1' }, { toolCallId: 'call-1', messages: [] });
 
     expect(result).toEqual({
       error: 'insufficient_google_permissions',

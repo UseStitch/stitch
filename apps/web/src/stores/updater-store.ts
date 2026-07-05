@@ -15,9 +15,7 @@ type UpdaterStore = {
   setInstalling: () => void;
 };
 
-const INITIAL_UPDATER_STATE: UpdaterUiState = {
-  status: 'idle',
-};
+const INITIAL_UPDATER_STATE: UpdaterUiState = { status: 'idle' };
 
 export const useUpdaterStore = create<UpdaterStore>((set) => ({
   updater: INITIAL_UPDATER_STATE,
@@ -26,13 +24,7 @@ export const useUpdaterStore = create<UpdaterStore>((set) => ({
       if (current.updater.status === 'installing') return current;
       return { updater: state };
     }),
-  setInstalling: () =>
-    set((state) => ({
-      updater: {
-        ...state.updater,
-        status: 'installing',
-      },
-    })),
+  setInstalling: () => set((state) => ({ updater: { ...state.updater, status: 'installing' } })),
 }));
 
 export function hasUpdaterBadge(status: UpdaterUiState['status']): boolean {

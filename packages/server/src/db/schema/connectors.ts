@@ -32,9 +32,6 @@ export const connectorInstances = sqliteTable(
   },
   (table) => [
     index('connector_instances_connector_id_idx').on(table.connectorId),
-    check(
-      'connector_status_check',
-      sql`${table.status} in ('pending_setup', 'awaiting_auth', 'connected', 'error')`,
-    ),
+    check('connector_status_check', sql`${table.status} in ('pending_setup', 'awaiting_auth', 'connected', 'error')`),
   ],
 );

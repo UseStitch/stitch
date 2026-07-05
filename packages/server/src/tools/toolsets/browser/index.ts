@@ -3,10 +3,7 @@ import { z } from 'zod';
 
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
-import {
-  summarizeOperationResult,
-  withFreshSnapshot,
-} from '@/tools/toolsets/browser/formatters.js';
+import { summarizeOperationResult, withFreshSnapshot } from '@/tools/toolsets/browser/formatters.js';
 import {
   actionTerminatesSequence,
   executeOperation,
@@ -95,48 +92,33 @@ function createBrowserTool<TInput>(
     description,
     inputSchema,
     execute: async (input, execContext) => {
-      return runBrowserTool(input, execContext, context.sessionId, (signal) =>
-        executeAction(input, signal),
-      );
+      return runBrowserTool(input, execContext, context.sessionId, (signal) => executeAction(input, signal));
     },
   });
 }
 
 function createSnapshotTool(context: ToolContext) {
-  return createBrowserTool(
-    context,
-    SNAPSHOT_DESCRIPTION,
-    browserSnapshotInputSchema,
-    (input, signal) => executeOperation({ ...input, tool: 'snapshot' }, signal),
+  return createBrowserTool(context, SNAPSHOT_DESCRIPTION, browserSnapshotInputSchema, (input, signal) =>
+    executeOperation({ ...input, tool: 'snapshot' }, signal),
   );
 }
 
 function createNavigateTool(context: ToolContext) {
-  return createBrowserTool(
-    context,
-    NAVIGATE_DESCRIPTION,
-    browserNavigateInputSchema,
-    async (input, signal) => {
-      const operation = { ...input, tool: 'navigate' as const, op: input.action };
-      const result = await executeOperation(operation, signal);
-      if (!shouldReturnFreshSnapshot(operation)) return result;
-      return withFreshSnapshot(result as Record<string, unknown>, signal);
-    },
-  );
+  return createBrowserTool(context, NAVIGATE_DESCRIPTION, browserNavigateInputSchema, async (input, signal) => {
+    const operation = { ...input, tool: 'navigate' as const, op: input.action };
+    const result = await executeOperation(operation, signal);
+    if (!shouldReturnFreshSnapshot(operation)) return result;
+    return withFreshSnapshot(result as Record<string, unknown>, signal);
+  });
 }
 
 function createInteractTool(context: ToolContext) {
-  return createBrowserTool(
-    context,
-    INTERACT_DESCRIPTION,
-    browserInteractInputSchema,
-    async (input, signal) => {
-      const operation = { ...input, tool: 'interact' as const, op: input.action };
-      const result = await executeOperation(operation, signal);
-      if (!shouldReturnFreshSnapshot(operation)) return result;
-      return withFreshSnapshot(result as Record<string, unknown>, signal);
-    },
-  );
+  return createBrowserTool(context, INTERACT_DESCRIPTION, browserInteractInputSchema, async (input, signal) => {
+    const operation = { ...input, tool: 'interact' as const, op: input.action };
+    const result = await executeOperation(operation, signal);
+    if (!shouldReturnFreshSnapshot(operation)) return result;
+    return withFreshSnapshot(result as Record<string, unknown>, signal);
+  });
 }
 
 function createWaitTool(context: ToolContext) {
@@ -146,11 +128,8 @@ function createWaitTool(context: ToolContext) {
 }
 
 function createScreenshotTool(context: ToolContext) {
-  return createBrowserTool(
-    context,
-    SCREENSHOT_DESCRIPTION,
-    browserScreenshotInputSchema,
-    (input, signal) => executeOperation({ ...input, tool: 'screenshot', op: 'capture' }, signal),
+  return createBrowserTool(context, SCREENSHOT_DESCRIPTION, browserScreenshotInputSchema, (input, signal) =>
+    executeOperation({ ...input, tool: 'screenshot', op: 'capture' }, signal),
   );
 }
 
@@ -161,11 +140,8 @@ function createDialogTool(context: ToolContext) {
 }
 
 function createContentTool(context: ToolContext) {
-  return createBrowserTool(
-    context,
-    CONTENT_DESCRIPTION,
-    browserContentInputSchema,
-    (input, signal) => executeOperation({ ...input, tool: 'content', op: input.action }, signal),
+  return createBrowserTool(context, CONTENT_DESCRIPTION, browserContentInputSchema, (input, signal) =>
+    executeOperation({ ...input, tool: 'content', op: input.action }, signal),
   );
 }
 
@@ -202,13 +178,7 @@ function createBatchTool(context: ToolContext) {
 
           try {
             const result = await executeOperation(action, signal);
-            const resultRecord: {
-              index: number;
-              tool: string;
-              op?: string;
-              status: 'ok';
-              output: string;
-            } = {
+            const resultRecord: { index: number; tool: string; op?: string; status: 'ok'; output: string } = {
               index: i + 1,
               tool: action.tool,
               status: 'ok',
@@ -221,13 +191,7 @@ function createBatchTool(context: ToolContext) {
             lastSuccessfulAction = action;
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            const errorRecord: {
-              index: number;
-              tool: string;
-              op?: string;
-              status: 'error';
-              error: string;
-            } = {
+            const errorRecord: { index: number; tool: string; op?: string; status: 'error'; error: string } = {
               index: i + 1,
               tool: action.tool,
               status: 'error',
@@ -271,11 +235,7 @@ function createBatchTool(context: ToolContext) {
           }
         }
 
-        if (
-          !freshSnapshot &&
-          lastSuccessfulAction &&
-          shouldReturnFreshSnapshot(lastSuccessfulAction)
-        ) {
+        if (!freshSnapshot && lastSuccessfulAction && shouldReturnFreshSnapshot(lastSuccessfulAction)) {
           freshSnapshot = await browser.snapshot(signal);
         }
 
@@ -293,12 +253,9 @@ function createBatchTool(context: ToolContext) {
           if (result.status === 'error') return `${label}: error - ${result.error}`;
           return `${label}: ok${result.output ? ` - ${result.output}` : ''}`;
         });
-        const outputText =
-          resultLines.length > 0 ? `${summaryText}\n${resultLines.join('\n')}` : summaryText;
+        const outputText = resultLines.length > 0 ? `${summaryText}\n${resultLines.join('\n')}` : summaryText;
         const compactSnapshot = freshSnapshot ? serializeBrowserSnapshot(freshSnapshot) : null;
-        const summary = compactSnapshot
-          ? `${outputText}\n\n### Updated Snapshot\n${compactSnapshot.text}`
-          : outputText;
+        const summary = compactSnapshot ? `${outputText}\n\n### Updated Snapshot\n${compactSnapshot.text}` : outputText;
 
         return {
           output: summary,

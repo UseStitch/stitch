@@ -35,11 +35,7 @@ const MEMORY_SOURCE = 'memory_extraction' as const;
 // Tracks: total facts written this session, and last turn index a write occurred.
 // ---------------------------------------------------------------------------
 
-type SessionWriteState = {
-  factsWritten: number;
-  lastWriteTurn: number;
-  turnCount: number;
-};
+type SessionWriteState = { factsWritten: number; lastWriteTurn: number; turnCount: number };
 
 const sessionWriteState = new Map<string, SessionWriteState>();
 
@@ -107,10 +103,7 @@ export async function processMemories(input: {
     }
 
     if (input.userMessage.trim().length < config.minMessageLength) {
-      log.debug(
-        { sessionId: input.sessionId, len: input.userMessage.length },
-        'skipping extraction for short message',
-      );
+      log.debug({ sessionId: input.sessionId, len: input.userMessage.length }, 'skipping extraction for short message');
       return;
     }
 
@@ -120,11 +113,7 @@ export async function processMemories(input: {
     // Check per-session facts cap
     if (sessionState.factsWritten >= config.maxFactsPerSession) {
       log.debug(
-        {
-          sessionId: input.sessionId,
-          factsWritten: sessionState.factsWritten,
-          cap: config.maxFactsPerSession,
-        },
+        { sessionId: input.sessionId, factsWritten: sessionState.factsWritten, cap: config.maxFactsPerSession },
         'skipping extraction: session facts cap reached',
       );
       return;
@@ -207,11 +196,7 @@ export async function processMemories(input: {
     facts = facts.filter((fact) => {
       if (fact.importanceScore < config.importanceMinScore) {
         log.debug(
-          {
-            factContent: fact.content,
-            importanceScore: fact.importanceScore,
-            threshold: config.importanceMinScore,
-          },
+          { factContent: fact.content, importanceScore: fact.importanceScore, threshold: config.importanceMinScore },
           'discarding fact: below importance threshold',
         );
         return false;
@@ -234,9 +219,7 @@ export async function processMemories(input: {
     // Apply per-turn cap
     if (facts.length > config.maxFactsPerTurn) {
       // Keep highest-importance facts when capping
-      facts = facts
-        .sort((a, b) => b.importanceScore - a.importanceScore)
-        .slice(0, config.maxFactsPerTurn);
+      facts = facts.sort((a, b) => b.importanceScore - a.importanceScore).slice(0, config.maxFactsPerTurn);
     }
 
     // Apply remaining session budget
@@ -250,18 +233,13 @@ export async function processMemories(input: {
       return;
     }
 
-    log.info(
-      { sessionId: input.sessionId, factCount: facts.length },
-      'extracted facts from conversation turn',
-    );
+    log.info({ sessionId: input.sessionId, factCount: facts.length }, 'extracted facts from conversation turn');
 
     const existingMemoriesPerFact = await Promise.all(
       facts.map((fact) =>
-        searchSemanticMemories({
-          query: fact.content,
-          page: 1,
-          pageSize: 5,
-        }).then((result) => (result.error ? [] : result.data.memories)),
+        searchSemanticMemories({ query: fact.content, page: 1, pageSize: 5 }).then((result) =>
+          result.error ? [] : result.data.memories,
+        ),
       ),
     );
 
@@ -317,11 +295,7 @@ export async function processMemories(input: {
       }
 
       log.info(
-        {
-          factContent: fact.content,
-          action: decision.action,
-          existingMemoryId: decision.existingMemoryId,
-        },
+        { factContent: fact.content, action: decision.action, existingMemoryId: decision.existingMemoryId },
         'dedup: applying decision',
       );
 
@@ -333,9 +307,7 @@ export async function processMemories(input: {
         }
         case 'UPDATE': {
           if (decision.existingMemoryId && decision.updatedContent) {
-            await updateSemanticMemory(decision.existingMemoryId, {
-              content: decision.updatedContent,
-            });
+            await updateSemanticMemory(decision.existingMemoryId, { content: decision.updatedContent });
             updateCount++;
           }
           break;
@@ -375,20 +347,16 @@ export async function processMemories(input: {
     );
 
     if (config.autoprune && (addCount > 0 || updateCount > 0)) {
-      await pruneStaleMemories({
-        maxMemories: config.maxMemories,
-        staleDays: config.staleDays,
-      }).catch((err) => log.warn({ error: err }, 'failed to auto-prune stale memories'));
+      await pruneStaleMemories({ maxMemories: config.maxMemories, staleDays: config.staleDays }).catch((err) =>
+        log.warn({ error: err }, 'failed to auto-prune stale memories'),
+      );
     }
   } catch (error) {
     log.error({ error, sessionId: input.sessionId }, 'memory processing failed');
   }
 }
 
-async function resolveMemorySource(
-  sessionId: string,
-  override: MemorySource | undefined,
-): Promise<MemorySource> {
+async function resolveMemorySource(sessionId: string, override: MemorySource | undefined): Promise<MemorySource> {
   if (override) return override;
 
   const db = getDb();

@@ -14,13 +14,9 @@ setupTestDb();
 
 async function seedServer(authConfig: OAuthAuth): Promise<PrefixedString<'mcp'>> {
   const id = createMcpServerId();
-  await getDb().insert(mcpServers).values({
-    id,
-    name: 'Test',
-    transport: 'http',
-    url: 'https://mcp.example.com',
-    authConfig,
-  });
+  await getDb()
+    .insert(mcpServers)
+    .values({ id, name: 'Test', transport: 'http', url: 'https://mcp.example.com', authConfig });
   return id;
 }
 
@@ -50,11 +46,7 @@ describe('McpOAuthProvider', () => {
   });
 
   test('clientInformation returns manual credentials when provided', async () => {
-    const provider = makeProvider(serverId, {
-      type: 'oauth',
-      clientId: 'manual-id',
-      clientSecret: 'manual-secret',
-    });
+    const provider = makeProvider(serverId, { type: 'oauth', clientId: 'manual-id', clientSecret: 'manual-secret' });
     const info = await provider.clientInformation();
     expect(info).toEqual({ client_id: 'manual-id', client_secret: 'manual-secret' });
   });
@@ -63,14 +55,8 @@ describe('McpOAuthProvider', () => {
     const provider = makeProvider(serverId, { type: 'oauth' });
     expect(await provider.clientInformation()).toBeUndefined();
 
-    await provider.saveClientInformation({
-      client_id: 'dcr-id',
-      client_secret: 'dcr-secret',
-    });
-    expect(await provider.clientInformation()).toEqual({
-      client_id: 'dcr-id',
-      client_secret: 'dcr-secret',
-    });
+    await provider.saveClientInformation({ client_id: 'dcr-id', client_secret: 'dcr-secret' });
+    expect(await provider.clientInformation()).toEqual({ client_id: 'dcr-id', client_secret: 'dcr-secret' });
   });
 
   test('tokens and code verifier round-trip through the DB', async () => {
@@ -125,10 +111,7 @@ describe('McpOAuthProvider', () => {
 
     await provider.invalidateCredentials('all');
 
-    const rows = await getDb()
-      .select()
-      .from(mcpOAuthSessions)
-      .where(eq(mcpOAuthSessions.serverId, serverId));
+    const rows = await getDb().select().from(mcpOAuthSessions).where(eq(mcpOAuthSessions.serverId, serverId));
     expect(rows).toHaveLength(0);
   });
 });

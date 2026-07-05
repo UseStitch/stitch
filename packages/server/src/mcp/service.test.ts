@@ -14,13 +14,9 @@ setupTestDb();
 
 async function seed(authConfig: McpAuthConfig): Promise<PrefixedString<'mcp'>> {
   const id = createMcpServerId();
-  await getDb().insert(mcpServers).values({
-    id,
-    name: 'Test',
-    transport: 'http',
-    url: 'https://mcp.example.com',
-    authConfig,
-  });
+  await getDb()
+    .insert(mcpServers)
+    .values({ id, name: 'Test', transport: 'http', url: 'https://mcp.example.com', authConfig });
   return id;
 }
 
@@ -45,19 +41,13 @@ describe('mcp auth service', () => {
   test('logoutMcpAuth clears the session row and resets status', async () => {
     const id = await seed({ type: 'oauth' });
     const db = getDb();
-    await db.insert(mcpOAuthSessions).values({
-      serverId: id,
-      tokens: { access_token: 'at', token_type: 'Bearer' },
-    });
+    await db.insert(mcpOAuthSessions).values({ serverId: id, tokens: { access_token: 'at', token_type: 'Bearer' } });
     await db.update(mcpServers).set({ authStatus: 'connected' }).where(eq(mcpServers.id, id));
 
     const result = await logoutMcpAuth(id);
     expect(result.error).toBeNull();
 
-    const sessions = await db
-      .select()
-      .from(mcpOAuthSessions)
-      .where(eq(mcpOAuthSessions.serverId, id));
+    const sessions = await db.select().from(mcpOAuthSessions).where(eq(mcpOAuthSessions.serverId, id));
     expect(sessions).toHaveLength(0);
 
     const [server] = await db.select().from(mcpServers).where(eq(mcpServers.id, id));

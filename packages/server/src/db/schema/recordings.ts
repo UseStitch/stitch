@@ -1,21 +1,8 @@
 import { sql } from 'drizzle-orm';
-import {
-  blob,
-  check,
-  index,
-  integer,
-  real,
-  sqliteTable,
-  text,
-  uniqueIndex,
-} from 'drizzle-orm/sqlite-core';
+import { blob, check, index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 import type { PrefixedString } from '@stitch/shared/id';
-import type {
-  RecordingAnalysisStatus,
-  RecordingPlatform,
-  RecordingStatus,
-} from '@stitch/shared/recordings/types';
+import type { RecordingAnalysisStatus, RecordingPlatform, RecordingStatus } from '@stitch/shared/recordings/types';
 
 import type { LanguageModelUsage } from 'ai';
 
@@ -76,10 +63,7 @@ export const recordingAnalyses = sqliteTable(
   (table) => [
     uniqueIndex('recording_analyses_recording_id_uidx').on(table.recordingId),
     index('recording_analyses_status_idx').on(table.status),
-    check(
-      'recording_analyses_status_check',
-      sql`${table.status} in ('pending', 'processing', 'completed', 'failed')`,
-    ),
+    check('recording_analyses_status_check', sql`${table.status} in ('pending', 'processing', 'completed', 'failed')`),
   ],
 );
 

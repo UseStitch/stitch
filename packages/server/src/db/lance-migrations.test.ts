@@ -21,10 +21,7 @@ async function withTempWorkspace(fn: (ctx: { tempDir: string }) => Promise<void>
   }
 }
 
-async function createSemanticTable(
-  tempDir: string,
-  withPinned = false,
-): Promise<lancedb.Connection> {
+async function createSemanticTable(tempDir: string, withPinned = false): Promise<lancedb.Connection> {
   const connection = await lancedb.connect(path.join(tempDir, 'memory.lance'));
   const fields: Field[] = [new Field('id', new Utf8(), false)];
   if (withPinned) fields.push(new Field('pinned', new Int32(), false));

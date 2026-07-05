@@ -35,9 +35,7 @@ export class ElectronBrowserManager {
   private readonly control = new ControlArbiter(() => this.broadcastState());
   private readonly downloads = new DownloadTracker(() => this.broadcastState());
   private dialogState: ElectronBrowserDialogState = { open: false };
-  private readonly bridge = new BrowserBridge((sessionId, command) =>
-    this.handleBridgeCommand(sessionId, command),
-  );
+  private readonly bridge = new BrowserBridge((sessionId, command) => this.handleBridgeCommand(sessionId, command));
 
   constructor(private readonly windowGetter: () => BrowserWindow | null) {}
 
@@ -53,12 +51,7 @@ export class ElectronBrowserManager {
     if (sessionId === this.store.getCurrentSessionId()) return this.getState();
     this.store.switchSession(sessionId);
     const activeTab = this.store.getActiveTab();
-    if (
-      this.browser &&
-      !this.browser.isDestroyed() &&
-      activeTab?.url &&
-      activeTab.url !== DEFAULT_URL
-    ) {
+    if (this.browser && !this.browser.isDestroyed() && activeTab?.url && activeTab.url !== DEFAULT_URL) {
       void this.browser.loadURL(activeTab.url);
     }
     this.broadcastState();
@@ -73,11 +66,7 @@ export class ElectronBrowserManager {
     const contents = webContents.fromId(webContentsId);
     if (!contents) throw new Error(`Browser webview ${webContentsId} was not found`);
 
-    if (
-      this.registeredWebContentsId === webContentsId &&
-      this.browser &&
-      !this.browser.isDestroyed()
-    ) {
+    if (this.registeredWebContentsId === webContentsId && this.browser && !this.browser.isDestroyed()) {
       if (sessionId !== this.store.getCurrentSessionId()) {
         this.switchSession(sessionId);
       }
@@ -200,9 +189,7 @@ export class ElectronBrowserManager {
     this.downloads.openDownload(download);
   }
 
-  private async executeWithBrowser(
-    command: ElectronBrowserCommand,
-  ): Promise<ElectronBrowserCommandResultValue> {
+  private async executeWithBrowser(command: ElectronBrowserCommand): Promise<ElectronBrowserCommandResultValue> {
     const browser = await this.waitForBrowser();
     return executeBrowserCommand(
       {
@@ -243,10 +230,7 @@ export class ElectronBrowserManager {
 
   private async snapshot(browser: WebContents): Promise<string> {
     const readSnapshot = async () =>
-      (await browser.executeJavaScript(
-        buildSnapshotScript(this.store.getSnapshotIdentities()),
-        true,
-      )) as {
+      (await browser.executeJavaScript(buildSnapshotScript(this.store.getSnapshotIdentities()), true)) as {
         tree: string;
         refs: Record<string, RefEntry>;
         identities: string[];
@@ -273,9 +257,7 @@ export class ElectronBrowserManager {
     this.refResolver.setRefs(result.refs);
     this.store.setSnapshotIdentities(result.identities);
     const tabs = this.getState()
-      .tabs.map(
-        (tab) => `  ${tab.active ? '*' : ' '} ${tab.id}: ${tab.title || '(untitled)'} - ${tab.url}`,
-      )
+      .tabs.map((tab) => `  ${tab.active ? '*' : ' '} ${tab.id}: ${tab.title || '(untitled)'} - ${tab.url}`)
       .join('\n');
     return `URL: ${browser.getURL()}\nTitle: ${browser.getTitle()}\nViewport: ${result.viewport.width}x${result.viewport.height} @ ${result.viewport.deviceScaleFactor}x\nTabs:\n${tabs}\nScroll: ${result.scroll.pagesAbove} page(s) above, ${result.scroll.pagesBelow} page(s) below (${result.scroll.scrollLeft},${result.scroll.scrollTop} of ${result.scroll.scrollWidth}x${result.scroll.scrollHeight})\n\n${result.tree || '(empty page)'}`;
   }
@@ -316,12 +298,7 @@ export class ElectronBrowserManager {
         disposition: 'auto-dismissed',
       };
     } catch {
-      this.dialogState = {
-        open: true,
-        type: 'alert',
-        message: payload,
-        disposition: 'auto-dismissed',
-      };
+      this.dialogState = { open: true, type: 'alert', message: payload, disposition: 'auto-dismissed' };
     }
   }
 

@@ -13,29 +13,15 @@ function buildDefinition(overrides: Partial<ConnectorDefinition> = {}): Connecto
     enabled: true,
     currentVersion: 2,
     versionHistory: [
-      {
-        version: 1,
-        title: 'Initial',
-        description: 'Initial',
-        action: 'none',
-        capabilities: ['registry.read'],
-      },
-      {
-        version: 2,
-        title: 'Upgrade',
-        description: 'Upgrade',
-        action: 'reauthorize',
-        capabilities: ['registry.write'],
-      },
+      { version: 1, title: 'Initial', description: 'Initial', action: 'none', capabilities: ['registry.read'] },
+      { version: 2, title: 'Upgrade', description: 'Upgrade', action: 'reauthorize', capabilities: ['registry.write'] },
     ],
     authType: 'oauth2',
     authConfig: {
       authUrl: 'https://example.com/auth',
       tokenUrl: 'https://example.com/token',
       defaultScopes: ['scope:read'],
-      scopeDescriptions: {
-        'scope:read': 'Read access',
-      },
+      scopeDescriptions: { 'scope:read': 'Read access' },
     },
     setupInstructions: [],
     ...overrides,
@@ -45,13 +31,7 @@ function buildDefinition(overrides: Partial<ConnectorDefinition> = {}): Connecto
 describe('connector registry definition validation', () => {
   test('rejects empty version history', () => {
     expect(() => {
-      registerConnector(
-        buildDefinition({
-          id: 'registry-empty',
-          versionHistory: [],
-          currentVersion: 1,
-        }),
-      );
+      registerConnector(buildDefinition({ id: 'registry-empty', versionHistory: [], currentVersion: 1 }));
     }).toThrow('must define at least one version');
   });
 
@@ -62,13 +42,7 @@ describe('connector registry definition validation', () => {
           id: 'registry-duplicate',
           currentVersion: 1,
           versionHistory: [
-            {
-              version: 1,
-              title: 'Initial',
-              description: 'Initial',
-              action: 'none',
-              capabilities: ['registry.read'],
-            },
+            { version: 1, title: 'Initial', description: 'Initial', action: 'none', capabilities: ['registry.read'] },
             {
               version: 1,
               title: 'Duplicate',
@@ -84,12 +58,7 @@ describe('connector registry definition validation', () => {
 
   test('rejects mismatched current version', () => {
     expect(() => {
-      registerConnector(
-        buildDefinition({
-          id: 'registry-mismatch',
-          currentVersion: 1,
-        }),
-      );
+      registerConnector(buildDefinition({ id: 'registry-mismatch', currentVersion: 1 }));
     }).toThrow('must match highest versionHistory entry');
   });
 });

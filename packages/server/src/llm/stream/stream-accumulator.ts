@@ -90,10 +90,7 @@ export class StreamAccumulator {
     });
   }
 
-  private handleTextualStart(
-    field: 'currentTextPart' | 'currentReasoningPart',
-    part: unknown,
-  ): void {
+  private handleTextualStart(field: 'currentTextPart' | 'currentReasoningPart', part: unknown): void {
     const partId = createPartId();
     this[field] = { id: partId, text: '', startedAt: Date.now() };
     this.broadcastPartUpdate(partId, part);
@@ -177,11 +174,7 @@ export class StreamAccumulator {
         break;
 
       case 'reasoning-delta':
-        this.handleTextualDelta(
-          'currentReasoningPart',
-          'reasoning_delta_without_reasoning_start',
-          part,
-        );
+        this.handleTextualDelta('currentReasoningPart', 'reasoning_delta_without_reasoning_start', part);
         break;
 
       case 'reasoning-end':
@@ -222,10 +215,7 @@ export class StreamAccumulator {
         const now = Date.now();
         const partId = createPartId();
 
-        this.toolCalls.push({
-          toolName: part.toolName,
-          inputJson: stableStringify(part.input),
-        });
+        this.toolCalls.push({ toolName: part.toolName, inputJson: stableStringify(part.input) });
 
         internalBus.emit('tool.started', {
           sessionId: this.sessionId,
@@ -250,9 +240,7 @@ export class StreamAccumulator {
         const partId = createPartId();
         const truncationMeta = this.getToolTruncationMeta(part.output);
         const sanitizedOutput = this.stripToolTruncationMeta(part.output);
-        const fallbackError = isToolErrorResult(sanitizedOutput)
-          ? sanitizedOutput.error
-          : undefined;
+        const fallbackError = isToolErrorResult(sanitizedOutput) ? sanitizedOutput.error : undefined;
         const isBashFailure =
           !fallbackError &&
           sanitizedOutput !== null &&
@@ -405,10 +393,7 @@ export class StreamAccumulator {
         endedAt: now,
       });
       // Signal to the client that the text part is finalized so it can exit streaming state
-      this.broadcastPartUpdate(this.currentTextPart.id, {
-        type: 'text-end',
-        id: this.currentTextPart.id,
-      });
+      this.broadcastPartUpdate(this.currentTextPart.id, { type: 'text-end', id: this.currentTextPart.id });
       this.currentTextPart = null;
     }
     if (this.currentReasoningPart && this.currentReasoningPart.text) {

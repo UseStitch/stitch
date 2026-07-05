@@ -15,17 +15,9 @@ export type MeetingDetection = {
   lastSeenAt: number;
 };
 
-export type MeetingDetectedEvent = {
-  type: 'detected';
-  detection: MeetingDetection;
-  detectedAt: number;
-};
+export type MeetingDetectedEvent = { type: 'detected'; detection: MeetingDetection; detectedAt: number };
 
-export type MeetingEndedEvent = {
-  type: 'ended';
-  key: string;
-  endedAt: number;
-};
+export type MeetingEndedEvent = { type: 'ended'; key: string; endedAt: number };
 
 export type MeetingDetectionEvent = MeetingDetectedEvent | MeetingEndedEvent;
 

@@ -26,11 +26,7 @@ export type RuntimeToolMetadata = {
   data?: Record<string, unknown>;
 };
 
-type RuntimeTool = RuntimeToolMetadata & {
-  name: string;
-  description: string;
-  tool: Tool;
-};
+type RuntimeTool = RuntimeToolMetadata & { name: string; description: string; tool: Tool };
 
 export type ToolExecutionInput = {
   toolName: string;
@@ -54,17 +50,8 @@ function compose(middlewares: ToolMiddleware[], base: ToolExecutor): ToolExecuto
   return middlewares.reduceRight((next, middleware) => middleware(next), base);
 }
 
-export function defineRuntimeTool(
-  name: string,
-  tool: Tool,
-  metadata: RuntimeToolMetadata = {},
-): RuntimeTool {
-  return {
-    ...metadata,
-    name,
-    description: tool.description ?? '',
-    tool,
-  };
+export function defineRuntimeTool(name: string, tool: Tool, metadata: RuntimeToolMetadata = {}): RuntimeTool {
+  return { ...metadata, name, description: tool.description ?? '', tool };
 }
 
 export function createToolRuntime(context: ToolRuntimeContext): ToolRuntime {
@@ -87,14 +74,7 @@ export function createToolRuntime(context: ToolRuntimeContext): ToolRuntime {
       return {
         ...tool,
         execute: async (...args: Parameters<typeof originalExecute>) =>
-          executor({
-            toolName: name,
-            args: args[0],
-            executeOptions: args[1],
-            tool,
-            context,
-            metadata,
-          }),
+          executor({ toolName: name, args: args[0], executeOptions: args[1], tool, context, metadata }),
       } as T;
     },
 

@@ -15,10 +15,7 @@ describe('createOpenAIMessageParser', () => {
           type: 'tokens',
           total_tokens: 26,
           input_tokens: 17,
-          input_token_details: {
-            text_tokens: 0,
-            audio_tokens: 17,
-          },
+          input_token_details: { text_tokens: 0, audio_tokens: 17 },
           output_tokens: 9,
         },
       }),
@@ -37,12 +34,7 @@ describe('createOpenAIMessageParser', () => {
       JSON.stringify({
         type: 'conversation.item.input_audio_transcription.completed',
         transcript: 'Fallback usage',
-        usage: {
-          type: 'tokens',
-          total_tokens: 12,
-          input_tokens: 8,
-          output_tokens: 4,
-        },
+        usage: { type: 'tokens', total_tokens: 12, input_tokens: 8, output_tokens: 4 },
       }),
     );
 
@@ -57,10 +49,7 @@ describe('createOpenAIMessageParser', () => {
       JSON.stringify({
         type: 'conversation.item.input_audio_transcription.completed',
         transcript: 'Duration usage',
-        usage: {
-          type: 'duration',
-          seconds: 1.25,
-        },
+        usage: { type: 'duration', seconds: 1.25 },
       }),
     );
 
@@ -71,16 +60,10 @@ describe('createOpenAIMessageParser', () => {
     const parseMessage = createOpenAIMessageParser(Date.now() - 1000);
 
     const partial = parseMessage(
-      JSON.stringify({
-        type: 'conversation.item.input_audio_transcription.delta',
-        delta: 'Hello',
-      }),
+      JSON.stringify({ type: 'conversation.item.input_audio_transcription.delta', delta: 'Hello' }),
     );
     const final = parseMessage(
-      JSON.stringify({
-        type: 'conversation.item.input_audio_transcription.completed',
-        transcript: 'Hello.',
-      }),
+      JSON.stringify({ type: 'conversation.item.input_audio_transcription.completed', transcript: 'Hello.' }),
     );
 
     expect(partial?.transcript?.id).toBe('openai-item-0');

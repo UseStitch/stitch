@@ -19,15 +19,9 @@ type WsTransportConfig = {
   keepAliveMessage?: string;
 };
 
-type PingableWebSocket = WebSocket & {
-  ping?: () => void;
-};
+type PingableWebSocket = WebSocket & { ping?: () => void };
 
-export type WsMessageResult = {
-  transcript?: TranscriptEvent;
-  usage?: STTUsage;
-  error?: Error;
-};
+export type WsMessageResult = { transcript?: TranscriptEvent; usage?: STTUsage; error?: Error };
 
 /**
  * Creates an STTTransport backed by a WebSocket connection.
@@ -48,9 +42,7 @@ export function createWsTransport(
 
     // The WebSocket constructor in Node does not have a typed overload for headers.
     // This cast is isolated here so adapters don't repeat it.
-    const ws = new WebSocket(config.url, {
-      headers: config.headers,
-    } as unknown as string[]);
+    const ws = new WebSocket(config.url, { headers: config.headers } as unknown as string[]);
 
     let opened = false;
     let closed = false;
@@ -144,20 +136,14 @@ export function createWsTransport(
       const transport: STTTransport = {
         sendAudio(chunk) {
           if (ws.readyState !== WebSocket.OPEN) {
-            log.warn(
-              { label: config.label, readyState: ws.readyState },
-              'dropping audio, socket not open',
-            );
+            log.warn({ label: config.label, readyState: ws.readyState }, 'dropping audio, socket not open');
             return;
           }
           ws.send(buildAudioMessage(chunk));
         },
         commit() {
           if (ws.readyState !== WebSocket.OPEN) {
-            log.warn(
-              { label: config.label, readyState: ws.readyState },
-              'dropping commit, socket not open',
-            );
+            log.warn({ label: config.label, readyState: ws.readyState }, 'dropping commit, socket not open');
             return;
           }
           ws.send(buildCommitMessage());

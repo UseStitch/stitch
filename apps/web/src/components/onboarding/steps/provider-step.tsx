@@ -12,14 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { providersQueryOptions, type ProviderSummary } from '@/lib/queries/providers';
 
-type Props = {
-  onConnected: () => void;
-};
+type Props = { onConnected: () => void };
 
-type ProviderRowProps = {
-  provider: ProviderSummary;
-  onSelect: (provider: ProviderSummary) => void;
-};
+type ProviderRowProps = { provider: ProviderSummary; onSelect: (provider: ProviderSummary) => void };
 
 function ProviderRow({ provider, onSelect }: ProviderRowProps) {
   const meta = PROVIDER_META[provider.id as ProviderId];
@@ -31,9 +26,7 @@ function ProviderRow({ provider, onSelect }: ProviderRowProps) {
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{meta.displayName}</p>
-          {meta.description && (
-            <p className="truncate text-xs text-muted-foreground">{meta.description}</p>
-          )}
+          {meta.description && <p className="truncate text-xs text-muted-foreground">{meta.description}</p>}
         </div>
       </div>
       <Button size="sm" variant="outline" onClick={() => onSelect(provider)}>
@@ -64,9 +57,7 @@ export function ProviderStep({ onConnected }: Props) {
     const q = search.toLowerCase();
     return selectableProviders.filter((provider) => {
       const meta = PROVIDER_META[provider.id as ProviderId];
-      return (
-        meta.displayName.toLowerCase().includes(q) || meta.description?.toLowerCase().includes(q)
-      );
+      return meta.displayName.toLowerCase().includes(q) || meta.description?.toLowerCase().includes(q);
     });
   }, [selectableProviders, search]);
 
@@ -92,9 +83,7 @@ export function ProviderStep({ onConnected }: Props) {
     <div className="flex flex-col gap-6">
       <div>
         <h2 className="text-lg font-semibold">Setup Provider</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Connect one provider to unlock models and start chatting.
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">Connect one provider to unlock models and start chatting.</p>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -111,9 +100,7 @@ export function ProviderStep({ onConnected }: Props) {
         <div className="thin-scrollbar flex max-h-96 flex-col overflow-y-auto">
           {filteredProviders.length === 0 ? (
             <p className="px-1 py-3 text-sm text-muted-foreground">
-              {search
-                ? 'No providers match your search.'
-                : 'All available providers are already connected.'}
+              {search ? 'No providers match your search.' : 'All available providers are already connected.'}
             </p>
           ) : (
             filteredProviders.map((provider) => (

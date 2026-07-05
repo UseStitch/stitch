@@ -1,27 +1,15 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["unicorn", "typescript", "oxc", "import", "react"],
-  "jsPlugins": [
-    {
-      "name": "stitch",
-      "specifier": "./tools/oxlint-plugins/index.mjs"
-    }
-  ],
-  "options": {
-    "typeAware": true
-  },
+  "jsPlugins": [{ "name": "stitch", "specifier": "./tools/oxlint-plugins/index.mjs" }],
+  "options": { "typeAware": true },
   "rules": {
     "unicorn/no-useless-fallback-in-spread": "error",
     "no-unused-vars": "error",
     "eqeqeq": "error",
     "typescript/no-unnecessary-type-assertion": "error",
     "typescript/no-floating-promises": "error",
-    "import/no-dynamic-require": [
-      "error",
-      {
-        "esmodule": true
-      }
-    ],
+    "import/no-dynamic-require": ["error", { "esmodule": true }],
     "react/jsx-key": "error",
     "react/no-direct-mutation-state": "error",
     "react/no-danger-with-children": "error",
@@ -33,9 +21,5 @@
     "stitch/no-collapsible-if": "error"
   },
   "ignorePatterns": ["node_modules", "dist", "out", "dist-electron", ".turbo"],
-  "env": {
-    "browser": true,
-    "node": true,
-    "es2022": true
-  }
+  "env": { "browser": true, "node": true, "es2022": true }
 }

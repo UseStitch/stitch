@@ -3,10 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-type Args = {
-  name: string;
-  tableName: string;
-};
+type Args = { name: string; tableName: string };
 
 function toPascalCase(value: string): string {
   return value
@@ -34,9 +31,7 @@ function getChecksum(version: number, name: string, tableName: string): string {
 }
 
 function parseArgs(argv: string[]): Args {
-  const args: Partial<Args> = {
-    tableName: 'semantic_memories',
-  };
+  const args: Partial<Args> = { tableName: 'semantic_memories' };
 
   for (let i = 0; i < argv.length; i++) {
     const part = argv[i];
@@ -53,9 +48,7 @@ function parseArgs(argv: string[]): Args {
   }
 
   if (!args.name) {
-    throw new Error(
-      'Usage: bun run lance:migration:new --name <migration-name> [--table <table-name>]',
-    );
+    throw new Error('Usage: bun run lance:migration:new --name <migration-name> [--table <table-name>]');
   }
 
   return args as Args;
@@ -84,9 +77,7 @@ async function getLastMigrationId(migrationsDir: string): Promise<string | null>
 
 async function rewriteManifest(migrationsDir: string): Promise<void> {
   const allFiles = await fs.readdir(migrationsDir);
-  const migrationFiles = allFiles
-    .filter((file) => /^\d{4}-.+\.ts$/.test(file))
-    .sort((a, b) => a.localeCompare(b));
+  const migrationFiles = allFiles.filter((file) => /^\d{4}-.+\.ts$/.test(file)).sort((a, b) => a.localeCompare(b));
 
   const imports = migrationFiles
     .map((file) => {

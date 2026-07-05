@@ -2,10 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 
 import { RecordingsSettings } from '@/components/settings/recordings';
 import { appEnabledStatesQueryOptions } from '@/lib/queries/apps';
-import {
-  enabledProviderModelsQueryOptions,
-  sttProviderModelsQueryOptions,
-} from '@/lib/queries/providers';
+import { enabledProviderModelsQueryOptions, sttProviderModelsQueryOptions } from '@/lib/queries/providers';
 import {
   audioDevicesQueryOptions,
   audioPermissionsQueryOptions,

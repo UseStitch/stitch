@@ -1,14 +1,8 @@
 import type { ToolPermissionValue } from '@stitch/shared/permissions/types';
 
-type PermissionRule = {
-  pattern: string | null;
-  permission: ToolPermissionValue;
-};
+type PermissionRule = { pattern: string | null; permission: ToolPermissionValue };
 
-type PatternRule = {
-  pattern: string;
-  permission: ToolPermissionValue;
-};
+type PatternRule = { pattern: string; permission: ToolPermissionValue };
 
 function wildcardToRegex(pattern: string): RegExp {
   const escaped = pattern.replace(/[|\\{}()[\]^$+?.]/g, '\\$&').replaceAll('*', '.*');

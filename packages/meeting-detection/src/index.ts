@@ -1,12 +1,7 @@
 import { createMacosMeetingDetector } from './meeting-detection/macos.js';
 import { createWindowsMeetingDetector } from './meeting-detection/windows.js';
 
-import type {
-  MeetingDetection,
-  MeetingDetectionListener,
-  MeetingDetectionOptions,
-  MeetingDetector,
-} from './types.js';
+import type { MeetingDetection, MeetingDetectionListener, MeetingDetectionOptions, MeetingDetector } from './types.js';
 
 export function createMeetingDetector(
   platform: NodeJS.Platform = process.platform,

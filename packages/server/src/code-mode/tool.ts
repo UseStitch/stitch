@@ -38,10 +38,7 @@ type CodeModeOptions = {
   abortSignal?: AbortSignal;
 };
 
-type CodeModeToolResult = {
-  tool: Tool;
-  getSystemPrompt: () => string;
-};
+type CodeModeToolResult = { tool: Tool; getSystemPrompt: () => string };
 
 export function createCodeModeTool(options: CodeModeOptions): CodeModeToolResult {
   const driver = options.driver ?? getDefaultDriver();
@@ -54,13 +51,8 @@ export function createCodeModeTool(options: CodeModeOptions): CodeModeToolResult
     code: z
       .string()
       .min(1)
-      .describe(
-        'TypeScript code to execute in the sandbox. May use external_* functions for tool calls.',
-      ),
-    description: z
-      .string()
-      .min(1)
-      .describe('Short plain-language description (5-10 words) of what this code does'),
+      .describe('TypeScript code to execute in the sandbox. May use external_* functions for tool calls.'),
+    description: z.string().min(1).describe('Short plain-language description (5-10 words) of what this code does'),
   });
 
   const codeModeToolInstance = tool({
@@ -81,14 +73,8 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
 
       const stripped = stripTypeScript(code);
       if (stripped.error !== null) {
-        log.warn(
-          { event: 'code-mode.syntax-error', description, error: stripped.error },
-          'code mode syntax error',
-        );
-        return {
-          error: `Syntax error in provided code:\n${stripped.error}`,
-          description,
-        };
+        log.warn({ event: 'code-mode.syntax-error', description, error: stripped.error }, 'code mode syntax error');
+        return { error: `Syntax error in provided code:\n${stripped.error}`, description };
       }
 
       const filteredTools = getFilteredTools();
@@ -104,10 +90,7 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
         'executing code mode',
       );
 
-      const context = await driver.createContext(
-        bindings,
-        createCodeModeIsolateOptions(isolateOptions, abortSignal),
-      );
+      const context = await driver.createContext(bindings, createCodeModeIsolateOptions(isolateOptions, abortSignal));
 
       let execResult: { result: unknown; logs: string[] };
       try {
@@ -116,10 +99,7 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
         try {
           context.dispose();
         } catch (disposeErr) {
-          log.warn(
-            { event: 'code-mode.dispose.error', error: String(disposeErr) },
-            'context dispose failed',
-          );
+          log.warn({ event: 'code-mode.dispose.error', error: String(disposeErr) }, 'context dispose failed');
         }
       }
 
@@ -140,20 +120,10 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
       const truncated = await truncateOutput(resultText);
 
       if (truncated.truncated) {
-        return {
-          description,
-          output: truncated.content,
-          truncated: true,
-          durationMs,
-        };
+        return { description, output: truncated.content, truncated: true, durationMs };
       }
 
-      return {
-        description,
-        output: resultText,
-        truncated: false,
-        durationMs,
-      };
+      return { description, output: resultText, truncated: false, durationMs };
     },
   });
 
@@ -175,10 +145,7 @@ function createCodeModeIsolateOptions(
   return {
     ...isolateOptions,
     abortSignal,
-    libraries: {
-      ...isolateOptions.libraries,
-      libpdf: { specifier: '@libpdf/core' },
-    },
+    libraries: { ...isolateOptions.libraries, libpdf: { specifier: '@libpdf/core' } },
   };
 }
 

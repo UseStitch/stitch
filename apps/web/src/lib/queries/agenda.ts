@@ -15,8 +15,7 @@ const agendaKeys = {
   all: ['agenda'] as const,
   lists: () => [...agendaKeys.all, 'lists'] as const,
   items: () => [...agendaKeys.all, 'items'] as const,
-  itemList: (filters: Record<string, string | undefined>) =>
-    [...agendaKeys.items(), filters] as const,
+  itemList: (filters: Record<string, string | undefined>) => [...agendaKeys.items(), filters] as const,
   itemDetail: (id: string) => [...agendaKeys.all, 'item', id] as const,
 };
 
@@ -48,10 +47,7 @@ export function agendaItemsQueryOptions(input: {
       input.pageSize,
     ],
     queryFn: () => {
-      const params = new URLSearchParams({
-        page: String(input.page),
-        pageSize: String(input.pageSize),
-      });
+      const params = new URLSearchParams({ page: String(input.page), pageSize: String(input.pageSize) });
       if (input.listId) params.set('listId', input.listId);
       if (input.status) params.set('status', input.status);
       if (input.priority) params.set('priority', input.priority);
@@ -162,8 +158,7 @@ export function useUpdateAgendaItem() {
       }),
     onSuccess: (_data, variables) => {
       // Status changes affect list counts; listId moves affect both caches
-      const touchesListCounts =
-        variables.updates.status !== undefined || variables.updates.listId !== undefined;
+      const touchesListCounts = variables.updates.status !== undefined || variables.updates.listId !== undefined;
       if (touchesListCounts) {
         void queryClient.invalidateQueries({ queryKey: agendaKeys.all });
       } else {

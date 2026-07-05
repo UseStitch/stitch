@@ -2,11 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import {
-  createSkillSchema,
-  importSkillSchema,
-  updateSkillSchema,
-} from '@stitch/shared/skills/types';
+import { createSkillSchema, importSkillSchema, updateSkillSchema } from '@stitch/shared/skills/types';
 
 import { unwrapResult } from '@/lib/route-helpers.js';
 import {
@@ -44,16 +40,11 @@ skillsRouter.post('/import', zValidator('json', importSkillSchema), async (c) =>
   return unwrapResult(c, result, 201);
 });
 
-skillsRouter.put(
-  '/:name',
-  zValidator('param', skillNameSchema),
-  zValidator('json', updateSkillSchema),
-  async (c) => {
-    const { name } = c.req.valid('param');
-    const result = await updateSkill(name, c.req.valid('json'));
-    return unwrapResult(c, result);
-  },
-);
+skillsRouter.put('/:name', zValidator('param', skillNameSchema), zValidator('json', updateSkillSchema), async (c) => {
+  const { name } = c.req.valid('param');
+  const result = await updateSkill(name, c.req.valid('json'));
+  return unwrapResult(c, result);
+});
 
 skillsRouter.delete('/:name', zValidator('param', skillNameSchema), async (c) => {
   const { name } = c.req.valid('param');

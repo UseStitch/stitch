@@ -40,33 +40,13 @@ type StreamingToolCallPart = {
   endedAt: number | null;
 };
 
-type StreamingSourcePart = {
-  type: 'source';
-  source: LanguageModelV3Source;
-  startedAt: number;
-  endedAt: number;
-};
+type StreamingSourcePart = { type: 'source'; source: LanguageModelV3Source; startedAt: number; endedAt: number };
 
-type StreamingFilePart = {
-  type: 'file';
-  data: string;
-  mediaType: string;
-  startedAt: number;
-  endedAt: number;
-};
+type StreamingFilePart = { type: 'file'; data: string; mediaType: string; startedAt: number; endedAt: number };
 
-export type RetryInfo = {
-  attempt: number;
-  maxRetries: number;
-  delayMs: number;
-  message: string;
-  nextRetryAt: number;
-};
+export type RetryInfo = { attempt: number; maxRetries: number; delayMs: number; message: string; nextRetryAt: number };
 
-export type DoomLoopInfo = {
-  toolName: string;
-  consecutiveCount: number;
-};
+export type DoomLoopInfo = { toolName: string; consecutiveCount: number };
 
 export type StreamingPart =
   | StreamingTextPart
@@ -103,20 +83,14 @@ export const INITIAL_SESSION_STATE: SessionStreamState = {
 
 // ─── Store shape ─────────────────────────────────────────────────────────────
 
-type StreamStoreState = {
-  sessions: Record<string, SessionStreamState>;
-};
+type StreamStoreState = { sessions: Record<string, SessionStreamState> };
 
 type StreamStoreActions = {
   startStream: (sessionId: string, messageId: string) => void;
   applyStreamStart: (sessionId: string, messageId: string) => void;
   applyPartUpdate: (sessionId: string, messageId: string, partId: string, part: PartUpdate) => void;
   applyPartDelta: (sessionId: string, messageId: string, partId: string, delta: PartDelta) => void;
-  applyPartDeltas: (
-    sessionId: string,
-    messageId: string,
-    deltas: { partId: string; delta: PartDelta }[],
-  ) => void;
+  applyPartDeltas: (sessionId: string, messageId: string, deltas: { partId: string; delta: PartDelta }[]) => void;
   applyToolState: (
     sessionId: string,
     messageId: string,
@@ -127,35 +101,17 @@ type StreamStoreActions = {
     output?: unknown,
     error?: string,
   ) => void;
-  finishStream: (
-    sessionId: string,
-    messageId: string,
-    finishReason: string,
-    usage?: LanguageModelUsage,
-  ) => void;
-  errorStream: (
-    sessionId: string,
-    messageId: string,
-    error: string,
-    details?: StreamErrorDetails,
-  ) => void;
+  finishStream: (sessionId: string, messageId: string, finishReason: string, usage?: LanguageModelUsage) => void;
+  errorStream: (sessionId: string, messageId: string, error: string, details?: StreamErrorDetails) => void;
   retryStream: (sessionId: string, messageId: string, retry: RetryInfo) => void;
-  doomLoopDetected: (
-    sessionId: string,
-    messageId: string,
-    toolName: string,
-    consecutiveCount: number,
-  ) => void;
+  doomLoopDetected: (sessionId: string, messageId: string, toolName: string, consecutiveCount: number) => void;
   resetSession: (sessionId: string) => void;
   abortStream: (sessionId: string) => Promise<void>;
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getSession(
-  sessions: Record<string, SessionStreamState>,
-  sessionId: string,
-): SessionStreamState | null {
+function getSession(sessions: Record<string, SessionStreamState>, sessionId: string): SessionStreamState | null {
   return sessions[sessionId] ?? null;
 }
 
@@ -163,11 +119,7 @@ function guardMessage(session: SessionStreamState | null, messageId: string): bo
   return session !== null && session.activeMessageId === messageId;
 }
 
-function addPart(
-  session: SessionStreamState,
-  partId: string,
-  part: StreamingPart,
-): SessionStreamState {
+function addPart(session: SessionStreamState, partId: string, part: StreamingPart): SessionStreamState {
   if (partId in session.parts) return { ...session, parts: { ...session.parts, [partId]: part } };
   return {
     ...session,
@@ -177,11 +129,7 @@ function addPart(
   };
 }
 
-function updatePart(
-  session: SessionStreamState,
-  partId: string,
-  part: StreamingPart,
-): SessionStreamState {
+function updatePart(session: SessionStreamState, partId: string, part: StreamingPart): SessionStreamState {
   if (!(partId in session.parts)) return session;
   return { ...session, parts: { ...session.parts, [partId]: part } };
 }
@@ -190,22 +138,10 @@ function makeStreamingTextualPart(
   type: 'text' | 'reasoning',
   partId: string,
 ): StreamingTextPart | StreamingReasoningPart {
-  return {
-    type,
-    id: partId,
-    text: '',
-    hasContent: false,
-    status: 'streaming',
-    startedAt: Date.now(),
-    endedAt: null,
-  };
+  return { type, id: partId, text: '', hasContent: false, status: 'streaming', startedAt: Date.now(), endedAt: null };
 }
 
-function applyPartUpdateToSession(
-  session: SessionStreamState,
-  partId: string,
-  part: PartUpdate,
-): SessionStreamState {
+function applyPartUpdateToSession(session: SessionStreamState, partId: string, part: PartUpdate): SessionStreamState {
   switch (part.type) {
     case 'text-start':
       return addPart(session, partId, makeStreamingTextualPart('text', partId));
@@ -273,27 +209,15 @@ function applyPartUpdateToSession(
   }
 }
 
-function applyPartDeltaToSession(
-  session: SessionStreamState,
-  partId: string,
-  delta: PartDelta,
-): SessionStreamState {
+function applyPartDeltaToSession(session: SessionStreamState, partId: string, delta: PartDelta): SessionStreamState {
   const existing = session.parts[partId];
   if (!existing) return session;
 
   if (delta.type === 'text-delta' && existing.type === 'text') {
-    return updatePart(session, partId, {
-      ...existing,
-      text: existing.text + delta.text,
-      hasContent: true,
-    });
+    return updatePart(session, partId, { ...existing, text: existing.text + delta.text, hasContent: true });
   }
   if (delta.type === 'reasoning-delta' && existing.type === 'reasoning') {
-    return updatePart(session, partId, {
-      ...existing,
-      text: existing.text + delta.text,
-      hasContent: true,
-    });
+    return updatePart(session, partId, { ...existing, text: existing.text + delta.text, hasContent: true });
   }
   return session;
 }
@@ -305,13 +229,7 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
 
   startStream: (sessionId, messageId) =>
     set((state) => ({
-      sessions: {
-        ...state.sessions,
-        [sessionId]: {
-          ...INITIAL_SESSION_STATE,
-          activeMessageId: messageId,
-        },
-      },
+      sessions: { ...state.sessions, [sessionId]: { ...INITIAL_SESSION_STATE, activeMessageId: messageId } },
     })),
 
   applyStreamStart: (sessionId, messageId) =>
@@ -322,13 +240,7 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
       return {
         sessions: {
           ...state.sessions,
-          [sessionId]: {
-            ...base,
-            activeMessageId: messageId,
-            isStreaming: true,
-            retry: null,
-            doomLoop: null,
-          },
+          [sessionId]: { ...base, activeMessageId: messageId, isStreaming: true, retry: null, doomLoop: null },
         },
       };
     }),
@@ -337,24 +249,14 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
     set((state) => {
       const session = getSession(state.sessions, sessionId);
       if (!guardMessage(session, messageId)) return state;
-      return {
-        sessions: {
-          ...state.sessions,
-          [sessionId]: applyPartUpdateToSession(session!, partId, part),
-        },
-      };
+      return { sessions: { ...state.sessions, [sessionId]: applyPartUpdateToSession(session!, partId, part) } };
     }),
 
   applyPartDelta: (sessionId, messageId, partId, delta) =>
     set((state) => {
       const session = getSession(state.sessions, sessionId);
       if (!guardMessage(session, messageId)) return state;
-      return {
-        sessions: {
-          ...state.sessions,
-          [sessionId]: applyPartDeltaToSession(session!, partId, delta),
-        },
-      };
+      return { sessions: { ...state.sessions, [sessionId]: applyPartDeltaToSession(session!, partId, delta) } };
     }),
 
   applyPartDeltas: (sessionId, messageId, deltas) =>
@@ -365,12 +267,7 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
       for (const { partId, delta } of deltas) {
         current = applyPartDeltaToSession(current, partId, delta);
       }
-      return {
-        sessions: {
-          ...state.sessions,
-          [sessionId]: current,
-        },
-      };
+      return { sessions: { ...state.sessions, [sessionId]: current } };
     }),
 
   applyToolState: (sessionId, messageId, toolCallId, toolName, status, input, output, error) =>
@@ -455,12 +352,7 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
     set((state) => {
       const session = getSession(state.sessions, sessionId);
       if (!guardMessage(session, messageId)) return state;
-      return {
-        sessions: {
-          ...state.sessions,
-          [sessionId]: { ...session!, retry },
-        },
-      };
+      return { sessions: { ...state.sessions, [sessionId]: { ...session!, retry } } };
     }),
 
   doomLoopDetected: (sessionId, messageId, toolName, consecutiveCount) =>
@@ -468,13 +360,7 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
       const session = getSession(state.sessions, sessionId);
       if (!guardMessage(session, messageId)) return state;
       return {
-        sessions: {
-          ...state.sessions,
-          [sessionId]: {
-            ...session!,
-            doomLoop: { toolName, consecutiveCount },
-          },
-        },
+        sessions: { ...state.sessions, [sessionId]: { ...session!, doomLoop: { toolName, consecutiveCount } } },
       };
     }),
 
@@ -488,12 +374,7 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
     set((state) => {
       const session = getSession(state.sessions, sessionId);
       if (!session) return state;
-      return {
-        sessions: {
-          ...state.sessions,
-          [sessionId]: { ...session, isStreaming: false },
-        },
-      };
+      return { sessions: { ...state.sessions, [sessionId]: { ...session, isStreaming: false } } };
     });
     await serverFetch(`/chat/sessions/${sessionId}/abort`, { method: 'POST' });
   },

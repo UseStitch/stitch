@@ -40,8 +40,7 @@ export function MessageList({
     [messages, streamState, hasMore, isFetchingMore],
   );
 
-  const hasStreamContent =
-    streamState.isStreaming || streamState.partIds.length > 0 || streamState.error !== null;
+  const hasStreamContent = streamState.isStreaming || streamState.partIds.length > 0 || streamState.error !== null;
 
   // Auto-load more when the sentinel becomes visible
   useEffect(() => {
@@ -117,8 +116,7 @@ export function MessageList({
                 data-index={virtualRow.index}
                 ref={rowVirtualizer.measureElement}
                 className="absolute top-0 left-0 w-full"
-                style={{ transform: `translateY(${virtualRow.start}px)` }}
-              >
+                style={{ transform: `translateY(${virtualRow.start}px)` }}>
                 <RowContent
                   row={row}
                   streamState={streamState}

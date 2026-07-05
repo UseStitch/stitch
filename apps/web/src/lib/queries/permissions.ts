@@ -12,23 +12,17 @@ export const permissionResponseKeys = {
 export function permissionResponsesQueryOptions(sessionId: string) {
   return queryOptions({
     queryKey: permissionResponseKeys.list(sessionId),
-    queryFn: () =>
-      serverRequest<PermissionResponse[]>(`/chat/sessions/${sessionId}/permission-responses`),
+    queryFn: () => serverRequest<PermissionResponse[]>(`/chat/sessions/${sessionId}/permission-responses`),
   });
 }
 
 type PermissionBaseInput = {
   sessionId: string;
   permissionResponseId: string;
-  setPermission?: {
-    permission: 'allow' | 'deny' | 'ask';
-    pattern?: string | null;
-  };
+  setPermission?: { permission: 'allow' | 'deny' | 'ask'; pattern?: string | null };
 };
 
-type PermissionAlternativeInput = PermissionBaseInput & {
-  entry: string;
-};
+type PermissionAlternativeInput = PermissionBaseInput & { entry: string };
 
 export function useAllowPermissionResponse() {
   const queryClient = useQueryClient();
@@ -44,9 +38,7 @@ export function useAllowPermissionResponse() {
         },
       ),
     onSuccess: (_data, input) => {
-      void queryClient.invalidateQueries({
-        queryKey: permissionResponseKeys.list(input.sessionId),
-      });
+      void queryClient.invalidateQueries({ queryKey: permissionResponseKeys.list(input.sessionId) });
     },
   });
 }
@@ -65,9 +57,7 @@ export function useRejectPermissionResponse() {
         },
       ),
     onSuccess: (_data, input) => {
-      void queryClient.invalidateQueries({
-        queryKey: permissionResponseKeys.list(input.sessionId),
-      });
+      void queryClient.invalidateQueries({ queryKey: permissionResponseKeys.list(input.sessionId) });
     },
   });
 }
@@ -86,9 +76,7 @@ export function useAlternativePermissionResponse() {
         },
       ),
     onSuccess: (_data, input) => {
-      void queryClient.invalidateQueries({
-        queryKey: permissionResponseKeys.list(input.sessionId),
-      });
+      void queryClient.invalidateQueries({ queryKey: permissionResponseKeys.list(input.sessionId) });
     },
   });
 }

@@ -9,12 +9,7 @@ import type { LanguageModelUsage } from 'ai';
 
 const log = Log.create({ service: 'recording-title-generator' });
 
-type GeneratedRecordingTitle = {
-  title: string;
-  usage: LanguageModelUsage | null;
-  providerId: string;
-  modelId: string;
-};
+type GeneratedRecordingTitle = { title: string; usage: LanguageModelUsage | null; providerId: string; modelId: string };
 
 type RecordingTitleGeneratorDeps = {
   resolveModel?: typeof resolveCheapModel;
@@ -52,36 +47,20 @@ export async function generateRecordingTitle(
   if (!resolved) return null;
 
   try {
-    const model = deps?.getModel
-      ? deps.getModel(resolved)
-      : createProvider(resolved.credentials)(resolved.modelId);
+    const model = deps?.getModel ? deps.getModel(resolved) : createProvider(resolved.credentials)(resolved.modelId);
     const result = await generateText({
       model,
-      messages: [
-        {
-          role: 'user',
-          content: buildRecordingTitlePrompt(analysis),
-        },
-      ],
+      messages: [{ role: 'user', content: buildRecordingTitlePrompt(analysis) }],
     });
 
     const title = result.text.trim().replace(/^["']|["']$/g, '');
     if (!title) return null;
 
-    return {
-      title,
-      usage: result.usage ?? null,
-      providerId: resolved.providerId,
-      modelId: resolved.modelId,
-    };
+    return { title, usage: result.usage ?? null, providerId: resolved.providerId, modelId: resolved.modelId };
   } catch (error) {
     const mappedError = mapAIError(error, resolved.providerId);
     log.error(
-      {
-        error: mappedError.message,
-        errorCategory: mappedError.category,
-        aiErrorName: mappedError.aiErrorName,
-      },
+      { error: mappedError.message, errorCategory: mappedError.category, aiErrorName: mappedError.aiErrorName },
       'recording title generation failed',
     );
     return null;

@@ -38,14 +38,10 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
   const isActiveRecording = recording.id === data.activeRecordingId;
   const defaultTemplateId = settings['recordings.analysis.defaultTemplateId'];
   const defaultTemplate =
-    templateData.templates.find((template) => template.id === defaultTemplateId) ??
-    templateData.templates[0];
-  const [selectedTemplateId, setSelectedTemplateId] = React.useState<string>(
-    defaultTemplate?.id ?? '',
-  );
+    templateData.templates.find((template) => template.id === defaultTemplateId) ?? templateData.templates[0];
+  const [selectedTemplateId, setSelectedTemplateId] = React.useState<string>(defaultTemplate?.id ?? '');
   const selectedTemplate =
-    templateData.templates.find((template) => template.id === selectedTemplateId) ??
-    defaultTemplate;
+    templateData.templates.find((template) => template.id === selectedTemplateId) ?? defaultTemplate;
 
   const isRunning = analysis?.status === 'processing';
 
@@ -57,9 +53,7 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
         void navigate({ to: '/recordings' });
       },
       (error: unknown) =>
-        toast.error(getErrorMessage(error, 'Failed to delete recording'), {
-          id: 'analysis-recording-delete',
-        }),
+        toast.error(getErrorMessage(error, 'Failed to delete recording'), { id: 'analysis-recording-delete' }),
     );
   }, [deleteRecording, navigate, recordingId]);
 
@@ -69,24 +63,18 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
       return;
     }
 
-    void startAnalysis
-      .mutateAsync({ recordingId, force: true, templateId: selectedTemplate.id })
-      .then(
-        () => toast.success('Analysis started', { id: 'analysis-start' }),
-        (error: unknown) =>
-          toast.error(getErrorMessage(error, 'Failed to start recording analysis'), {
-            id: 'analysis-start',
-          }),
-      );
+    void startAnalysis.mutateAsync({ recordingId, force: true, templateId: selectedTemplate.id }).then(
+      () => toast.success('Analysis started', { id: 'analysis-start' }),
+      (error: unknown) =>
+        toast.error(getErrorMessage(error, 'Failed to start recording analysis'), { id: 'analysis-start' }),
+    );
   };
 
   const handleCancelAnalysis = () => {
     void cancelAnalysis.mutateAsync(recordingId).then(
       () => toast.success('Analysis cancelled', { id: 'analysis-cancel' }),
       (error: unknown) =>
-        toast.error(getErrorMessage(error, 'Failed to cancel recording analysis'), {
-          id: 'analysis-cancel',
-        }),
+        toast.error(getErrorMessage(error, 'Failed to cancel recording analysis'), { id: 'analysis-cancel' }),
     );
   };
 
@@ -112,9 +100,7 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
             void stopRecording.mutateAsync().then(
               () => toast.success('Recording stopped', { id: 'analysis-recording-stop' }),
               (error: unknown) =>
-                toast.error(getErrorMessage(error, 'Failed to stop recording'), {
-                  id: 'analysis-recording-stop',
-                }),
+                toast.error(getErrorMessage(error, 'Failed to stop recording'), { id: 'analysis-recording-stop' }),
             );
           }}
           onDelete={() => {

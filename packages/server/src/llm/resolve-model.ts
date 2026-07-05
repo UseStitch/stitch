@@ -10,11 +10,7 @@ import { isAllowedProvider } from '@/models/llm/registry.js';
 import * as Models from '@/models/llm/registry.js';
 import { getSettings } from '@/settings/service.js';
 
-export type ResolvedModel = {
-  providerId: string;
-  modelId: string;
-  credentials: ProviderCredentials;
-};
+export type ResolvedModel = { providerId: string; modelId: string; credentials: ProviderCredentials };
 
 type ResolveModelInput = {
   /** Settings keys to check for user-configured preference */
@@ -46,9 +42,7 @@ type ResolveModelInput = {
  *
  * Returns a ServiceResult with the resolved provider, model, and credentials.
  */
-export async function resolveModel(
-  input: ResolveModelInput,
-): Promise<ServiceResult<ResolvedModel>> {
+export async function resolveModel(input: ResolveModelInput): Promise<ServiceResult<ResolvedModel>> {
   const db = getDb();
 
   const [settingsMap, configs, providers] = await Promise.all([
@@ -110,21 +104,14 @@ export async function resolveModel(
   const config = configs.find((c) => c.providerId === targetProviderId);
   if (!config) return err('Provider is not configured', 400);
 
-  return ok({
-    providerId: targetProviderId,
-    modelId: targetModelId,
-    credentials: config.credentials,
-  });
+  return ok({ providerId: targetProviderId, modelId: targetModelId, credentials: config.credentials });
 }
 
 /**
  * Validates that a provider + model combination is configured and available.
  * Does not return credentials — use when you only need to gate on validity.
  */
-export async function validateProviderModel(
-  providerId: string,
-  modelId: string,
-): Promise<ServiceResult<null>> {
+export async function validateProviderModel(providerId: string, modelId: string): Promise<ServiceResult<null>> {
   if (!isAllowedProvider(providerId)) {
     return err('Provider not found', 404);
   }

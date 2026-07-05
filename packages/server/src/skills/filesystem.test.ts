@@ -78,9 +78,7 @@ describe('buildSkillMd', () => {
       content: '# Instructions\n\nDo things.',
     });
 
-    expect(result).toBe(
-      '---\nname: test-skill\ndescription: A test skill.\n---\n\n# Instructions\n\nDo things.',
-    );
+    expect(result).toBe('---\nname: test-skill\ndescription: A test skill.\n---\n\n# Instructions\n\nDo things.');
   });
 });
 
@@ -157,9 +155,7 @@ describe('syncCompanionFiles', () => {
     ]);
 
     expect(changed).toBe(true);
-    expect(await fs.readFile(path.join(skillDir, 'references', 'guide.md'), 'utf8')).toBe(
-      '# Guide',
-    );
+    expect(await fs.readFile(path.join(skillDir, 'references', 'guide.md'), 'utf8')).toBe('# Guide');
     expect(await fs.readFile(path.join(skillDir, 'scripts', 'run.py'), 'utf8')).toBe('print("hi")');
   });
 
@@ -169,9 +165,7 @@ describe('syncCompanionFiles', () => {
     await fs.mkdir(path.join(skillDir, 'references'), { recursive: true });
     await fs.writeFile(path.join(skillDir, 'references', 'guide.md'), '# Guide', 'utf8');
 
-    const changed = await syncCompanionFiles(skillDir, [
-      { relativePath: 'references/guide.md', content: '# Guide' },
-    ]);
+    const changed = await syncCompanionFiles(skillDir, [{ relativePath: 'references/guide.md', content: '# Guide' }]);
 
     expect(changed).toBe(false);
   });
@@ -181,9 +175,7 @@ describe('syncCompanionFiles', () => {
     await fs.mkdir(path.join(skillDir, 'references'), { recursive: true });
     await fs.writeFile(path.join(skillDir, 'references', 'guide.md'), 'old', 'utf8');
 
-    const changed = await syncCompanionFiles(skillDir, [
-      { relativePath: 'references/guide.md', content: 'new' },
-    ]);
+    const changed = await syncCompanionFiles(skillDir, [{ relativePath: 'references/guide.md', content: 'new' }]);
 
     expect(changed).toBe(true);
     expect(await fs.readFile(path.join(skillDir, 'references', 'guide.md'), 'utf8')).toBe('new');
@@ -196,9 +188,7 @@ describe('syncCompanionFiles', () => {
     await fs.writeFile(path.join(skillDir, 'references', 'old.md'), 'old', 'utf8');
     await fs.writeFile(path.join(skillDir, 'references', 'keep.md'), 'keep', 'utf8');
 
-    const changed = await syncCompanionFiles(skillDir, [
-      { relativePath: 'references/keep.md', content: 'keep' },
-    ]);
+    const changed = await syncCompanionFiles(skillDir, [{ relativePath: 'references/keep.md', content: 'keep' }]);
 
     expect(changed).toBe(true);
     expect(existsSync(path.join(skillDir, 'references', 'old.md'))).toBe(false);

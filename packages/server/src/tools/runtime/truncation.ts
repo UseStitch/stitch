@@ -12,19 +12,14 @@ const RETENTION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 const log = Log.create({ service: 'truncation' });
 
-type TruncateResult =
-  | { content: string; truncated: false }
-  | { content: string; truncated: true; outputPath: string };
+type TruncateResult = { content: string; truncated: false } | { content: string; truncated: true; outputPath: string };
 
 interface TruncateOptions {
   maxLines?: number;
   maxBytes?: number;
 }
 
-export async function truncateOutput(
-  text: string,
-  options: TruncateOptions = {},
-): Promise<TruncateResult> {
+export async function truncateOutput(text: string, options: TruncateOptions = {}): Promise<TruncateResult> {
   const maxLines = options.maxLines ?? MAX_LINES;
   const maxBytes = options.maxBytes ?? MAX_BYTES;
   const lines = text.split('\n');

@@ -40,10 +40,7 @@ export type OllamaModelInput = {
   outputModalities: OllamaModality[];
 };
 
-type DiscoveredModel = {
-  id: string;
-  name: string;
-};
+type DiscoveredModel = { id: string; name: string };
 
 export const ollamaModelKeys = {
   all: ['ollama-models'] as const,

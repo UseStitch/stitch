@@ -26,10 +26,7 @@ describe('meeting note templates', () => {
 
   test('does not overwrite edited prebuilt templates when seeded again', async () => {
     const template = PREBUILT_MEETING_NOTE_TEMPLATES[0];
-    const updated = await updateMeetingNoteTemplate(template.id, {
-      name: 'Edited Template',
-      content: '# Edited',
-    });
+    const updated = await updateMeetingNoteTemplate(template.id, { name: 'Edited Template', content: '# Edited' });
 
     expect(updated.error).toBeNull();
 
@@ -45,10 +42,7 @@ describe('meeting note templates', () => {
   });
 
   test('creates updates and deletes templates', async () => {
-    const created = await createMeetingNoteTemplate({
-      name: 'Custom Template',
-      content: '# Custom',
-    });
+    const created = await createMeetingNoteTemplate({ name: 'Custom Template', content: '# Custom' });
 
     expect(created.error).toBeNull();
     if (created.error) return;
@@ -70,8 +64,6 @@ describe('meeting note templates', () => {
     const result = await listMeetingNoteTemplates();
     expect(result.error).toBeNull();
     if (result.error) return;
-    expect(result.data.templates.some((template) => template.id === created.data.template.id)).toBe(
-      false,
-    );
+    expect(result.data.templates.some((template) => template.id === created.data.template.id)).toBe(false);
   });
 });

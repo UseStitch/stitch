@@ -2,11 +2,7 @@ import { GoogleApiError } from './client.js';
 
 import type { Tool, ToolExecuteFunction } from 'ai';
 
-type GoogleToolErrorResult = {
-  error: string;
-  message: string;
-  retryable: boolean;
-};
+type GoogleToolErrorResult = { error: string; message: string; retryable: boolean };
 
 type GoogleToolErrorClassifier = {
   error: string;
@@ -66,11 +62,7 @@ export function classifyGoogleToolError(error: unknown): GoogleToolErrorResult |
     return null;
   }
 
-  return {
-    error: classifier.error,
-    message: classifier.message,
-    retryable: classifier.retryable,
-  };
+  return { error: classifier.error, message: classifier.message, retryable: classifier.retryable };
 }
 
 function isInsufficientScopeError(error: GoogleApiError): boolean {

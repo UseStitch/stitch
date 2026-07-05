@@ -4,11 +4,7 @@ import { z } from 'zod';
 
 import * as Glob from '@/lib/glob.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
-import {
-  isTextFileBuffer,
-  truncateLine,
-  validateAbsoluteDirectoryPath,
-} from '@/tools/runtime/shared.js';
+import { isTextFileBuffer, truncateLine, validateAbsoluteDirectoryPath } from '@/tools/runtime/shared.js';
 
 const MAX_MATCHES = 100;
 const MAX_FILES_SCANNED = 2000;
@@ -30,26 +26,13 @@ Example:
 
 const grepInputSchema = z.object({
   pattern: z.string().describe('The regex pattern to search for in file contents'),
-  path: z
-    .string()
-    .describe('Absolute directory path to search in. Required for performance and scope control.'),
-  include: z
-    .string()
-    .optional()
-    .describe('File pattern to include in the search (e.g. "*.ts", "**/*.{ts,tsx}")'),
+  path: z.string().describe('Absolute directory path to search in. Required for performance and scope control.'),
+  include: z.string().optional().describe('File pattern to include in the search (e.g. "*.ts", "**/*.{ts,tsx}")'),
 });
 
-type GrepResult = {
-  output: string;
-  pattern: string;
-};
+type GrepResult = { output: string; pattern: string };
 
-type Match = {
-  filePath: string;
-  lineNumber: number;
-  lineText: string;
-  mtimeMs: number;
-};
+type Match = { filePath: string; lineNumber: number; lineText: string; mtimeMs: number };
 
 export async function grepContent(input: z.infer<typeof grepInputSchema>): Promise<GrepResult> {
   const parsed = grepInputSchema.parse(input);
@@ -66,21 +49,13 @@ export async function grepContent(input: z.infer<typeof grepInputSchema>): Promi
     throw new Error('Invalid regex pattern');
   }
 
-  const candidateFiles = await Glob.scan(parsed.include ?? '**/*', {
-    cwd: searchPath,
-    absolute: true,
-    dot: true,
-  });
+  const candidateFiles = await Glob.scan(parsed.include ?? '**/*', { cwd: searchPath, absolute: true, dot: true });
 
   const filesWithMtime = await Promise.all(
     candidateFiles.map(async (filePath) => {
       const fileStats = await fs.stat(filePath).catch(() => null);
       if (!fileStats?.isFile()) return null;
-      return {
-        filePath,
-        mtimeMs: fileStats.mtimeMs,
-        size: fileStats.size,
-      };
+      return { filePath, mtimeMs: fileStats.mtimeMs, size: fileStats.size };
     }),
   );
 
@@ -139,10 +114,7 @@ export async function grepContent(input: z.infer<typeof grepInputSchema>): Promi
   }
 
   if (matches.length === 0) {
-    return {
-      output: 'No files found',
-      pattern: parsed.pattern,
-    };
+    return { output: 'No files found', pattern: parsed.pattern };
   }
 
   const outputLines = [
@@ -182,18 +154,11 @@ export async function grepContent(input: z.infer<typeof grepInputSchema>): Promi
     outputLines.push(`(${skippedLargeFiles} large files were skipped to keep search responsive.)`);
   }
 
-  return {
-    output: outputLines.join('\n'),
-    pattern: parsed.pattern,
-  };
+  return { output: outputLines.join('\n'), pattern: parsed.pattern };
 }
 
 function createGrepTool() {
-  return tool({
-    description: DESCRIPTION,
-    inputSchema: grepInputSchema,
-    execute: async (input) => grepContent(input),
-  });
+  return tool({ description: DESCRIPTION, inputSchema: grepInputSchema, execute: async (input) => grepContent(input) });
 }
 
 function getPatternTargets(input: unknown): string[] {

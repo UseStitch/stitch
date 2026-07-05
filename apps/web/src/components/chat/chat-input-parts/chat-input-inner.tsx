@@ -11,23 +11,14 @@ import { ATTACHMENT_ACCEPT, useAttachments } from './use-attachments';
 import { useDictation } from './use-dictation';
 
 import type { Attachment, ModelSpec } from './types';
-import {
-  buildProviderModelOptions,
-  findProviderModelOption,
-} from '@/components/model-selectors/provider-model-utils';
+import { buildProviderModelOptions, findProviderModelOption } from '@/components/model-selectors/provider-model-utils';
 import type { SttModelSelection } from '@/components/model-selectors/stt-model-selector-popover';
 import { SttModelSelectorPopover } from '@/components/model-selectors/stt-model-selector-popover';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
-import {
-  TextareaCompletions,
-  type TextareaCompletionGroup,
-} from '@/components/ui/textarea-completions';
+import { TextareaCompletions, type TextareaCompletionGroup } from '@/components/ui/textarea-completions';
 import { supportsAnyAttachment } from '@/lib/model-capabilities';
-import {
-  sttProviderModelsQueryOptions,
-  visibleProviderModelsQueryOptions,
-} from '@/lib/queries/providers';
+import { sttProviderModelsQueryOptions, visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { useShortcuts } from '@/lib/shortcuts';
 import { cn } from '@/lib/utils';
@@ -55,10 +46,7 @@ function areHotkeyKeysHeld(hotkey: string, heldKeys: string[]) {
   const parsed = parseHotkey(hotkey);
   const held = new Set(heldKeys.map((key) => key.toLowerCase()));
 
-  return (
-    held.has(parsed.key.toLowerCase()) &&
-    parsed.modifiers.every((modifier) => held.has(modifier.toLowerCase()))
-  );
+  return held.has(parsed.key.toLowerCase()) && parsed.modifiers.every((modifier) => held.has(modifier.toLowerCase()));
 }
 
 export function ChatInputInner({
@@ -95,15 +83,9 @@ export function ChatInputInner({
     handleDrop,
     handleFileInputChange,
     consumeForSubmit,
-  } = useAttachments({
-    pendingAttachments,
-    onPendingAttachmentsConsumed,
-  });
+  } = useAttachments({ pendingAttachments, onPendingAttachmentsConsumed });
 
-  const allOptions = React.useMemo(
-    () => buildProviderModelOptions(providerModels),
-    [providerModels],
-  );
+  const allOptions = React.useMemo(() => buildProviderModelOptions(providerModels), [providerModels]);
   const selectedModelOption = React.useMemo(
     () => findProviderModelOption(allOptions, selectedModel),
     [allOptions, selectedModel],
@@ -182,8 +164,7 @@ export function ChatInputInner({
       onDragLeave={handleDragLeave}
       onDrop={(event) => {
         void handleDrop(event);
-      }}
-    >
+      }}>
       {isDragging && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-primary/5">
           <p className="text-sm font-medium text-primary">Drop files here</p>
@@ -193,11 +174,7 @@ export function ChatInputInner({
       {attachments.length > 0 && (
         <div className="flex flex-wrap gap-2 px-4 pt-3">
           {attachments.map((attachment) => (
-            <AttachmentPreview
-              key={attachment.id}
-              attachment={attachment}
-              onRemove={removeAttachment}
-            />
+            <AttachmentPreview key={attachment.id} attachment={attachment} onRemove={removeAttachment} />
           ))}
         </div>
       )}
@@ -219,8 +196,7 @@ export function ChatInputInner({
         onChange={onChange}
         groups={completionGroups}
         disabled={disabled}
-        onKeyDown={handleKeyDown}
-      >
+        onKeyDown={handleKeyDown}>
         {({ textareaProps }) => (
           <textarea
             ref={textareaRef}
@@ -275,8 +251,7 @@ export function ChatInputInner({
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
                   disabled && 'pointer-events-none',
                 )}
-                title="Attach files"
-              >
+                title="Attach files">
                 <PaperclipIcon className="size-3.5" />
               </button>
             )}
@@ -293,8 +268,7 @@ export function ChatInputInner({
                     'text-muted-foreground hover:text-foreground',
                     disabled && 'pointer-events-none opacity-50',
                   )}
-                  title="Speak to type"
-                >
+                  title="Speak to type">
                   <MicIcon className="size-3.5" />
                 </Button>
                 <ButtonGroupSeparator />
@@ -307,8 +281,7 @@ export function ChatInputInner({
                       type="button"
                       size="icon-xs"
                       variant="ghost"
-                      className="w-4 px-0 text-muted-foreground hover:text-foreground"
-                    >
+                      className="w-4 px-0 text-muted-foreground hover:text-foreground">
                       <ChevronDownIcon className="size-3" />
                     </Button>
                   }
@@ -320,13 +293,7 @@ export function ChatInputInner({
 
         <div className="flex items-center gap-1">
           {isStreaming ? (
-            <Button
-              type="button"
-              size="icon-xs"
-              variant="destructive"
-              onClick={onStop}
-              className="shrink-0"
-            >
+            <Button type="button" size="icon-xs" variant="destructive" onClick={onStop} className="shrink-0">
               <SquareIcon className="size-3.5" />
             </Button>
           ) : null}
@@ -341,8 +308,7 @@ export function ChatInputInner({
                 if (canSend) submit();
               }}
               className={cn('shrink-0 transition-all', canSend && 'shadow-sm')}
-              title="Send message"
-            >
+              title="Send message">
               <ArrowUpIcon className="size-3.5" />
             </Button>
           ) : null}

@@ -25,13 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { resetMemoriesMutationOptions } from '@/lib/queries/memories';
@@ -54,9 +48,7 @@ function EmbeddingModelSelect({
   providerModels: EmbeddingProviderModels[];
 }) {
   const queryClient = useQueryClient();
-  const [pendingValue, setPendingValue] = React.useState<ModelSelection | null | undefined>(
-    undefined,
-  );
+  const [pendingValue, setPendingValue] = React.useState<ModelSelection | null | undefined>(undefined);
 
   const saveProviderMutation = useMutation(
     saveSettingMutationOptions('memory.embedding.providerId', queryClient, { silent: true }),
@@ -67,14 +59,11 @@ function EmbeddingModelSelect({
   const resetMutation = useMutation(resetMemoriesMutationOptions(queryClient));
 
   const value: ModelSelection | null =
-    currentProviderId && currentModelId
-      ? { providerId: currentProviderId, modelId: currentModelId }
-      : null;
+    currentProviderId && currentModelId ? { providerId: currentProviderId, modelId: currentModelId } : null;
 
   function handleValueChange(selection: ModelSelection | null) {
     if (!selection) return;
-    const isActualChange =
-      selection.providerId !== currentProviderId || selection.modelId !== currentModelId;
+    const isActualChange = selection.providerId !== currentProviderId || selection.modelId !== currentModelId;
     if (!isActualChange) return;
 
     if (!currentProviderId && !currentModelId) {
@@ -117,19 +106,14 @@ function EmbeddingModelSelect({
           <DialogHeader>
             <DialogTitle>Change embedding model?</DialogTitle>
             <DialogDescription>
-              Switching the embedding model will permanently delete all stored memories. This action
-              cannot be undone.
+              Switching the embedding model will permanently delete all stored memories. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={handleCancel} disabled={isConfirming}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={() => void handleConfirm()}
-              disabled={isConfirming}
-            >
+            <Button variant="destructive" onClick={() => void handleConfirm()} disabled={isConfirming}>
               {isConfirming ? 'Deleting...' : 'Delete memories & switch'}
             </Button>
           </DialogFooter>
@@ -156,9 +140,7 @@ function MemoryToggles() {
   );
   const canEnableMemory = hasEmbeddingSelection && selectedModelAvailable;
 
-  const saveEnabledMutation = useMutation(
-    saveSettingMutationOptions('memory.enabled', queryClient, { silent: true }),
-  );
+  const saveEnabledMutation = useMutation(saveSettingMutationOptions('memory.enabled', queryClient, { silent: true }));
   const saveAutoExtractMutation = useMutation(
     saveSettingMutationOptions('memory.autoExtract', queryClient, { silent: true }),
   );
@@ -169,8 +151,7 @@ function MemoryToggles() {
         <SettingRow
           label="Enable Memory"
           description="Learn and remember preferences, facts, and workflows across sessions"
-          htmlFor="memory-enabled-toggle"
-        >
+          htmlFor="memory-enabled-toggle">
           <Switch
             id="memory-enabled-toggle"
             checked={memoryEnabled}
@@ -181,15 +162,12 @@ function MemoryToggles() {
         <SettingRow
           label="Auto-extract memories"
           description="Automatically extract facts from conversations after each response"
-          htmlFor="auto-extract-toggle"
-        >
+          htmlFor="auto-extract-toggle">
           <Switch
             id="auto-extract-toggle"
             checked={autoExtract}
             disabled={!memoryEnabled}
-            onCheckedChange={(checked) =>
-              saveAutoExtractMutation.mutate(checked ? 'true' : 'false')
-            }
+            onCheckedChange={(checked) => saveAutoExtractMutation.mutate(checked ? 'true' : 'false')}
           />
         </SettingRow>
       </SettingRows>
@@ -205,8 +183,7 @@ function ExtractionSettings() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const confidenceFilter = settings['memory.extraction.confidenceFilter'];
   const selectedConfidenceLabel =
-    CONFIDENCE_FILTER_OPTIONS.find((option) => option.value === confidenceFilter)?.label ??
-    'Select confidence filter';
+    CONFIDENCE_FILTER_OPTIONS.find((option) => option.value === confidenceFilter)?.label ?? 'Select confidence filter';
 
   const saveConfidenceFilter = useMutation(
     saveSettingMutationOptions('memory.extraction.confidenceFilter', queryClient, { silent: true }),
@@ -241,8 +218,7 @@ function ExtractionSettings() {
             value={confidenceFilter}
             onValueChange={(val) => {
               if (val) saveConfidenceFilter.mutate(val);
-            }}
-          >
+            }}>
             <SelectTrigger className="w-full">
               <SelectValue>{selectedConfidenceLabel}</SelectValue>
             </SelectTrigger>
@@ -319,10 +295,7 @@ function RetentionSettings() {
 function RetrievalSettings() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
 
-  const minScore = Math.max(
-    0,
-    Math.min(1, Number.parseFloat(settings['memory.retrieval.minScore'] ?? '0')),
-  );
+  const minScore = Math.max(0, Math.min(1, Number.parseFloat(settings['memory.retrieval.minScore'] ?? '0')));
 
   return (
     <SettingRows>
@@ -367,10 +340,7 @@ function EmbeddingModelContent() {
 
   return (
     <SettingRows>
-      <SettingRow
-        label="Embedding Model"
-        description="Model used for memory search. Required to enable memory."
-      >
+      <SettingRow label="Embedding Model" description="Model used for memory search. Required to enable memory.">
         <SettingRowControl>
           <EmbeddingModelSelect
             currentProviderId={settings['memory.embedding.providerId']}
@@ -388,11 +358,7 @@ export function MemorySettings() {
   const Icon = page.icon;
 
   return (
-    <SettingPage
-      title={page.title}
-      description={page.description}
-      icon={<Icon className="size-5" />}
-    >
+    <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
       <Tabs defaultValue="general" className="space-y-5">
         <TabsList variant="line">
           <TabsTrigger value="general">General</TabsTrigger>

@@ -18,30 +18,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  ArcElement,
-  Tooltip,
-  Legend,
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend);
 
 type RenderChildren = (children: string[]) => React.ReactNode;
-type LiquidUiRendererProps<TNode extends LiquidUiNode> = {
-  node: TNode;
-  renderChildren: RenderChildren;
-};
+type LiquidUiRendererProps<TNode extends LiquidUiNode> = { node: TNode; renderChildren: RenderChildren };
 
-const spacingClasses = {
-  none: 'gap-0',
-  xs: 'gap-1',
-  sm: 'gap-2',
-  md: 'gap-3',
-  lg: 'gap-4',
-} as const;
+const spacingClasses = { none: 'gap-0', xs: 'gap-1', sm: 'gap-2', md: 'gap-3', lg: 'gap-4' } as const;
 
 const gridClasses = {
   '1': 'grid-cols-1',
@@ -85,21 +67,11 @@ function getChartColor(index: number): string {
   return resolveCssVar(`--chart-${(index % 5) + 1}`, fallback);
 }
 
-function LiquidStack({
-  node,
-  renderChildren,
-}: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Stack' }>>) {
-  return (
-    <div className={cn('flex flex-col', spacingClasses[node.spacing])}>
-      {renderChildren(node.children)}
-    </div>
-  );
+function LiquidStack({ node, renderChildren }: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Stack' }>>) {
+  return <div className={cn('flex flex-col', spacingClasses[node.spacing])}>{renderChildren(node.children)}</div>;
 }
 
-function LiquidGrid({
-  node,
-  renderChildren,
-}: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Grid' }>>) {
+function LiquidGrid({ node, renderChildren }: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Grid' }>>) {
   return (
     <div className={cn('grid', gridClasses[node.columns], spacingClasses[node.gap])}>
       {renderChildren(node.children)}
@@ -107,10 +79,7 @@ function LiquidGrid({
   );
 }
 
-function LiquidRow({
-  node,
-  renderChildren,
-}: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Row' }>>) {
+function LiquidRow({ node, renderChildren }: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Row' }>>) {
   return (
     <div className={cn('flex flex-wrap', spacingClasses[node.gap], alignClasses[node.align])}>
       {renderChildren(node.children)}
@@ -118,10 +87,7 @@ function LiquidRow({
   );
 }
 
-function LiquidCard({
-  node,
-  renderChildren,
-}: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Card' }>>) {
+function LiquidCard({ node, renderChildren }: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Card' }>>) {
   return (
     <Card size="sm" className="w-full">
       {(node.title || node.description) && (
@@ -135,14 +101,11 @@ function LiquidCard({
   );
 }
 
-function LiquidBadge({
-  node,
-}: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Badge' }>>) {
+function LiquidBadge({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Badge' }>>) {
   return (
     <Badge
       variant={node.variant === 'destructive' ? 'destructive' : 'outline'}
-      className={badgeVariantClasses[node.variant]}
-    >
+      className={badgeVariantClasses[node.variant]}>
       {node.text}
     </Badge>
   );
@@ -164,9 +127,7 @@ function LiquidStat({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { comp
   );
 }
 
-function LiquidKeyValue({
-  node,
-}: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'KeyValue' }>>) {
+function LiquidKeyValue({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'KeyValue' }>>) {
   return (
     <div className="flex items-start justify-between gap-4 rounded-md border bg-muted/30 px-3 py-2 text-sm">
       <span className="text-muted-foreground">{node.label}</span>
@@ -183,19 +144,14 @@ function LiquidDivider() {
   return <Separator className="my-1" />;
 }
 
-function LiquidChart({
-  node,
-}: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Chart' }>>) {
+function LiquidChart({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Chart' }>>) {
   const chartData = {
     labels: node.labels,
     datasets: node.datasets.map((dataset, index) => {
       const color = getChartColor(index);
       return {
         ...dataset,
-        backgroundColor:
-          node.kind === 'pie'
-            ? dataset.data.map((_, itemIndex) => getChartColor(itemIndex))
-            : color,
+        backgroundColor: node.kind === 'pie' ? dataset.data.map((_, itemIndex) => getChartColor(itemIndex)) : color,
         borderColor: color,
         tension: 0.35,
       };
@@ -223,10 +179,7 @@ function LiquidChart({
   );
 }
 
-export function renderLiquidUiNode(
-  node: LiquidUiNode,
-  renderChildren: RenderChildren,
-): React.ReactNode {
+export function renderLiquidUiNode(node: LiquidUiNode, renderChildren: RenderChildren): React.ReactNode {
   switch (node.component) {
     case 'Stack':
       return <LiquidStack node={node} renderChildren={renderChildren} />;

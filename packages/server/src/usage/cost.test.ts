@@ -117,12 +117,7 @@ describe('calculateMessageCostUsd', () => {
                 output: 15,
                 cache_read: 0.3,
                 cache_write: 3.75,
-                context_over_200k: {
-                  input: 6,
-                  output: 22.5,
-                  cache_read: 0.6,
-                  cache_write: 7.5,
-                },
+                context_over_200k: { input: 6, output: 22.5, cache_read: 0.6, cache_write: 7.5 },
               },
               limit: { context: 300_000, output: 8_192 },
               options: {},

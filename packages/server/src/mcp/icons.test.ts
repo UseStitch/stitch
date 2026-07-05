@@ -44,9 +44,7 @@ describe('mcp icon cache', () => {
       serverUrl: 'https://trusted.example.com/mcp',
       scope: 'server:test',
       cacheDir,
-      icon: {
-        src: 'https://evil.example.com/icon.png',
-      },
+      icon: { src: 'https://evil.example.com/icon.png' },
     });
 
     expect(cached).toBeNull();

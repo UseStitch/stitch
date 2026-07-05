@@ -1,17 +1,7 @@
 import type { ElectronBrowserState } from '../browser/electron.js';
-import type {
-  RecordingDeviceChangedPayload,
-  RecordingWarningPayload,
-} from '../recordings/events.js';
-import type {
-  MeetingCallDetectedPayload,
-  MeetingCallEndedPayload,
-} from '../recordings/meeting-ipc.js';
-import type {
-  StartRecordingInput,
-  StartRecordingResponse,
-  StopRecordingResponse,
-} from '../recordings/types.js';
+import type { RecordingDeviceChangedPayload, RecordingWarningPayload } from '../recordings/events.js';
+import type { MeetingCallDetectedPayload, MeetingCallEndedPayload } from '../recordings/meeting-ipc.js';
+import type { StartRecordingInput, StartRecordingResponse, StopRecordingResponse } from '../recordings/types.js';
 
 export type {
   MeetingCallDetectedPayload,
@@ -23,11 +13,7 @@ export type {
   StopRecordingResponse,
 };
 
-export type ServerConfigPayload = {
-  url: string;
-  mode: 'local' | 'remote';
-  remoteUrl: string | null;
-};
+export type ServerConfigPayload = { url: string; mode: 'local' | 'remote'; remoteUrl: string | null };
 
 export type ServerTestRemoteResult = { ok: true; url: string } | { ok: false; error: string };
 
@@ -40,19 +26,14 @@ export type UpdaterStatePayload = {
   error?: string;
 };
 
-export type RecordingDevicesPayload = {
-  microphoneDevices: string[];
-  speakerDevices: string[];
-};
+export type RecordingDevicesPayload = { microphoneDevices: string[]; speakerDevices: string[] };
 
 export type RecordingPermissionsPayload = {
   microphone: 'granted' | 'denied' | 'unknown';
   screenCapture: 'granted' | 'denied' | 'unknown';
 };
 
-export type MeetingCallDismissedPayload = {
-  key: string;
-};
+export type MeetingCallDismissedPayload = { key: string };
 
 export type MeetingDetectedNotificationPayload = MeetingCallDetectedPayload;
 
@@ -99,10 +80,7 @@ export interface IpcContract {
   'notifications:dismiss': { args: [id: string]; return: void };
   'notifications:set-height': { args: [height: number]; return: void };
   'browser:getState': { args: []; return: ElectronBrowserState };
-  'browser:registerWebview': {
-    args: [webContentsId: number, sessionId: string];
-    return: ElectronBrowserState;
-  };
+  'browser:registerWebview': { args: [webContentsId: number, sessionId: string]; return: ElectronBrowserState };
   'browser:switchSession': { args: [sessionId: string]; return: ElectronBrowserState };
   'browser:show': { args: []; return: ElectronBrowserState };
   'browser:hide': { args: []; return: ElectronBrowserState };

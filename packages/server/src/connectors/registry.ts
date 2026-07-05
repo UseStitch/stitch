@@ -30,10 +30,7 @@ function validateDefinition(definition: ConnectorDefinition): void {
 export function registerConnector(definition: ConnectorDefinition): void {
   validateDefinition(definition);
   definitions.set(definition.id, definition);
-  log.info(
-    { event: 'connector.registered', connectorId: definition.id },
-    `connector registered: ${definition.name}`,
-  );
+  log.info({ event: 'connector.registered', connectorId: definition.id }, `connector registered: ${definition.name}`);
 }
 
 export function unregisterConnector(id: string): void {

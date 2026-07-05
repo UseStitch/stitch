@@ -58,14 +58,7 @@ export function getStitchRegistryUserAgent(): string {
  * Deliberately knows nothing about LLM models or embeddings.
  */
 export function createRegistryCache<T>(options: RegistryCacheOptions<T>) {
-  const {
-    cacheFilePath,
-    url,
-    parse,
-    fallback,
-    userAgent,
-    fetchImpl: defaultFetch = fetch,
-  } = options;
+  const { cacheFilePath, url, parse, fallback, userAgent, fetchImpl: defaultFetch = fetch } = options;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
   let memory: T | null = null;

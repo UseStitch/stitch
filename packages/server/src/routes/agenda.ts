@@ -55,9 +55,7 @@ const updateItemSchema = z.object({
   listId: z.string().optional(),
 });
 
-const reorderSchema = z.object({
-  orderedIds: z.array(z.string()).min(1),
-});
+const reorderSchema = z.object({ orderedIds: z.array(z.string()).min(1) });
 
 export const agendaRouter = new Hono();
 
@@ -95,16 +93,12 @@ agendaRouter.delete('/lists/:id', (c) => {
   return unwrapResult(c, result, 204);
 });
 
-agendaRouter.post(
-  '/lists/:id/merge',
-  zValidator('json', z.object({ sourceId: z.string().min(1) })),
-  (c) => {
-    const targetId = c.req.param('id') as PrefixedString<'alist'>;
-    const { sourceId } = c.req.valid('json');
-    const result = mergeAgendaLists(targetId, sourceId as PrefixedString<'alist'>);
-    return unwrapResult(c, result);
-  },
-);
+agendaRouter.post('/lists/:id/merge', zValidator('json', z.object({ sourceId: z.string().min(1) })), (c) => {
+  const targetId = c.req.param('id') as PrefixedString<'alist'>;
+  const { sourceId } = c.req.valid('json');
+  const result = mergeAgendaLists(targetId, sourceId as PrefixedString<'alist'>);
+  return unwrapResult(c, result);
+});
 
 // --- Items ---
 
@@ -114,18 +108,14 @@ agendaRouter.post('/items/reorder', zValidator('json', reorderSchema), (c) => {
   return unwrapResult(c, result, 204);
 });
 
-agendaRouter.get(
-  '/items',
-  zValidator('query', paginationQuerySchema({ pageSize: 20 })),
-  async (c) => {
-    const { page, pageSize } = c.req.valid('query');
-    const listId = c.req.query('listId') as PrefixedString<'alist'> | undefined;
-    const status = c.req.query('status') as (typeof AGENDA_ITEM_STATUSES)[number] | undefined;
-    const priority = c.req.query('priority') as (typeof AGENDA_ITEM_PRIORITIES)[number] | undefined;
-    const result = await getAgendaItems({ listId, status, priority, page, pageSize });
-    return unwrapResult(c, result);
-  },
-);
+agendaRouter.get('/items', zValidator('query', paginationQuerySchema({ pageSize: 20 })), async (c) => {
+  const { page, pageSize } = c.req.valid('query');
+  const listId = c.req.query('listId') as PrefixedString<'alist'> | undefined;
+  const status = c.req.query('status') as (typeof AGENDA_ITEM_STATUSES)[number] | undefined;
+  const priority = c.req.query('priority') as (typeof AGENDA_ITEM_PRIORITIES)[number] | undefined;
+  const result = await getAgendaItems({ listId, status, priority, page, pageSize });
+  return unwrapResult(c, result);
+});
 
 agendaRouter.post('/items', zValidator('json', createItemSchema), (c) => {
   const body = c.req.valid('json');
@@ -141,10 +131,7 @@ agendaRouter.post('/items', zValidator('json', createItemSchema), (c) => {
 agendaRouter.patch('/items/:id', zValidator('json', updateItemSchema), (c) => {
   const id = c.req.param('id') as PrefixedString<'aitm'>;
   const body = c.req.valid('json');
-  const result = updateAgendaItem(id, {
-    ...body,
-    listId: body.listId as PrefixedString<'alist'> | undefined,
-  });
+  const result = updateAgendaItem(id, { ...body, listId: body.listId as PrefixedString<'alist'> | undefined });
   return unwrapResult(c, result);
 });
 

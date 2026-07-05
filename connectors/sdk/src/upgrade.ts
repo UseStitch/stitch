@@ -6,10 +6,7 @@ function getSortedVersions(definition: ConnectorDefinitionInput): ConnectorVersi
   return [...definition.versionHistory].sort((a, b) => a.version - b.version);
 }
 
-export function getCapabilitiesForVersion(
-  definition: ConnectorDefinitionInput,
-  appliedVersion: number,
-): string[] {
+export function getCapabilitiesForVersion(definition: ConnectorDefinitionInput, appliedVersion: number): string[] {
   const capabilities = new Set<string>();
   for (const version of getSortedVersions(definition)) {
     if (version.version > appliedVersion) {
@@ -22,10 +19,7 @@ export function getCapabilitiesForVersion(
   return [...capabilities];
 }
 
-function getPendingVersions(
-  definition: ConnectorDefinitionInput,
-  appliedVersion: number,
-): ConnectorVersion[] {
+function getPendingVersions(definition: ConnectorDefinitionInput, appliedVersion: number): ConnectorVersion[] {
   return getSortedVersions(definition).filter(
     (version) => version.version > appliedVersion && version.version <= definition.currentVersion,
   );
@@ -62,9 +56,7 @@ export function buildUpgradeState(input: {
 
   const targetCapabilities = getCapabilitiesForVersion(input.definition, toVersion);
   const currentCapabilities = new Set(input.capabilities);
-  const newCapabilities = targetCapabilities.filter(
-    (capability) => !currentCapabilities.has(capability),
-  );
+  const newCapabilities = targetCapabilities.filter((capability) => !currentCapabilities.has(capability));
 
   const latestVersion = pendingVersions[pendingVersions.length - 1];
 

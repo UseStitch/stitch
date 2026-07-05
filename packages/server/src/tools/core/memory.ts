@@ -19,10 +19,7 @@ const memoryInputSchema = z.object({
       'Action to perform: "remember" to store a fact, "recall" to search memories, "forget" to delete a memory, "list" to show all memories',
     ),
   content: z.string().optional().describe('The fact to remember, or the search query for recall'),
-  category: z
-    .enum(MEMORY_CATEGORIES)
-    .optional()
-    .describe('Category for the memory (preference, fact, constraint)'),
+  category: z.enum(MEMORY_CATEGORIES).optional().describe('Category for the memory (preference, fact, constraint)'),
   memoryId: z.string().optional().describe('The ID of the memory to forget'),
 });
 
@@ -53,18 +50,12 @@ function createMemoryTool(context: ToolContext) {
           }
 
           const memory = await addSemanticMemory(
-            {
-              content: input.content,
-              category: input.category ?? 'fact',
-              confidence: 'stated',
-            },
+            { content: input.content, category: input.category ?? 'fact', confidence: 'stated' },
             'chat',
             context.sessionId,
           );
 
-          return {
-            output: `Remembered: "${memory.content}" (id: ${memory.id}, category: ${memory.category})`,
-          };
+          return { output: `Remembered: "${memory.content}" (id: ${memory.id}, category: ${memory.category})` };
         }
 
         case 'recall': {
@@ -104,11 +95,7 @@ function createMemoryTool(context: ToolContext) {
         }
 
         case 'list': {
-          const listResult = await getAllSemanticMemories({
-            page: 1,
-            pageSize: 1000,
-            sourceFilter: 'chat',
-          });
+          const listResult = await getAllSemanticMemories({ page: 1, pageSize: 1000, sourceFilter: 'chat' });
           if (listResult.error) {
             return { output: 'Failed to list memories.' };
           }
@@ -129,9 +116,5 @@ function createMemoryTool(context: ToolContext) {
 }
 
 export function createDefinition(context: ToolContext): ToolDefinition {
-  return {
-    name: 'memory',
-    displayName: 'Memory',
-    tool: createMemoryTool(context),
-  };
+  return { name: 'memory', displayName: 'Memory', tool: createMemoryTool(context) };
 }

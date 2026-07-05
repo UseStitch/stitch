@@ -14,9 +14,7 @@ describe('macos meeting detector parser', () => {
       processNames: ['Slack'],
     });
 
-    expect(
-      internal.toDesktopObservation({ pid: 2, processName: 'Microsoft Teams Helper' }),
-    ).toMatchObject({
+    expect(internal.toDesktopObservation({ pid: 2, processName: 'Microsoft Teams Helper' })).toMatchObject({
       key: 'desktop:teams',
       platform: 'teams',
       kind: 'desktop',
@@ -43,11 +41,7 @@ describe('macos meeting detector parser', () => {
   skipOffPlatform('returns null for unknown process names and non-meet titles', () => {
     expect(internal.toDesktopObservation({ pid: 4, processName: 'Finder' })).toBeNull();
     expect(
-      internal.toBrowserObservation({
-        pid: 5,
-        processName: 'Google Chrome',
-        windowTitle: 'Inbox - Gmail',
-      }),
+      internal.toBrowserObservation({ pid: 5, processName: 'Google Chrome', windowTitle: 'Inbox - Gmail' }),
     ).toBeNull();
   });
 });

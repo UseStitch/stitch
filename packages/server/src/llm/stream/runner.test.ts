@@ -30,10 +30,7 @@ function captureAllEvents(): void {
   }
 }
 
-const CREDENTIALS: ProviderCredentials = {
-  providerId: 'openai',
-  auth: { method: 'api-key', apiKey: 'test-key' },
-};
+const CREDENTIALS: ProviderCredentials = { providerId: 'openai', auth: { method: 'api-key', apiKey: 'test-key' } };
 
 setupTestDb();
 
@@ -85,10 +82,7 @@ describe('runStream integration', () => {
           savedMessages.push({ finishReason: finalFinishReason, parts: accumulatedParts });
         },
         markSessionUnread: async () => {},
-        getCompactionSettings: async () => ({
-          auto: false,
-          prune: false,
-        }),
+        getCompactionSettings: async () => ({ auto: false, prune: false }),
         pruneSession: async () => 0,
       },
     });
@@ -96,9 +90,7 @@ describe('runStream integration', () => {
     expect(savedMessages).toHaveLength(1);
     expect(savedMessages[0]?.finishReason).toBe('stop');
     expect(savedMessages[0]?.parts).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ type: 'text-delta', text: 'Hello from integration' }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ type: 'text-delta', text: 'Hello from integration' })]),
     );
 
     const events = emittedEvents.map(([name]) => name);
@@ -123,10 +115,7 @@ describe('runStream integration', () => {
           savedMessages.push({ finishReason: finalFinishReason });
         },
         markSessionUnread: async () => {},
-        getCompactionSettings: async () => ({
-          auto: false,
-          prune: false,
-        }),
+        getCompactionSettings: async () => ({ auto: false, prune: false }),
         pruneSession: async () => 0,
       },
     });

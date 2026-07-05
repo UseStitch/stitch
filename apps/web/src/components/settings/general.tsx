@@ -16,15 +16,8 @@ import {
 } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
-import {
-  sttProviderModelsQueryOptions,
-  visibleProviderModelsQueryOptions,
-} from '@/lib/queries/providers';
-import {
-  deleteSettingMutationOptions,
-  saveSettingMutationOptions,
-  settingsQueryOptions,
-} from '@/lib/queries/settings';
+import { sttProviderModelsQueryOptions, visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
+import { deleteSettingMutationOptions, saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 import { useUpdaterStore } from '@/stores/updater-store';
 
 const MODEL_PREFERENCES = [
@@ -57,9 +50,7 @@ function SttModelSelect() {
     saveSettingMutationOptions('stt.default.providerId', queryClient, { silent: true }),
   );
   const saveModelMutation = useMutation(
-    saveSettingMutationOptions('stt.default.modelId', queryClient, {
-      successMessage: 'STT model saved',
-    }),
+    saveSettingMutationOptions('stt.default.modelId', queryClient, { successMessage: 'STT model saved' }),
   );
   const deleteProviderMutation = useMutation(
     deleteSettingMutationOptions('stt.default.providerId', queryClient, { silent: true }),
@@ -71,9 +62,7 @@ function SttModelSelect() {
   const currentProviderId = settings['stt.default.providerId'];
   const currentModelId = settings['stt.default.modelId'];
   const value: ModelSelection | null =
-    currentProviderId && currentModelId
-      ? { providerId: currentProviderId, modelId: currentModelId }
-      : null;
+    currentProviderId && currentModelId ? { providerId: currentProviderId, modelId: currentModelId } : null;
 
   function handleValueChange(selection: ModelSelection | null) {
     if (!selection) {
@@ -139,11 +128,7 @@ export function GeneralSettings() {
   const Icon = page.icon;
 
   return (
-    <SettingPage
-      title={page.title}
-      description={page.description}
-      icon={<Icon className="size-5" />}
-    >
+    <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
       <SettingSection title="Preferred LLMs">
         <ModelsContent />
       </SettingSection>
@@ -188,8 +173,7 @@ function AutoUpdatesContent() {
 
   const statusText = updaterStatusLabel(updater.status, updater.progress);
   const actionPending = checkPending || installPending;
-  const canCheck =
-    updater.status !== 'checking' && updater.status !== 'downloading' && !actionPending;
+  const canCheck = updater.status !== 'checking' && updater.status !== 'downloading' && !actionPending;
   const canInstall = updater.status === 'downloaded' && !actionPending;
 
   function handleCheckUpdates() {
@@ -214,13 +198,7 @@ function AutoUpdatesContent() {
     <SettingRows>
       <SettingRow label="Desktop app updates" description={statusText}>
         <ButtonGroup className="shrink-0">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleCheckUpdates}
-            disabled={!canCheck}
-          >
+          <Button type="button" variant="outline" size="sm" onClick={handleCheckUpdates} disabled={!canCheck}>
             {checkPending ? (
               <>
                 <LoaderIcon className="size-3.5 animate-spin" />

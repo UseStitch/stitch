@@ -5,13 +5,7 @@ import { useSuspenseQuery, useQueryClient, useMutation } from '@tanstack/react-q
 import type { AppearanceMode } from '@stitch/shared/appearance/types';
 
 import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
-import {
-  getTheme,
-  injectThemeCss,
-  applyAppearanceMode,
-  DEFAULT_THEME,
-  DEFAULT_MODE,
-} from '@/lib/theme';
+import { getTheme, injectThemeCss, applyAppearanceMode, DEFAULT_THEME, DEFAULT_MODE } from '@/lib/theme';
 
 export function useTheme() {
   const queryClient = useQueryClient();
@@ -35,12 +29,8 @@ export function useTheme() {
     return () => mq.removeEventListener('change', handler);
   }, [mode]);
 
-  const saveModeMutation = useMutation(
-    saveSettingMutationOptions('appearance.mode', queryClient, { silent: true }),
-  );
-  const saveThemeMutation = useMutation(
-    saveSettingMutationOptions('appearance.theme', queryClient, { silent: true }),
-  );
+  const saveModeMutation = useMutation(saveSettingMutationOptions('appearance.mode', queryClient, { silent: true }));
+  const saveThemeMutation = useMutation(saveSettingMutationOptions('appearance.theme', queryClient, { silent: true }));
 
   return {
     mode,

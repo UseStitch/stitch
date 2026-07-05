@@ -7,11 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
-type ConnectorCardProps = {
-  definition: ConnectorDefinition;
-  instanceCount: number;
-  onSetup: () => void;
-};
+type ConnectorCardProps = { definition: ConnectorDefinition; instanceCount: number; onSetup: () => void };
 
 export function ConnectorCard({ definition, instanceCount, onSetup }: ConnectorCardProps) {
   const isConnected = instanceCount > 0;
@@ -30,9 +26,7 @@ export function ConnectorCard({ definition, instanceCount, onSetup }: ConnectorC
                 {definition.authType === 'oauth2' ? 'OAuth' : 'API key'}
               </Badge>
             </div>
-            <CardDescription className="mt-1 line-clamp-2">
-              {definition.description}
-            </CardDescription>
+            <CardDescription className="mt-1 line-clamp-2">{definition.description}</CardDescription>
           </div>
         </div>
       </CardHeader>

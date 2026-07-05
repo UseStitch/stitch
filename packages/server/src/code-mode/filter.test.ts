@@ -39,16 +39,10 @@ describe('applyToolFilter', () => {
 
   test('excludes tools from excluded toolset IDs', () => {
     registerTestToolset('browser', ['browser']);
-    registerTestToolset(
-      'mcp:mcp_abcdefghijklmnopqrstuvwxyz',
-      ['mcp_abcdefghijklmnopqrstuvwxyz_search'],
-      'mcp',
-    );
+    registerTestToolset('mcp:mcp_abcdefghijklmnopqrstuvwxyz', ['mcp_abcdefghijklmnopqrstuvwxyz_search'], 'mcp');
 
     const input = buildTools(['browser', 'mcp_abcdefghijklmnopqrstuvwxyz_search', 'read']);
-    const result = applyToolFilter(input, {
-      excludeToolsets: ['mcp:mcp_abcdefghijklmnopqrstuvwxyz'],
-    });
+    const result = applyToolFilter(input, { excludeToolsets: ['mcp:mcp_abcdefghijklmnopqrstuvwxyz'] });
 
     expect(Object.keys(result)).toEqual(['read']);
   });
@@ -57,9 +51,7 @@ describe('applyToolFilter', () => {
     registerTestToolset('browser', ['browser']);
 
     const input = buildTools(['browser', 'glob']);
-    const result = applyToolFilter(input, {
-      excludeToolsets: ['browser:'],
-    });
+    const result = applyToolFilter(input, { excludeToolsets: ['browser:'] });
 
     expect(Object.keys(result)).toEqual(['glob']);
   });
@@ -70,15 +62,9 @@ describe('applyToolFilter', () => {
       'mcp_abcdefghijklmnopqrstuvwxyz_fetch',
     ]);
 
-    const input = buildTools([
-      'mcp_abcdefghijklmnopqrstuvwxyz_search',
-      'mcp_abcdefghijklmnopqrstuvwxyz_fetch',
-      'read',
-    ]);
+    const input = buildTools(['mcp_abcdefghijklmnopqrstuvwxyz_search', 'mcp_abcdefghijklmnopqrstuvwxyz_fetch', 'read']);
     const result = applyToolFilter(input, {
-      excludeToolsInToolset: {
-        'mcp:mcp_abcdefghijklmnopqrstuvwxyz': ['mcp_abcdefghijklmnopqrstuvwxyz_search'],
-      },
+      excludeToolsInToolset: { 'mcp:mcp_abcdefghijklmnopqrstuvwxyz': ['mcp_abcdefghijklmnopqrstuvwxyz_search'] },
     });
 
     expect(Object.keys(result)).toEqual(['mcp_abcdefghijklmnopqrstuvwxyz_fetch', 'read']);

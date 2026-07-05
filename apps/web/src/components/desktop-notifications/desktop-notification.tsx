@@ -4,11 +4,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { ReactNode } from 'react';
 
-type DesktopNotificationProps = {
-  children: ReactNode;
-  exiting?: boolean;
-  onDismiss: () => void;
-};
+type DesktopNotificationProps = { children: ReactNode; exiting?: boolean; onDismiss: () => void };
 
 function DesktopNotificationRoot({ children, exiting, onDismiss }: DesktopNotificationProps) {
   return (
@@ -16,15 +12,13 @@ function DesktopNotificationRoot({ children, exiting, onDismiss }: DesktopNotifi
       className={cn(
         'desktop-notification-surface group relative box-border flex w-full min-w-0 gap-2 overflow-hidden rounded-xl border p-3 shadow-lg shadow-black/15 transition-all duration-200 ease-out',
         exiting ? 'translate-x-8 opacity-0' : 'translate-x-0 opacity-100',
-      )}
-    >
+      )}>
       {children}
       <button
         type="button"
         aria-label="Dismiss notification"
         onClick={onDismiss}
-        className="absolute top-1.5 right-1.5 flex size-6 items-center justify-center rounded-full text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:bg-muted hover:text-foreground"
-      >
+        className="absolute top-1.5 right-1.5 flex size-6 items-center justify-center rounded-full text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:bg-muted hover:text-foreground">
         <XIcon className="size-3.5" />
       </button>
     </article>
@@ -48,9 +42,7 @@ function DesktopNotificationTitle({ children }: { children: ReactNode }) {
 }
 
 function DesktopNotificationDescription({ children }: { children: ReactNode }) {
-  return (
-    <p className="mt-0.5 text-xs leading-4 wrap-break-word text-muted-foreground">{children}</p>
-  );
+  return <p className="mt-0.5 text-xs leading-4 wrap-break-word text-muted-foreground">{children}</p>;
 }
 
 function DesktopNotificationActions({ children }: { children: ReactNode }) {
@@ -67,13 +59,7 @@ function DesktopNotificationAction({
   variant?: 'default' | 'ghost';
 }) {
   return (
-    <Button
-      type="button"
-      size="sm"
-      variant={variant}
-      onClick={onClick}
-      className="h-7 min-w-0 px-2 text-xs shadow-sm"
-    >
+    <Button type="button" size="sm" variant={variant} onClick={onClick} className="h-7 min-w-0 px-2 text-xs shadow-sm">
       {children}
     </Button>
   );

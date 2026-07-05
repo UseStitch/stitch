@@ -13,9 +13,7 @@ const webfetchInputSchema = z.object({
   format: z
     .enum(['text', 'markdown', 'html'])
     .default('markdown')
-    .describe(
-      'The format to return the content in (text, markdown, or html). Defaults to markdown.',
-    ),
+    .describe('The format to return the content in (text, markdown, or html). Defaults to markdown.'),
   timeout: z.number().optional().describe('Optional timeout in seconds (max 120)'),
 });
 
@@ -30,9 +28,7 @@ const markdownConverter = new TurndownService({
 markdownConverter.remove(['script', 'style', 'meta', 'link']);
 
 function validateAndNormalizeUrl(input: string): string {
-  const withHttps = input.startsWith('http://')
-    ? `https://${input.slice('http://'.length)}`
-    : input;
+  const withHttps = input.startsWith('http://') ? `https://${input.slice('http://'.length)}` : input;
   const parsed = new URL(withHttps);
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
     throw new Error('URL must start with http:// or https://');
@@ -158,10 +154,7 @@ Parameter sourcing:
           'Accept-Language': 'en-US,en;q=0.9',
         };
 
-        const firstResponse = await fetch(normalizedUrl, {
-          signal: timeoutController.signal,
-          headers,
-        });
+        const firstResponse = await fetch(normalizedUrl, { signal: timeoutController.signal, headers });
 
         const response =
           firstResponse.status === 403 && firstResponse.headers.get('cf-mitigated') === 'challenge'
@@ -188,10 +181,7 @@ Parameter sourcing:
         const { mime, full } = parseContentType(response.headers.get('content-type'));
         const title = `${normalizedUrl} (${full})`;
 
-        const isImage =
-          mime.startsWith('image/') &&
-          mime !== 'image/svg+xml' &&
-          mime !== 'image/vnd.fastbidsheet';
+        const isImage = mime.startsWith('image/') && mime !== 'image/svg+xml' && mime !== 'image/vnd.fastbidsheet';
 
         if (isImage) {
           const base64Content = Buffer.from(arrayBuffer).toString('base64');
@@ -199,13 +189,7 @@ Parameter sourcing:
             title,
             output: 'Image fetched successfully',
             metadata: {},
-            attachments: [
-              {
-                type: 'file' as const,
-                mime,
-                url: `data:${mime};base64,${base64Content}`,
-              },
-            ],
+            attachments: [{ type: 'file' as const, mime, url: `data:${mime};base64,${base64Content}` }],
           };
         }
 
@@ -217,18 +201,10 @@ Parameter sourcing:
         }
 
         if (input.format === 'text') {
-          return {
-            output: isHtml ? extractTextFromHtml(content) : content,
-            title,
-            metadata: {},
-          };
+          return { output: isHtml ? extractTextFromHtml(content) : content, title, metadata: {} };
         }
 
-        return {
-          output: isHtml ? convertHtmlToMarkdown(content) : content,
-          title,
-          metadata: {},
-        };
+        return { output: isHtml ? convertHtmlToMarkdown(content) : content, title, metadata: {} };
       } finally {
         clearTimeout(timeoutId);
         abortSignal?.removeEventListener('abort', onAbort);
@@ -249,10 +225,7 @@ function getSuggestion(input: unknown) {
   if (typeof url !== 'string' || url.length === 0) return null;
   const domain = extractDomainForPermission(url);
   if (!domain) return null;
-  return {
-    message: `Always allow from ${domain}`,
-    pattern: domain,
-  };
+  return { message: `Always allow from ${domain}`, pattern: domain };
 }
 
 export const definition: ToolDefinition = {

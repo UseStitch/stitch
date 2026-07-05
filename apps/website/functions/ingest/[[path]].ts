@@ -27,8 +27,7 @@ async function forwardRequest(request: Request, pathWithSearch: string): Promise
   const originRequest = new Request(`https://${API_HOST}${pathWithSearch}`, {
     method: request.method,
     headers: originHeaders,
-    body:
-      request.method !== 'GET' && request.method !== 'HEAD' ? await request.arrayBuffer() : null,
+    body: request.method !== 'GET' && request.method !== 'HEAD' ? await request.arrayBuffer() : null,
     redirect: request.redirect,
   });
 

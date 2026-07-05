@@ -6,19 +6,14 @@
     <title>Stitch</title>
     <meta
       name="description"
-      content="Stitch is a local-first AI desktop app. Record meetings, manage todos, automate daily workflows, and let AI remember what matters — all running privately on your machine."
-    />
+      content="Stitch is a local-first AI desktop app. Record meetings, manage todos, automate daily workflows, and let AI remember what matters — all running privately on your machine." />
     <link
       rel="icon"
       type="image/svg+xml"
-      href="data:image/svg+xml,%3Csvg width='256' height='256' viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='a' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%232196f3;stop-opacity:1'/%3E%3Cstop offset='100%25' style='stop-color:%2300e5ff;stop-opacity:1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='256' height='256' rx='55' fill='%231c1e2e'/%3E%3Ccircle cx='50' cy='50' r='15' fill='%232d314d'/%3E%3Ccircle cx='200' cy='50' r='15' fill='%232d314d'/%3E%3Ccircle cx='50' cy='200' r='15' fill='%232d314d'/%3E%3Ccircle cx='200' cy='200' r='15' fill='%232d314d'/%3E%3Cpath stroke='url(%23a)' stroke-width='18' stroke-linecap='round' d='M50 200 200 50'/%3E%3Cpath stroke='url(%23a)' stroke-width='18' stroke-linecap='round' d='m50 50 150 150'/%3E%3C/svg%3E"
-    />
+      href="data:image/svg+xml,%3Csvg width='256' height='256' viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3ClinearGradient id='a' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%232196f3;stop-opacity:1'/%3E%3Cstop offset='100%25' style='stop-color:%2300e5ff;stop-opacity:1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='256' height='256' rx='55' fill='%231c1e2e'/%3E%3Ccircle cx='50' cy='50' r='15' fill='%232d314d'/%3E%3Ccircle cx='200' cy='50' r='15' fill='%232d314d'/%3E%3Ccircle cx='50' cy='200' r='15' fill='%232d314d'/%3E%3Ccircle cx='200' cy='200' r='15' fill='%232d314d'/%3E%3Cpath stroke='url(%23a)' stroke-width='18' stroke-linecap='round' d='M50 200 200 50'/%3E%3Cpath stroke='url(%23a)' stroke-width='18' stroke-linecap='round' d='m50 50 150 150'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <script>
       // Apply saved theme immediately to prevent flash
       (function () {
@@ -43,13 +38,11 @@
       <div class="dialog-content">
         <div class="dialog-header">
           <h2>Get notified about managed services</h2>
-          <button class="dialog-close" id="close-waitlist-dialog" aria-label="Close">
-            &times;
-          </button>
+          <button class="dialog-close" id="close-waitlist-dialog" aria-label="Close">&times;</button>
         </div>
         <p class="dialog-desc">
-          We're building managed services so you don't have to bring your own API keys or run
-          anything locally. Enter your email and select what interests you.
+          We're building managed services so you don't have to bring your own API keys or run anything locally. Enter
+          your email and select what interests you.
         </p>
         <form id="waitlist-form">
           <div class="form-field">
@@ -60,8 +53,7 @@
               name="email"
               required
               placeholder="you@example.com"
-              autocomplete="email"
-            />
+              autocomplete="email" />
           </div>
           <fieldset class="form-field">
             <legend>I'm interested in:</legend>
@@ -76,9 +68,7 @@
           </fieldset>
           <button type="submit" class="btn btn-primary dialog-submit">Notify me</button>
         </form>
-        <p class="dialog-success" id="waitlist-success" hidden>
-          You're on the list. We'll be in touch.
-        </p>
+        <p class="dialog-success" id="waitlist-success" hidden>You're on the list. We'll be in touch.</p>
       </div>
     </dialog>
 
@@ -98,18 +88,8 @@
             <circle cx="200" cy="50" r="15" fill="#2d314d" />
             <circle cx="50" cy="200" r="15" fill="#2d314d" />
             <circle cx="200" cy="200" r="15" fill="#2d314d" />
-            <path
-              stroke="url(#logo-grad)"
-              stroke-width="18"
-              stroke-linecap="round"
-              d="M50 200 200 50"
-            />
-            <path
-              stroke="url(#logo-grad)"
-              stroke-width="18"
-              stroke-linecap="round"
-              d="m50 50 150 150"
-            />
+            <path stroke="url(#logo-grad)" stroke-width="18" stroke-linecap="round" d="M50 200 200 50" />
+            <path stroke="url(#logo-grad)" stroke-width="18" stroke-linecap="round" d="m50 50 150 150" />
           </svg>
           Stitch
         </a>
@@ -145,23 +125,20 @@
       <div class="container">
         <h1>Stitch. AI that works locally.</h1>
         <p class="subtitle">
-          A free, open-source desktop app that manages your emails, records meetings, tracks your
-          todos, automates daily workflows, and remembers what matters. Runs on your machine, no
-          cloud required.
+          A free, open-source desktop app that manages your emails, records meetings, tracks your todos, automates daily
+          workflows, and remembers what matters. Runs on your machine, no cloud required.
         </p>
         <div class="hero-ctas" id="download">
           <a
             class="btn btn-primary"
             href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-windows-setup.exe"
-            data-app-download-platform="windows"
-          >
+            data-app-download-platform="windows">
             Windows
           </a>
           <a
             class="btn btn-primary"
             href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-macos-arm64.dmg"
-            data-app-download-platform="macos"
-          >
+            data-app-download-platform="macos">
             macOS
           </a>
         </div>
@@ -206,8 +183,8 @@
         <p class="section-label">Capabilities</p>
         <h2 class="section-heading">Everything you need, built in</h2>
         <p class="section-desc">
-          Stitch comes packed with tools to handle your daily work, from managing your inbox to
-          recording meetings and automating repetitive tasks.
+          Stitch comes packed with tools to handle your daily work, from managing your inbox to recording meetings and
+          automating repetitive tasks.
         </p>
 
         <div class="feature-grid">
@@ -215,9 +192,7 @@
             <div class="feature-icon">
               <!-- Brain icon for Memory -->
               <svg viewBox="0 0 24 24">
-                <path
-                  d="M12 2a7 7 0 0 0-7 7c0 3 2 5.5 5 6.5V22h4v-6.5c3-1 5-3.5 5-6.5a7 7 0 0 0-7-7z"
-                ></path>
+                <path d="M12 2a7 7 0 0 0-7 7c0 3 2 5.5 5 6.5V22h4v-6.5c3-1 5-3.5 5-6.5a7 7 0 0 0-7-7z"></path>
                 <path d="M12 2v4"></path>
                 <path d="M8 6l2 2"></path>
                 <path d="M16 6l-2 2"></path>
@@ -225,9 +200,8 @@
             </div>
             <h3>Memory</h3>
             <p>
-              Stitch remembers your preferences, workflows, and key facts across conversations. It
-              learns what matters to you and applies that context automatically, no repetition
-              needed.
+              Stitch remembers your preferences, workflows, and key facts across conversations. It learns what matters
+              to you and applies that context automatically, no repetition needed.
             </p>
           </div>
           <div class="feature-card">
@@ -242,9 +216,8 @@
             </div>
             <h3>Meeting recordings</h3>
             <p>
-              Record meetings from Zoom, Google Meet, Teams, Slack, or Discord. Stitch captures
-              audio locally, transcribes it, and generates summaries with action items, all on your
-              machine.
+              Record meetings from Zoom, Google Meet, Teams, Slack, or Discord. Stitch captures audio locally,
+              transcribes it, and generates summaries with action items, all on your machine.
             </p>
           </div>
           <div class="feature-card">
@@ -261,9 +234,8 @@
             </div>
             <h3>Agenda &amp; todos</h3>
             <p>
-              A built-in task manager with priorities, due dates, and multiple lists. Stitch can
-              create tasks from your conversations and meetings, so nothing slips through the
-              cracks.
+              A built-in task manager with priorities, due dates, and multiple lists. Stitch can create tasks from your
+              conversations and meetings, so nothing slips through the cracks.
             </p>
           </div>
           <div class="feature-card">
@@ -276,23 +248,21 @@
             </div>
             <h3>Daily automations</h3>
             <p>
-              Turn any chat into a recurring workflow. "Summarize my emails every morning" or "clean
-              up my downloads every Friday." Stitch runs it on schedule without being asked.
+              Turn any chat into a recurring workflow. "Summarize my emails every morning" or "clean up my downloads
+              every Friday." Stitch runs it on schedule without being asked.
             </p>
           </div>
           <div class="feature-card">
             <div class="feature-icon">
               <svg viewBox="0 0 24 24">
-                <path
-                  d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
-                ></path>
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                 <polyline points="22 6 12 13 2 6"></polyline>
               </svg>
             </div>
             <h3>Email &amp; calendar</h3>
             <p>
-              Connect Gmail and Google Calendar. Stitch can read, draft, and send emails, manage
-              your schedule, and handle routine communications.
+              Connect Gmail and Google Calendar. Stitch can read, draft, and send emails, manage your schedule, and
+              handle routine communications.
             </p>
           </div>
           <div class="feature-card">
@@ -301,14 +271,13 @@
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="2" y1="12" x2="22" y2="12"></line>
                 <path
-                  d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
-                ></path>
+                  d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
               </svg>
             </div>
             <h3>Web browsing</h3>
             <p>
-              Research topics, look up information, fill out forms, and pull data from websites.
-              Stitch drives a real browser on your behalf.
+              Research topics, look up information, fill out forms, and pull data from websites. Stitch drives a real
+              browser on your behalf.
             </p>
           </div>
           <div class="feature-card">
@@ -322,8 +291,8 @@
             </div>
             <h3>MCP servers</h3>
             <p>
-              Extend Stitch with any Model Context Protocol server. Add tools, data sources, and
-              integrations from the growing MCP ecosystem — no plugin development needed.
+              Extend Stitch with any Model Context Protocol server. Add tools, data sources, and integrations from the
+              growing MCP ecosystem — no plugin development needed.
             </p>
           </div>
           <div class="feature-card">
@@ -334,8 +303,8 @@
             </div>
             <h3>Skills</h3>
             <p>
-              Install community-built skills that teach Stitch new capabilities — from code review
-              to data analysis. Plug in expertise on demand.
+              Install community-built skills that teach Stitch new capabilities — from code review to data analysis.
+              Plug in expertise on demand.
             </p>
           </div>
           <div class="feature-card feature-card-soon">
@@ -351,8 +320,7 @@
         <p class="section-label">How it works</p>
         <h2 class="section-heading">Download, configure, go</h2>
         <p class="section-desc">
-          Get started in minutes. Stitch handles the complexity so you can focus on what you want to
-          accomplish.
+          Get started in minutes. Stitch handles the complexity so you can focus on what you want to accomplish.
         </p>
 
         <div class="steps">
@@ -360,24 +328,24 @@
             <div class="step-number">1</div>
             <h3>Install &amp; connect a provider</h3>
             <p>
-              Download Stitch and connect your AI provider (OpenAI, Anthropic, Google, or a local
-              model). Bring your own API keys.
+              Download Stitch and connect your AI provider (OpenAI, Anthropic, Google, or a local model). Bring your own
+              API keys.
             </p>
           </div>
           <div class="step">
             <div class="step-number">2</div>
             <h3>Describe your task</h3>
             <p>
-              Tell Stitch what you need in plain language. Organize files, draft an email, research
-              a topic, clean up your schedule. Anything you'd do yourself at a computer.
+              Tell Stitch what you need in plain language. Organize files, draft an email, research a topic, clean up
+              your schedule. Anything you'd do yourself at a computer.
             </p>
           </div>
           <div class="step">
             <div class="step-number">3</div>
             <h3>Review &amp; approve</h3>
             <p>
-              Stitch asks for permission before running sensitive actions. You stay in control while
-              the AI handles the work.
+              Stitch asks for permission before running sensitive actions. You stay in control while the AI handles the
+              work.
             </p>
           </div>
         </div>
@@ -390,8 +358,8 @@
         <p class="section-label">Installation</p>
         <h2 class="section-heading">Getting started on your platform</h2>
         <p class="section-desc">
-          Stitch is available for macOS and Windows. Your operating system may show a warning the
-          first time you open it. Here's how to get past it.
+          Stitch is available for macOS and Windows. Your operating system may show a warning the first time you open
+          it. Here's how to get past it.
         </p>
 
         <div class="install-grid">
@@ -400,8 +368,7 @@
               <div class="install-icon">
                 <svg viewBox="0 0 24 24">
                   <path
-                    d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"
-                  ></path>
+                    d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"></path>
                 </svg>
               </div>
               <h3>macOS</h3>
@@ -420,8 +387,7 @@
               <div class="install-icon">
                 <svg viewBox="0 0 24 24">
                   <path
-                    d="M3 5.548l7.206-0.994v6.953H3V5.548zm0 12.904l7.206 0.994v-6.953H3v5.959zm8.006 1.104L21 20.952v-8.459H11.006v6.063zM11.006 4.048L21 3.048v8.459H11.006V4.048z"
-                  ></path>
+                    d="M3 5.548l7.206-0.994v6.953H3V5.548zm0 12.904l7.206 0.994v-6.953H3v5.959zm8.006 1.104L21 20.952v-8.459H11.006v6.063zM11.006 4.048L21 3.048v8.459H11.006V4.048z"></path>
                 </svg>
               </div>
               <h3>Windows</h3>
@@ -442,8 +408,8 @@
         </div>
 
         <p class="install-shared-note">
-          The warning appears because the Windows build isn't code-signed yet. We are working on it.
-          Stitch is fully open source. You can inspect the code or build from source on
+          The warning appears because the Windows build isn't code-signed yet. We are working on it. Stitch is fully
+          open source. You can inspect the code or build from source on
           <a href="https://github.com/UseStitch/stitch">GitHub</a>.
         </p>
       </div>
@@ -455,8 +421,7 @@
         <p class="section-label">Extensibility</p>
         <h2 class="section-heading">Bring your own models</h2>
         <p class="section-desc">
-          Stitch is not locked to a single provider. Use the models and integrations that work for
-          you.
+          Stitch is not locked to a single provider. Use the models and integrations that work for you.
         </p>
 
         <div class="integrations-row">
@@ -474,13 +439,11 @@
         <p class="section-label">Get started for free</p>
         <h2 class="section-heading">Free API keys for LLM &amp; Speech-to-Text</h2>
         <p class="section-desc">
-          You don't need to spend a cent to use Stitch. These providers offer free tiers with
-          generous limits &mdash; no credit card required.
+          You don't need to spend a cent to use Stitch. These providers offer free tiers with generous limits &mdash; no
+          credit card required.
         </p>
 
-        <p class="section-label" style="margin-top: 48px; margin-bottom: 24px">
-          Free LLM providers
-        </p>
+        <p class="section-label" style="margin-top: 48px; margin-bottom: 24px">Free LLM providers</p>
         <div class="install-grid provider-grid">
           <div class="install-card provider-card-wide">
             <div class="install-header">
@@ -491,9 +454,7 @@
                 <li>
                   Go to
                   <strong
-                    ><a href="https://aistudio.google.com/live" target="_blank"
-                      >aistudio.google.com/live</a
-                    ></strong
+                    ><a href="https://aistudio.google.com/live" target="_blank">aistudio.google.com/live</a></strong
                   >
                   and sign in with your Google account
                 </li>
@@ -504,9 +465,8 @@
                 <li>Paste the key into Stitch settings under the Google Gemini provider</li>
               </ol>
               <p class="install-note">
-                Google AI Studio offers free Gemini API access with rate limits. No credit card is
-                required to generate an API key. Usage is subject to Google's Gemini API terms and
-                free tier limits.
+                Google AI Studio offers free Gemini API access with rate limits. No credit card is required to generate
+                an API key. Usage is subject to Google's Gemini API terms and free tier limits.
               </p>
             </div>
           </div>
@@ -527,16 +487,14 @@
                   <strong>Preferences &rarr; API Keys</strong> in the sidebar
                 </li>
                 <li>
-                  Click <strong>New Key</strong>, give it a name, select
-                  <strong>No Expiration</strong>, and create it
+                  Click <strong>New Key</strong>, give it a name, select <strong>No Expiration</strong>, and create it
                 </li>
                 <li>Copy the key &mdash; it's only shown once</li>
                 <li>Paste the key into Stitch settings under the OpenRouter provider</li>
               </ol>
               <p class="install-note">
-                Free tier includes 28+ models (DeepSeek R1, Gemma 3, Gemini Flash, and more) at 20
-                requests/min. No credit card needed. Use the <strong>:free</strong> model variant
-                for zero-cost access.
+                Free tier includes 28+ models (DeepSeek R1, Gemma 3, Gemini Flash, and more) at 20 requests/min. No
+                credit card needed. Use the <strong>:free</strong> model variant for zero-cost access.
               </p>
             </div>
           </div>
@@ -549,14 +507,10 @@
               <ol>
                 <li>
                   Go to
-                  <strong
-                    ><a href="https://build.nvidia.com" target="_blank">build.nvidia.com</a></strong
-                  >
+                  <strong><a href="https://build.nvidia.com" target="_blank">build.nvidia.com</a></strong>
                   and sign up for the free NVIDIA Developer Program
                 </li>
-                <li>
-                  Open your profile from the top-right menu and click <strong>API Keys</strong>
-                </li>
+                <li>Open your profile from the top-right menu and click <strong>API Keys</strong></li>
                 <li>
                   Click <strong>Generate API Key</strong>, give it a name, and select
                   <strong>Never Expire</strong>
@@ -565,17 +519,15 @@
                 <li>Paste the key into Stitch settings under the NVIDIA provider</li>
               </ol>
               <p class="install-note">
-                Free tier gives you 1,000 inference credits on signup (up to 5,000 on request) with
-                a 40 requests/min rate limit. Includes models like Nemotron, Llama, and DeepSeek. No
-                credit card required. OpenAI-compatible endpoint.
+                Free tier gives you 1,000 inference credits on signup (up to 5,000 on request) with a 40 requests/min
+                rate limit. Includes models like Nemotron, Llama, and DeepSeek. No credit card required.
+                OpenAI-compatible endpoint.
               </p>
             </div>
           </div>
         </div>
 
-        <p class="section-label" style="margin-top: 48px; margin-bottom: 24px">
-          Free Speech-to-Text provider
-        </p>
+        <p class="section-label" style="margin-top: 48px; margin-bottom: 24px">Free Speech-to-Text provider</p>
         <div class="install-grid install-grid-single">
           <div class="install-card">
             <div class="install-header">
@@ -590,27 +542,22 @@
                 </li>
                 <li>Click <strong>Developers</strong> in the left sidebar</li>
                 <li>Select the <strong>API Keys</strong> tab</li>
-                <li>
-                  Click <strong>Create API Key</strong>, give it a name, and enable Speech-to-Text
-                  access
-                </li>
+                <li>Click <strong>Create API Key</strong>, give it a name, and enable Speech-to-Text access</li>
                 <li>Copy the key immediately &mdash; it's only shown in full once</li>
                 <li>Paste the key into Stitch settings under the ElevenLabs STT provider</li>
               </ol>
               <p class="install-note">
-                The free plan includes 10,000 credits/month which covers both Text-to-Speech and
-                Speech-to-Text (Scribe). No credit card required. Used for transcribing meeting
-                recordings in Stitch.
+                The free plan includes 10,000 credits/month which covers both Text-to-Speech and Speech-to-Text
+                (Scribe). No credit card required. Used for transcribing meeting recordings in Stitch.
               </p>
             </div>
           </div>
         </div>
 
         <p class="install-shared-note">
-          These providers are independent third-party services and are not affiliated with or
-          endorsed by Stitch. Each provider has its own terms of service, privacy policy, and data
-          handling practices. Please review the respective provider's website for details on how
-          your data is used.
+          These providers are independent third-party services and are not affiliated with or endorsed by Stitch. Each
+          provider has its own terms of service, privacy policy, and data handling practices. Please review the
+          respective provider's website for details on how your data is used.
         </p>
       </div>
     </section>
@@ -621,53 +568,52 @@
         <p class="section-label">Privacy &amp; trust</p>
         <h2 class="section-heading">No middleman between you and your data</h2>
         <p class="section-desc">
-          Stitch runs entirely on your computer. There are no Stitch servers, no accounts, and no
-          tracking. When you use a cloud AI provider, your prompts are sent directly to that
-          provider's API. For fully offline use, connect a local model instead.
+          Stitch runs entirely on your computer. There are no Stitch servers, no accounts, and no tracking. When you use
+          a cloud AI provider, your prompts are sent directly to that provider's API. For fully offline use, connect a
+          local model instead.
         </p>
 
         <div class="privacy-grid">
           <div class="privacy-item">
             <h3>Runs on your machine</h3>
             <p>
-              Stitch itself is a desktop app with no backend. Your files, recordings, memories, and
-              todos are stored locally. Nothing is ever uploaded to Stitch servers. There are none.
+              Stitch itself is a desktop app with no backend. Your files, recordings, memories, and todos are stored
+              locally. Nothing is ever uploaded to Stitch servers. There are none.
             </p>
           </div>
           <div class="privacy-item">
             <h3>No accounts or tracking</h3>
             <p>
-              No sign-ups, no telemetry, no analytics. Download the app and start using it
-              immediately. Stitch doesn't know who you are and doesn't want to.
+              No sign-ups, no telemetry, no analytics. Download the app and start using it immediately. Stitch doesn't
+              know who you are and doesn't want to.
             </p>
           </div>
           <div class="privacy-item">
             <h3>Direct-to-provider AI</h3>
             <p>
-              When you use OpenAI, Anthropic, or Google, your prompts go straight from your machine
-              to their API, not through us. Review each provider's data policies to understand how
-              they handle your requests.
+              When you use OpenAI, Anthropic, or Google, your prompts go straight from your machine to their API, not
+              through us. Review each provider's data policies to understand how they handle your requests.
             </p>
           </div>
           <div class="privacy-item">
             <h3>Fully offline option</h3>
             <p>
-              Connect a local model and nothing leaves your computer at all. No internet connection
-              needed, no data shared with anyone. Complete privacy for sensitive work.
+              Connect a local model and nothing leaves your computer at all. No internet connection needed, no data
+              shared with anyone. Complete privacy for sensitive work.
             </p>
           </div>
           <div class="privacy-item">
             <h3>Fully open source</h3>
             <p>
-              Every line of code is public on GitHub. Audit what it does, build it from source, or
-              contribute. No black boxes, no proprietary backends, no trust required.
+              Every line of code is public on GitHub. Audit what it does, build it from source, or contribute. No black
+              boxes, no proprietary backends, no trust required.
             </p>
           </div>
           <div class="privacy-item">
             <h3>You approve every action</h3>
             <p>
-              Stitch asks for your permission before doing anything sensitive. You see exactly what
-              it plans to do and can say no. You're always in the loop.
+              Stitch asks for your permission before doing anything sensitive. You see exactly what it plans to do and
+              can say no. You're always in the loop.
             </p>
           </div>
         </div>
@@ -679,22 +625,20 @@
       <div class="container">
         <h2>Try Stitch. It's free and private.</h2>
         <p>
-          Manage meetings, automate tasks, and let AI remember the details. Open source, runs
-          locally, no account required.
+          Manage meetings, automate tasks, and let AI remember the details. Open source, runs locally, no account
+          required.
         </p>
         <div class="hero-ctas">
           <a
             class="btn btn-primary"
             href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-windows-setup.exe"
-            data-app-download-platform="windows"
-          >
+            data-app-download-platform="windows">
             Windows
           </a>
           <a
             class="btn btn-primary"
             href="https://github.com/UseStitch/stitch/releases/latest/download/Stitch-macos-arm64.dmg"
-            data-app-download-platform="macos"
-          >
+            data-app-download-platform="macos">
             macOS
           </a>
           <a class="btn" href="https://github.com/UseStitch/stitch">GitHub</a>

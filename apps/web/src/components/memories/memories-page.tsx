@@ -4,21 +4,11 @@ import * as React from 'react';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import {
-  CATEGORY_LABELS,
-  CATEGORY_VARIANTS,
-  CONFIDENCE_LABELS,
-} from '@/components/memories/constants';
+import { CATEGORY_LABELS, CATEGORY_VARIANTS, CONFIDENCE_LABELS } from '@/components/memories/constants';
 import { MemoryDetailSheet } from '@/components/memories/memory-detail-sheet';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import {
@@ -39,13 +29,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table } from '@/components/ui/table';
 import type { MemoryCategory, MemorySource, SemanticMemory } from '@/lib/queries/memories';
 import {
@@ -198,9 +182,7 @@ export function MemoriesPage() {
             <div>
               <PageTitle>Memories</PageTitle>
               <PageDescription>
-                {isLoading
-                  ? 'Loading…'
-                  : `${memories.length} ${memories.length === 1 ? 'memory' : 'memories'} stored`}
+                {isLoading ? 'Loading…' : `${memories.length} ${memories.length === 1 ? 'memory' : 'memories'} stored`}
               </PageDescription>
             </div>
           </PageHeaderContent>
@@ -220,8 +202,7 @@ export function MemoriesPage() {
                 size="sm"
                 onClick={() => pruneMutation.mutate()}
                 disabled={pruneMutation.isPending || maintenanceMutation.isPending}
-                className="h-7 px-2 text-xs"
-              >
+                className="h-7 px-2 text-xs">
                 Prune Stale
               </Button>
               <Button
@@ -229,8 +210,7 @@ export function MemoriesPage() {
                 size="sm"
                 onClick={() => maintenanceMutation.mutate()}
                 disabled={maintenanceMutation.isPending || pruneMutation.isPending}
-                className="h-7 px-2 text-xs"
-              >
+                className="h-7 px-2 text-xs">
                 {maintenanceMutation.isPending ? 'Running…' : 'Run Maintenance'}
               </Button>
             </div>
@@ -260,10 +240,7 @@ export function MemoriesPage() {
             </SelectContent>
           </Select>
 
-          <Select
-            value={filterCategory}
-            onValueChange={(v) => setFilterCategory(v as FilterCategory)}
-          >
+          <Select value={filterCategory} onValueChange={(v) => setFilterCategory(v as FilterCategory)}>
             <SelectTrigger className="w-40 bg-background">
               <SelectValue>{selectedCategoryLabel}</SelectValue>
             </SelectTrigger>
@@ -277,12 +254,7 @@ export function MemoriesPage() {
           </Select>
 
           {selectedIds.size > 0 && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setBulkDeleteOpen(true)}
-              className="ml-auto"
-            >
+            <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)} className="ml-auto">
               <Trash2Icon />
               Delete {selectedIds.size}
             </Button>
@@ -339,13 +311,11 @@ export function MemoriesPage() {
                       <EmptyMedia>
                         <BrainIcon className="size-10 text-muted-foreground/30" />
                       </EmptyMedia>
-                      <EmptyTitle>
-                        {isSearching ? 'No memories match your search' : 'No memories yet'}
-                      </EmptyTitle>
+                      <EmptyTitle>{isSearching ? 'No memories match your search' : 'No memories yet'}</EmptyTitle>
                       {!isSearching && (
                         <EmptyDescription>
-                          Memories are automatically extracted from your conversations when memory
-                          is enabled in settings.
+                          Memories are automatically extracted from your conversations when memory is enabled in
+                          settings.
                         </EmptyDescription>
                       )}
                     </Empty>
@@ -399,8 +369,7 @@ export function MemoriesPage() {
                             onClick={(event) => {
                               event.preventDefault();
                               setPage(pageNumber + 1);
-                            }}
-                          >
+                            }}>
                             {pageNumber + 1}
                           </PaginationLink>
                         </PaginationItem>
@@ -445,11 +414,7 @@ export function MemoriesPage() {
             <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleBulkDelete}
-              disabled={bulkDeleteMutation.isPending}
-            >
+            <Button variant="destructive" onClick={handleBulkDelete} disabled={bulkDeleteMutation.isPending}>
               {bulkDeleteMutation.isPending ? 'Deleting…' : 'Delete'}
             </Button>
           </DialogFooter>
@@ -459,12 +424,7 @@ export function MemoriesPage() {
   );
 }
 
-type MemoryRowProps = {
-  memory: SemanticMemory;
-  selected: boolean;
-  onToggleSelect: () => void;
-  onClick: () => void;
-};
+type MemoryRowProps = { memory: SemanticMemory; selected: boolean; onToggleSelect: () => void; onClick: () => void };
 
 function MemoryRow({ memory, selected, onToggleSelect, onClick }: MemoryRowProps) {
   const queryClient = useQueryClient();
@@ -476,8 +436,7 @@ function MemoryRow({ memory, selected, onToggleSelect, onClick }: MemoryRowProps
         className="w-14 text-center"
         onClick={(e) => {
           e.stopPropagation();
-        }}
-      >
+        }}>
         <Checkbox checked={selected} onCheckedChange={onToggleSelect} aria-label="Select memory" />
       </Table.Cell>
 
@@ -486,8 +445,7 @@ function MemoryRow({ memory, selected, onToggleSelect, onClick }: MemoryRowProps
         onClick={(e) => {
           e.stopPropagation();
           pinMutation.mutate({ id: memory.id, pinned: !memory.pinned });
-        }}
-      >
+        }}>
         {memory.pinned ? (
           <PinIcon className="h-4 w-4 fill-foreground text-foreground" />
         ) : (
@@ -500,9 +458,7 @@ function MemoryRow({ memory, selected, onToggleSelect, onClick }: MemoryRowProps
       </Table.Cell>
 
       <Table.Cell className="w-28 text-center">
-        <Table.Badge variant={CATEGORY_VARIANTS[memory.category]}>
-          {CATEGORY_LABELS[memory.category]}
-        </Table.Badge>
+        <Table.Badge variant={CATEGORY_VARIANTS[memory.category]}>{CATEGORY_LABELS[memory.category]}</Table.Badge>
       </Table.Cell>
 
       <Table.Cell className="w-28 text-center">

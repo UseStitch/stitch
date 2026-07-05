@@ -5,10 +5,7 @@ import type { AppEnabledState, AppId } from '@stitch/shared/apps/types';
 import { serverRequest } from '@/lib/api';
 import { toolKeys } from '@/lib/queries/tools';
 
-const appKeys = {
-  all: ['apps-config'] as const,
-  enabledStates: () => [...appKeys.all, 'enabled-states'] as const,
-};
+const appKeys = { all: ['apps-config'] as const, enabledStates: () => [...appKeys.all, 'enabled-states'] as const };
 
 export const appEnabledStatesQueryOptions = queryOptions({
   queryKey: appKeys.enabledStates(),

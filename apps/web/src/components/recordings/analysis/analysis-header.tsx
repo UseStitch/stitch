@@ -1,28 +1,12 @@
 import { FileTextIcon, Loader2Icon, SparklesIcon, SquareIcon, Trash2Icon } from 'lucide-react';
 
-import type {
-  MeetingNoteTemplate,
-  RecordingAnalysis,
-  Recording,
-} from '@stitch/shared/recordings/types';
+import type { MeetingNoteTemplate, RecordingAnalysis, Recording } from '@stitch/shared/recordings/types';
 
 import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
 import { CopyButton } from '@/components/ui/copy-button';
-import {
-  PageDescription,
-  PageHeader,
-  PageHeaderContent,
-  PageIcon,
-  PageTitle,
-} from '@/components/ui/page';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { PageDescription, PageHeader, PageHeaderContent, PageIcon, PageTitle } from '@/components/ui/page';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatUsdCost } from '@/lib/format-cost';
 
 function formatCost(costUsd: number | null | undefined): string | null {
@@ -82,20 +66,13 @@ export function AnalysisHeader({
         <div>
           <PageTitle>{analysis?.title || recording?.title || 'Recording analysis'}</PageTitle>
           {costLabel ? (
-            <PageDescription className="text-xs tabular-nums">
-              Recording cost {costLabel}
-            </PageDescription>
+            <PageDescription className="text-xs tabular-nums">Recording cost {costLabel}</PageDescription>
           ) : null}
         </div>
       </PageHeaderContent>
       <div className="flex items-center gap-3">
         {showRecordingControls ? (
-          <Button
-            onClick={onStopRecording}
-            disabled={isStopping}
-            variant="destructive"
-            className="shadow-sm"
-          >
+          <Button onClick={onStopRecording} disabled={isStopping} variant="destructive" className="shadow-sm">
             <SquareIcon data-icon="inline-start" className="size-4" />
             Stop
           </Button>
@@ -116,8 +93,7 @@ export function AnalysisHeader({
               variant={hasCompletedAnalysis ? 'outline' : 'default'}
               className="rounded-none"
               aria-label={hasCompletedAnalysis ? 'Re-run analysis' : 'Analyze recording'}
-              title={hasCompletedAnalysis ? 'Re-run analysis' : 'Analyze recording'}
-            >
+              title={hasCompletedAnalysis ? 'Re-run analysis' : 'Analyze recording'}>
               {isStarting || isRunning ? (
                 <Loader2Icon data-icon="inline-start" className="size-4 animate-spin" />
               ) : (
@@ -128,8 +104,7 @@ export function AnalysisHeader({
             <Select
               value={selectedTemplateId}
               onValueChange={(value) => value && onTemplateChange(value)}
-              disabled={analysisDisabled}
-            >
+              disabled={analysisDisabled}>
               <SelectTrigger className="h-9 w-44 rounded-none border-0 bg-background px-2 text-xs shadow-none">
                 <SelectValue>{selectedTemplate?.name ?? 'Template'}</SelectValue>
               </SelectTrigger>
@@ -150,25 +125,13 @@ export function AnalysisHeader({
             onClick={onDelete}
             disabled={isDeleting || isRunning || isRecording}
             aria-label="Delete recording"
-            className="text-destructive shadow-sm hover:text-destructive"
-          >
-            {isDeleting ? (
-              <Loader2Icon className="size-4 animate-spin" />
-            ) : (
-              <Trash2Icon className="size-4" />
-            )}
+            className="text-destructive shadow-sm hover:text-destructive">
+            {isDeleting ? <Loader2Icon className="size-4 animate-spin" /> : <Trash2Icon className="size-4" />}
           </Button>
         ) : null}
         {!showRecordingControls && isRunning ? (
-          <Button
-            variant="destructive"
-            onClick={onCancelAnalysis}
-            disabled={isCancelling}
-            className="shadow-sm"
-          >
-            {isCancelling ? (
-              <Loader2Icon data-icon="inline-start" className="size-4 animate-spin" />
-            ) : null}
+          <Button variant="destructive" onClick={onCancelAnalysis} disabled={isCancelling} className="shadow-sm">
+            {isCancelling ? <Loader2Icon data-icon="inline-start" className="size-4 animate-spin" /> : null}
             Cancel
           </Button>
         ) : null}

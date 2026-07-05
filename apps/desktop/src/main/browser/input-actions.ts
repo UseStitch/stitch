@@ -17,12 +17,7 @@ export async function clickRef(
   const target = await refResolver.resolveRef(ref);
   const mouseButton = button === 'right' || button === 'middle' ? button : 'left';
   const inputModifiers = normalizeModifiers(modifiers);
-  browser.sendInputEvent({
-    type: 'mouseMove',
-    x: target.x,
-    y: target.y,
-    modifiers: inputModifiers,
-  });
+  browser.sendInputEvent({ type: 'mouseMove', x: target.x, y: target.y, modifiers: inputModifiers });
   browser.sendInputEvent({
     type: 'mouseDown',
     x: target.x,
@@ -59,11 +54,7 @@ export async function clickRef(
   }
 }
 
-export async function hoverRef(
-  browser: WebContents,
-  refResolver: RefResolver,
-  ref: string,
-): Promise<void> {
+export async function hoverRef(browser: WebContents, refResolver: RefResolver, ref: string): Promise<void> {
   const target = await refResolver.resolveRef(ref);
   browser.sendInputEvent({ type: 'mouseMove', x: target.x, y: target.y });
 }
@@ -79,8 +70,7 @@ export async function typeIntoRef(
 ): Promise<void> {
   const isContentEditable = await refResolver.runOnRef<boolean>(
     ref,
-    (element) =>
-      `return ${element}.isContentEditable || ${element}.getAttribute('contenteditable') !== null`,
+    (element) => `return ${element}.isContentEditable || ${element}.getAttribute('contenteditable') !== null`,
   );
 
   if (isContentEditable) {
@@ -118,20 +108,8 @@ async function typeIntoContentEditable(
   // Click the element to activate the rich text editor framework
   const target = await refResolver.resolveRef(ref);
   browser.sendInputEvent({ type: 'mouseMove', x: target.x, y: target.y });
-  browser.sendInputEvent({
-    type: 'mouseDown',
-    x: target.x,
-    y: target.y,
-    button: 'left',
-    clickCount: 1,
-  });
-  browser.sendInputEvent({
-    type: 'mouseUp',
-    x: target.x,
-    y: target.y,
-    button: 'left',
-    clickCount: 1,
-  });
+  browser.sendInputEvent({ type: 'mouseDown', x: target.x, y: target.y, button: 'left', clickCount: 1 });
+  browser.sendInputEvent({ type: 'mouseUp', x: target.x, y: target.y, button: 'left', clickCount: 1 });
   await new Promise((resolve) => setTimeout(resolve, FOCUS_SETTLE_MS));
 
   if (clear) {
@@ -171,10 +149,7 @@ export async function selectRef(
   ref: string,
   values: string[],
 ): Promise<void> {
-  if (
-    values.length === 1 &&
-    (await selectSingleValueWithKeyboard(browser, refResolver, ref, values[0]))
-  ) {
+  if (values.length === 1 && (await selectSingleValueWithKeyboard(browser, refResolver, ref, values[0]))) {
     return;
   }
 
@@ -219,9 +194,7 @@ function sendShortcut(browser: WebContents, keyCode: string): void {
   browser.sendInputEvent({ type: 'keyUp', keyCode, modifiers: [modifier] });
 }
 
-function normalizeModifiers(
-  modifiers: string[] | undefined,
-): Array<'shift' | 'control' | 'alt' | 'meta'> {
+function normalizeModifiers(modifiers: string[] | undefined): Array<'shift' | 'control' | 'alt' | 'meta'> {
   const allowed = new Set(['shift', 'control', 'alt', 'meta']);
   return (modifiers ?? [])
     .map((modifier) => modifier.toLowerCase())

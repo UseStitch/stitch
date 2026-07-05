@@ -10,9 +10,6 @@
     "name": "Firecrawl",
     "transport": "http",
     "url": "https://mcp.firecrawl.dev/v2/mcp",
-    "authConfig": {
-      "type": "api_key",
-      "apiKey": "YOUR_API_KEY"
-    }
+    "authConfig": { "type": "api_key", "apiKey": "YOUR_API_KEY" }
   }
 }

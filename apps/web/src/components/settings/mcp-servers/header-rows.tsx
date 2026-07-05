@@ -5,13 +5,7 @@ import { SettingsIconButtonTooltip } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-export function HeaderRows({
-  rows,
-  onChange,
-}: {
-  rows: HeaderEntry[];
-  onChange: (rows: HeaderEntry[]) => void;
-}) {
+export function HeaderRows({ rows, onChange }: { rows: HeaderEntry[]; onChange: (rows: HeaderEntry[]) => void }) {
   const update = (index: number, field: 'key' | 'value', val: string) => {
     onChange(rows.map((row, i) => (i === index ? { ...row, [field]: val } : row)));
   };
@@ -41,12 +35,7 @@ export function HeaderRows({
             className="flex-1"
           />
           <SettingsIconButtonTooltip label="Remove header">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => remove(i)}
-              aria-label="Remove header"
-            >
+            <Button variant="ghost" size="icon-sm" onClick={() => remove(i)} aria-label="Remove header">
               <Trash2Icon className="size-3.5" />
             </Button>
           </SettingsIconButtonTooltip>

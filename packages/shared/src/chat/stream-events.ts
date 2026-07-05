@@ -76,10 +76,7 @@ export type StreamRetryPayload = {
   message: string;
 };
 
-export type StreamStartPayload = {
-  sessionId: PrefixedString<'ses'>;
-  messageId: PrefixedString<'msg'>;
-};
+export type StreamStartPayload = { sessionId: PrefixedString<'ses'>; messageId: PrefixedString<'msg'> };
 
 export type DoomLoopDetectedPayload = {
   sessionId: PrefixedString<'ses'>;

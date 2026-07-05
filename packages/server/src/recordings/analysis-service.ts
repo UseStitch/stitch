@@ -20,11 +20,7 @@ import type { ServiceResult } from '@/lib/service-result.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { resolveModel } from '@/llm/resolve-model.js';
-import {
-  readRecordingAnalysis,
-  readRecordingTranscript,
-  writeRecordingAnalysis,
-} from '@/recordings/file-store.js';
+import { readRecordingAnalysis, readRecordingTranscript, writeRecordingAnalysis } from '@/recordings/file-store.js';
 import { getMeetingNoteTemplate } from '@/recordings/meeting-note-templates.js';
 import { generateRecordingTitle } from '@/recordings/title-generator.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
@@ -48,27 +44,22 @@ type AnalysisDeps = {
 
 const defaultDeps: AnalysisDeps = { resolveModel, createProvider };
 
-type ActiveRun = {
-  controller: AbortController;
-  preserveExistingUntilComplete: boolean;
-};
+type ActiveRun = { controller: AbortController; preserveExistingUntilComplete: boolean };
 
 const activeRuns = new Map<PrefixedString<'recan'>, ActiveRun>();
 
 function buildAnalysisPrompt(template: string): string {
-  return ANALYSIS_PROMPT_TEMPLATE.replaceAll(
-    '{{CURRENT_DATE}}',
-    new Date().toISOString().slice(0, 10),
-  ).replaceAll('{{MEETING_NOTE_TEMPLATE}}', template);
+  return ANALYSIS_PROMPT_TEMPLATE.replaceAll('{{CURRENT_DATE}}', new Date().toISOString().slice(0, 10)).replaceAll(
+    '{{MEETING_NOTE_TEMPLATE}}',
+    template,
+  );
 }
 
 function formatTranscriptForAnalysis(entries: RecordingTranscriptEntry[]): string {
   return entries.map((entry, index) => `[${index}] ${entry.speaker}: ${entry.content}`).join('\n');
 }
 
-export async function toRecordingAnalysis(
-  row: typeof recordingAnalyses.$inferSelect,
-): Promise<RecordingAnalysis> {
+export async function toRecordingAnalysis(row: typeof recordingAnalyses.$inferSelect): Promise<RecordingAnalysis> {
   return {
     recordingId: row.recordingId,
     status: row.status,
@@ -106,18 +97,12 @@ export async function getRecordingAnalysis(
 ): Promise<ServiceResult<RecordingAnalysisResponse>> {
   const db = getDb();
 
-  const [recording] = await db
-    .select({ id: recordings.id })
-    .from(recordings)
-    .where(eq(recordings.id, recordingId));
+  const [recording] = await db.select({ id: recordings.id }).from(recordings).where(eq(recordings.id, recordingId));
   if (!recording) {
     return err('Recording not found', 404);
   }
 
-  const [analysis] = await db
-    .select()
-    .from(recordingAnalyses)
-    .where(eq(recordingAnalyses.recordingId, recordingId));
+  const [analysis] = await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.recordingId, recordingId));
 
   return ok({ analysis: analysis ? await toRecordingAnalysis(analysis) : null });
 }
@@ -137,10 +122,7 @@ export async function startRecordingAnalysis(
     return err('Recording must be completed before analysis', 400);
   }
 
-  const [existing] = await db
-    .select()
-    .from(recordingAnalyses)
-    .where(eq(recordingAnalyses.recordingId, recordingId));
+  const [existing] = await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.recordingId, recordingId));
 
   if (existing && existing.status !== 'failed' && existing.status !== 'pending' && !input.force) {
     return ok({ analysis: await toRecordingAnalysis(existing) });
@@ -214,11 +196,7 @@ export async function startRecordingAnalysis(
       });
   }
 
-  broadcastRecordingAnalysisUpdated({
-    recordingId,
-    status: 'pending',
-    title: null,
-  });
+  broadcastRecordingAnalysisUpdated({ recordingId, status: 'pending', title: null });
 
   void runRecordingAnalysis(
     id,
@@ -243,23 +221,15 @@ export async function startRecordingAnalysis(
   return ok({ analysis: await toRecordingAnalysis(created) });
 }
 
-export async function cancelRecordingAnalysis(
-  recordingId: PrefixedString<'rec'>,
-): Promise<ServiceResult<null>> {
+export async function cancelRecordingAnalysis(recordingId: PrefixedString<'rec'>): Promise<ServiceResult<null>> {
   const db = getDb();
 
-  const [recording] = await db
-    .select({ id: recordings.id })
-    .from(recordings)
-    .where(eq(recordings.id, recordingId));
+  const [recording] = await db.select({ id: recordings.id }).from(recordings).where(eq(recordings.id, recordingId));
   if (!recording) {
     return err('Recording not found', 404);
   }
 
-  const [existing] = await db
-    .select()
-    .from(recordingAnalyses)
-    .where(eq(recordingAnalyses.recordingId, recordingId));
+  const [existing] = await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.recordingId, recordingId));
   if (!existing) {
     return err('Recording analysis not found', 404);
   }
@@ -273,11 +243,7 @@ export async function cancelRecordingAnalysis(
   activeRun?.controller.abort();
 
   if (activeRun?.preserveExistingUntilComplete) {
-    broadcastRecordingAnalysisUpdated({
-      recordingId,
-      status: existing.status,
-      title: existing.title || null,
-    });
+    broadcastRecordingAnalysisUpdated({ recordingId, status: existing.status, title: existing.title || null });
 
     return ok(null);
   }
@@ -295,11 +261,7 @@ export async function cancelRecordingAnalysis(
     .where(eq(recordingAnalyses.id, existing.id))
     .returning();
 
-  broadcastRecordingAnalysisUpdated({
-    recordingId,
-    status: 'failed',
-    title: null,
-  });
+  broadcastRecordingAnalysisUpdated({ recordingId, status: 'failed', title: null });
 
   if (!updated) {
     return err('Failed to cancel recording analysis', 400);
@@ -334,26 +296,11 @@ async function runRecordingAnalysis(
     if (!input.preserveExistingUntilComplete) {
       await db
         .update(recordingAnalyses)
-        .set({
-          status: 'processing',
-          startedAt,
-          endedAt: null,
-          durationMs: null,
-          updatedAt: Date.now(),
-        })
-        .where(
-          and(
-            eq(recordingAnalyses.id, analysisId),
-            eq(recordingAnalyses.recordingId, input.recordingId),
-          ),
-        );
+        .set({ status: 'processing', startedAt, endedAt: null, durationMs: null, updatedAt: Date.now() })
+        .where(and(eq(recordingAnalyses.id, analysisId), eq(recordingAnalyses.recordingId, input.recordingId)));
     }
 
-    broadcastRecordingAnalysisUpdated({
-      recordingId: input.recordingId,
-      status: 'processing',
-      title: null,
-    });
+    broadcastRecordingAnalysisUpdated({ recordingId: input.recordingId, status: 'processing', title: null });
 
     const analysisModel = deps.createProvider(input.analysisCredentials)(input.analysisModelId);
     const analysisRunId = `${analysisId}:analysis`;
@@ -362,10 +309,7 @@ async function runRecordingAnalysis(
       model: analysisModel,
       system: buildAnalysisPrompt(input.templateContent),
       messages: [
-        {
-          role: 'user',
-          content: `Analyze this transcript.\n\n${formatTranscriptForAnalysis(input.transcript)}`,
-        },
+        { role: 'user', content: `Analyze this transcript.\n\n${formatTranscriptForAnalysis(input.transcript)}` },
       ],
       abortSignal: abortController.signal,
     });
@@ -383,22 +327,14 @@ async function runRecordingAnalysis(
       providerId: input.analysisProviderId,
       modelId: input.analysisModelId,
       usage: analysisUsage,
-      metadata: {
-        recordingId: input.recordingId,
-        analysisId,
-        phase: 'analysis',
-      },
+      metadata: { recordingId: input.recordingId, analysisId, phase: 'analysis' },
       startedAt: analysisStart,
       endedAt: Date.now(),
       durationMs: Date.now() - analysisStart,
     });
 
     const titleStart = Date.now();
-    const titleResult = await generateRecordingTitle(
-      summary,
-      input.analysisProviderId,
-      input.analysisModelId,
-    );
+    const titleResult = await generateRecordingTitle(summary, input.analysisProviderId, input.analysisModelId);
     const titleCost = titleResult
       ? (
           await recordLlmUsage({
@@ -407,11 +343,7 @@ async function runRecordingAnalysis(
             providerId: titleResult.providerId,
             modelId: titleResult.modelId,
             usage: titleResult.usage ?? ZERO_USAGE,
-            metadata: {
-              recordingId: input.recordingId,
-              analysisId,
-              phase: 'title-generation',
-            },
+            metadata: { recordingId: input.recordingId, analysisId, phase: 'title-generation' },
             startedAt: titleStart,
             endedAt: Date.now(),
             durationMs: Date.now() - titleStart,
@@ -452,11 +384,7 @@ async function runRecordingAnalysis(
       })
       .where(eq(recordingAnalyses.id, analysisId));
 
-    broadcastRecordingAnalysisUpdated({
-      recordingId: input.recordingId,
-      status: 'completed',
-      title,
-    });
+    broadcastRecordingAnalysisUpdated({ recordingId: input.recordingId, status: 'completed', title });
 
     log.info({ analysisId, recordingId: input.recordingId }, 'recording analysis completed');
   } catch (error) {
@@ -467,10 +395,7 @@ async function runRecordingAnalysis(
     const message = error instanceof Error ? error.message : 'Failed to analyze recording';
 
     if (input.preserveExistingUntilComplete) {
-      log.error(
-        { analysisId, recordingId: input.recordingId, error: message },
-        'recording analysis rerun failed',
-      );
+      log.error({ analysisId, recordingId: input.recordingId, error: message }, 'recording analysis rerun failed');
       return;
     }
 
@@ -478,25 +403,12 @@ async function runRecordingAnalysis(
 
     await db
       .update(recordingAnalyses)
-      .set({
-        status: 'failed',
-        error: message,
-        endedAt,
-        durationMs: endedAt - startedAt,
-        updatedAt: endedAt,
-      })
+      .set({ status: 'failed', error: message, endedAt, durationMs: endedAt - startedAt, updatedAt: endedAt })
       .where(eq(recordingAnalyses.id, analysisId));
 
-    broadcastRecordingAnalysisUpdated({
-      recordingId: input.recordingId,
-      status: 'failed',
-      title: null,
-    });
+    broadcastRecordingAnalysisUpdated({ recordingId: input.recordingId, status: 'failed', title: null });
 
-    log.error(
-      { analysisId, recordingId: input.recordingId, error: message },
-      'recording analysis failed',
-    );
+    log.error({ analysisId, recordingId: input.recordingId, error: message }, 'recording analysis failed');
   } finally {
     if (activeRuns.get(analysisId)?.controller === abortController) {
       activeRuns.delete(analysisId);

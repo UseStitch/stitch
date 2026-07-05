@@ -86,14 +86,9 @@ connectorsRouter.post('/instances/:id/authorize', async (c) => {
 });
 
 // Update a connector instance
-const updateSchema = z.object({
-  label: z.string().min(1).optional(),
-  scopes: z.array(z.string()).optional(),
-});
+const updateSchema = z.object({ label: z.string().min(1).optional(), scopes: z.array(z.string()).optional() });
 
-const upgradeSchema = z.object({
-  apiKey: z.string().min(1).optional(),
-});
+const upgradeSchema = z.object({ apiKey: z.string().min(1).optional() });
 
 connectorsRouter.patch('/instances/:id', zValidator('json', updateSchema), async (c) => {
   const id = c.req.param('id');

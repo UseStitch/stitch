@@ -2,12 +2,7 @@ import type { ProviderId } from '@stitch/shared/providers/types';
 
 import type { ModelMessage, JSONValue, Tool } from 'ai';
 
-type ProviderCacheConfig = {
-  namespace: string;
-  key: string;
-  value: JSONValue;
-  breakpointCap: number;
-};
+type ProviderCacheConfig = { namespace: string; key: string; value: JSONValue; breakpointCap: number };
 
 const ANTHROPIC_CACHE: ProviderCacheConfig = {
   namespace: 'anthropic',
@@ -30,10 +25,7 @@ const OPENROUTER_CACHE: ProviderCacheConfig = {
   breakpointCap: 4,
 };
 
-export function getCacheConfig(
-  providerId: ProviderId,
-  modelId: string,
-): ProviderCacheConfig | null {
+export function getCacheConfig(providerId: ProviderId, modelId: string): ProviderCacheConfig | null {
   switch (providerId) {
     case 'anthropic':
       return ANTHROPIC_CACHE;
@@ -173,11 +165,8 @@ export function addCacheControlToTools(
   const markedTool = {
     ...lastTool,
     providerOptions: {
-      ...(lastTool as { providerOptions?: Record<string, Record<string, JSONValue>> })
-        .providerOptions,
-      [config.namespace]: {
-        [config.key]: config.value,
-      },
+      ...(lastTool as { providerOptions?: Record<string, Record<string, JSONValue>> }).providerOptions,
+      [config.namespace]: { [config.key]: config.value },
     },
   } as Tool;
 

@@ -4,10 +4,7 @@ import { Dock } from '@/components/chat/docks/dock';
 import { Button } from '@/components/ui/button';
 import { useRespondDoomLoop } from '@/lib/queries/chat';
 
-type DoomLoopDockProps = {
-  sessionId: string;
-  toolName: string;
-};
+type DoomLoopDockProps = { sessionId: string; toolName: string };
 
 export function DoomLoopDock({ sessionId, toolName }: DoomLoopDockProps) {
   const respondDoomLoop = useRespondDoomLoop();
@@ -19,8 +16,7 @@ export function DoomLoopDock({ sessionId, toolName }: DoomLoopDockProps) {
       </Dock.Icon>
       <Dock.Body>
         <Dock.Title>
-          Repeating <code className="rounded bg-muted px-1 py-0.5 text-xs">{toolName}</code> with
-          identical input
+          Repeating <code className="rounded bg-muted px-1 py-0.5 text-xs">{toolName}</code> with identical input
         </Dock.Title>
         <Dock.Description>The assistant may be stuck in a loop</Dock.Description>
       </Dock.Body>
@@ -29,16 +25,14 @@ export function DoomLoopDock({ sessionId, toolName }: DoomLoopDockProps) {
           size="sm"
           variant="outline"
           onClick={() => respondDoomLoop.mutate({ sessionId, response: 'stop' })}
-          disabled={respondDoomLoop.isPending}
-        >
+          disabled={respondDoomLoop.isPending}>
           Stop
         </Button>
         <Button
           size="sm"
           variant="default"
           onClick={() => respondDoomLoop.mutate({ sessionId, response: 'continue' })}
-          disabled={respondDoomLoop.isPending}
-        >
+          disabled={respondDoomLoop.isPending}>
           Continue
         </Button>
       </Dock.Actions>

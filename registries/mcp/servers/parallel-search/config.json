@@ -10,14 +10,7 @@
     "name": "Parallel Search MCP",
     "transport": "http",
     "url": "https://search.parallel.ai/mcp",
-    "authConfig": {
-      "type": "none"
-    },
-    "optionalAuthConfigs": [
-      {
-        "type": "api_key",
-        "apiKey": "YOUR_PARALLEL_API_KEY"
-      }
-    ]
+    "authConfig": { "type": "none" },
+    "optionalAuthConfigs": [{ "type": "api_key", "apiKey": "YOUR_PARALLEL_API_KEY" }]
   }
 }

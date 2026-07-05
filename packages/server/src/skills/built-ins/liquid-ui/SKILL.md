@@ -59,22 +59,8 @@ Critical rules to avoid schema rejection:
   "nodes": [
     { "id": "s1", "component": "Stack", "spacing": "sm", "children": ["g1", "r1"] },
     { "id": "g1", "component": "Grid", "columns": "2", "gap": "sm", "children": ["st1", "st2"] },
-    {
-      "id": "st1",
-      "component": "Stat",
-      "label": "Revenue",
-      "value": "$4.2k",
-      "caption": null,
-      "trend": "up"
-    },
-    {
-      "id": "st2",
-      "component": "Stat",
-      "label": "Orders",
-      "value": "38",
-      "caption": null,
-      "trend": null
-    },
+    { "id": "st1", "component": "Stat", "label": "Revenue", "value": "$4.2k", "caption": null, "trend": "up" },
+    { "id": "st2", "component": "Stat", "label": "Orders", "value": "38", "caption": null, "trend": null },
     { "id": "r1", "component": "Row", "gap": "sm", "align": "start", "children": ["b1"] },
     { "id": "b1", "component": "Badge", "variant": "success", "text": "On track" }
   ]

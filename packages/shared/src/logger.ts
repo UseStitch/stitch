@@ -15,9 +15,4 @@ export type StitchLogger = {
 };
 
 /** A logger that silently discards all output. */
-export const noopLogger: StitchLogger = {
-  debug() {},
-  info() {},
-  warn() {},
-  error() {},
-};
+export const noopLogger: StitchLogger = { debug() {}, info() {}, warn() {}, error() {} };

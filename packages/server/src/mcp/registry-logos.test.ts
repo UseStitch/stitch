@@ -37,10 +37,7 @@ function registryPayload(logoUrl?: string) {
 async function createTempDirs() {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'stitch-mcp-registry-logos-test-'));
   tempDirs.push(dir);
-  return {
-    cacheDir: path.join(dir, 'logos'),
-    registryCacheFilePath: path.join(dir, 'mcp-registry.json'),
-  };
+  return { cacheDir: path.join(dir, 'logos'), registryCacheFilePath: path.join(dir, 'mcp-registry.json') };
 }
 
 afterEach(async () => {
@@ -58,9 +55,7 @@ describe('mcp registry logos', () => {
       throw new Error('fetch should not be called');
     };
 
-    expect(
-      getMcpRegistryLogo('alpha', { cacheDir, registryCacheFilePath, fetchImpl }),
-    ).resolves.toBe(SVG);
+    expect(getMcpRegistryLogo('alpha', { cacheDir, registryCacheFilePath, fetchImpl })).resolves.toBe(SVG);
   });
 
   test('fetches and caches registry logo', async () => {
@@ -74,9 +69,7 @@ describe('mcp registry logos', () => {
     const fetchImpl: FetchLike = async () =>
       new Response(SVG, { status: 200, headers: { 'content-type': 'image/svg+xml' } });
 
-    expect(
-      getMcpRegistryLogo('alpha', { cacheDir, registryCacheFilePath, fetchImpl }),
-    ).resolves.toBe(SVG);
+    expect(getMcpRegistryLogo('alpha', { cacheDir, registryCacheFilePath, fetchImpl })).resolves.toBe(SVG);
     expect(fs.readFile(path.join(cacheDir, 'alpha.svg'), 'utf8')).resolves.toBe(SVG);
   });
 
@@ -87,9 +80,7 @@ describe('mcp registry logos', () => {
     const fetchImpl: FetchLike = async () =>
       new Response(SVG, { status: 200, headers: { 'content-type': 'image/svg+xml' } });
 
-    expect(
-      getMcpRegistryLogo('alpha', { cacheDir, registryCacheFilePath, fetchImpl }),
-    ).resolves.toBeUndefined();
+    expect(getMcpRegistryLogo('alpha', { cacheDir, registryCacheFilePath, fetchImpl })).resolves.toBeUndefined();
   });
 
   test('rejects non-svg responses', async () => {
@@ -103,8 +94,6 @@ describe('mcp registry logos', () => {
     const fetchImpl: FetchLike = async () =>
       new Response('not svg', { status: 200, headers: { 'content-type': 'text/plain' } });
 
-    expect(
-      getMcpRegistryLogo('alpha', { cacheDir, registryCacheFilePath, fetchImpl }),
-    ).resolves.toBeUndefined();
+    expect(getMcpRegistryLogo('alpha', { cacheDir, registryCacheFilePath, fetchImpl })).resolves.toBeUndefined();
   });
 });

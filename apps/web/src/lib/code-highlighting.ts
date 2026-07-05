@@ -30,10 +30,7 @@ class LRUCache<T> {
       this.cache.delete(key);
     }
 
-    while (
-      (this.cache.size >= this.maxEntries || this.totalSize + size > this.maxMemoryBytes) &&
-      this.cache.size > 0
-    ) {
+    while ((this.cache.size >= this.maxEntries || this.totalSize + size > this.maxMemoryBytes) && this.cache.size > 0) {
       const firstKey = this.cache.keys().next().value;
       if (!firstKey) break;
       const removed = this.cache.get(firstKey);
@@ -52,10 +49,7 @@ class LRUCache<T> {
 const MAX_HIGHLIGHT_CACHE_ENTRIES = 500;
 const MAX_HIGHLIGHT_CACHE_MEMORY_BYTES = 50 * 1024 * 1024;
 
-const _highlightedCodeCache = new LRUCache<string>(
-  MAX_HIGHLIGHT_CACHE_ENTRIES,
-  MAX_HIGHLIGHT_CACHE_MEMORY_BYTES,
-);
+const _highlightedCodeCache = new LRUCache<string>(MAX_HIGHLIGHT_CACHE_ENTRIES, MAX_HIGHLIGHT_CACHE_MEMORY_BYTES);
 
 export const highlightedCodeCache = _highlightedCodeCache;
 

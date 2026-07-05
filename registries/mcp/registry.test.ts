@@ -5,9 +5,7 @@ import { z } from 'zod';
 
 type JsonSchema = Parameters<typeof z.fromJSONSchema>[0];
 
-type McpServer = {
-  id: string;
-};
+type McpServer = { id: string };
 
 const registryDir = import.meta.dir;
 const serversDir = join(registryDir, 'servers');
@@ -31,10 +29,7 @@ function expectValidRegistryEntry(path: string) {
 function serverEntries() {
   return readdirSync(serversDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
-    .map((entry) => ({
-      name: entry.name,
-      configPath: join(serversDir, entry.name, 'config.json'),
-    }));
+    .map((entry) => ({ name: entry.name, configPath: join(serversDir, entry.name, 'config.json') }));
 }
 
 describe('MCP registry', () => {

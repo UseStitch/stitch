@@ -39,17 +39,11 @@ describe('tools settings filtering', () => {
       },
     ];
 
-    expect(filterToolsetsByQuery(toolsets, 'agenda').map((toolset) => toolset.id)).toEqual([
-      'agenda',
-    ]);
-    expect(filterToolsetsByQuery(toolsets, 'events').map((toolset) => toolset.id)).toEqual([
+    expect(filterToolsetsByQuery(toolsets, 'agenda').map((toolset) => toolset.id)).toEqual(['agenda']);
+    expect(filterToolsetsByQuery(toolsets, 'events').map((toolset) => toolset.id)).toEqual(['google-calendar']);
+    expect(filterToolsetsByQuery(toolsets, 'calendar_update').map((toolset) => toolset.id)).toEqual([
       'google-calendar',
     ]);
-    expect(filterToolsetsByQuery(toolsets, 'calendar_update').map((toolset) => toolset.id)).toEqual(
-      ['google-calendar'],
-    );
-    expect(filterToolsetsByQuery(toolsets, 'add item').map((toolset) => toolset.id)).toEqual([
-      'agenda',
-    ]);
+    expect(filterToolsetsByQuery(toolsets, 'add item').map((toolset) => toolset.id)).toEqual(['agenda']);
   });
 });

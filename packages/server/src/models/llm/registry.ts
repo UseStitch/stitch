@@ -37,11 +37,7 @@ export const ModelSchema = z.object({
         .optional(),
     })
     .optional(),
-  limit: z.object({
-    context: z.number(),
-    input: z.number().optional(),
-    output: z.number(),
-  }),
+  limit: z.object({ context: z.number(), input: z.number().optional(), output: z.number() }),
   modalities: z
     .object({
       input: z.array(z.enum(['text', 'audio', 'image', 'video', 'pdf'])),
@@ -82,10 +78,7 @@ function filterProviders(raw: Record<string, RawProvider>): Record<string, RawPr
   return Object.fromEntries(
     Object.entries(raw)
       .filter(([key]) => isAllowedProvider(key))
-      .map(([key, provider]) => [
-        key,
-        { ...provider, models: sortModels(filterModels(provider.models)) },
-      ]),
+      .map(([key, provider]) => [key, { ...provider, models: sortModels(filterModels(provider.models)) }]),
   );
 }
 

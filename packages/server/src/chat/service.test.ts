@@ -11,13 +11,7 @@ import { setupTestDb } from '@/db/test-helpers.js';
 setupTestDb();
 
 function textPart(text: string, time: number): StoredPart {
-  return {
-    type: 'text-delta',
-    id: `prt_${time}`,
-    text,
-    startedAt: time,
-    endedAt: time,
-  };
+  return { type: 'text-delta', id: `prt_${time}`, text, startedAt: time, endedAt: time };
 }
 
 describe('splitSession', () => {
@@ -27,15 +21,17 @@ describe('splitSession', () => {
     const splitMessageId = 'msg_split_user' as never;
     const now = Date.now();
 
-    await getDb().insert(sessions).values({
-      id: sessionId,
-      title: 'Original',
-      type: 'chat',
-      automationId: null,
-      parentSessionId: null,
-      createdAt: now,
-      updatedAt: now,
-    });
+    await getDb()
+      .insert(sessions)
+      .values({
+        id: sessionId,
+        title: 'Original',
+        type: 'chat',
+        automationId: null,
+        parentSessionId: null,
+        createdAt: now,
+        updatedAt: now,
+      });
 
     await getDb()
       .insert(messages)
@@ -79,16 +75,10 @@ describe('splitSession', () => {
     expect(result.data?.session.parentSessionId).toBeNull();
 
     const clonedSessionId = result.data!.session.id;
-    const [clonedSession] = await getDb()
-      .select()
-      .from(sessions)
-      .where(eq(sessions.id, clonedSessionId));
+    const [clonedSession] = await getDb().select().from(sessions).where(eq(sessions.id, clonedSessionId));
     expect(clonedSession.parentSessionId).toBeNull();
 
-    const clonedMessages = await getDb()
-      .select()
-      .from(messages)
-      .where(eq(messages.sessionId, clonedSessionId));
+    const clonedMessages = await getDb().select().from(messages).where(eq(messages.sessionId, clonedSessionId));
     expect(clonedMessages).toHaveLength(1);
     expect(clonedMessages[0].parts).toEqual([textPart('Earlier context', now - 2)]);
   });

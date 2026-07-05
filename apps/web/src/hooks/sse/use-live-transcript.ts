@@ -48,9 +48,7 @@ export function useLiveTranscript(recordingId: string, isRecording: boolean) {
     'recording-transcript-entry': (data) => {
       setEntries((prev) => {
         // Find existing partial from same source to replace
-        const partialIdx = prev.findLastIndex(
-          (e) => e.source === data.source && e.kind === 'partial',
-        );
+        const partialIdx = prev.findLastIndex((e) => e.source === data.source && e.kind === 'partial');
 
         if (data.kind === 'partial') {
           const entry: LiveTranscriptEntry = {

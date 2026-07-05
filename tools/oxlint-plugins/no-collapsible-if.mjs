@@ -19,12 +19,8 @@ function isIfStatementWithoutElse(node) {
 const noCollapsibleIf = {
   meta: {
     type: 'suggestion',
-    docs: {
-      description: 'Collapsible "if" statements should be merged',
-    },
-    messages: {
-      mergeNestedIfStatement: MESSAGE,
-    },
+    docs: { description: 'Collapsible "if" statements should be merged' },
+    messages: { mergeNestedIfStatement: MESSAGE },
     schema: [],
   },
   create(context) {
@@ -37,10 +33,7 @@ const noCollapsibleIf = {
         if (isIfStatementWithoutElse(node) && isIfStatementWithoutElse(consequent)) {
           const enclosingIfKeyword = context.sourceCode.getFirstToken(node);
           if (enclosingIfKeyword) {
-            context.report({
-              messageId: 'mergeNestedIfStatement',
-              loc: enclosingIfKeyword.loc,
-            });
+            context.report({ messageId: 'mergeNestedIfStatement', loc: enclosingIfKeyword.loc });
           }
         }
       },

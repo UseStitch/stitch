@@ -17,24 +17,14 @@ type TranscriptEventInput = {
   offsetMs: number;
 };
 
-type PendingPartial = {
-  speaker: string;
-  content: string;
-  offsetMs: number;
-};
+type PendingPartial = { speaker: string; content: string; offsetMs: number };
 
 /**
  * Internal entry that preserves arrival sequence for correct ordering.
  * The ordering buffer emits events in the correct interleaved order,
  * so `seq` is the authoritative ordering — NOT offsetMs alone.
  */
-type InternalEntry = {
-  seq: number;
-  speaker: string;
-  content: string;
-  startMs: number;
-  endMs: number;
-};
+type InternalEntry = { seq: number; speaker: string; content: string; startMs: number; endMs: number };
 
 type RecordingTranscriptState = {
   entries: InternalEntry[];
@@ -69,10 +59,7 @@ export function startTranscriptCollection(recordingId: PrefixedString<'rec'>): v
   log.info({ recordingId }, 'transcript collection started');
 }
 
-export function pushTranscriptEvent(
-  recordingId: PrefixedString<'rec'>,
-  event: TranscriptEventInput,
-): void {
+export function pushTranscriptEvent(recordingId: PrefixedString<'rec'>, event: TranscriptEventInput): void {
   const state = getOrCreate(recordingId);
 
   if (event.kind === 'final') {
@@ -122,12 +109,7 @@ function buildSnapshot(state: RecordingTranscriptState): RecordingTranscriptEntr
   }
   // Sort by sequence number — this is the ordering buffer's emission order.
   all.sort((a, b) => a.seq - b.seq);
-  return all.map((e) => ({
-    speaker: e.speaker,
-    content: e.content,
-    startMs: e.startMs,
-    endMs: e.endMs,
-  }));
+  return all.map((e) => ({ speaker: e.speaker, content: e.content, startMs: e.startMs, endMs: e.endMs }));
 }
 
 async function flushTranscript(recordingId: PrefixedString<'rec'>): Promise<void> {

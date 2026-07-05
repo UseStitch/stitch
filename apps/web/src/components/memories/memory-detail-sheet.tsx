@@ -5,21 +5,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CATEGORY_LABELS, CONFIDENCE_LABELS } from '@/components/memories/constants';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import type { MemoryCategory, MemoryConfidence, SemanticMemory } from '@/lib/queries/memories';
@@ -27,11 +15,7 @@ import { deleteMemoryMutationOptions, updateMemoryMutationOptions } from '@/lib/
 
 const DEBOUNCE_MS = 600;
 
-type Props = {
-  memory: SemanticMemory | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-};
+type Props = { memory: SemanticMemory | null; open: boolean; onOpenChange: (open: boolean) => void };
 
 export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
@@ -54,11 +38,7 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
     }
   }, [memory]);
 
-  function save(updates: {
-    content?: string;
-    category?: MemoryCategory;
-    confidence?: MemoryConfidence;
-  }) {
+  function save(updates: { content?: string; category?: MemoryCategory; confidence?: MemoryConfidence }) {
     if (!memoryRef.current) return;
     updateMutation.mutate({ id: memoryRef.current.id, updates });
   }
@@ -191,15 +171,11 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Created</span>
-                <span className="text-foreground">
-                  {new Date(memory.createdAt).toLocaleDateString()}
-                </span>
+                <span className="text-foreground">{new Date(memory.createdAt).toLocaleDateString()}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Updated</span>
-                <span className="text-foreground">
-                  {new Date(memory.updatedAt).toLocaleDateString()}
-                </span>
+                <span className="text-foreground">{new Date(memory.updatedAt).toLocaleDateString()}</span>
               </div>
             </div>
           </div>
@@ -209,13 +185,10 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
               variant="destructive"
               size="sm"
               onClick={() => setConfirmDeleteOpen(true)}
-              disabled={deleteMutation.isPending}
-            >
+              disabled={deleteMutation.isPending}>
               Delete
             </Button>
-            {updateMutation.isPending && (
-              <span className="text-xs text-muted-foreground">Saving…</span>
-            )}
+            {updateMutation.isPending && <span className="text-xs text-muted-foreground">Saving…</span>}
           </SheetFooter>
         </SheetContent>
       </Sheet>
@@ -232,11 +205,7 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
             <Button variant="outline" onClick={() => setConfirmDeleteOpen(false)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleteMutation.isPending}
-            >
+            <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending}>
               {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
             </Button>
           </DialogFooter>

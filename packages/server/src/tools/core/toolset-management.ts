@@ -30,10 +30,7 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
     });
   };
 
-  const resolveActivationState = async (input: {
-    persist?: boolean;
-    scope?: SessionToolsetScope;
-  }) => {
+  const resolveActivationState = async (input: { persist?: boolean; scope?: SessionToolsetScope }) => {
     if (input.persist === true) {
       return { scope: 'until_deactivated' as const };
     }
@@ -43,10 +40,7 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
     return scope === 'ttl_turns'
       ? {
           scope,
-          expiresAtTurn: getToolsetExpiresAtTurn(
-            getSessionToolsetState(sessionId).turnCounter,
-            settings.ttlTurns,
-          ),
+          expiresAtTurn: getToolsetExpiresAtTurn(getSessionToolsetState(sessionId).turnCounter, settings.ttlTurns),
         }
       : { scope };
   };
@@ -72,14 +66,8 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
   const list_toolsets = tool({
     description: `List toolsets and inspect toolset contents. Prefer a query string when you already know the domain (for example "gmail", "browser", or "calendar"). Call with no arguments only for broad discovery. Pass a toolsetId only when you need to inspect prompts or instructions before activation — activate_toolset already returns the full tool list, so do not call list_toolsets with a toolsetId just to preview tools you are about to activate.`,
     inputSchema: z.object({
-      toolsetId: z
-        .string()
-        .optional()
-        .describe('Optional toolset ID to inspect in detail (e.g. "browser")'),
-      query: z
-        .string()
-        .optional()
-        .describe('Keyword to filter the catalog (e.g. "database", "browser", "email")'),
+      toolsetId: z.string().optional().describe('Optional toolset ID to inspect in detail (e.g. "browser")'),
+      query: z.string().optional().describe('Keyword to filter the catalog (e.g. "database", "browser", "email")'),
     }),
     execute: async ({ toolsetId, query }) => {
       if (!toolsetId) {
@@ -108,9 +96,7 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
 
       const toolset = getToolset(toolsetId);
       if (!toolset) {
-        throw new Error(
-          `Unknown toolset: "${toolsetId}". Use list_toolsets with no arguments to see available IDs.`,
-        );
+        throw new Error(`Unknown toolset: "${toolsetId}". Use list_toolsets with no arguments to see available IDs.`);
       }
 
       const enabled = await isToolEnabled({ scope: 'toolset', identifier: toolsetId });
@@ -136,10 +122,7 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
     description: `Activate a toolset to make its tools callable. Use the exact toolset ID returned by list_toolsets. Activation applies to the current run by default. Set persist=true only when the toolset should stay active for future turns in this session. By default this returns a compact response; set verbose=true only when you need full toolset instructions and prompt metadata.`,
     inputSchema: z.object({
       toolsetId: z.string().describe('The toolset ID to activate (e.g. "browser")'),
-      persist: z
-        .boolean()
-        .optional()
-        .describe('Keep this toolset active for future turns in the same session.'),
+      persist: z.boolean().optional().describe('Keep this toolset active for future turns in the same session.'),
       scope: z
         .enum(['current_run', 'ttl_turns', 'until_deactivated'])
         .optional()
@@ -172,9 +155,7 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
 
       const result = await manager.activate(toolsetId, activationState);
       if (result.status === 'not_found') {
-        throw new Error(
-          `Unknown toolset: "${toolsetId}". Use list_toolsets with no arguments to see available IDs.`,
-        );
+        throw new Error(`Unknown toolset: "${toolsetId}". Use list_toolsets with no arguments to see available IDs.`);
       }
       if (result.status === 'disabled') {
         throw new Error(
@@ -209,11 +190,8 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
         promptCount: toolset?.prompts?.length ?? 0,
         instructions: shouldIncludeVerbose ? (toolset?.instructions ?? null) : null,
         prompts: shouldIncludeVerbose
-          ? (toolset?.prompts?.map((p) => ({
-              name: p.name,
-              description: p.description,
-              arguments: p.arguments,
-            })) ?? null)
+          ? (toolset?.prompts?.map((p) => ({ name: p.name, description: p.description, arguments: p.arguments })) ??
+            null)
           : null,
         ...(collisions.length > 0 && {
           warning: `Tool name collision: ${collisions.join(', ')} already exist in another active toolset. The new definitions have overwritten the previous ones.`,
@@ -225,9 +203,7 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
 
   const deactivate_toolset = tool({
     description: `Deactivate a toolset to remove its tools and free up context. Use when you are done with a toolset's capabilities for the current task.`,
-    inputSchema: z.object({
-      toolsetId: z.string().describe('The toolset ID to deactivate'),
-    }),
+    inputSchema: z.object({ toolsetId: z.string().describe('The toolset ID to deactivate') }),
     execute: async ({ toolsetId }) => {
       const toolset = getToolset(toolsetId);
       const toolsetName = toolset?.name ?? toolsetId;

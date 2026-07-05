@@ -9,13 +9,7 @@ import type { AgendaListWithCounts } from '@stitch/shared/agenda/types';
 import { InternalSidebar } from '@/components/navigation/internal-sidebar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -43,14 +37,7 @@ type ListRowProps = {
   onMoveItem: (itemId: string, listId: string) => void;
 };
 
-function ListRow({
-  list,
-  isActive,
-  isDragging,
-  mergeIndicator,
-  onDragStart,
-  onMoveItem,
-}: ListRowProps) {
+function ListRow({ list, isActive, isDragging, mergeIndicator, onDragStart, onMoveItem }: ListRowProps) {
   const openCount = list.itemCounts.open + list.itemCounts.in_progress;
 
   function handleDragStart(e: React.DragEvent) {
@@ -81,23 +68,13 @@ function ListRow({
       }}
       isActive={isActive}
       className="h-auto py-1.5"
-      render={
-        <Link
-          to="/agenda/$listId"
-          params={{ listId: list.id }}
-          className="flex items-center gap-2"
-        />
-      }
-    >
+      render={<Link to="/agenda/$listId" params={{ listId: list.id }} className="flex items-center gap-2" />}>
       <FolderIcon className="size-3.5 shrink-0 text-muted-foreground" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-sm">{list.name}</span>
           {mergeIndicator ? (
-            <Badge
-              variant="default"
-              className="animate-in px-1.5 py-0 text-[10px] zoom-in-95 fade-in"
-            >
+            <Badge variant="default" className="animate-in px-1.5 py-0 text-[10px] zoom-in-95 fade-in">
               {mergeIndicator === 'list' ? (
                 <span className="flex items-center gap-0.5">
                   <MergeIcon className="size-2.5" />
@@ -263,8 +240,7 @@ export function AgendaSidebarContent() {
               setNewListDescription('');
               setCreateOpen(true);
             }}
-            aria-label="Create list"
-          >
+            aria-label="Create list">
             <PlusIcon className="size-3.5" />
           </InternalSidebar.TopAction>
         </InternalSidebar.Top>
@@ -276,8 +252,7 @@ export function AgendaSidebarContent() {
             onDrop={handleListDrop}
             onDragOver={(e) => {
               if (getDragType(e)) e.preventDefault();
-            }}
-          >
+            }}>
             {lists.map((list, index) => {
               const showDropBefore = dropIndex === index && dragListId && dragListId !== list.id;
               const isMergeTarget = mergeTargetId === list.id && dragListId !== list.id;
@@ -289,13 +264,7 @@ export function AgendaSidebarContent() {
                       list={list}
                       isActive={list.id === selectedListId}
                       isDragging={dragListId === list.id}
-                      mergeIndicator={
-                        isMergeTarget
-                          ? 'list'
-                          : mergeTargetId === list.id && !dragListId
-                            ? 'item'
-                            : null
-                      }
+                      mergeIndicator={isMergeTarget ? 'list' : mergeTargetId === list.id && !dragListId ? 'item' : null}
                       onDragStart={() => setDragListId(list.id)}
                       onMoveItem={handleMoveItem}
                     />
@@ -303,9 +272,7 @@ export function AgendaSidebarContent() {
                 </React.Fragment>
               );
             })}
-            {dropIndex === lists.length && dragListId && (
-              <div className="mx-2 h-0.5 rounded bg-primary" />
-            )}
+            {dropIndex === lists.length && dragListId && <div className="mx-2 h-0.5 rounded bg-primary" />}
             {lists.length === 0 && (
               <InternalSidebar.EmptyState
                 icon={ListTodoIcon}
@@ -352,10 +319,7 @@ export function AgendaSidebarContent() {
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleCreateList}
-              disabled={!newListName.trim() || createListMutation.isPending}
-            >
+            <Button onClick={handleCreateList} disabled={!newListName.trim() || createListMutation.isPending}>
               {createListMutation.isPending ? 'Creating...' : 'Create'}
             </Button>
           </DialogFooter>

@@ -19,37 +19,17 @@ export type AudioChunkEvent = {
   encoding: AudioChunkEncoding;
 };
 
-export type DeviceChangedEvent = {
-  type: 'deviceChanged';
-  kind: 'input' | 'output';
-  deviceName: string | null;
-};
+export type DeviceChangedEvent = { type: 'deviceChanged'; kind: 'input' | 'output'; deviceName: string | null };
 
-export type WarningEvent = {
-  type: 'warning';
-  code: string;
-  message: string;
-};
+export type WarningEvent = { type: 'warning'; code: string; message: string };
 
 export type CaptureEvent = AudioChunkEvent | DeviceChangedEvent | WarningEvent;
 export type CaptureEventListener = (event: CaptureEvent) => void;
 
-export type AudioDeviceList = {
-  microphoneDevices: string[];
-  speakerDevices: string[];
-};
+export type AudioDeviceList = { microphoneDevices: string[]; speakerDevices: string[] };
 
-export type AudioPermissionsStatus = {
-  microphone: PermissionState;
-  screenCapture: PermissionState;
-};
+export type AudioPermissionsStatus = { microphone: PermissionState; screenCapture: PermissionState };
 
-export type StopCaptureResult = {
-  endedAt: number;
-  durationMs: number;
-  warnings: string[];
-};
+export type StopCaptureResult = { endedAt: number; durationMs: number; warnings: string[] };
 
-export type ActiveCapture = {
-  startedAt: number;
-};
+export type ActiveCapture = { startedAt: number };

@@ -23,32 +23,23 @@ export function TitleBar() {
   );
 }
 
-type TitleBarShellProps = {
-  children: ReactNode;
-};
+type TitleBarShellProps = { children: ReactNode };
 
 function TitleBarShell({ children }: TitleBarShellProps) {
   return (
     <div
       className="flex h-9 items-center justify-between bg-sidebar select-none"
-      style={{ WebkitAppRegion: 'drag' } as CSSProperties}
-    >
+      style={{ WebkitAppRegion: 'drag' } as CSSProperties}>
       {children}
     </div>
   );
 }
 
-type TitleBarSectionProps = {
-  children: ReactNode;
-  className?: string;
-};
+type TitleBarSectionProps = { children: ReactNode; className?: string };
 
 function TitleBarSection({ children, className }: TitleBarSectionProps) {
   return (
-    <div
-      className={cn('flex h-full items-center', className)}
-      style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}
-    >
+    <div className={cn('flex h-full items-center', className)} style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
       {children}
     </div>
   );
@@ -61,8 +52,7 @@ function SidebarToggleButton() {
     <button
       type="button"
       onClick={toggleSidebar}
-      className="flex h-full w-9 items-center justify-center transition-colors hover:bg-muted"
-    >
+      className="flex h-full w-9 items-center justify-center transition-colors hover:bg-muted">
       {open ? (
         <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
       ) : (
@@ -104,15 +94,13 @@ function WindowsControls() {
       <button
         type="button"
         onClick={handleMinimize}
-        className="flex h-full w-12 items-center justify-center transition-colors hover:bg-muted"
-      >
+        className="flex h-full w-12 items-center justify-center transition-colors hover:bg-muted">
         <Minus className="h-4 w-4 text-muted-foreground" />
       </button>
       <button
         type="button"
         onClick={handleMaximize}
-        className="flex h-full w-12 items-center justify-center transition-colors hover:bg-muted"
-      >
+        className="flex h-full w-12 items-center justify-center transition-colors hover:bg-muted">
         {isMaximized ? (
           <Copy className="h-3.5 w-3.5 text-muted-foreground" />
         ) : (
@@ -122,8 +110,7 @@ function WindowsControls() {
       <button
         type="button"
         onClick={handleClose}
-        className="group flex h-full w-12 items-center justify-center transition-colors hover:bg-destructive hover:text-destructive-foreground"
-      >
+        className="group flex h-full w-12 items-center justify-center transition-colors hover:bg-destructive hover:text-destructive-foreground">
         <X className="h-4 w-4 text-muted-foreground group-hover:text-white" />
       </button>
     </>

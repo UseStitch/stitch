@@ -5,12 +5,7 @@ import { z } from 'zod';
 
 type JsonSchema = Parameters<typeof z.fromJSONSchema>[0];
 
-type SttProvider = {
-  providerId: string;
-  models: Array<{
-    modelId: string;
-  }>;
-};
+type SttProvider = { providerId: string; models: Array<{ modelId: string }> };
 
 const registryDir = import.meta.dir;
 const modelsDir = join(registryDir, 'models');
@@ -51,17 +46,11 @@ describe('STT registry', () => {
       const provider = expectValidProvider(filePath);
       const modelIds = new Set<string>();
 
-      expect(
-        providerIds.has(provider.providerId),
-        `Duplicate provider id: ${provider.providerId}`,
-      ).toBe(false);
+      expect(providerIds.has(provider.providerId), `Duplicate provider id: ${provider.providerId}`).toBe(false);
       providerIds.add(provider.providerId);
 
       for (const model of provider.models) {
-        expect(
-          modelIds.has(model.modelId),
-          `${filePath}: duplicate model id ${model.modelId}`,
-        ).toBe(false);
+        expect(modelIds.has(model.modelId), `${filePath}: duplicate model id ${model.modelId}`).toBe(false);
         modelIds.add(model.modelId);
       }
     }

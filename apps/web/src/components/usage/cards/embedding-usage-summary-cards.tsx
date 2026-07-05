@@ -3,15 +3,9 @@ import type { EmbeddingUsageDashboardResponse } from '@stitch/shared/usage/types
 import { UsageSummaryCards } from '@/components/usage/cards/usage-summary-cards';
 import { formatCost, formatTokens } from '@/components/usage/utils/usage-dashboard-utils';
 
-type EmbeddingUsageSummaryCardsProps = {
-  rangeLabel: string;
-  usageData: EmbeddingUsageDashboardResponse | undefined;
-};
+type EmbeddingUsageSummaryCardsProps = { rangeLabel: string; usageData: EmbeddingUsageDashboardResponse | undefined };
 
-export function EmbeddingUsageSummaryCards({
-  rangeLabel,
-  usageData,
-}: EmbeddingUsageSummaryCardsProps) {
+export function EmbeddingUsageSummaryCards({ rangeLabel, usageData }: EmbeddingUsageSummaryCardsProps) {
   const granularityLabel = usageData?.range.granularity ?? 'day';
 
   return (

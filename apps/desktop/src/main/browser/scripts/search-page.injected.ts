@@ -1,8 +1,6 @@
 import type { ElectronBrowserCommand } from '@stitch/shared/browser/electron';
 
-export function buildSearchPageScript(
-  command: Extract<ElectronBrowserCommand, { action: 'searchPage' }>,
-): string {
+export function buildSearchPageScript(command: Extract<ElectronBrowserCommand, { action: 'searchPage' }>): string {
   return `(() => {
     const text = (document.querySelector(${JSON.stringify(command.cssScope ?? 'body')})?.innerText || '');
     const pattern = ${JSON.stringify(command.pattern)};

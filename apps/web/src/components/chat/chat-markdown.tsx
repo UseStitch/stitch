@@ -39,10 +39,7 @@ interface CodeBlockErrorBoundaryProps {
   children: React.ReactNode;
 }
 
-class CodeBlockErrorBoundary extends React.Component<
-  CodeBlockErrorBoundaryProps,
-  { hasError: boolean }
-> {
+class CodeBlockErrorBoundary extends React.Component<CodeBlockErrorBoundaryProps, { hasError: boolean }> {
   constructor(props: CodeBlockErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
@@ -99,8 +96,7 @@ function MarkdownCodeBlock({ code, children }: { code: string; children: React.R
         className="absolute top-2 right-2 z-10 rounded-md border border-border/50 bg-background/80 px-2 py-1 text-xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-background hover:text-foreground"
         onClick={handleCopy}
         title={copied ? 'Copied' : 'Copy code'}
-        aria-label={copied ? 'Copied' : 'Copy code'}
-      >
+        aria-label={copied ? 'Copied' : 'Copy code'}>
         {copied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
       </button>
       {children}
@@ -134,10 +130,7 @@ function SuspenseShikiCodeBlock({ className, code, isStreaming }: SuspenseShikiC
   try {
     highlightedHtml = highlighter.codeToHtml(code, {
       lang: language as SupportedLanguage,
-      themes: {
-        light: 'github-light',
-        dark: 'github-dark',
-      },
+      themes: { light: 'github-light', dark: 'github-dark' },
     });
   } catch (error) {
     console.warn(
@@ -146,19 +139,12 @@ function SuspenseShikiCodeBlock({ className, code, isStreaming }: SuspenseShikiC
     );
     highlightedHtml = highlighter.codeToHtml(code, {
       lang: 'text',
-      themes: {
-        light: 'github-light',
-        dark: 'github-dark',
-      },
+      themes: { light: 'github-light', dark: 'github-dark' },
     });
   }
 
   if (!isStreaming) {
-    highlightedCodeCache.set(
-      cacheKey,
-      highlightedHtml,
-      estimateHighlightedSize(highlightedHtml, code),
-    );
+    highlightedCodeCache.set(cacheKey, highlightedHtml, estimateHighlightedSize(highlightedHtml, code));
   }
 
   return (
@@ -188,33 +174,21 @@ function nodeToPlainText(node: React.ReactNode): string {
   return '';
 }
 
-function extractCodeBlock(
-  children: React.ReactNode,
-): { className: string | undefined; code: string } | null {
+function extractCodeBlock(children: React.ReactNode): { className: string | undefined; code: string } | null {
   const childNodes = Children.toArray(children);
   if (childNodes.length !== 1) {
     return null;
   }
 
   const onlyChild = childNodes[0];
-  if (
-    !isValidElement<{ className?: string; children?: React.ReactNode }>(onlyChild) ||
-    onlyChild.type !== 'code'
-  ) {
+  if (!isValidElement<{ className?: string; children?: React.ReactNode }>(onlyChild) || onlyChild.type !== 'code') {
     return null;
   }
 
-  return {
-    className: onlyChild.props.className,
-    code: nodeToPlainText(onlyChild.props.children),
-  };
+  return { className: onlyChild.props.className, code: nodeToPlainText(onlyChild.props.children) };
 }
 
-function MarkdownAnchor({
-  href,
-  children,
-  ...props
-}: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+function MarkdownAnchor({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {
       if (!href) return;
@@ -275,11 +249,7 @@ function ChatMarkdown({ text, className, isStreaming = false }: ChatMarkdownProp
           <MarkdownCodeBlock code={codeBlock.code}>
             <CodeBlockErrorBoundary fallback={<pre {...props}>{children}</pre>}>
               <Suspense fallback={<pre {...props}>{children}</pre>}>
-                <SuspenseShikiCodeBlock
-                  className={codeBlock.className}
-                  code={codeBlock.code}
-                  isStreaming={false}
-                />
+                <SuspenseShikiCodeBlock className={codeBlock.className} code={codeBlock.code} isStreaming={false} />
               </Suspense>
             </CodeBlockErrorBoundary>
           </MarkdownCodeBlock>
@@ -301,17 +271,8 @@ function ChatMarkdown({ text, className, isStreaming = false }: ChatMarkdownProp
   const rehypePlugins = useMemo(() => (isStreaming ? [] : [rehypeKatex]), [isStreaming]);
 
   return (
-    <div
-      className={cn(
-        'prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed',
-        className,
-      )}
-    >
-      <ReactMarkdown
-        remarkPlugins={remarkPlugins}
-        rehypePlugins={rehypePlugins}
-        components={markdownComponents}
-      >
+    <div className={cn('prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed', className)}>
+      <ReactMarkdown remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins} components={markdownComponents}>
         {text}
       </ReactMarkdown>
     </div>

@@ -109,8 +109,7 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
                     key={option.label}
                     onClick={() => handleSelect(idx, option.label)}
                     selected={isTabSelected(option.label)}
-                    description={option.description}
-                  >
+                    description={option.description}>
                     {option.label}
                   </Dock.Selectable>
                 ))}

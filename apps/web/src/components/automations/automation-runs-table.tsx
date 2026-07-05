@@ -15,10 +15,7 @@ import type { Session } from '@stitch/shared/chat/messages';
 import { Button } from '@/components/ui/button';
 import { Table } from '@/components/ui/table';
 
-type AutomationRunsTableProps = {
-  sessions: Session[];
-  onOpen: (sessionId: string) => void;
-};
+type AutomationRunsTableProps = { sessions: Session[]; onOpen: (sessionId: string) => void };
 
 const columnHelper = createColumnHelper<Session>();
 
@@ -73,9 +70,7 @@ export function AutomationRunsTable({ sessions, onOpen }: AutomationRunsTablePro
               <Table.Row key={headerGroup.id} className="hover:bg-transparent">
                 {headerGroup.headers.map((header) => (
                   <Table.Head key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </Table.Head>
                 ))}
               </Table.Row>
@@ -85,9 +80,7 @@ export function AutomationRunsTable({ sessions, onOpen }: AutomationRunsTablePro
             {table.getRowModel().rows.map((row) => (
               <Table.Row key={row.id}>
                 {row.getVisibleCells().map((cell) => (
-                  <Table.Cell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </Table.Cell>
+                  <Table.Cell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</Table.Cell>
                 ))}
               </Table.Row>
             ))}

@@ -60,9 +60,7 @@ export function useDictation({
       const providerId = model?.providerId ?? defaultProviderId;
       const modelId = model?.modelId ?? defaultModelId;
       if (!providerId || !modelId) {
-        toast.error('No STT model configured. Set one in Settings → General → STT Model.', {
-          id: 'stt-no-model',
-        });
+        toast.error('No STT model configured. Set one in Settings → General → STT Model.', { id: 'stt-no-model' });
         return null;
       }
       const provider = sttProviders.find((p) => p.providerId === providerId);

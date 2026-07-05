@@ -38,16 +38,10 @@ const ReconnectConfigSchema = z.object({
 
 const TokenPricingSchema = z.object({
   type: z.literal('token'),
-  perMillionTokens: z.object({
-    audioInput: z.number().nonnegative(),
-    textOutput: z.number().nonnegative(),
-  }),
+  perMillionTokens: z.object({ audioInput: z.number().nonnegative(), textOutput: z.number().nonnegative() }),
 });
 
-const DurationPricingSchema = z.object({
-  type: z.literal('duration'),
-  perMinuteUsd: z.number().nonnegative(),
-});
+const DurationPricingSchema = z.object({ type: z.literal('duration'), perMinuteUsd: z.number().nonnegative() });
 
 const PricingSchema = z.discriminatedUnion('type', [TokenPricingSchema, DurationPricingSchema]);
 

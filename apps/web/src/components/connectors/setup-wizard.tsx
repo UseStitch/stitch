@@ -1,10 +1,4 @@
-import {
-  ExternalLinkIcon,
-  CheckIcon,
-  Loader2Icon,
-  ArrowRightIcon,
-  ArrowLeftIcon,
-} from 'lucide-react';
+import { ExternalLinkIcon, CheckIcon, Loader2Icon, ArrowRightIcon, ArrowLeftIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -29,16 +23,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  useCreateOAuthConnector,
-  useCreateApiKeyConnector,
-  useAuthorizeConnector,
-} from '@/lib/queries/connectors';
+import { useCreateOAuthConnector, useCreateApiKeyConnector, useAuthorizeConnector } from '@/lib/queries/connectors';
 
-type Props = {
-  definition: ConnectorDefinition;
-  onClose: () => void;
-};
+type Props = { definition: ConnectorDefinition; onClose: () => void };
 
 type WizardStep = 'instructions' | 'credentials' | 'scopes' | 'authorizing' | 'done';
 
@@ -74,13 +61,10 @@ export function SetupWizard({ definition, onClose }: Props) {
       }),
     ) as Record<string, 'none' | 'read' | 'write'>;
   }, [oauthConfig?.serviceAccessOptions, selectedScopes]);
-  const [serviceAccess, setServiceAccess] =
-    useState<Record<string, 'none' | 'read' | 'write'>>(initialServiceAccess);
+  const [serviceAccess, setServiceAccess] = useState<Record<string, 'none' | 'read' | 'write'>>(initialServiceAccess);
 
   function toggleScope(scope: string) {
-    setSelectedScopes((prev) =>
-      prev.includes(scope) ? prev.filter((s) => s !== scope) : [...prev, scope],
-    );
+    setSelectedScopes((prev) => (prev.includes(scope) ? prev.filter((s) => s !== scope) : [...prev, scope]));
   }
 
   async function handleCreateAndAuthorize(scopesOverride?: string[]) {
@@ -95,9 +79,7 @@ export function SetupWizard({ definition, onClose }: Props) {
 
       try {
         if (!clientId.trim() || !clientSecret.trim()) {
-          toast.error('Client ID and Client Secret are required', {
-            id: 'connector-setup-credentials',
-          });
+          toast.error('Client ID and Client Secret are required', { id: 'connector-setup-credentials' });
           setStep('credentials');
           return;
         }
@@ -114,16 +96,12 @@ export function SetupWizard({ definition, onClose }: Props) {
         void (window.api?.shell?.openExternal(authUrl) ?? window.open(authUrl, '_blank'));
         setStep('done');
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Failed to create connector', {
-          id: 'connector-setup-create',
-        });
+        toast.error(e instanceof Error ? e.message : 'Failed to create connector', { id: 'connector-setup-create' });
         setStep('scopes');
       }
     } else {
       if (!apiKey.trim()) {
-        toast.error(`${apiKeyConfig?.keyLabel ?? 'API Key'} is required`, {
-          id: 'connector-setup-apikey',
-        });
+        toast.error(`${apiKeyConfig?.keyLabel ?? 'API Key'} is required`, { id: 'connector-setup-apikey' });
         return;
       }
 
@@ -139,9 +117,7 @@ export function SetupWizard({ definition, onClose }: Props) {
         setStep('done');
         toast.success('Connector created successfully', { id: 'connector-setup-create' });
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Failed to create connector', {
-          id: 'connector-setup-create',
-        });
+        toast.error(e instanceof Error ? e.message : 'Failed to create connector', { id: 'connector-setup-create' });
         setStep('credentials');
       }
     }
@@ -162,18 +138,13 @@ export function SetupWizard({ definition, onClose }: Props) {
             {step === 'scopes' && 'Choose which permissions to grant.'}
             {step === 'authorizing' && 'Setting up your connection...'}
             {step === 'done' &&
-              (isOAuth
-                ? 'Complete the authorization in your browser.'
-                : 'Your connector is now connected.')}
+              (isOAuth ? 'Complete the authorization in your browser.' : 'Your connector is now connected.')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="min-h-0 flex-1">
           {step === 'instructions' && (
-            <InstructionsStep
-              instructions={definition.setupInstructions}
-              onNext={() => setStep('credentials')}
-            />
+            <InstructionsStep instructions={definition.setupInstructions} onNext={() => setStep('credentials')} />
           )}
 
           {step === 'credentials' && (
@@ -231,8 +202,8 @@ export function SetupWizard({ definition, onClose }: Props) {
                 <>
                   <p className="text-sm font-medium">Authorization started</p>
                   <p className="text-center text-xs text-muted-foreground">
-                    A browser window has opened for you to authorize access. Once you approve, the
-                    connector will be ready to use. You can close this dialog.
+                    A browser window has opened for you to authorize access. Once you approve, the connector will be
+                    ready to use. You can close this dialog.
                   </p>
                 </>
               ) : (
@@ -249,13 +220,7 @@ export function SetupWizard({ definition, onClose }: Props) {
   );
 }
 
-function InstructionsStep({
-  instructions,
-  onNext,
-}: {
-  instructions: ConnectorSetupInstruction[];
-  onNext: () => void;
-}) {
+function InstructionsStep({ instructions, onNext }: { instructions: ConnectorSetupInstruction[]; onNext: () => void }) {
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       <ScrollArea className="max-h-[45vh] min-h-0 flex-1 rounded-lg border border-border/60 bg-muted/30 p-3">
@@ -269,11 +234,9 @@ function InstructionsStep({
                   className="ml-1 inline-flex items-center gap-1 text-primary hover:underline"
                   onClick={() => {
                     void (
-                      window.api?.shell?.openExternal(instruction.href!) ??
-                      window.open(instruction.href, '_blank')
+                      window.api?.shell?.openExternal(instruction.href!) ?? window.open(instruction.href, '_blank')
                     );
-                  }}
-                >
+                  }}>
                   {instruction.hrefLabel ?? 'Open'}
                   <ExternalLinkIcon className="size-3" />
                 </button>
@@ -378,8 +341,7 @@ function CredentialsStep({
                     window.api?.shell?.openExternal(apiKeyConfig.helpUrl!) ??
                     window.open(apiKeyConfig.helpUrl, '_blank')
                   );
-                }}
-              >
+                }}>
                 <ExternalLinkIcon className="size-3" />
                 Get your API key
               </a>
@@ -401,10 +363,7 @@ function CredentialsStep({
   );
 }
 
-function buildEnableApisUrl(
-  scopeApiMap: Record<string, string> | undefined,
-  selectedScopes: string[],
-): string | null {
+function buildEnableApisUrl(scopeApiMap: Record<string, string> | undefined, selectedScopes: string[]): string | null {
   if (!scopeApiMap) return null;
   const apiIds = [...new Set(selectedScopes.map((s) => scopeApiMap[s]).filter(Boolean))];
   if (apiIds.length === 0) return null;
@@ -468,12 +427,8 @@ function ScopesStep({
               type="button"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
               onClick={() => {
-                void (
-                  window.api?.shell?.openExternal(enableApisUrl) ??
-                  window.open(enableApisUrl, '_blank')
-                );
-              }}
-            >
+                void (window.api?.shell?.openExternal(enableApisUrl) ?? window.open(enableApisUrl, '_blank'));
+              }}>
               <ExternalLinkIcon className="size-3.5" />
               Enable required Google APIs in Cloud Console
             </button>
@@ -486,32 +441,27 @@ function ScopesStep({
               return (
                 <div key={option.id} className="rounded-lg border border-border/60 p-3">
                   <p className="text-sm font-medium">{option.label}</p>
-                  {option.description ? (
-                    <p className="text-xs text-muted-foreground">{option.description}</p>
-                  ) : null}
+                  {option.description ? <p className="text-xs text-muted-foreground">{option.description}</p> : null}
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Button
                       type="button"
                       size="sm"
                       variant={value === 'none' ? 'default' : 'outline'}
-                      onClick={() => setServiceAccess({ ...serviceAccess, [option.id]: 'none' })}
-                    >
+                      onClick={() => setServiceAccess({ ...serviceAccess, [option.id]: 'none' })}>
                       Off
                     </Button>
                     <Button
                       type="button"
                       size="sm"
                       variant={value === 'read' ? 'default' : 'outline'}
-                      onClick={() => setServiceAccess({ ...serviceAccess, [option.id]: 'read' })}
-                    >
+                      onClick={() => setServiceAccess({ ...serviceAccess, [option.id]: 'read' })}>
                       Read
                     </Button>
                     <Button
                       type="button"
                       size="sm"
                       variant={value === 'write' ? 'default' : 'outline'}
-                      onClick={() => setServiceAccess({ ...serviceAccess, [option.id]: 'write' })}
-                    >
+                      onClick={() => setServiceAccess({ ...serviceAccess, [option.id]: 'write' })}>
                       Read + Write
                     </Button>
                   </div>
@@ -525,8 +475,7 @@ function ScopesStep({
               {Object.entries(config.scopeDescriptions).map(([scope, description]) => (
                 <label
                   key={scope}
-                  className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 text-sm hover:bg-muted/50"
-                >
+                  className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 text-sm hover:bg-muted/50">
                   <Checkbox
                     checked={selectedScopes.includes(scope)}
                     onCheckedChange={() => toggleScope(scope)}
@@ -575,9 +524,7 @@ function WizardProgress({ step, isOAuth }: { step: WizardStep; isOAuth: boolean 
   const activeIndex = steps.findIndex((item) => item.id === step);
 
   return (
-    <div
-      className={`mt-2 grid gap-2 ${isOAuth ? 'grid-cols-2 sm:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4'}`}
-    >
+    <div className={`mt-2 grid gap-2 ${isOAuth ? 'grid-cols-2 sm:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4'}`}>
       {steps.map((item, index) => (
         <div
           key={item.id}
@@ -586,8 +533,7 @@ function WizardProgress({ step, isOAuth }: { step: WizardStep; isOAuth: boolean 
             index <= activeIndex
               ? 'border-primary/30 bg-primary/10 text-foreground'
               : 'border-border/60 bg-muted/20 text-muted-foreground',
-          ].join(' ')}
-        >
+          ].join(' ')}>
           {item.label}
         </div>
       ))}

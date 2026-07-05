@@ -31,16 +31,12 @@ providerRouter.get('/embedding-models', async (c) => {
   return unwrapResult(c, result);
 });
 
-providerRouter.get(
-  '/:providerId',
-  zValidator('param', z.object({ providerId: providerIdSchema })),
-  async (c) => {
-    const { providerId } = c.req.valid('param');
-    const result = await getProvider(providerId);
-    if (result.error) log.warn({ providerId }, 'blocked access to provider');
-    return unwrapResult(c, result);
-  },
-);
+providerRouter.get('/:providerId', zValidator('param', z.object({ providerId: providerIdSchema })), async (c) => {
+  const { providerId } = c.req.valid('param');
+  const result = await getProvider(providerId);
+  if (result.error) log.warn({ providerId }, 'blocked access to provider');
+  return unwrapResult(c, result);
+});
 
 providerRouter.get(
   '/:providerId/models',
@@ -53,22 +49,18 @@ providerRouter.get(
   },
 );
 
-providerRouter.get(
-  '/:providerId/logo',
-  zValidator('param', z.object({ providerId: providerIdSchema })),
-  async (c) => {
-    const { providerId } = c.req.valid('param');
-    const result = await getProviderLogo(providerId);
-    if (result.error) {
-      log.warn({ providerId }, 'provider logo request failed');
-      return unwrapResult(c, result);
-    }
+providerRouter.get('/:providerId/logo', zValidator('param', z.object({ providerId: providerIdSchema })), async (c) => {
+  const { providerId } = c.req.valid('param');
+  const result = await getProviderLogo(providerId);
+  if (result.error) {
+    log.warn({ providerId }, 'provider logo request failed');
+    return unwrapResult(c, result);
+  }
 
-    c.header('Content-Type', SVG_CONTENT_TYPE);
-    c.header('Cache-Control', ICON_CACHE_CONTROL);
-    return c.body(result.data, 200);
-  },
-);
+  c.header('Content-Type', SVG_CONTENT_TYPE);
+  c.header('Cache-Control', ICON_CACHE_CONTROL);
+  return c.body(result.data, 200);
+});
 
 providerRouter.get(
   '/:providerId/config',

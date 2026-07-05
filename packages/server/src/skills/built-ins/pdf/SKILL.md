@@ -75,11 +75,7 @@ for (let pageIndex = 0; pageIndex < pdf.getPageCount(); pageIndex++) {
   const text = page.extractText().text.trim();
   const content = Buffer.from(page.getContentBytes()).toString('latin1');
 
-  console.log({
-    pageIndex,
-    textLength: text.length,
-    paintsXObject: /\/[^\s]+\s+Do/.test(content),
-  });
+  console.log({ pageIndex, textLength: text.length, paintsXObject: /\/[^\s]+\s+Do/.test(content) });
 }
 ```
 

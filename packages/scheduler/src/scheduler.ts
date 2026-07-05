@@ -13,11 +13,7 @@ const DEFAULT_POLL_INTERVAL_MS = 1_000;
 const DEFAULT_MAX_CONCURRENCY = 1;
 const DEFAULT_CATCHUP_MAX_RUNS = 100;
 
-type SchedulerOptions = {
-  logger: SchedulerLogger;
-  store: SchedulerStore;
-  pollIntervalMs?: number;
-};
+type SchedulerOptions = { logger: SchedulerLogger; store: SchedulerStore; pollIntervalMs?: number };
 
 type RegisteredJobInternal = Omit<Required<RegisteredJob>, 'callback' | 'schedule'> & {
   callback: RegisteredJob['callback'];
@@ -39,12 +35,7 @@ function calculateNextDueRunMs(schedule: JobSchedule, nextRunAt: number, dueCoun
   return cursor;
 }
 
-function calculateDueTimes(
-  schedule: JobSchedule,
-  nextRunAt: number,
-  now: number,
-  hardLimit: number,
-): number[] {
+function calculateDueTimes(schedule: JobSchedule, nextRunAt: number, now: number, hardLimit: number): number[] {
   if (now < nextRunAt) return [];
 
   if (schedule.type === 'interval') {
@@ -73,17 +64,11 @@ function selectRunsToStart(
   if (dueTimes.length === 0 || availableSlots <= 0) return null;
 
   if (catchup === 'none') {
-    return {
-      scheduledFor: [dueTimes[dueTimes.length - 1]],
-      advanceBy: dueTimes.length,
-    };
+    return { scheduledFor: [dueTimes[dueTimes.length - 1]], advanceBy: dueTimes.length };
   }
 
   const runsToStart = catchup === 'all' ? Math.min(dueTimes.length, maxRuns, availableSlots) : 1;
-  return {
-    scheduledFor: dueTimes.slice(0, runsToStart),
-    advanceBy: runsToStart,
-  };
+  return { scheduledFor: dueTimes.slice(0, runsToStart), advanceBy: runsToStart };
 }
 
 export function createScheduler(options: SchedulerOptions) {
@@ -105,12 +90,7 @@ export function createScheduler(options: SchedulerOptions) {
   ): Promise<void> {
     try {
       await callback();
-      await store.completeRun({
-        runId: startedRun.id,
-        key: jobKey,
-        finishedAt: Date.now(),
-        succeeded: true,
-      });
+      await store.completeRun({ runId: startedRun.id, key: jobKey, finishedAt: Date.now(), succeeded: true });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       await store.completeRun({
@@ -122,12 +102,7 @@ export function createScheduler(options: SchedulerOptions) {
       });
 
       logger.error(
-        {
-          event: 'scheduler.job.failed',
-          key: jobKey,
-          runId: startedRun.id,
-          error: errorMessage,
-        },
+        { event: 'scheduler.job.failed', key: jobKey, runId: startedRun.id, error: errorMessage },
         'scheduled job failed',
       );
     }
@@ -148,35 +123,16 @@ export function createScheduler(options: SchedulerOptions) {
       if (availableSlots <= 0) return;
 
       const now = Date.now();
-      const dueTimes = calculateDueTimes(
-        job.schedule,
-        state.nextRunAt,
-        now,
-        Math.max(1, job.catchupMaxRuns),
-      );
-      const selectedRuns = selectRunsToStart(
-        dueTimes,
-        job.catchup,
-        job.catchupMaxRuns,
-        availableSlots,
-      );
+      const dueTimes = calculateDueTimes(job.schedule, state.nextRunAt, now, Math.max(1, job.catchupMaxRuns));
+      const selectedRuns = selectRunsToStart(dueTimes, job.catchup, job.catchupMaxRuns, availableSlots);
 
       if (!selectedRuns) return;
 
-      const nextRunAt = calculateNextDueRunMs(
-        job.schedule,
-        state.nextRunAt,
-        selectedRuns.advanceBy,
-      );
+      const nextRunAt = calculateNextDueRunMs(job.schedule, state.nextRunAt, selectedRuns.advanceBy);
       const callback = job.callback;
 
       for (const scheduledFor of selectedRuns.scheduledFor) {
-        const startedRun = await store.startRun({
-          key: jobKey,
-          scheduledFor,
-          nextRunAt,
-          now: Date.now(),
-        });
+        const startedRun = await store.startRun({ key: jobKey, scheduledFor, nextRunAt, now: Date.now() });
         if (!startedRun) continue;
 
         const runPromise = executeCallback(jobKey, startedRun, callback).finally(() => {
@@ -190,13 +146,10 @@ export function createScheduler(options: SchedulerOptions) {
   }
 
   async function tick(): Promise<void> {
-    const results = await Promise.allSettled(
-      Array.from(jobs.keys()).map((jobKey) => evaluateDue(jobKey)),
-    );
+    const results = await Promise.allSettled(Array.from(jobs.keys()).map((jobKey) => evaluateDue(jobKey)));
     for (const result of results) {
       if (result.status === 'rejected') {
-        const error =
-          result.reason instanceof Error ? result.reason.message : String(result.reason);
+        const error = result.reason instanceof Error ? result.reason.message : String(result.reason);
         logger.error({ event: 'scheduler.tick.failed', error }, 'scheduler tick failed');
       }
     }
@@ -232,10 +185,7 @@ export function createScheduler(options: SchedulerOptions) {
       now,
     });
 
-    logger.info(
-      { event: 'scheduler.job.registered', key: normalized.key },
-      'scheduled job registered',
-    );
+    logger.info({ event: 'scheduler.job.registered', key: normalized.key }, 'scheduled job registered');
 
     if (timer) await evaluateDue(normalized.key);
   }
@@ -244,10 +194,7 @@ export function createScheduler(options: SchedulerOptions) {
     jobs.delete(key);
     const removed = await store.unregisterJob(key);
 
-    logger.info(
-      { event: 'scheduler.job.unregistered', key, removed },
-      'scheduled job unregistered',
-    );
+    logger.info({ event: 'scheduler.job.unregistered', key, removed }, 'scheduled job unregistered');
 
     return removed;
   }
@@ -278,10 +225,5 @@ export function createScheduler(options: SchedulerOptions) {
     logger.info({ event: 'scheduler.stopped' }, 'scheduler stopped');
   }
 
-  return {
-    start,
-    stop,
-    registerJob,
-    unregisterJob,
-  };
+  return { start, stop, registerJob, unregisterJob };
 }

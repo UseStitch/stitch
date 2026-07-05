@@ -8,10 +8,7 @@ export const TOOL_PERMISSION_VALUES = ['allow', 'deny', 'ask'] as const;
 
 export type ToolPermissionValue = (typeof TOOL_PERMISSION_VALUES)[number];
 
-export type PermissionSuggestion = {
-  message: string;
-  pattern: string;
-};
+export type PermissionSuggestion = { message: string; pattern: string };
 
 export type ToolPermission = {
   id: PrefixedString<'perm'>;
@@ -33,7 +30,4 @@ export type PermissionResponse = {
   suggestion: PermissionSuggestion | null;
 };
 
-export type PermissionDecisionResult = {
-  decision: PermissionDecision;
-  entry?: string;
-};
+export type PermissionDecisionResult = { decision: PermissionDecision; entry?: string };

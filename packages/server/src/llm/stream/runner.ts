@@ -11,13 +11,7 @@ import { transformAttachmentsForModel } from '@/llm/attachment-transform.js';
 import { compactConversationForStep } from '@/llm/context-budget.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
-import {
-  isOverflow,
-  compact,
-  getCompactionSettings,
-  getModelLimits,
-  pruneSession,
-} from '@/llm/session-summary.js';
+import { isOverflow, compact, getCompactionSettings, getModelLimits, pruneSession } from '@/llm/session-summary.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import { checkAndHandleDoomLoop, type ToolCallRecord } from '@/llm/stream/doom-loop.js';
 import {
@@ -274,15 +268,8 @@ class StreamRunner {
       }
 
       if (Array.isArray(content)) {
-        const textPart = content.find(
-          (part) => typeof part === 'object' && part !== null && part.type === 'text',
-        );
-        if (
-          textPart &&
-          typeof textPart === 'object' &&
-          'text' in textPart &&
-          typeof textPart.text === 'string'
-        ) {
+        const textPart = content.find((part) => typeof part === 'object' && part !== null && part.type === 'text');
+        if (textPart && typeof textPart === 'object' && 'text' in textPart && typeof textPart.text === 'string') {
           return maxLength ? textPart.text.slice(0, maxLength) : textPart.text;
         }
       }
@@ -316,10 +303,7 @@ class StreamRunner {
 
       const isLastStep = step === MAX_STEPS - 1;
       if (isLastStep) {
-        this.state.conversation.push({
-          role: 'user',
-          content: MAX_STEPS_WARNING(MAX_STEPS),
-        });
+        this.state.conversation.push({ role: 'user', content: MAX_STEPS_WARNING(MAX_STEPS) });
       }
 
       const stepStartedAt = this.deps.now();
@@ -419,10 +403,7 @@ class StreamRunner {
           continue;
         }
 
-        if (
-          stepResult.finishReason === 'unknown' &&
-          this.state.unknownRecoveryAttempts < UNKNOWN_RECOVERY_LIMIT
-        ) {
+        if (stepResult.finishReason === 'unknown' && this.state.unknownRecoveryAttempts < UNKNOWN_RECOVERY_LIMIT) {
           this.state.unknownRecoveryAttempts += 1;
           log.warn(
             {
@@ -672,8 +653,7 @@ class StreamRunner {
     );
 
     const unresolvedToolCalls = this.state.accumulatedParts.filter(
-      (p): p is StoredPart & { type: 'tool-call' } =>
-        p.type === 'tool-call' && !resolvedToolCallIds.has(p.toolCallId),
+      (p): p is StoredPart & { type: 'tool-call' } => p.type === 'tool-call' && !resolvedToolCallIds.has(p.toolCallId),
     );
 
     for (const call of unresolvedToolCalls) {
@@ -808,8 +788,7 @@ class StreamRunner {
           unknownRecoveryAttempts: this.state.unknownRecoveryAttempts,
           toolCallFinishRecoveryAttempts: this.state.toolCallFinishRecoveryAttempts,
           hasToolResultPart: this.hasToolResultPart(),
-          hasTrailingUserFacingTextAfterLastToolResult:
-            this.hasTrailingUserFacingTextAfterLastToolResult(),
+          hasTrailingUserFacingTextAfterLastToolResult: this.hasTrailingUserFacingTextAfterLastToolResult(),
         },
       },
       'synthetic fallback response triggered because message had tool results without trailing user-facing text',
@@ -945,8 +924,7 @@ class StreamRunner {
 
   private hasUserFacingTextPart(): boolean {
     return this.state.accumulatedParts.some(
-      (part) =>
-        part.type === 'text-delta' && typeof part.text === 'string' && part.text.trim().length > 0,
+      (part) => part.type === 'text-delta' && typeof part.text === 'string' && part.text.trim().length > 0,
     );
   }
 
@@ -966,11 +944,7 @@ class StreamRunner {
 
     for (let i = lastToolResultIndex + 1; i < this.state.accumulatedParts.length; i++) {
       const part = this.state.accumulatedParts[i];
-      if (
-        part?.type === 'text-delta' &&
-        typeof part.text === 'string' &&
-        part.text.trim().length > 0
-      ) {
+      if (part?.type === 'text-delta' && typeof part.text === 'string' && part.text.trim().length > 0) {
         return true;
       }
     }
@@ -990,8 +964,7 @@ class StreamRunner {
     );
 
     const missingToolCalls = this.state.accumulatedParts.filter(
-      (p): p is StoredPart & { type: 'tool-call' } =>
-        p.type === 'tool-call' && !resolvedToolCallIds.has(p.toolCallId),
+      (p): p is StoredPart & { type: 'tool-call' } => p.type === 'tool-call' && !resolvedToolCallIds.has(p.toolCallId),
     );
 
     if (missingToolCalls.length === 0) {
@@ -1087,10 +1060,7 @@ class StreamRunner {
 
   private getAssistantText(): string | null {
     const textParts = this.state.accumulatedParts
-      .filter(
-        (p): p is StoredPart & { type: 'text-delta' } =>
-          p.type === 'text-delta' && typeof p.text === 'string',
-      )
+      .filter((p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta' && typeof p.text === 'string')
       .map((p) => p.text);
 
     const text = textParts.join('').trim();
@@ -1153,14 +1123,8 @@ class StreamRunner {
     this.state.peakStepUsage = {
       ...Usage.ZERO_USAGE,
       ...stepUsage,
-      inputTokenDetails: {
-        ...Usage.ZERO_USAGE.inputTokenDetails,
-        ...stepUsage.inputTokenDetails,
-      },
-      outputTokenDetails: {
-        ...Usage.ZERO_USAGE.outputTokenDetails,
-        ...stepUsage.outputTokenDetails,
-      },
+      inputTokenDetails: { ...Usage.ZERO_USAGE.inputTokenDetails, ...stepUsage.inputTokenDetails },
+      outputTokenDetails: { ...Usage.ZERO_USAGE.outputTokenDetails, ...stepUsage.outputTokenDetails },
     };
   }
 }
@@ -1197,20 +1161,10 @@ export async function runStream(opts: {
     excludedToolsetIds: opts.excludedToolsetIds,
   }).assemble();
 
-  const transformedMessages = await transformAttachmentsForModel(
-    messages,
-    opts.credentials.providerId,
-    opts.modelId,
-  );
+  const transformedMessages = await transformAttachmentsForModel(messages, opts.credentials.providerId, opts.modelId);
 
   const runner = new StreamRunner(
-    {
-      ...opts,
-      llmMessages: transformedMessages,
-      coreTools: tools,
-      toolsetManager,
-      streamRunId,
-    },
+    { ...opts, llmMessages: transformedMessages, coreTools: tools, toolsetManager, streamRunId },
     opts.deps,
   );
   await runner.run();

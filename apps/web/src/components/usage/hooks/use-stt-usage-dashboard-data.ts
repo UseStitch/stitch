@@ -13,18 +13,9 @@ import {
 import { sttProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { sttUsageDashboardQueryOptions } from '@/lib/queries/usage';
 
-type SttProviderOption = {
-  providerId: string;
-  providerName: string;
-};
+type SttProviderOption = { providerId: string; providerName: string };
 
-type SttModelOption = {
-  label: string;
-  providerId: string;
-  providerName: string;
-  modelId: string;
-  modelName: string;
-};
+type SttModelOption = { label: string; providerId: string; providerName: string; modelId: string; modelName: string };
 
 export function useSttUsageDashboardData(rangeFilter: UsageDateRange) {
   const { data: sttProviderModels } = useSuspenseQuery(sttProviderModelsQueryOptions);
@@ -88,21 +79,14 @@ export function useSttUsageDashboardData(rangeFilter: UsageDateRange) {
 
   React.useEffect(() => {
     if (modelFilter === ALL_FILTER) return;
-    const isStillAvailable = availableModels.some(
-      (m) => encodeModelFilter(m.providerId, m.modelId) === modelFilter,
-    );
+    const isStillAvailable = availableModels.some((m) => encodeModelFilter(m.providerId, m.modelId) === modelFilter);
     if (!isStillAvailable) setModelFilter(ALL_FILTER);
   }, [availableModels, modelFilter]);
 
   const usageFilters = React.useMemo(() => {
     const decodedModel = modelFilter === ALL_FILTER ? null : decodeModelFilter(modelFilter);
-    const providerIdFromModel =
-      providerFilter === ALL_FILTER ? decodedModel?.providerId : providerFilter;
-    return {
-      range: rangeFilter,
-      providerId: providerIdFromModel,
-      modelId: decodedModel?.modelId,
-    };
+    const providerIdFromModel = providerFilter === ALL_FILTER ? decodedModel?.providerId : providerFilter;
+    return { range: rangeFilter, providerId: providerIdFromModel, modelId: decodedModel?.modelId };
   }, [modelFilter, providerFilter, rangeFilter]);
 
   const { data: usageData, isFetching } = useQuery({
@@ -119,11 +103,7 @@ export function useSttUsageDashboardData(rangeFilter: UsageDateRange) {
     () =>
       new Map(
         availableModels.map(
-          (m) =>
-            [
-              encodeModelFilter(m.providerId, m.modelId),
-              `${m.providerName} · ${m.modelName}`,
-            ] as const,
+          (m) => [encodeModelFilter(m.providerId, m.modelId), `${m.providerName} · ${m.modelName}`] as const,
         ),
       ),
     [availableModels],
@@ -132,18 +112,10 @@ export function useSttUsageDashboardData(rangeFilter: UsageDateRange) {
   return {
     availableModels,
     availableProviders,
-    filters: {
-      provider: providerFilter,
-      model: modelFilter,
-      range: rangeFilter,
-    },
+    filters: { provider: providerFilter, model: modelFilter, range: rangeFilter },
     labels: {
-      provider:
-        providerFilter === ALL_FILTER
-          ? 'All providers'
-          : (providerLabelById.get(providerFilter) ?? 'Provider'),
-      model:
-        modelFilter === ALL_FILTER ? 'All models' : (modelLabelByValue.get(modelFilter) ?? 'Model'),
+      provider: providerFilter === ALL_FILTER ? 'All providers' : (providerLabelById.get(providerFilter) ?? 'Provider'),
+      model: modelFilter === ALL_FILTER ? 'All models' : (modelLabelByValue.get(modelFilter) ?? 'Model'),
       range: RANGE_LABELS[rangeFilter],
     },
     isFetching,

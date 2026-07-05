@@ -50,9 +50,7 @@ const calendarCreateSchema = z.object({
   addMeet: z
     .boolean()
     .optional()
-    .describe(
-      'Set to true to automatically generate and attach a Google Meet video conference link',
-    ),
+    .describe('Set to true to automatically generate and attach a Google Meet video conference link'),
   calendarId: z.string().optional().describe('Calendar ID (defaults to primary)'),
 });
 
@@ -73,18 +71,9 @@ const calendarUpdateSchema = z.object({
   location: z.string().optional().describe('New event location'),
   startDateTime: z.string().optional().describe('New start time (ISO 8601)'),
   endDateTime: z.string().optional().describe('New end time (ISO 8601)'),
-  timeZone: z
-    .string()
-    .optional()
-    .describe('Time zone for start/end times (e.g. "America/Chicago")'),
-  attendees: z
-    .array(z.string())
-    .optional()
-    .describe('Replacement list of attendee email addresses'),
-  addMeet: z
-    .boolean()
-    .optional()
-    .describe('Set to true to attach a Google Meet link if not already present'),
+  timeZone: z.string().optional().describe('Time zone for start/end times (e.g. "America/Chicago")'),
+  attendees: z.array(z.string()).optional().describe('Replacement list of attendee email addresses'),
+  addMeet: z.boolean().optional().describe('Set to true to attach a Google Meet link if not already present'),
   calendarId: z.string().optional().describe('Calendar ID (defaults to primary)'),
   sendUpdates: sendUpdatesEnum,
 });
@@ -100,9 +89,7 @@ const calendarDeleteSchema = z.object({
 });
 
 export function createCalendarTools(
-  resolveClient: (
-    account?: string,
-  ) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
+  resolveClient: (account?: string) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
   hasWrite: boolean,
 ): Record<string, Tool> {
   const tools: Record<string, Tool> = {
@@ -158,19 +145,14 @@ export function createCalendarTools(
     });
 
     tools['calendar_update'] = tool({
-      description:
-        'Update an existing Google Calendar event. Only supply the fields you want to change.',
+      description: 'Update an existing Google Calendar event. Only supply the fields you want to change.',
       inputSchema: calendarUpdateSchema,
       execute: async (input: z.infer<typeof calendarUpdateSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);
         const start =
-          input.startDateTime !== undefined
-            ? { dateTime: input.startDateTime, timeZone: input.timeZone }
-            : undefined;
+          input.startDateTime !== undefined ? { dateTime: input.startDateTime, timeZone: input.timeZone } : undefined;
         const end =
-          input.endDateTime !== undefined
-            ? { dateTime: input.endDateTime, timeZone: input.timeZone }
-            : undefined;
+          input.endDateTime !== undefined ? { dateTime: input.endDateTime, timeZone: input.timeZone } : undefined;
         const result = await CalendarApi.updateEvent(
           client,
           input.eventId,

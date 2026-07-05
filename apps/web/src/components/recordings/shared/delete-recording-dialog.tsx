@@ -17,12 +17,7 @@ interface DeleteRecordingDialogProps {
   onConfirm: () => void;
 }
 
-export function DeleteRecordingDialog({
-  recording,
-  isDeleting,
-  onOpenChange,
-  onConfirm,
-}: DeleteRecordingDialogProps) {
+export function DeleteRecordingDialog({ recording, isDeleting, onOpenChange, onConfirm }: DeleteRecordingDialogProps) {
   return (
     <Dialog open={Boolean(recording)} onOpenChange={onOpenChange}>
       <DialogContent>

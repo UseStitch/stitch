@@ -40,13 +40,9 @@ export async function createMcpServer(input: {
 }): Promise<ServiceResult<{ id: string }>> {
   const db = getDb();
   const id = createMcpServerId();
-  await db.insert(mcpServers).values({
-    id,
-    name: input.name,
-    transport: input.transport,
-    url: input.url,
-    authConfig: input.authConfig,
-  });
+  await db
+    .insert(mcpServers)
+    .values({ id, name: input.name, transport: input.transport, url: input.url, authConfig: input.authConfig });
   return ok({ id });
 }
 
@@ -184,9 +180,7 @@ export async function startMcpAuth(
 
   await OAuthCallback.ensureRunning();
   const provider = new McpOAuthProvider(server);
-  const transport = new StreamableHTTPClientTransport(new URL(server.url), {
-    authProvider: provider,
-  });
+  const transport = new StreamableHTTPClientTransport(new URL(server.url), { authProvider: provider });
   registerPendingOAuthTransport(server.id, transport);
 
   const state = provider.state();
@@ -290,11 +284,7 @@ export async function refreshExpiringMcpTokens(): Promise<void> {
   for (const server of servers) {
     if (server.authConfig.type !== 'oauth') continue;
 
-    const provider = new McpOAuthProvider({
-      id: server.id,
-      url: server.url,
-      authConfig: server.authConfig,
-    });
+    const provider = new McpOAuthProvider({ id: server.id, url: server.url, authConfig: server.authConfig });
     const tokens = await provider.tokens();
     if (!tokens?.refresh_token || tokens.expires_in === undefined) continue;
 
@@ -307,17 +297,12 @@ export async function refreshExpiringMcpTokens(): Promise<void> {
     if (expiresAt - now > TOKEN_REFRESH_BUFFER_MS) continue;
 
     try {
-      const transport = new StreamableHTTPClientTransport(new URL(server.url), {
-        authProvider: provider,
-      });
+      const transport = new StreamableHTTPClientTransport(new URL(server.url), { authProvider: provider });
       await auth(provider, { serverUrl: server.url });
       await transport.close();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      log.warn(
-        { event: 'mcp.token_refresh.failed', serverId: server.id, error: message },
-        'MCP token refresh failed',
-      );
+      log.warn({ event: 'mcp.token_refresh.failed', serverId: server.id, error: message }, 'MCP token refresh failed');
       await setMcpAuthStatus(server.id, 'reauthorization_required');
     }
   }

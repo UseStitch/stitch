@@ -55,18 +55,13 @@ export function buildHistoryMessages(
         .map((p) => p.text)
         .join('');
 
-      const imageParts = msg.parts.filter(
-        (p): p is StoredPart & { type: 'user-image' } => p.type === 'user-image',
-      );
-      const fileParts = msg.parts.filter(
-        (p): p is StoredPart & { type: 'user-file' } => p.type === 'user-file',
-      );
+      const imageParts = msg.parts.filter((p): p is StoredPart & { type: 'user-image' } => p.type === 'user-image');
+      const fileParts = msg.parts.filter((p): p is StoredPart & { type: 'user-file' } => p.type === 'user-file');
       const textFileParts = msg.parts.filter(
         (p): p is StoredPart & { type: 'user-text-file' } => p.type === 'user-text-file',
       );
 
-      const hasAttachments =
-        imageParts.length > 0 || fileParts.length > 0 || textFileParts.length > 0;
+      const hasAttachments = imageParts.length > 0 || fileParts.length > 0 || textFileParts.length > 0;
 
       if (!text && !hasAttachments) continue;
 
@@ -92,37 +87,22 @@ export function buildHistoryMessages(
         }
         for (const file of fileParts) {
           const label = file.filename ? `"${file.filename}"` : 'attachment';
-          content.push({
-            type: 'text',
-            text: `[File ${label} already processed by model]`,
-          });
+          content.push({ type: 'text', text: `[File ${label} already processed by model]` });
         }
       } else {
         for (const img of imageParts) {
           const base64 = img.dataUrl.includes(',') ? img.dataUrl.split(',')[1] : img.dataUrl;
-          content.push({
-            type: 'image',
-            image: base64,
-            mediaType: img.mime,
-          });
+          content.push({ type: 'image', image: base64, mediaType: img.mime });
         }
 
         for (const file of fileParts) {
           const base64 = file.dataUrl.includes(',') ? file.dataUrl.split(',')[1] : file.dataUrl;
-          content.push({
-            type: 'file',
-            data: base64,
-            mediaType: file.mime,
-            filename: file.filename,
-          });
+          content.push({ type: 'file', data: base64, mediaType: file.mime, filename: file.filename });
         }
       }
 
       for (const tf of textFileParts) {
-        content.push({
-          type: 'text',
-          text: `<file name="${tf.filename}">\n${tf.content}\n</file>`,
-        });
+        content.push({ type: 'text', text: `<file name="${tf.filename}">\n${tf.content}\n</file>` });
       }
 
       llmMessages.push({ role: 'user', content });
@@ -141,12 +121,8 @@ export function buildHistoryMessages(
     }
 
     if (msg.role === 'assistant') {
-      const textParts = msg.parts.filter(
-        (p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta',
-      );
-      const toolCallParts = msg.parts.filter(
-        (p): p is StoredPart & { type: 'tool-call' } => p.type === 'tool-call',
-      );
+      const textParts = msg.parts.filter((p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta');
+      const toolCallParts = msg.parts.filter((p): p is StoredPart & { type: 'tool-call' } => p.type === 'tool-call');
       const toolResultParts = msg.parts.filter(
         (p): p is StoredPart & { type: 'tool-result' } => p.type === 'tool-result',
       );
@@ -157,18 +133,12 @@ export function buildHistoryMessages(
       const unmatchedToolCalls = toolCallParts.length - matchedToolCalls.length;
 
       if (unmatchedToolCalls > 0) {
-        log.warn(
-          {
-            count: unmatchedToolCalls,
-          },
-          'dropping unmatched tool-call parts from LLM history',
-        );
+        log.warn({ count: unmatchedToolCalls }, 'dropping unmatched tool-call parts from LLM history');
       }
 
       if (textParts.length > 0 || matchedToolCalls.length > 0) {
         const assistantContent: Array<
-          | { type: 'text'; text: string }
-          | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
+          { type: 'text'; text: string } | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
         > = [];
 
         const combinedText = textParts.map((p) => p.text).join('');

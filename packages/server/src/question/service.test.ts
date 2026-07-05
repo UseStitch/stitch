@@ -70,12 +70,7 @@ describe('question service interactions', () => {
     const askedEvent = emittedEvents.find(([name]) => name === 'question.asked');
     expect(askedEvent).toBeDefined();
     const askedData = askedEvent![1] as InternalEventMap['question.asked'];
-    expect(askedData.question).toMatchObject({
-      sessionId,
-      messageId,
-      toolCallId: 'call_question',
-      status: 'pending',
-    });
+    expect(askedData.question).toMatchObject({ sessionId, messageId, toolCallId: 'call_question', status: 'pending' });
 
     const questionId = askedData.question.id;
 
@@ -86,11 +81,7 @@ describe('question service interactions', () => {
 
     const repliedEvent = emittedEvents.find(([name]) => name === 'question.replied');
     expect(repliedEvent).toBeDefined();
-    expect(repliedEvent![1]).toEqual({
-      questionId,
-      sessionId,
-      answers: [['A']],
-    });
+    expect(repliedEvent![1]).toEqual({ questionId, sessionId, answers: [['A']] });
 
     const db = getDb();
     const [row] = await db.select().from(questions).where(eq(questions.id, questionId));
@@ -122,10 +113,7 @@ describe('question service interactions', () => {
 
     const rejectedEvent = emittedEvents.find(([name]) => name === 'question.rejected');
     expect(rejectedEvent).toBeDefined();
-    expect(rejectedEvent![1]).toEqual({
-      questionId,
-      sessionId,
-    });
+    expect(rejectedEvent![1]).toEqual({ questionId, sessionId });
 
     const db = getDb();
     const [row] = await db.select().from(questions).where(eq(questions.id, questionId));
@@ -140,12 +128,7 @@ describe('question service interactions', () => {
       messageId,
       toolCallId: 'call_custom',
       questions: [
-        {
-          question: 'Pick one',
-          header: 'Choice',
-          options: [{ label: 'A', description: 'Option A' }],
-          multiple: false,
-        },
+        { question: 'Pick one', header: 'Choice', options: [{ label: 'A', description: 'Option A' }], multiple: false },
       ],
     });
     expect(questionResult.error).toBeNull();
@@ -226,10 +209,8 @@ describe('question service interactions', () => {
       [string, InternalEventMap['question.asked']]
     >;
 
-    const firstId = askedEvents.find(([, data]) => data.question.sessionId === sessionId)?.[1]
-      .question.id;
-    const secondId = askedEvents.find(([, data]) => data.question.sessionId === otherSessionId)?.[1]
-      .question.id;
+    const firstId = askedEvents.find(([, data]) => data.question.sessionId === sessionId)?.[1].question.id;
+    const secondId = askedEvents.find(([, data]) => data.question.sessionId === otherSessionId)?.[1].question.id;
 
     await abortQuestions(sessionId);
 

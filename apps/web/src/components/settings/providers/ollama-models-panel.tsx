@@ -21,9 +21,7 @@ import {
   type OllamaModelInput,
 } from '@/lib/queries/ollama-models';
 
-type Props = {
-  baseURL?: string;
-};
+type Props = { baseURL?: string };
 
 type ModelFormState = {
   id: string;
@@ -70,10 +68,8 @@ function modelToForm(model: OllamaModel): ModelFormState {
     outputLimit: String(model.outputLimit),
     inputCostPerMillion: String(model.inputCostPerMillion),
     outputCostPerMillion: String(model.outputCostPerMillion),
-    cacheReadCostPerMillion:
-      model.cacheReadCostPerMillion !== null ? String(model.cacheReadCostPerMillion) : '',
-    cacheWriteCostPerMillion:
-      model.cacheWriteCostPerMillion !== null ? String(model.cacheWriteCostPerMillion) : '',
+    cacheReadCostPerMillion: model.cacheReadCostPerMillion !== null ? String(model.cacheReadCostPerMillion) : '',
+    cacheWriteCostPerMillion: model.cacheWriteCostPerMillion !== null ? String(model.cacheWriteCostPerMillion) : '',
     supportsToolCalls: model.supportsToolCalls,
     supportsVision: model.supportsVision,
     supportsReasoning: model.supportsReasoning,
@@ -301,10 +297,7 @@ function ModelForm({
                 checked={form.inputModalities.includes(m)}
                 disabled={m === 'text'}
                 onCheckedChange={(v) =>
-                  set(
-                    'inputModalities',
-                    v ? [...form.inputModalities, m] : form.inputModalities.filter((x) => x !== m),
-                  )
+                  set('inputModalities', v ? [...form.inputModalities, m] : form.inputModalities.filter((x) => x !== m))
                 }
               />
               <Label htmlFor={`ollama-input-mod-${m}`}>{m}</Label>
@@ -322,9 +315,7 @@ function ModelForm({
                 onCheckedChange={(v) =>
                   set(
                     'outputModalities',
-                    v
-                      ? [...form.outputModalities, m]
-                      : form.outputModalities.filter((x) => x !== m),
+                    v ? [...form.outputModalities, m] : form.outputModalities.filter((x) => x !== m),
                   )
                 }
               />
@@ -335,11 +326,7 @@ function ModelForm({
       </div>
 
       <div className="flex gap-2 pt-1">
-        <Button
-          type="submit"
-          size="sm"
-          disabled={isPending || !form.id.trim() || !form.name.trim()}
-        >
+        <Button type="submit" size="sm" disabled={isPending || !form.id.trim() || !form.name.trim()}>
           {isPending ? 'Saving...' : 'Save'}
         </Button>
         <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
@@ -378,17 +365,13 @@ export function OllamaModelsPanel({ baseURL }: Props) {
       toast.success('Model saved', { id: 'ollama-model-save' });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to save model', {
-        id: 'ollama-model-save',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to save model', { id: 'ollama-model-save' });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await serverFetch(`/llm/ollama/models/${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-      });
+      const res = await serverFetch(`/llm/ollama/models/${encodeURIComponent(id)}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete model');
     },
     onSuccess: () => {
@@ -396,19 +379,16 @@ export function OllamaModelsPanel({ baseURL }: Props) {
       toast.success('Model deleted', { id: 'ollama-model-delete' });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete model', {
-        id: 'ollama-model-delete',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to delete model', { id: 'ollama-model-delete' });
     },
   });
 
   async function handleDiscover() {
     const result = await discoverQuery.refetch();
     if (result.isError) {
-      toast.error(
-        result.error instanceof Error ? result.error.message : 'Failed to connect to Ollama',
-        { id: 'ollama-discover' },
-      );
+      toast.error(result.error instanceof Error ? result.error.message : 'Failed to connect to Ollama', {
+        id: 'ollama-discover',
+      });
     }
   }
 
@@ -423,12 +403,7 @@ export function OllamaModelsPanel({ baseURL }: Props) {
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Models</h3>
         <ButtonGroup>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDiscover}
-            disabled={discoverQuery.isFetching}
-          >
+          <Button variant="outline" size="sm" onClick={handleDiscover} disabled={discoverQuery.isFetching}>
             <RefreshCwIcon className="mr-1.5 size-3.5" />
             {discoverQuery.isFetching ? 'Discovering...' : 'Discover'}
           </Button>
@@ -438,8 +413,7 @@ export function OllamaModelsPanel({ baseURL }: Props) {
             onClick={() => {
               setShowAddForm(true);
               setEditingId(null);
-            }}
-          >
+            }}>
             <PlusIcon className="mr-1.5 size-3.5" />
             Add
           </Button>
@@ -449,8 +423,7 @@ export function OllamaModelsPanel({ baseURL }: Props) {
       {newDiscovered.length > 0 && (
         <div className="flex flex-col gap-1.5 rounded-md border p-3">
           <p className="text-xs font-medium text-muted-foreground">
-            Found {newDiscovered.length} new model{newDiscovered.length !== 1 ? 's' : ''} — click to
-            add
+            Found {newDiscovered.length} new model{newDiscovered.length !== 1 ? 's' : ''} — click to add
           </p>
           {newDiscovered.map((d) => (
             <button
@@ -471,8 +444,7 @@ export function OllamaModelsPanel({ baseURL }: Props) {
                   inputModalities: ['text'],
                   outputModalities: ['text'],
                 });
-              }}
-            >
+              }}>
               <span className="font-mono">{d.id}</span>
               <PlusIcon className="size-3.5 text-muted-foreground" />
             </button>
@@ -523,8 +495,7 @@ export function OllamaModelsPanel({ baseURL }: Props) {
                         onClick={() => {
                           setEditingId(model.id);
                           setShowAddForm(false);
-                        }}
-                      >
+                        }}>
                         <PencilIcon className="size-3.5" />
                       </Button>
                     </SettingsIconButtonTooltip>
@@ -534,8 +505,7 @@ export function OllamaModelsPanel({ baseURL }: Props) {
                         size="icon-sm"
                         aria-label={`Delete model`}
                         onClick={() => deleteMutation.mutate(model.id)}
-                        disabled={deleteMutation.isPending}
-                      >
+                        disabled={deleteMutation.isPending}>
                         <Trash2Icon className="size-3.5 text-destructive" />
                       </Button>
                     </SettingsIconButtonTooltip>

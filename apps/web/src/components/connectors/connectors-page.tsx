@@ -20,10 +20,7 @@ import {
   PageTitle,
 } from '@/components/ui/page';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  connectorDefinitionsQueryOptions,
-  connectorInstancesQueryOptions,
-} from '@/lib/queries/connectors';
+import { connectorDefinitionsQueryOptions, connectorInstancesQueryOptions } from '@/lib/queries/connectors';
 
 export function ConnectorsPage() {
   const { data: definitions } = useSuspenseQuery(connectorDefinitionsQueryOptions);
@@ -52,9 +49,7 @@ export function ConnectorsPage() {
             </PageIcon>
             <div>
               <PageTitle>Connectors</PageTitle>
-              <PageDescription>
-                Connect your third-party services. Bring your own credentials.
-              </PageDescription>
+              <PageDescription>Connect your third-party services. Bring your own credentials.</PageDescription>
             </div>
           </PageHeaderContent>
         </PageHeader>
@@ -102,9 +97,7 @@ export function ConnectorsPage() {
             ) : (
               <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-8 text-center">
                 <p className="text-sm font-medium">No connectors match your search</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Try a different name or clear the search query.
-                </p>
+                <p className="mt-1 text-xs text-muted-foreground">Try a different name or clear the search query.</p>
               </div>
             )}
           </TabsContent>
@@ -116,18 +109,14 @@ export function ConnectorsPage() {
             ) : (
               <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-8 text-center">
                 <p className="text-sm font-medium">No connected instances yet</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Open Marketplace to connect your first service.
-                </p>
+                <p className="mt-1 text-xs text-muted-foreground">Open Marketplace to connect your first service.</p>
               </div>
             )}
           </TabsContent>
         </Tabs>
       </PageContent>
 
-      {setupConnector && (
-        <SetupWizard definition={setupConnector} onClose={() => setSetupConnector(null)} />
-      )}
+      {setupConnector && <SetupWizard definition={setupConnector} onClose={() => setSetupConnector(null)} />}
     </Page>
   );
 }

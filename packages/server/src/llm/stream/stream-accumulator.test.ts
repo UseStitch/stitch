@@ -6,11 +6,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { internalBus } from '@/lib/internal-bus.js';
 import type { InternalEventMap, InternalEventName } from '@/lib/internal-bus.js';
 import type { ToolCallRecord } from '@/llm/stream/doom-loop.js';
-import {
-  PermissionRejectedError,
-  StreamAbortedError,
-  StreamPartError,
-} from '@/llm/stream/errors.js';
+import { PermissionRejectedError, StreamAbortedError, StreamPartError } from '@/llm/stream/errors.js';
 import { StreamAccumulator } from '@/llm/stream/stream-accumulator.js';
 import type { TextStreamPart, ToolSet } from 'ai';
 
@@ -28,10 +24,7 @@ function getEmittedCalls(eventType: string): unknown[] {
   return emittedEvents.filter(([name]) => name === eventType).map(([, data]) => data);
 }
 
-function createAccumulator(
-  accumulatedParts?: StoredPart[],
-  toolCalls?: ToolCallRecord[],
-): StreamAccumulator {
+function createAccumulator(accumulatedParts?: StoredPart[], toolCalls?: ToolCallRecord[]): StreamAccumulator {
   return new StreamAccumulator(
     'ses_1' as PrefixedString<'ses'>,
     'msg_1' as PrefixedString<'msg'>,
@@ -76,10 +69,7 @@ describe('StreamAccumulator', () => {
       acc.handlePart(part({ type: 'text-end', id: 'id1' }));
 
       expect(parts).toHaveLength(1);
-      expect(parts[0]).toMatchObject({
-        type: 'text-delta',
-        text: 'Hello, world!',
-      });
+      expect(parts[0]).toMatchObject({ type: 'text-delta', text: 'Hello, world!' });
     });
 
     test('flush() emits buffered text when no text-end arrives', () => {
@@ -91,10 +81,7 @@ describe('StreamAccumulator', () => {
       acc.flush();
 
       expect(parts).toHaveLength(1);
-      expect(parts[0]).toMatchObject({
-        type: 'text-delta',
-        text: 'Incomplete',
-      });
+      expect(parts[0]).toMatchObject({ type: 'text-delta', text: 'Incomplete' });
     });
 
     test('flush() does nothing when text buffer is empty', () => {
@@ -129,10 +116,7 @@ describe('StreamAccumulator', () => {
       acc.handlePart(part({ type: 'reasoning-end', id: 'id1' }));
 
       expect(parts).toHaveLength(1);
-      expect(parts[0]).toMatchObject({
-        type: 'reasoning-delta',
-        text: 'Thinking step 1. Thinking step 2',
-      });
+      expect(parts[0]).toMatchObject({ type: 'reasoning-delta', text: 'Thinking step 1. Thinking step 2' });
     });
 
     test('reasoning-delta without reasoning-start increments protocol violation', () => {
@@ -152,10 +136,7 @@ describe('StreamAccumulator', () => {
       acc.flush();
 
       expect(parts).toHaveLength(1);
-      expect(parts[0]).toMatchObject({
-        type: 'reasoning-delta',
-        text: 'Partial reasoning',
-      });
+      expect(parts[0]).toMatchObject({ type: 'reasoning-delta', text: 'Partial reasoning' });
     });
   });
 
@@ -167,22 +148,11 @@ describe('StreamAccumulator', () => {
       const toolCalls: ToolCallRecord[] = [];
       const acc = createAccumulator(parts, toolCalls);
 
-      acc.handlePart(
-        part({
-          type: 'tool-call',
-          toolCallId: 'call_1',
-          toolName: 'bash',
-          input: { command: 'pwd' },
-        }),
-      );
+      acc.handlePart(part({ type: 'tool-call', toolCallId: 'call_1', toolName: 'bash', input: { command: 'pwd' } }));
 
       expect(toolCalls).toEqual([expect.objectContaining({ toolName: 'bash' })]);
       expect(parts).toHaveLength(1);
-      expect(parts[0]).toMatchObject({
-        type: 'tool-call',
-        toolCallId: 'call_1',
-        toolName: 'bash',
-      });
+      expect(parts[0]).toMatchObject({ type: 'tool-call', toolCallId: 'call_1', toolName: 'bash' });
     });
 
     test('records tool-result in accumulatedParts', () => {
@@ -213,12 +183,7 @@ describe('StreamAccumulator', () => {
       const acc = createAccumulator();
 
       acc.handlePart(
-        part({
-          type: 'tool-call',
-          toolCallId: 'call_1',
-          toolName: 'read',
-          input: { filePath: 'README.md' },
-        }),
+        part({ type: 'tool-call', toolCallId: 'call_1', toolName: 'read', input: { filePath: 'README.md' } }),
       );
       acc.handlePart(
         part({
@@ -254,22 +219,13 @@ describe('StreamAccumulator', () => {
 
       const failedCalls = getEmittedCalls('tool.failed');
       expect(failedCalls).toHaveLength(1);
-      expect(failedCalls[0]).toMatchObject({
-        toolName: 'browser',
-        error: 'Navigation failed',
-      });
+      expect(failedCalls[0]).toMatchObject({ toolName: 'browser', error: 'Navigation failed' });
     });
 
     test('broadcasts tool.pending for tool-input-start', () => {
       const acc = createAccumulator();
 
-      acc.handlePart(
-        part({
-          type: 'tool-input-start',
-          id: 'call_1',
-          toolName: 'bash',
-        }),
-      );
+      acc.handlePart(part({ type: 'tool-input-start', id: 'call_1', toolName: 'bash' }));
 
       const pendingCalls = getEmittedCalls('tool.pending');
       expect(pendingCalls).toHaveLength(1);
@@ -308,13 +264,7 @@ describe('StreamAccumulator', () => {
       const permError = new PermissionRejectedError('webfetch');
 
       acc.handlePart(
-        part({
-          type: 'tool-error',
-          toolCallId: 'call_1',
-          toolName: 'webfetch',
-          input: {},
-          error: permError,
-        }),
+        part({ type: 'tool-error', toolCallId: 'call_1', toolName: 'webfetch', input: {}, error: permError }),
       );
 
       expect(acc.getPermissionRejected()).toBeInstanceOf(PermissionRejectedError);
@@ -340,20 +290,12 @@ describe('StreamAccumulator', () => {
       const acc = createAccumulator();
 
       acc.handlePart(
-        part({
-          type: 'tool-error',
-          toolCallId: 'call_1',
-          toolName: 'bash',
-          input: {},
-          error: 'something went wrong',
-        }),
+        part({ type: 'tool-error', toolCallId: 'call_1', toolName: 'bash', input: {}, error: 'something went wrong' }),
       );
 
       const failedCalls = getEmittedCalls('tool.failed');
       expect(failedCalls).toHaveLength(1);
-      expect(failedCalls[0]).toMatchObject({
-        toolName: 'bash',
-      });
+      expect(failedCalls[0]).toMatchObject({ toolName: 'bash' });
     });
   });
 
@@ -363,49 +305,27 @@ describe('StreamAccumulator', () => {
     test('throws StreamPartError for error parts with Error cause', () => {
       const acc = createAccumulator();
 
-      expect(() =>
-        acc.handlePart(
-          part({
-            type: 'error',
-            error: new Error('stream broke'),
-          }),
-        ),
-      ).toThrow(StreamPartError);
+      expect(() => acc.handlePart(part({ type: 'error', error: new Error('stream broke') }))).toThrow(StreamPartError);
     });
 
     test('throws StreamPartError for non-Error error parts', () => {
       const acc = createAccumulator();
 
-      expect(() =>
-        acc.handlePart(
-          part({
-            type: 'error',
-            error: 'string error message',
-          }),
-        ),
-      ).toThrow(StreamPartError);
+      expect(() => acc.handlePart(part({ type: 'error', error: 'string error message' }))).toThrow(StreamPartError);
     });
 
     test('broadcasts stream.failed for error parts', () => {
       const acc = createAccumulator();
 
       try {
-        acc.handlePart(
-          part({
-            type: 'error',
-            error: new Error('provider error'),
-          }),
-        );
+        acc.handlePart(part({ type: 'error', error: new Error('provider error') }));
       } catch {
         // expected to throw
       }
 
       const errorCalls = getEmittedCalls('stream.failed');
       expect(errorCalls).toHaveLength(1);
-      expect(errorCalls[0]).toMatchObject({
-        sessionId: 'ses_1',
-        messageId: 'msg_1',
-      });
+      expect(errorCalls[0]).toMatchObject({ sessionId: 'ses_1', messageId: 'msg_1' });
     });
   });
 
@@ -427,20 +347,11 @@ describe('StreamAccumulator', () => {
       const acc = createAccumulator(parts);
 
       acc.handlePart(
-        part({
-          type: 'source',
-          sourceType: 'url',
-          id: 'src_1',
-          url: 'https://example.com',
-          title: 'Example',
-        }),
+        part({ type: 'source', sourceType: 'url', id: 'src_1', url: 'https://example.com', title: 'Example' }),
       );
 
       expect(parts).toHaveLength(1);
-      expect(parts[0]).toMatchObject({
-        type: 'source',
-        url: 'https://example.com',
-      });
+      expect(parts[0]).toMatchObject({ type: 'source', url: 'https://example.com' });
     });
 
     test('stores file parts', () => {
@@ -448,16 +359,11 @@ describe('StreamAccumulator', () => {
       const acc = createAccumulator(parts);
 
       acc.handlePart(
-        part({
-          type: 'file',
-          file: { uint8Array: new Uint8Array(), mediaType: 'image/png', base64: '' } as any,
-        }),
+        part({ type: 'file', file: { uint8Array: new Uint8Array(), mediaType: 'image/png', base64: '' } as any }),
       );
 
       expect(parts).toHaveLength(1);
-      expect(parts[0]).toMatchObject({
-        type: 'file',
-      });
+      expect(parts[0]).toMatchObject({ type: 'file' });
     });
   });
 
@@ -468,13 +374,7 @@ describe('StreamAccumulator', () => {
       const parts: StoredPart[] = [];
       const acc = createAccumulator(parts);
 
-      acc.handlePart(
-        part({
-          type: 'start-step',
-          request: {} as any,
-          warnings: [],
-        }),
-      );
+      acc.handlePart(part({ type: 'start-step', request: {} as any, warnings: [] }));
       acc.handlePart(
         part({
           type: 'finish-step',
@@ -575,14 +475,7 @@ describe('StreamAccumulator', () => {
       acc.handlePart(part({ type: 'text-start', id: 'id2' }));
       acc.handlePart(part({ type: 'text-delta', id: 'id2', text: 'Let me check.' }));
       acc.handlePart(part({ type: 'text-end', id: 'id2' }));
-      acc.handlePart(
-        part({
-          type: 'tool-call',
-          toolCallId: 'call_1',
-          toolName: 'bash',
-          input: { command: 'ls' },
-        }),
-      );
+      acc.handlePart(part({ type: 'tool-call', toolCallId: 'call_1', toolName: 'bash', input: { command: 'ls' } }));
       acc.handlePart(
         part({
           type: 'tool-result',

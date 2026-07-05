@@ -1,10 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import {
-  compactConversationForStep,
-  compactToolResultOutput,
-  getToolResultBudget,
-} from '@/llm/context-budget.js';
+import { compactConversationForStep, compactToolResultOutput, getToolResultBudget } from '@/llm/context-budget.js';
 import type { ModelMessage } from 'ai';
 
 describe('conversation compactor', () => {
@@ -70,12 +66,7 @@ describe('conversation compactor', () => {
             toolName: 'browser_interact',
             output: { type: 'json', value: largeOutput },
           },
-          {
-            type: 'tool-result',
-            toolCallId: 'latest-bash',
-            toolName: 'bash',
-            output: { type: 'json', value: 'ok' },
-          },
+          { type: 'tool-result', toolCallId: 'latest-bash', toolName: 'bash', output: { type: 'json', value: 'ok' } },
         ],
       },
     ];
@@ -123,31 +114,20 @@ describe('conversation compactor', () => {
     }
 
     expect(toolMessage.content[0]).toMatchObject({
-      output: {
-        type: 'json',
-        value: expect.objectContaining({ summary: expect.stringContaining('compacted') }),
-      },
+      output: { type: 'json', value: expect.objectContaining({ summary: expect.stringContaining('compacted') }) },
     });
   });
 
   test('strips media from user messages older than the most recent user message', () => {
     const conversation: ModelMessage[] = [
-      {
-        role: 'user',
-        content: [{ type: 'image', image: 'base64', mediaType: 'image/png' }],
-      },
+      { role: 'user', content: [{ type: 'image', image: 'base64', mediaType: 'image/png' }] },
       { role: 'assistant', content: 'saw it' },
-      {
-        role: 'user',
-        content: [{ type: 'image', image: 'base64', mediaType: 'image/png' }],
-      },
+      { role: 'user', content: [{ type: 'image', image: 'base64', mediaType: 'image/png' }] },
     ];
 
     const compacted = compactConversationForStep(conversation, { compactToolResults: false });
 
-    expect(compacted[0]).toMatchObject({
-      content: [{ type: 'text', text: expect.stringContaining('image/png') }],
-    });
+    expect(compacted[0]).toMatchObject({ content: [{ type: 'text', text: expect.stringContaining('image/png') }] });
     expect(compacted[2]).toBe(conversation[2]);
   });
 

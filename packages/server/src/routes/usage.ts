@@ -5,11 +5,7 @@ import { z } from 'zod';
 import { USAGE_DATE_RANGES } from '@stitch/shared/usage/types';
 
 import { unwrapResult } from '@/lib/route-helpers.js';
-import {
-  getEmbeddingUsageDashboard,
-  getSttUsageDashboard,
-  getUsageDashboard,
-} from '@/usage/service.js';
+import { getEmbeddingUsageDashboard, getSttUsageDashboard, getUsageDashboard } from '@/usage/service.js';
 
 const usageQuerySchema = z.object({
   providerId: z.string().optional(),

@@ -2,10 +2,7 @@ import { DOM_HELPERS_SCRIPT } from './dom-helpers.injected.js';
 
 import type { RefEntry } from '../types.js';
 
-export function buildRefActionScript(
-  entry: RefEntry,
-  buildScript: (element: string) => string,
-): string {
+export function buildRefActionScript(entry: RefEntry, buildScript: (element: string) => string): string {
   return `(() => {
     const target = ${JSON.stringify(entry)};
 

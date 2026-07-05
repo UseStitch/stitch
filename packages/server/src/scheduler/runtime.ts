@@ -98,11 +98,7 @@ function getBuiltinJobs(): RegisteredJob[] {
 export async function startScheduler(): Promise<void> {
   if (scheduler) return;
 
-  scheduler = createScheduler({
-    logger: log,
-    store: createSchedulerStore(),
-    pollIntervalMs: 1_000,
-  });
+  scheduler = createScheduler({ logger: log, store: createSchedulerStore(), pollIntervalMs: 1_000 });
   const activeScheduler = scheduler;
 
   await Promise.all(getBuiltinJobs().map((job) => activeScheduler.registerJob(job)));

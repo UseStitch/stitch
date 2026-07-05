@@ -6,31 +6,19 @@ describe('parseSkillMarkdown', () => {
   it('parses bare (unquoted) name and description', () => {
     const md = `---\nname: my-skill\ndescription: Does something useful\n---\n# Body\n`;
     const result = parseSkillMarkdown(md);
-    expect(result).toEqual({
-      name: 'my-skill',
-      description: 'Does something useful',
-      content: '# Body\n',
-    });
+    expect(result).toEqual({ name: 'my-skill', description: 'Does something useful', content: '# Body\n' });
   });
 
   it('parses double-quoted name and description', () => {
     const md = `---\nname: "my-skill"\ndescription: "Does something useful"\n---\nBody\n`;
     const result = parseSkillMarkdown(md);
-    expect(result).toEqual({
-      name: 'my-skill',
-      description: 'Does something useful',
-      content: 'Body\n',
-    });
+    expect(result).toEqual({ name: 'my-skill', description: 'Does something useful', content: 'Body\n' });
   });
 
   it('parses single-quoted name and description', () => {
     const md = `---\nname: 'my-skill'\ndescription: 'Does something useful'\n---\nBody\n`;
     const result = parseSkillMarkdown(md);
-    expect(result).toEqual({
-      name: 'my-skill',
-      description: 'Does something useful',
-      content: 'Body\n',
-    });
+    expect(result).toEqual({ name: 'my-skill', description: 'Does something useful', content: 'Body\n' });
   });
 
   it('unescapes \\\" inside double-quoted description (real skills.sh case)', () => {

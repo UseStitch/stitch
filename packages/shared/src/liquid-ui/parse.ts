@@ -8,9 +8,7 @@ type LiquidUiParseError = {
   availableComponents: readonly string[];
 };
 
-type LiquidUiParseResult =
-  | { ok: true; spec: LiquidUiSpec }
-  | { ok: false; error: LiquidUiParseError };
+type LiquidUiParseResult = { ok: true; spec: LiquidUiSpec } | { ok: false; error: LiquidUiParseError };
 
 export function parseLiquidUiSpec(input: unknown): LiquidUiParseResult {
   const result = liquidUiSpecSchema.safeParse(input);

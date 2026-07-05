@@ -38,24 +38,13 @@ type StackedBarChartProps = {
   datasets: StackedBarDataset[];
 };
 
-export function StackedBarChart({
-  title,
-  subtitle,
-  emptyMessage,
-  labels,
-  datasets,
-}: StackedBarChartProps) {
+export function StackedBarChart({ title, subtitle, emptyMessage, labels, datasets }: StackedBarChartProps) {
   const { tickColor, gridColor } = useChartTheme();
   const hasData = labels.length > 0;
 
   const baseScales = React.useMemo(
     () => ({
-      x: {
-        stacked: true,
-        grid: { display: false },
-        ticks: { color: tickColor },
-        border: { color: gridColor },
-      },
+      x: { stacked: true, grid: { display: false }, ticks: { color: tickColor }, border: { color: gridColor } },
       y: {
         stacked: true,
         beginAtZero: true,
@@ -102,10 +91,7 @@ export function StackedBarChart({
         ...baseScales,
         y: {
           ...baseScales.y,
-          ticks: {
-            ...baseScales.y.ticks,
-            callback: (value: string | number) => formatCost(Number(value)),
-          },
+          ticks: { ...baseScales.y.ticks, callback: (value: string | number) => formatCost(Number(value)) },
         },
       },
     }),
@@ -119,11 +105,7 @@ export function StackedBarChart({
         <p className="text-xs text-muted-foreground">{subtitle}</p>
       </div>
       <div className="h-64 md:h-96">
-        {hasData ? (
-          <Bar data={{ labels, datasets }} options={chartOptions} />
-        ) : (
-          <EmptyChart message={emptyMessage} />
-        )}
+        {hasData ? <Bar data={{ labels, datasets }} options={chartOptions} /> : <EmptyChart message={emptyMessage} />}
       </div>
     </div>
   );

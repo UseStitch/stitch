@@ -30,13 +30,7 @@ describe('paginated-query', () => {
 
       expect(capturedLimit).toBe(10);
       expect(capturedOffset).toBe(10); // (2-1) * 10
-      expect(result).toEqual({
-        items: data,
-        page: 2,
-        pageSize: 10,
-        total: 25,
-        totalPages: 3,
-      });
+      expect(result).toEqual({ items: data, page: 2, pageSize: 10, total: 25, totalPages: 3 });
     });
 
     it('handles empty result set properly', async () => {
@@ -64,13 +58,7 @@ describe('paginated-query', () => {
 
       expect(capturedLimit).toBe(10);
       expect(capturedOffset).toBe(0); // (1-1) * 10
-      expect(result).toEqual({
-        items: [],
-        page: 1,
-        pageSize: 10,
-        total: 0,
-        totalPages: 0,
-      });
+      expect(result).toEqual({ items: [], page: 1, pageSize: 10, total: 0, totalPages: 0 });
     });
 
     it('applies transform function if provided', async () => {

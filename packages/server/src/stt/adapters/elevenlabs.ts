@@ -10,8 +10,7 @@ import { createWsTransport, type WsMessageResult } from '@/stt/ws-transport.js';
 const log = Log.create({ service: 'stt.elevenlabs' });
 
 const ELEVENLABS_STT_BASE_URL = 'wss://api.elevenlabs.io/v1/speech-to-text/realtime';
-const CREDENTIALS_ERROR_REASON =
-  'Invalid transcription API credentials. Please check your settings.';
+const CREDENTIALS_ERROR_REASON = 'Invalid transcription API credentials. Please check your settings.';
 const QUOTA_ERROR_REASON = 'Transcription quota exceeded. Please check your billing.';
 const TERMS_ERROR_REASON = 'ElevenLabs transcription terms must be accepted before recording.';
 const SESSION_LIMIT_REASON = 'ElevenLabs transcription session reached its time limit.';
@@ -83,8 +82,7 @@ function createElevenLabsMessageParser(sessionStartMs: number, includeTimestamps
           endMs: Math.round(w.end * 1000),
         }));
         // Use the first word's start time as the authoritative offset
-        const offsetMs =
-          parsedWords.length > 0 ? parsedWords[0].startMs : Date.now() - sessionStartMs;
+        const offsetMs = parsedWords.length > 0 ? parsedWords[0].startMs : Date.now() - sessionStartMs;
         const transcript: TranscriptEvent = {
           id: getSegmentId(true),
           kind: 'final',
@@ -138,10 +136,7 @@ function buildElevenLabsUrl(config: STTConnectionConfig): string {
 }
 
 function buildKeytermsConfig(keyterms: string[]): string {
-  return JSON.stringify({
-    message_type: 'configure',
-    keyterms,
-  });
+  return JSON.stringify({ message_type: 'configure', keyterms });
 }
 
 function classifyElevenLabsError(err: Error): STTErrorClassification {
@@ -177,19 +172,14 @@ function createElevenLabsTransport(config: STTConnectionConfig) {
   return createWsTransport(
     {
       url: buildElevenLabsUrl(config),
-      headers: {
-        'xi-api-key': config.auth.kind === 'apiKey' ? config.auth.key : '',
-      },
+      headers: { 'xi-api-key': config.auth.kind === 'apiKey' ? config.auth.key : '' },
       onReady: () => {
         if (config.keyterms && config.keyterms.length > 0) {
           return [buildKeytermsConfig(config.keyterms)];
         }
         return [];
       },
-      parseMessage: createElevenLabsMessageParser(
-        config.captureStartMs,
-        shouldIncludeTimestamps(config),
-      ),
+      parseMessage: createElevenLabsMessageParser(config.captureStartMs, shouldIncludeTimestamps(config)),
       label: 'ElevenLabs',
       pingIntervalMs: config.reconnect.pingIntervalMs,
       pongTimeoutMs: config.reconnect.pongTimeoutMs,

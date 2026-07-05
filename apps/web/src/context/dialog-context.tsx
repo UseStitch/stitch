@@ -15,13 +15,7 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <DialogContext.Provider
-      value={{
-        commandPaletteOpen,
-        setCommandPaletteOpen,
-        renameSessionOpen,
-        setRenameSessionOpen,
-      }}
-    >
+      value={{ commandPaletteOpen, setCommandPaletteOpen, renameSessionOpen, setRenameSessionOpen }}>
       {children}
     </DialogContext.Provider>
   );

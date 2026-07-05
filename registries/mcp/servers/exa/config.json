@@ -10,16 +10,7 @@
     "name": "Exa",
     "transport": "http",
     "url": "https://mcp.exa.ai/mcp",
-    "authConfig": {
-      "type": "none"
-    },
-    "optionalAuthConfigs": [
-      {
-        "type": "headers",
-        "headers": {
-          "x-api-key": "YOUR_EXA_API_KEY"
-        }
-      }
-    ]
+    "authConfig": { "type": "none" },
+    "optionalAuthConfigs": [{ "type": "headers", "headers": { "x-api-key": "YOUR_EXA_API_KEY" } }]
   }
 }

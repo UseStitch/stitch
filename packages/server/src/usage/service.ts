@@ -28,15 +28,9 @@ type GetUsageDashboardInput = {
   to?: number;
 };
 
-type TimeWindow = {
-  from: number;
-  to: number;
-};
+type TimeWindow = { from: number; to: number };
 
-type BucketRange = {
-  start: number;
-  end: number;
-};
+type BucketRange = { start: number; end: number };
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -54,10 +48,7 @@ function cloneEmptyTokenMetrics(): UsageTokenMetrics {
   return { ...EMPTY_TOKEN_METRICS };
 }
 
-function addTokenMetrics(
-  target: UsageTokenMetrics,
-  usage: LanguageModelUsage | null | undefined,
-): void {
+function addTokenMetrics(target: UsageTokenMetrics, usage: LanguageModelUsage | null | undefined): void {
   if (!usage) return;
 
   const metrics = normalizeUsage(usage);
@@ -180,36 +171,20 @@ function inferGranularity(window: TimeWindow): UsageBucketGranularity {
 
 function formatBucketLabel(range: BucketRange, granularity: UsageBucketGranularity): string {
   if (granularity === 'hour') {
-    return new Date(range.start).toLocaleString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-    });
+    return new Date(range.start).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric' });
   }
 
   if (granularity === 'day') {
-    return new Date(range.start).toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-    });
+    return new Date(range.start).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
   if (granularity === 'week') {
-    const start = new Date(range.start).toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-    });
-    const end = new Date(range.end - 1).toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-    });
+    const start = new Date(range.start).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const end = new Date(range.end - 1).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     return `${start} - ${end}`;
   }
 
-  return new Date(range.start).toLocaleDateString(undefined, {
-    month: 'short',
-    year: 'numeric',
-  });
+  return new Date(range.start).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
 }
 
 function buildBucketRanges(window: TimeWindow, granularity: UsageBucketGranularity): BucketRange[] {
@@ -282,10 +257,7 @@ async function resolveWindow(input: GetUsageDashboardInput): Promise<TimeWindow>
   return { from, to };
 }
 
-function normalizeEventSource(
-  source: string,
-  sessionType: 'chat' | 'automation' | null,
-): UsageSource | null {
+function normalizeEventSource(source: string, sessionType: 'chat' | 'automation' | null): UsageSource | null {
   if (source === 'title_generation') {
     return 'title_generation';
   }
@@ -309,9 +281,7 @@ function normalizeEventSource(
   return 'chat';
 }
 
-export async function getUsageDashboard(
-  input: GetUsageDashboardInput,
-): Promise<ServiceResult<UsageDashboardResponse>> {
+export async function getUsageDashboard(input: GetUsageDashboardInput): Promise<ServiceResult<UsageDashboardResponse>> {
   const db = getDb();
   const window = await resolveWindow(input);
   const granularity = inferGranularity(window);
@@ -397,17 +367,10 @@ export async function getUsageDashboard(
     const source = normalizeEventSource(row.source, row.sessionType ?? null);
     if (!source) continue;
 
-    addUsageRow({
-      createdAt: row.createdAt,
-      source,
-      usage: row.usage,
-      costUsd: row.costUsd,
-    });
+    addUsageRow({ createdAt: row.createdAt, source, usage: row.usage, costUsd: row.costUsd });
   }
 
-  const sourceOrder = new Map<string, number>(
-    USAGE_SOURCES.map((source, index) => [source, index]),
-  );
+  const sourceOrder = new Map<string, number>(USAGE_SOURCES.map((source, index) => [source, index]));
   const sources = Array.from(sourceSet).sort((a, b) => {
     const aIndex = sourceOrder.get(a) ?? Number.MAX_SAFE_INTEGER;
     const bIndex = sourceOrder.get(b) ?? Number.MAX_SAFE_INTEGER;
@@ -422,33 +385,17 @@ export async function getUsageDashboard(
   const totalCostUsd = Object.values(totalsByCostSource).reduce((sum, cost) => sum + cost, 0);
 
   return ok({
-    range: {
-      from: window.from,
-      to: window.to,
-      granularity,
-      bucketCount: buckets.length,
-    },
-    filters: {
-      providerId: input.providerId ?? null,
-      modelId: input.modelId ?? null,
-    },
+    range: { from: window.from, to: window.to, granularity, bucketCount: buckets.length },
+    filters: { providerId: input.providerId ?? null, modelId: input.modelId ?? null },
     usedProviders: Array.from(usedProviderIds).sort((a, b) => a.localeCompare(b)),
     usedModels: Array.from(usedModelKeys)
       .map((key) => {
         const separator = key.indexOf('::');
-        return {
-          providerId: key.slice(0, separator),
-          modelId: key.slice(separator + 2),
-        };
+        return { providerId: key.slice(0, separator), modelId: key.slice(separator + 2) };
       })
-      .sort(
-        (a, b) => a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId),
-      ),
+      .sort((a, b) => a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId)),
     sources,
-    totals: {
-      costUsd: totalCostUsd,
-      tokenMetrics: totalTokenMetrics,
-    },
+    totals: { costUsd: totalCostUsd, tokenMetrics: totalTokenMetrics },
     buckets,
   });
 }
@@ -478,10 +425,7 @@ export async function getSttUsageDashboard(
   const usedProviderIds = new Set<string>();
   const usedModelKeys = new Set<string>();
 
-  const conditions = [
-    gte(sttUsageEvents.startedAt, window.from),
-    lt(sttUsageEvents.startedAt, window.to),
-  ];
+  const conditions = [gte(sttUsageEvents.startedAt, window.from), lt(sttUsageEvents.startedAt, window.to)];
   if (input.providerId) {
     conditions.push(eq(sttUsageEvents.providerId, input.providerId));
   }
@@ -527,33 +471,17 @@ export async function getSttUsageDashboard(
   const services = Array.from(serviceSet).sort((a, b) => a.localeCompare(b));
 
   return ok({
-    range: {
-      from: window.from,
-      to: window.to,
-      granularity,
-      bucketCount: buckets.length,
-    },
-    filters: {
-      providerId: input.providerId ?? null,
-      modelId: input.modelId ?? null,
-    },
+    range: { from: window.from, to: window.to, granularity, bucketCount: buckets.length },
+    filters: { providerId: input.providerId ?? null, modelId: input.modelId ?? null },
     usedProviders: Array.from(usedProviderIds).sort((a, b) => a.localeCompare(b)),
     usedModels: Array.from(usedModelKeys)
       .map((key) => {
         const separator = key.indexOf('::');
-        return {
-          providerId: key.slice(0, separator),
-          modelId: key.slice(separator + 2),
-        };
+        return { providerId: key.slice(0, separator), modelId: key.slice(separator + 2) };
       })
-      .sort(
-        (a, b) => a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId),
-      ),
+      .sort((a, b) => a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId)),
     services,
-    totals: {
-      costUsd: totalCostUsd,
-      durationMs: totalDurationMs,
-    },
+    totals: { costUsd: totalCostUsd, durationMs: totalDurationMs },
     buckets,
   });
 }
@@ -582,10 +510,7 @@ export async function getEmbeddingUsageDashboard(
   const usedProviderIds = new Set<string>();
   const usedModelKeys = new Set<string>();
 
-  const conditions = [
-    gte(embeddingUsageEvents.createdAt, window.from),
-    lt(embeddingUsageEvents.createdAt, window.to),
-  ];
+  const conditions = [gte(embeddingUsageEvents.createdAt, window.from), lt(embeddingUsageEvents.createdAt, window.to)];
   if (input.providerId) {
     conditions.push(eq(embeddingUsageEvents.providerId, input.providerId));
   }
@@ -627,38 +552,18 @@ export async function getEmbeddingUsageDashboard(
   }
 
   return ok({
-    range: {
-      from: window.from,
-      to: window.to,
-      granularity,
-      bucketCount: buckets.length,
-    },
-    filters: {
-      providerId: input.providerId ?? null,
-      modelId: input.modelId ?? null,
-    },
+    range: { from: window.from, to: window.to, granularity, bucketCount: buckets.length },
+    filters: { providerId: input.providerId ?? null, modelId: input.modelId ?? null },
     usedProviders: Array.from(usedProviderIds).sort((a, b) => a.localeCompare(b)),
     usedModels: Array.from(usedModelKeys)
       .map((key) => {
         const separator = key.indexOf('::');
-        return {
-          providerId: key.slice(0, separator),
-          modelId: key.slice(separator + 2),
-        };
+        return { providerId: key.slice(0, separator), modelId: key.slice(separator + 2) };
       })
-      .sort(
-        (a, b) => a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId),
-      ),
-    totals: {
-      costUsd: totalCostUsd,
-      totalTokens,
-    },
+      .sort((a, b) => a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId)),
+    totals: { costUsd: totalCostUsd, totalTokens },
     buckets,
   });
 }
 
-export const usageServiceInternals = {
-  inferGranularity,
-  buildBucketRanges,
-  floorToGranularity,
-};
+export const usageServiceInternals = { inferGranularity, buildBucketRanges, floorToGranularity };

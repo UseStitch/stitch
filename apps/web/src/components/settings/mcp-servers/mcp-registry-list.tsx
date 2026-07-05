@@ -1,10 +1,4 @@
-import {
-  ArrowDownToLineIcon,
-  ExternalLinkIcon,
-  PlusIcon,
-  RefreshCwIcon,
-  SearchIcon,
-} from 'lucide-react';
+import { ArrowDownToLineIcon, ExternalLinkIcon, PlusIcon, RefreshCwIcon, SearchIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -35,9 +29,7 @@ export function McpRegistryList({
     const query = search.trim().toLowerCase();
     if (!query) return registryServers;
     return registryServers.filter((server) => {
-      const haystack = [server.name, server.description, server.tags.join(' '), server.id]
-        .join(' ')
-        .toLowerCase();
+      const haystack = [server.name, server.description, server.tags.join(' '), server.id].join(' ').toLowerCase();
       return haystack.includes(query);
     });
   }, [registryServers, search]);
@@ -71,11 +63,8 @@ export function McpRegistryList({
             variant="ghost"
             onClick={() => void handleRefresh()}
             aria-label="Refresh MCP registry"
-            disabled={refreshRegistry.isPending}
-          >
-            <RefreshCwIcon
-              className={`size-4 ${refreshRegistry.isPending ? 'animate-spin' : ''}`}
-            />
+            disabled={refreshRegistry.isPending}>
+            <RefreshCwIcon className={`size-4 ${refreshRegistry.isPending ? 'animate-spin' : ''}`} />
           </Button>
         </SettingsIconButtonTooltip>
         <Button size="sm" variant="outline" onClick={onAddCustom}>
@@ -92,8 +81,7 @@ export function McpRegistryList({
         {filteredServers.map((server) => (
           <div
             key={server.id}
-            className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/20"
-          >
+            className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/20">
             <div className="flex min-w-0 items-start gap-3">
               <McpServerLogo registryId={server.id} name={server.name} className="mt-0.5 size-5" />
               <div className="min-w-0 space-y-0.5">
@@ -103,8 +91,7 @@ export function McpRegistryList({
                     <Badge
                       key={tag}
                       variant="outline"
-                      className="border-border/40 bg-background/60 text-[11px] text-muted-foreground capitalize"
-                    >
+                      className="border-border/40 bg-background/60 text-[11px] text-muted-foreground capitalize">
                       {tag}
                     </Badge>
                   ))}
@@ -120,17 +107,12 @@ export function McpRegistryList({
                   variant="outline"
                   className="text-foreground"
                   onClick={() => window.open(server.docsUrl, '_blank', 'noopener,noreferrer')}
-                  aria-label={`Open Docs`}
-                >
+                  aria-label={`Open Docs`}>
                   <ExternalLinkIcon className="size-3.5" />
                 </Button>
               </SettingsIconButtonTooltip>
               <SettingsIconButtonTooltip label={`Install Server`}>
-                <Button
-                  size="icon-sm"
-                  onClick={() => onInstall(server)}
-                  aria-label={`Install Server`}
-                >
+                <Button size="icon-sm" onClick={() => onInstall(server)} aria-label={`Install Server`}>
                   <ArrowDownToLineIcon className="size-3.5" />
                 </Button>
               </SettingsIconButtonTooltip>

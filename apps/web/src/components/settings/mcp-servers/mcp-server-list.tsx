@@ -26,13 +26,7 @@ const AUTH_STATUS_BADGE: Record<McpAuthStatus, { dotClass: string; label: string
   error: { dotClass: 'bg-destructive', label: 'Error' },
 };
 
-export function McpServerList({
-  onAdd,
-  onPreview,
-}: {
-  onAdd: () => void;
-  onPreview: (server: McpServer) => void;
-}) {
+export function McpServerList({ onAdd, onPreview }: { onAdd: () => void; onPreview: (server: McpServer) => void }) {
   const { data: servers } = useSuspenseQuery(mcpServersQueryOptions);
   const deleteServer = useDeleteMcpServer();
   const refreshServers = useRefreshMcpServers();
@@ -44,9 +38,7 @@ export function McpServerList({
       await deleteServer.mutateAsync(server.id);
       toast.success(`${server.name} removed`, { id: 'mcp-server-delete' });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to remove MCP server', {
-        id: 'mcp-server-delete',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to remove MCP server', { id: 'mcp-server-delete' });
     }
   };
 
@@ -65,9 +57,7 @@ export function McpServerList({
     try {
       await startAuth.mutateAsync(server.id);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to start authorization', {
-        id: 'mcp-server-auth',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to start authorization', { id: 'mcp-server-auth' });
     }
   };
 
@@ -76,9 +66,7 @@ export function McpServerList({
       await logout.mutateAsync(server.id);
       toast.success(`${server.name} disconnected`, { id: 'mcp-server-logout' });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to disconnect', {
-        id: 'mcp-server-logout',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to disconnect', { id: 'mcp-server-logout' });
     }
   };
 
@@ -92,8 +80,7 @@ export function McpServerList({
             variant="ghost"
             onClick={() => void handleRefresh()}
             aria-label="Refresh MCP servers"
-            disabled={refreshServers.isPending}
-          >
+            disabled={refreshServers.isPending}>
             <RefreshCwIcon className={`size-4 ${refreshServers.isPending ? 'animate-spin' : ''}`} />
           </Button>
         </SettingsIconButtonTooltip>
@@ -104,9 +91,7 @@ export function McpServerList({
       </div>
 
       <div className="overflow-hidden rounded-lg border border-border/60">
-        {servers.length === 0 && (
-          <p className="px-4 py-5 text-sm text-muted-foreground">No MCP servers configured.</p>
-        )}
+        {servers.length === 0 && <p className="px-4 py-5 text-sm text-muted-foreground">No MCP servers configured.</p>}
 
         {servers.map((server) => {
           const badge = AUTH_STATUS_BADGE[server.authStatus];
@@ -115,8 +100,7 @@ export function McpServerList({
           return (
             <div
               key={server.id}
-              className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 last:border-b-0"
-            >
+              className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 last:border-b-0">
               <div className="flex min-w-0 flex-col gap-0.5">
                 <div className="flex items-center gap-2">
                   <McpServerLogo serverId={server.id} name={server.name} className="size-4" />
@@ -140,8 +124,7 @@ export function McpServerList({
                         className="text-foreground"
                         onClick={() => void handleLogout(server)}
                         disabled={logout.isPending}
-                        aria-label={`Disconnect ${server.name}`}
-                      >
+                        aria-label={`Disconnect ${server.name}`}>
                         <LogOutIcon className="size-3.5" />
                       </Button>
                     </SettingsIconButtonTooltip>
@@ -153,8 +136,7 @@ export function McpServerList({
                         className="text-foreground"
                         onClick={() => void handleAuth(server)}
                         disabled={startAuth.isPending}
-                        aria-label={`Authenticate ${server.name}`}
-                      >
+                        aria-label={`Authenticate ${server.name}`}>
                         <KeyIcon className="size-3.5" />
                       </Button>
                     </SettingsIconButtonTooltip>
@@ -165,8 +147,7 @@ export function McpServerList({
                     variant="outline"
                     className="text-foreground"
                     onClick={() => onPreview(server)}
-                    aria-label={`Preview tools`}
-                  >
+                    aria-label={`Preview tools`}>
                     <EyeIcon className="size-3.5" />
                   </Button>
                 </SettingsIconButtonTooltip>
@@ -176,8 +157,7 @@ export function McpServerList({
                     variant="destructive"
                     onClick={() => void handleDelete(server)}
                     disabled={deleteServer.isPending}
-                    aria-label={`Delete Server`}
-                  >
+                    aria-label={`Delete Server`}>
                     <Trash2Icon className="size-3.5" />
                   </Button>
                 </SettingsIconButtonTooltip>

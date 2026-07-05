@@ -51,10 +51,7 @@ export function delay(attempt: number, headers?: Record<string, string>): number
     return cap(RETRY_INITIAL_DELAY * Math.pow(RETRY_BACKOFF_FACTOR, attempt - 1));
   }
 
-  return Math.min(
-    RETRY_INITIAL_DELAY * Math.pow(RETRY_BACKOFF_FACTOR, attempt - 1),
-    RETRY_MAX_DELAY_NO_HEADERS,
-  );
+  return Math.min(RETRY_INITIAL_DELAY * Math.pow(RETRY_BACKOFF_FACTOR, attempt - 1), RETRY_MAX_DELAY_NO_HEADERS);
 }
 
 export function extractErrorInfo(error: unknown, providerId?: string): ErrorInfo {

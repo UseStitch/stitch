@@ -15,9 +15,7 @@ export function unregisterSseConnection(stream: SSEStreamingApi): void {
 
 function broadcast<K extends SseEventName>(event: K, data: SseEventPayloadMap[K]): void {
   const payload = JSON.stringify(data);
-  void Promise.allSettled(
-    Array.from(connections).map((stream) => stream.writeSSE({ event, data: payload })),
-  );
+  void Promise.allSettled(Array.from(connections).map((stream) => stream.writeSSE({ event, data: payload })));
 }
 
 /**
@@ -28,10 +26,7 @@ export function registerSseAdapter(): void {
   // ─── Stream Lifecycle ────────────────────────────────────────────────────
 
   internalBus.onSync('stream.started', (event) => {
-    broadcast('stream-start', {
-      sessionId: event.sessionId,
-      messageId: event.messageId,
-    });
+    broadcast('stream-start', { sessionId: event.sessionId, messageId: event.messageId });
   });
 
   internalBus.onSync('stream.failed', (event) => {
@@ -152,30 +147,19 @@ export function registerSseAdapter(): void {
   });
 
   internalBus.onSync('session.title.updated', (event) => {
-    broadcast('session-title-update', {
-      sessionId: event.sessionId,
-      title: event.title,
-    });
+    broadcast('session-title-update', { sessionId: event.sessionId, title: event.title });
   });
 
   internalBus.onSync('session.todos.updated', (event) => {
-    broadcast('session-todos-updated', {
-      sessionId: event.sessionId,
-    });
+    broadcast('session-todos-updated', { sessionId: event.sessionId });
   });
 
   internalBus.onSync('session.compaction.started', (event) => {
-    broadcast('compaction-start', {
-      sessionId: event.sessionId,
-      messageId: event.messageId,
-    });
+    broadcast('compaction-start', { sessionId: event.sessionId, messageId: event.messageId });
   });
 
   internalBus.onSync('session.compaction.completed', (event) => {
-    broadcast('compaction-complete', {
-      sessionId: event.sessionId,
-      summaryMessageId: event.summaryMessageId,
-    });
+    broadcast('compaction-complete', { sessionId: event.sessionId, summaryMessageId: event.summaryMessageId });
   });
 
   // ─── Questions ────────────────────────────────────────────────────────────
@@ -185,26 +169,17 @@ export function registerSseAdapter(): void {
   });
 
   internalBus.onSync('question.replied', (event) => {
-    broadcast('question-replied', {
-      questionId: event.questionId,
-      sessionId: event.sessionId,
-      answers: event.answers,
-    });
+    broadcast('question-replied', { questionId: event.questionId, sessionId: event.sessionId, answers: event.answers });
   });
 
   internalBus.onSync('question.rejected', (event) => {
-    broadcast('question-rejected', {
-      questionId: event.questionId,
-      sessionId: event.sessionId,
-    });
+    broadcast('question-rejected', { questionId: event.questionId, sessionId: event.sessionId });
   });
 
   // ─── Permissions ──────────────────────────────────────────────────────────
 
   internalBus.onSync('permission.requested', (event) => {
-    broadcast('permission-response-requested', {
-      permissionResponse: event.permissionResponse,
-    });
+    broadcast('permission-response-requested', { permissionResponse: event.permissionResponse });
   });
 
   internalBus.onSync('permission.resolved', (event) => {
@@ -225,10 +200,7 @@ export function registerSseAdapter(): void {
   });
 
   internalBus.onSync('mcp.auth.status_changed', (event) => {
-    broadcast('mcp-auth-status-changed', {
-      serverId: event.serverId,
-      authStatus: event.authStatus,
-    });
+    broadcast('mcp-auth-status-changed', { serverId: event.serverId, authStatus: event.authStatus });
   });
 
   // ─── Recordings ─────────────────────────────────────────────────────────────
@@ -242,10 +214,7 @@ export function registerSseAdapter(): void {
   });
 
   internalBus.onSync('recording.unrecoverable', (event) => {
-    broadcast('recording-unrecoverable', {
-      recordingId: event.recordingId,
-      reason: event.reason,
-    });
+    broadcast('recording-unrecoverable', { recordingId: event.recordingId, reason: event.reason });
   });
 
   internalBus.onSync('recording.analysis.updated', (event) => {

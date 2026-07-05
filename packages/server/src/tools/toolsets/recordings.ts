@@ -22,26 +22,16 @@ function createRecordingsTools(_context: ToolContext): Record<string, Tool> {
     description: `Get recording analysis for one recording ID.
 
 Returns status, file path, and Markdown meeting notes.`,
-    inputSchema: z.object({
-      recordingId: z.string().describe('Recording ID (e.g. rec_abc123).'),
-    }),
+    inputSchema: z.object({ recordingId: z.string().describe('Recording ID (e.g. rec_abc123).') }),
     execute: async (input) => {
       const result = await getRecordingAnalysis(input.recordingId as PrefixedString<'rec'>);
 
       if (result.error) {
-        return {
-          recordingId: input.recordingId,
-          found: false,
-          message: result.error.message,
-        };
+        return { recordingId: input.recordingId, found: false, message: result.error.message };
       }
 
       if (!result.data.analysis) {
-        return {
-          recordingId: input.recordingId,
-          found: false,
-          message: 'No analysis found for this recording.',
-        };
+        return { recordingId: input.recordingId, found: false, message: 'No analysis found for this recording.' };
       }
 
       const analysis = result.data.analysis;
@@ -60,11 +50,8 @@ Returns status, file path, and Markdown meeting notes.`,
   });
 
   const recordings_get_transcript = tool({
-    description:
-      'Get recording transcript for one recording ID. Returns the file path and transcript entries.',
-    inputSchema: z.object({
-      recordingId: z.string().describe('Recording ID (e.g. rec_abc123).'),
-    }),
+    description: 'Get recording transcript for one recording ID. Returns the file path and transcript entries.',
+    inputSchema: z.object({ recordingId: z.string().describe('Recording ID (e.g. rec_abc123).') }),
     execute: async (input) => {
       const recordingId = input.recordingId as PrefixedString<'rec'>;
       const transcript = await readRecordingTranscript(recordingId);
@@ -96,11 +83,7 @@ Use this when analysis is missing or stale.`,
       });
 
       if (result.error) {
-        return {
-          recordingId: input.recordingId,
-          ok: false,
-          message: result.error.message,
-        };
+        return { recordingId: input.recordingId, ok: false, message: result.error.message };
       }
 
       return {
@@ -112,11 +95,7 @@ Use this when analysis is missing or stale.`,
     },
   });
 
-  return {
-    recordings_get_analysis,
-    recordings_get_transcript,
-    recordings_start_analysis,
-  };
+  return { recordings_get_analysis, recordings_get_transcript, recordings_start_analysis };
 }
 
 export function createRecordingsToolset(): Toolset {

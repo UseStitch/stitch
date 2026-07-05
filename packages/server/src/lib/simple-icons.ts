@@ -18,11 +18,11 @@ export async function getSimpleIcon(slug: string): Promise<ServiceResult<string>
   const cached = await readCachedText(filePath);
   if (cached) return ok(cached);
 
-  const result = await fetch(`${SIMPLE_ICONS_CDN}/${slug}`, {
-    signal: AbortSignal.timeout(10_000),
-  }).catch((error: unknown) => {
-    log.warn({ error, slug }, 'failed to fetch simple icon');
-  });
+  const result = await fetch(`${SIMPLE_ICONS_CDN}/${slug}`, { signal: AbortSignal.timeout(10_000) }).catch(
+    (error: unknown) => {
+      log.warn({ error, slug }, 'failed to fetch simple icon');
+    },
+  );
 
   if (!result || !result.ok) return err('Icon not found', 404);
 

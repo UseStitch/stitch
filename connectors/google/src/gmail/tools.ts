@@ -47,17 +47,13 @@ const gmailSendSchema = z.object({
   from: z
     .string()
     .optional()
-    .describe(
-      'Sender address — use when the account has multiple aliases and you need to send from a specific one',
-    ),
+    .describe('Sender address — use when the account has multiple aliases and you need to send from a specific one'),
   cc: z.string().optional().describe('CC recipient(s)'),
   bcc: z.string().optional().describe('BCC recipient(s)'),
   inReplyTo: z
     .string()
     .optional()
-    .describe(
-      'Message-ID header of the message being replied to — read the original message first to get this value',
-    ),
+    .describe('Message-ID header of the message being replied to — read the original message first to get this value'),
   threadId: z.string().optional().describe('Gmail thread ID to reply within'),
 });
 
@@ -101,10 +97,7 @@ const gmailModifyLabelsSchema = z.discriminatedUnion('operation', [
     operation: z.literal('update'),
     labelId: z.string().describe('Label ID to update'),
     name: z.string().optional().describe('Updated label name'),
-    messageListVisibility: z
-      .enum(['show', 'hide'])
-      .optional()
-      .describe('Updated message list visibility'),
+    messageListVisibility: z.enum(['show', 'hide']).optional().describe('Updated message list visibility'),
     labelListVisibility: z
       .enum(['labelShow', 'labelShowIfUnread', 'labelHide'])
       .optional()
@@ -130,10 +123,7 @@ const gmailModifyMessagesSchema = z
       .array(z.string())
       .min(1)
       .describe('Message IDs by default. If modifyThreads=true, provide thread IDs instead.'),
-    addLabelIds: z
-      .array(z.string())
-      .optional()
-      .describe('Label IDs to add (for example: ["UNREAD", "Label_123"])'),
+    addLabelIds: z.array(z.string()).optional().describe('Label IDs to add (for example: ["UNREAD", "Label_123"])'),
     removeLabelIds: z.array(z.string()).optional().describe('Label IDs to remove'),
     modifyThreads: z
       .boolean()
@@ -141,13 +131,10 @@ const gmailModifyMessagesSchema = z
       .default(false)
       .describe('Set true to apply label changes to a thread instead of a single message'),
   })
-  .refine(
-    (value) => (value.addLabelIds?.length ?? 0) > 0 || (value.removeLabelIds?.length ?? 0) > 0,
-    {
-      message: 'Provide at least one label in addLabelIds or removeLabelIds',
-      path: ['addLabelIds'],
-    },
-  );
+  .refine((value) => (value.addLabelIds?.length ?? 0) > 0 || (value.removeLabelIds?.length ?? 0) > 0, {
+    message: 'Provide at least one label in addLabelIds or removeLabelIds',
+    path: ['addLabelIds'],
+  });
 
 const gmailFiltersSchema = z.discriminatedUnion('operation', [
   z.object({
@@ -174,10 +161,7 @@ const gmailFiltersSchema = z.discriminatedUnion('operation', [
     criteria: z
       .object({
         from: z.string().optional().describe("Filter messages from this sender's email or name"),
-        to: z
-          .string()
-          .optional()
-          .describe("Filter messages to this recipient's email or name (includes cc/bcc)"),
+        to: z.string().optional().describe("Filter messages to this recipient's email or name (includes cc/bcc)"),
         subject: z
           .string()
           .optional()
@@ -186,10 +170,7 @@ const gmailFiltersSchema = z.discriminatedUnion('operation', [
           .string()
           .optional()
           .describe('Filter using Gmail advanced search syntax (e.g. "is:unread has:attachment")'),
-        negatedQuery: z
-          .string()
-          .optional()
-          .describe('Exclude messages matching this Gmail search query'),
+        negatedQuery: z.string().optional().describe('Exclude messages matching this Gmail search query'),
         hasAttachment: z.boolean().optional().describe('Only match messages with attachments'),
         excludeChats: z.boolean().optional().describe('Exclude chat messages from matching'),
         size: z.number().int().optional().describe('Message size threshold in bytes'),
@@ -214,10 +195,7 @@ const gmailFiltersSchema = z.discriminatedUnion('operation', [
           .describe(
             'Label IDs to remove. Common: INBOX (archive/skip inbox), UNREAD (mark read), SPAM (never spam), IMPORTANT (never mark important).',
           ),
-        forward: z
-          .string()
-          .optional()
-          .describe('Forward matching messages to this verified email address'),
+        forward: z.string().optional().describe('Forward matching messages to this verified email address'),
       })
       .optional()
       .describe('Actions to apply to messages that match the criteria'),
@@ -233,9 +211,7 @@ const gmailFiltersSchema = z.discriminatedUnion('operation', [
 ]);
 
 export function createGmailTools(
-  resolveClient: (
-    account?: string,
-  ) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
+  resolveClient: (account?: string) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
   permissions: { canSend: boolean; canModify: boolean; canManageFilters: boolean },
   config?: { tempPath?: string },
 ): Record<string, Tool> {
@@ -304,8 +280,7 @@ export function createGmailTools(
 
   if (canSend) {
     tools['gmail_send'] = tool({
-      description:
-        'Send an email via Gmail. Can also reply to an existing thread by providing inReplyTo and threadId.',
+      description: 'Send an email via Gmail. Can also reply to an existing thread by providing inReplyTo and threadId.',
       inputSchema: gmailSendSchema,
       execute: async (input: z.infer<typeof gmailSendSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);
@@ -369,10 +344,7 @@ export function createGmailTools(
         }
 
         if (input.operation === 'create') {
-          const result = await GmailApi.createFilter(client, {
-            criteria: input.criteria,
-            action: input.action,
-          });
+          const result = await GmailApi.createFilter(client, { criteria: input.criteria, action: input.action });
           return { ...result, usedAccount };
         }
 

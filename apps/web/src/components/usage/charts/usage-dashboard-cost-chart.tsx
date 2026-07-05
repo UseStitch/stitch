@@ -3,11 +3,7 @@ import * as React from 'react';
 import type { UsageDashboardResponse } from '@stitch/shared/usage/types';
 
 import { StackedBarChart } from '@/components/usage/charts/stacked-bar-chart';
-import {
-  getStackSegmentRadius,
-  hashString,
-  resolveCssVar,
-} from '@/components/usage/charts/usage-chart-utils';
+import { getStackSegmentRadius, hashString, resolveCssVar } from '@/components/usage/charts/usage-chart-utils';
 import { getSourceLabel, useSourceOrder } from '@/components/usage/utils/usage-dashboard-utils';
 
 const FALLBACK_COLORS = ['#f97316', '#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#14b8a6'];
@@ -27,9 +23,7 @@ function getSourceColor(source: string): string {
   return FALLBACK_COLORS[hashString(source) % FALLBACK_COLORS.length] ?? '#6b7280';
 }
 
-type UsageDashboardCostChartProps = {
-  usageData: UsageDashboardResponse | undefined;
-};
+type UsageDashboardCostChartProps = { usageData: UsageDashboardResponse | undefined };
 
 export function UsageDashboardCostChart({ usageData }: UsageDashboardCostChartProps) {
   const sources = useSourceOrder(usageData?.sources ?? []);
@@ -41,8 +35,7 @@ export function UsageDashboardCostChart({ usageData }: UsageDashboardCostChartPr
         label: getSourceLabel(source),
         data: usageData?.buckets.map((b) => b.costUsdBySource[source] ?? 0) ?? [],
         backgroundColor: getSourceColor(source),
-        borderRadius: (ctx: import('chart.js').ScriptableContext<'bar'>) =>
-          getStackSegmentRadius(ctx),
+        borderRadius: (ctx: import('chart.js').ScriptableContext<'bar'>) => getStackSegmentRadius(ctx),
         borderSkipped: false as const,
         inflateAmount: 0,
       })),

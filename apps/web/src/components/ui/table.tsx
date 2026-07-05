@@ -5,9 +5,7 @@ import { formatUsdCost } from '@/lib/format-cost';
 import { cn } from '@/lib/utils';
 import type { VariantProps } from 'class-variance-authority';
 
-type TableContainerProps = React.HTMLAttributes<HTMLDivElement> & {
-  bordered?: boolean;
-};
+type TableContainerProps = React.HTMLAttributes<HTMLDivElement> & { bordered?: boolean };
 
 type TableTimeFormat = 'date' | 'dateTime' | 'shortDate' | 'time';
 
@@ -25,24 +23,14 @@ function formatTableTime(value: number | string | Date, format: TableTimeFormat)
   }
 
   if (format === 'shortDate') {
-    return date.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-    });
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
   if (format === 'time') {
-    return date.toLocaleTimeString(undefined, {
-      hour: 'numeric',
-      minute: '2-digit',
-    });
+    return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   }
 
-  return date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function formatTableMoney(value: number | null): string {
@@ -53,11 +41,7 @@ function formatTableMoney(value: number | null): string {
 function TableContainer({ bordered = true, className, ...props }: TableContainerProps) {
   return (
     <div
-      className={cn(
-        'overflow-hidden bg-background',
-        bordered && 'rounded-xl border border-border',
-        className,
-      )}
+      className={cn('overflow-hidden bg-background', bordered && 'rounded-xl border border-border', className)}
       {...props}
     />
   );
@@ -80,23 +64,12 @@ function TableBody({ className, ...props }: React.HTMLAttributes<HTMLTableSectio
 }
 
 function TableRow({ className, ...props }: React.HTMLAttributes<HTMLTableRowElement>) {
-  return (
-    <tr
-      className={cn('group align-middle transition-colors hover:bg-muted/40', className)}
-      {...props}
-    />
-  );
+  return <tr className={cn('group align-middle transition-colors hover:bg-muted/40', className)} {...props} />;
 }
 
 function TableHead({ className, ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <th
-      className={cn(
-        'px-4 py-2 text-xs font-medium whitespace-nowrap text-muted-foreground',
-        className,
-      )}
-      {...props}
-    />
+    <th className={cn('px-4 py-2 text-xs font-medium whitespace-nowrap text-muted-foreground', className)} {...props} />
   );
 }
 
@@ -129,17 +102,11 @@ function TableTime({
   format?: TableTimeFormat;
   className?: string;
 }) {
-  return (
-    <span className={cn('text-xs text-muted-foreground', className)}>
-      {formatTableTime(value, format)}
-    </span>
-  );
+  return <span className={cn('text-xs text-muted-foreground', className)}>{formatTableTime(value, format)}</span>;
 }
 
 function TableDuration({ className, ...props }: React.HTMLAttributes<HTMLSpanElement>) {
-  return (
-    <span className={cn('text-xs tabular-nums text-muted-foreground', className)} {...props} />
-  );
+  return <span className={cn('text-xs tabular-nums text-muted-foreground', className)} {...props} />;
 }
 
 function TableNumber({ value, className }: { value: number; className?: string }) {
@@ -147,11 +114,7 @@ function TableNumber({ value, className }: { value: number; className?: string }
 }
 
 function TableMoney({ value, className }: { value: number | null; className?: string }) {
-  return (
-    <span className={cn('text-xs tabular-nums text-muted-foreground', className)}>
-      {formatTableMoney(value)}
-    </span>
-  );
+  return <span className={cn('text-xs tabular-nums text-muted-foreground', className)}>{formatTableMoney(value)}</span>;
 }
 
 function TableStatus({ className, ...props }: React.HTMLAttributes<HTMLSpanElement>) {
@@ -167,12 +130,7 @@ function TableBadge({
 }
 
 function TableIconText({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn('flex items-center gap-1.5 text-xs text-muted-foreground', className)}
-      {...props}
-    />
-  );
+  return <div className={cn('flex items-center gap-1.5 text-xs text-muted-foreground', className)} {...props} />;
 }
 
 function TableActions({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

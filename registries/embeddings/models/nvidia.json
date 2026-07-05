@@ -13,10 +13,7 @@
       "context": 32768,
       "inputModalities": ["text"],
       "outputModalities": ["text"],
-      "cost": {
-        "input": 0,
-        "output": 0
-      }
+      "cost": { "input": 0, "output": 0 }
     }
   ]
 }

@@ -4,10 +4,7 @@ const LOAD_TIMEOUT_MS = 15_000;
 const PAGE_STABILITY_IDLE_MS = 500;
 const PAGE_STABILITY_POLL_MS = 100;
 
-export async function waitForPageStability(
-  browser: WebContents,
-  timeoutMs = LOAD_TIMEOUT_MS,
-): Promise<void> {
+export async function waitForPageStability(browser: WebContents, timeoutMs = LOAD_TIMEOUT_MS): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   await waitForLoadIdle(browser, deadline);
   await waitForDocumentReady(browser, deadline);

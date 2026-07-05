@@ -59,20 +59,14 @@ function assertSafeDynamicImports(code: string): void {
     const specifier = match[1]?.trim();
     const literal = specifier?.match(/^['"]([^'"]+)['"]$/);
     if (!literal || !ALLOWED_DYNAMIC_IMPORTS.has(literal[1])) {
-      throw new SandboxSecurityError(
-        'dynamic import is only available for node:fs and node:fs/promises',
-      );
+      throw new SandboxSecurityError('dynamic import is only available for node:fs and node:fs/promises');
     }
   }
 }
 
 function removeGlobal(name: string): void {
   try {
-    Object.defineProperty(globalThis, name, {
-      value: undefined,
-      writable: false,
-      configurable: false,
-    });
+    Object.defineProperty(globalThis, name, { value: undefined, writable: false, configurable: false });
   } catch {
     try {
       delete (globalThis as Record<string, unknown>)[name];
@@ -85,11 +79,7 @@ function removeGlobal(name: string): void {
 function removePrototypeConstructor(ctor: { prototype?: object }): void {
   if (!ctor.prototype) return;
   try {
-    Object.defineProperty(ctor.prototype, 'constructor', {
-      value: undefined,
-      writable: false,
-      configurable: false,
-    });
+    Object.defineProperty(ctor.prototype, 'constructor', { value: undefined, writable: false, configurable: false });
   } catch {
     // Ignore non-configurable built-ins.
   }
@@ -97,11 +87,7 @@ function removePrototypeConstructor(ctor: { prototype?: object }): void {
 
 export function harden(): void {
   for (const name of DANGEROUS_GLOBALS) removeGlobal(name);
-  Object.defineProperty(globalThis, 'Function', {
-    value: FUNCTION_FACADE,
-    writable: false,
-    configurable: false,
-  });
+  Object.defineProperty(globalThis, 'Function', { value: FUNCTION_FACADE, writable: false, configurable: false });
 
   for (const ctor of CONSTRUCTOR_PROPERTY_TARGETS) {
     removePrototypeConstructor(ctor);

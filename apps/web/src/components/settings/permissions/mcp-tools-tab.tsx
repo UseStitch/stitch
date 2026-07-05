@@ -15,18 +15,9 @@ type McpToolGroup = {
   tools: { toolName: string; displayName: string; iconPath?: string }[];
 };
 
-type KnownTool = {
-  toolName: string;
-  displayName: string;
-  toolType: string;
-};
+type KnownTool = { toolName: string; displayName: string; toolType: string };
 
-type McpToolMeta = {
-  serverId: string;
-  serverName: string;
-  serverIconPath?: string;
-  toolIconPath?: string;
-};
+type McpToolMeta = { serverId: string; serverName: string; serverIconPath?: string; toolIconPath?: string };
 
 export function useMcpToolsetGroups(
   knownTools: KnownTool[],
@@ -56,10 +47,7 @@ export function useMcpToolsetGroups(
     }
 
     return Array.from(groups.values())
-      .map((group) => ({
-        ...group,
-        tools: group.tools.sort((a, b) => a.displayName.localeCompare(b.displayName)),
-      }))
+      .map((group) => ({ ...group, tools: group.tools.sort((a, b) => a.displayName.localeCompare(b.displayName)) }))
       .sort((a, b) => a.serverName.localeCompare(b.serverName));
   }, [knownTools, mcpToolMetaByName]);
 }
@@ -73,9 +61,7 @@ export function filterMcpGroups(groups: McpToolGroup[], query: string): McpToolG
       if (serverMatch) return group;
 
       const matchingTools = group.tools.filter(
-        (tool) =>
-          tool.displayName.toLowerCase().includes(query) ||
-          tool.toolName.toLowerCase().includes(query),
+        (tool) => tool.displayName.toLowerCase().includes(query) || tool.toolName.toLowerCase().includes(query),
       );
 
       return { ...group, tools: matchingTools };
@@ -86,40 +72,25 @@ export function filterMcpGroups(groups: McpToolGroup[], query: string): McpToolG
 type McpToolsTabProps = {
   groups: McpToolGroup[];
   getEnabled: (scope: 'tool' | 'toolset' | 'mcp_tool', identifier: string) => boolean;
-  updateEnabled: (
-    scope: 'tool' | 'toolset' | 'mcp_tool',
-    identifier: string,
-    enabled: boolean,
-  ) => void;
+  updateEnabled: (scope: 'tool' | 'toolset' | 'mcp_tool', identifier: string, enabled: boolean) => void;
   isMutating: boolean;
   onEditTarget: (target: EditingTarget) => void;
 };
 
-export function McpToolsTab({
-  groups,
-  getEnabled,
-  updateEnabled,
-  isMutating,
-  onEditTarget,
-}: McpToolsTabProps) {
+export function McpToolsTab({ groups, getEnabled, updateEnabled, isMutating, onEditTarget }: McpToolsTabProps) {
   if (groups.length === 0) return <EmptyState />;
 
   return (
     <SectionCard
       title="MCP servers"
       description="Enable entire servers and open settings to manage server tools"
-      count={groups.length}
-    >
+      count={groups.length}>
       <div className="divide-y divide-border/40">
         {groups.map((group) => (
           <div key={group.serverId} className="flex flex-col">
             <div className="grid grid-cols-[minmax(0,1fr)_5rem_2.5rem] items-center gap-3 px-3 py-2.5 sm:px-4">
               <div className="flex min-w-0 items-center gap-2.5">
-                <McpServerLogo
-                  serverId={group.serverId}
-                  name={group.serverName}
-                  className="size-4 shrink-0"
-                />
+                <McpServerLogo serverId={group.serverId} name={group.serverName} className="size-4 shrink-0" />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{group.serverName}</p>
                   <p className="text-xs text-muted-foreground">
@@ -138,22 +109,16 @@ export function McpToolsTab({
                     displayName: group.serverName,
                     subtitle: 'MCP server',
                     perToolEnabledScope: 'mcp_tool',
-                    tools: group.tools.map((tool) => ({
-                      toolName: tool.toolName,
-                      displayName: tool.displayName,
-                    })),
+                    tools: group.tools.map((tool) => ({ toolName: tool.toolName, displayName: tool.displayName })),
                   })
-                }
-              >
+                }>
                 <Settings2Icon className="size-3.5" />
                 Settings
               </Button>
               <div className="flex w-10 justify-end">
                 <Switch
                   checked={getEnabled('toolset', `mcp:${group.serverId}`)}
-                  onCheckedChange={(checked) =>
-                    updateEnabled('toolset', `mcp:${group.serverId}`, checked)
-                  }
+                  onCheckedChange={(checked) => updateEnabled('toolset', `mcp:${group.serverId}`, checked)}
                   disabled={isMutating}
                 />
               </div>

@@ -30,10 +30,7 @@ import { sessionTodosQueryOptions } from '@/lib/queries/todos';
 import { cn } from '@/lib/utils';
 import { useStreamStore } from '@/stores/stream-store';
 
-type SessionChatPaneProps = {
-  sessionId: string;
-  onGenerateAutomation?: () => Promise<void>;
-};
+type SessionChatPaneProps = { sessionId: string; onGenerateAutomation?: () => Promise<void> };
 
 export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChatPaneProps) {
   const id = sessionId;
@@ -44,10 +41,7 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
   const { data: todos } = useSuspenseQuery(sessionTodosQueryOptions(id));
   const messages = React.useMemo(() => flattenMessages(messagesQuery.data), [messagesQuery.data]);
 
-  const lastUsedModel = React.useMemo(
-    (): ModelSpec | null => findLastUsedModel(messages),
-    [messages],
-  );
+  const lastUsedModel = React.useMemo((): ModelSpec | null => findLastUsedModel(messages), [messages]);
   const { value, setValue } = useSeededInput();
   const { selectedModel, handleModelChange } = useChatModel({ lastUsedModel });
   const sendMessage = useSendMessage();
@@ -147,15 +141,8 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
 
   return (
     <div className="h-full min-w-0 pt-4 pr-4">
-      <StickToBottom
-        className="relative h-full min-w-0 flex-1 overflow-hidden"
-        resize="smooth"
-        initial="smooth"
-      >
-        <StickToBottom.Content
-          scrollClassName="no-scrollbar"
-          className={cn('pt-2', isChildSession ? 'pb-8' : 'pb-40')}
-        >
+      <StickToBottom className="relative h-full min-w-0 flex-1 overflow-hidden" resize="smooth" initial="smooth">
+        <StickToBottom.Content scrollClassName="no-scrollbar" className={cn('pt-2', isChildSession ? 'pb-8' : 'pb-40')}>
           <div className="mx-auto max-w-4xl" style={{ viewTransitionName: 'chat-thread' }}>
             <MessageList
               messages={messages}
@@ -174,16 +161,8 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
             <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-muted via-muted/80 to-transparent pt-10 pb-5" />
             <div className="pointer-events-auto absolute inset-x-0 bottom-0 pb-5">
               <div className="mx-auto max-w-4xl">
-                <div
-                  className={cn(
-                    'streaming-border-wrapper',
-                    streamState.isStreaming && 'is-streaming',
-                  )}
-                >
-                  <div
-                    className="streaming-border-content shadow-sm"
-                    style={{ viewTransitionName: 'chat-input' }}
-                  >
+                <div className={cn('streaming-border-wrapper', streamState.isStreaming && 'is-streaming')}>
+                  <div className="streaming-border-content shadow-sm" style={{ viewTransitionName: 'chat-input' }}>
                     <DockContainer docks={docks} />
                     <div>
                       <ChatInput
@@ -196,9 +175,7 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
                         isStreaming={streamState.isStreaming}
                         selectedModel={selectedModel}
                         onModelChange={handleModelChange}
-                        placeholder={
-                          isCompacting ? 'Compacting conversation...' : 'Ask anything...'
-                        }
+                        placeholder={isCompacting ? 'Compacting conversation...' : 'Ask anything...'}
                         disabled={isCompacting || !canSend}
                         embedded
                         completionGroups={slashCommands.completionGroups}

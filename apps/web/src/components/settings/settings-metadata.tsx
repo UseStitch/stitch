@@ -140,8 +140,7 @@ export const SETTINGS_PAGES = [
     id: 'tools',
     label: 'Tools',
     title: 'Tools',
-    description:
-      'Keep only the tools you need enabled, then open settings for permission behavior.',
+    description: 'Keep only the tools you need enabled, then open settings for permission behavior.',
     to: '/settings/tools',
     section: 'AI',
     icon: WrenchIcon,
@@ -157,12 +156,9 @@ export const SETTINGS_PAGES = [
   },
 ] as const satisfies readonly SettingsPageMetadata[];
 
-export const SETTINGS_SECTIONS = [
-  'Desktop',
-  'Apps',
-  'AI',
-] as const satisfies readonly SettingsSection[];
+export const SETTINGS_SECTIONS = ['Desktop', 'Apps', 'AI'] as const satisfies readonly SettingsSection[];
 
-export const SETTINGS_PAGE_BY_ID = Object.fromEntries(
-  SETTINGS_PAGES.map((page) => [page.id, page]),
-) as Record<(typeof SETTINGS_PAGES)[number]['id'], (typeof SETTINGS_PAGES)[number]>;
+export const SETTINGS_PAGE_BY_ID = Object.fromEntries(SETTINGS_PAGES.map((page) => [page.id, page])) as Record<
+  (typeof SETTINGS_PAGES)[number]['id'],
+  (typeof SETTINGS_PAGES)[number]
+>;

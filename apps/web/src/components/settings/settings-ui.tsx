@@ -6,13 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  PageDescription,
-  PageHeader,
-  PageHeaderContent,
-  PageIcon,
-  PageTitle,
-} from '@/components/ui/page';
+import { PageDescription, PageHeader, PageHeaderContent, PageIcon, PageTitle } from '@/components/ui/page';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -88,10 +82,7 @@ export function SettingPage({ title, description, icon, actions, children }: Set
   );
 }
 
-type SettingsIconButtonTooltipProps = {
-  label: string;
-  children: React.ReactElement;
-};
+type SettingsIconButtonTooltipProps = { label: string; children: React.ReactElement };
 
 export function SettingsIconButtonTooltip({ label, children }: SettingsIconButtonTooltipProps) {
   return (
@@ -106,12 +97,7 @@ export function SettingsIconButtonTooltip({ label, children }: SettingsIconButto
 // SettingSection — labelled section with automatic mt-8 spacing
 // ---------------------------------------------------------------------------
 
-type SettingSectionProps = {
-  title?: string;
-  description?: string;
-  className?: string;
-  children: React.ReactNode;
-};
+type SettingSectionProps = { title?: string; description?: string; className?: string; children: React.ReactNode };
 
 export function SettingSection({ title, description, className, children }: SettingSectionProps) {
   return (
@@ -127,17 +113,10 @@ export function SettingSection({ title, description, className, children }: Sett
 // SettingRows — container that draws borders between its children automatically
 // ---------------------------------------------------------------------------
 
-type SettingRowsProps = {
-  className?: string;
-  children: React.ReactNode;
-};
+type SettingRowsProps = { className?: string; children: React.ReactNode };
 
 export function SettingRows({ className, children }: SettingRowsProps) {
-  return (
-    <div className={cn('*:border-b *:border-border/50 [&>*:last-child]:border-b-0', className)}>
-      {children}
-    </div>
-  );
+  return <div className={cn('*:border-b *:border-border/50 [&>*:last-child]:border-b-0', className)}>{children}</div>;
 }
 
 // ---------------------------------------------------------------------------
@@ -172,17 +151,9 @@ export function SettingRow({ label, description, htmlFor, className, children }:
 
 type SettingRowControlSize = 'sm' | 'md' | 'lg';
 
-const CONTROL_WIDTH: Record<SettingRowControlSize, string> = {
-  sm: 'w-32',
-  md: 'w-52',
-  lg: 'w-64',
-};
+const CONTROL_WIDTH: Record<SettingRowControlSize, string> = { sm: 'w-32', md: 'w-52', lg: 'w-64' };
 
-type SettingRowControlProps = {
-  size?: SettingRowControlSize;
-  className?: string;
-  children: React.ReactNode;
-};
+type SettingRowControlProps = { size?: SettingRowControlSize; className?: string; children: React.ReactNode };
 
 export function SettingRowControl({ size = 'md', className, children }: SettingRowControlProps) {
   return <div className={cn('shrink-0', CONTROL_WIDTH[size], className)}>{children}</div>;
@@ -201,18 +172,9 @@ type NumberSettingRowProps = {
   max: number;
 };
 
-export function NumberSettingRow({
-  settingKey,
-  label,
-  description,
-  currentValue,
-  min,
-  max,
-}: NumberSettingRowProps) {
+export function NumberSettingRow({ settingKey, label, description, currentValue, min, max }: NumberSettingRowProps) {
   const queryClient = useQueryClient();
-  const saveMutation = useMutation(
-    saveSettingMutationOptions(settingKey, queryClient, { silent: true }),
-  );
+  const saveMutation = useMutation(saveSettingMutationOptions(settingKey, queryClient, { silent: true }));
 
   return (
     <SettingRow label={label} description={description}>
@@ -237,17 +199,9 @@ type SwitchSettingRowProps = {
   disabled?: boolean;
 };
 
-export function SwitchSettingRow({
-  settingKey,
-  label,
-  description,
-  checked,
-  disabled,
-}: SwitchSettingRowProps) {
+export function SwitchSettingRow({ settingKey, label, description, checked, disabled }: SwitchSettingRowProps) {
   const queryClient = useQueryClient();
-  const saveMutation = useMutation(
-    saveSettingMutationOptions(settingKey, queryClient, { silent: true }),
-  );
+  const saveMutation = useMutation(saveSettingMutationOptions(settingKey, queryClient, { silent: true }));
 
   return (
     <SettingRow label={label} description={description}>
@@ -288,12 +242,9 @@ export function SliderSettingRow({
     setLocalValue(currentValue);
   }, [currentValue]);
 
-  const saveMutation = useMutation(
-    saveSettingMutationOptions(settingKey, queryClient, { silent: true }),
-  );
+  const saveMutation = useMutation(saveSettingMutationOptions(settingKey, queryClient, { silent: true }));
 
-  const formatValue = (value: number) =>
-    precision === 0 ? String(Math.round(value)) : value.toFixed(precision);
+  const formatValue = (value: number) => (precision === 0 ? String(Math.round(value)) : value.toFixed(precision));
 
   return (
     <SettingRow label={label} description={description}>

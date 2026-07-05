@@ -1,8 +1,5 @@
 import { createMeetingDetector } from '@stitch/meeting-detection';
-import type {
-  MeetingCallDetectedPayload,
-  MeetingCallEndedPayload,
-} from '@stitch/shared/recordings/meeting-ipc';
+import type { MeetingCallDetectedPayload, MeetingCallEndedPayload } from '@stitch/shared/recordings/meeting-ipc';
 
 import type { BrowserWindow } from 'electron';
 
@@ -30,10 +27,7 @@ export function startMeetingDetection(
     const webContents = getWindow()?.webContents;
 
     if (event.type === 'ended') {
-      const payload: MeetingCallEndedPayload = {
-        key: event.key,
-        endedAt: event.endedAt,
-      };
+      const payload: MeetingCallEndedPayload = { key: event.key, endedAt: event.endedAt };
       if (webContents && !webContents.isDestroyed()) {
         webContents.send('meeting:call-ended', payload);
       }

@@ -18,12 +18,7 @@ function createPermissionDedupeKey(input: ToolExecutionInput, patternTargets: st
   ]);
 }
 
-type TruncationMeta = {
-  __stitchToolResultMeta: {
-    truncated: true;
-    outputPath: string;
-  };
-};
+type TruncationMeta = { __stitchToolResultMeta: { truncated: true; outputPath: string } };
 
 function getTruncatableText(result: unknown): string {
   if (typeof result === 'string') return result;
@@ -56,10 +51,7 @@ export function resultNormalizationMiddleware(): ToolMiddleware {
   };
 }
 
-export function truncationMiddleware(options?: {
-  maxLines?: number;
-  maxBytes?: number;
-}): ToolMiddleware {
+export function truncationMiddleware(options?: { maxLines?: number; maxBytes?: number }): ToolMiddleware {
   return (next) => async (input) => {
     const execOptions = input.executeOptions as Record<string, unknown> | undefined;
     if (execOptions?.['skipTruncation'] === true) {
@@ -73,36 +65,17 @@ export function truncationMiddleware(options?: {
       return result;
     }
 
-    const meta: TruncationMeta = {
-      __stitchToolResultMeta: {
-        truncated: true,
-        outputPath: truncated.outputPath,
-      },
-    };
+    const meta: TruncationMeta = { __stitchToolResultMeta: { truncated: true, outputPath: truncated.outputPath } };
 
     if (typeof result === 'string') {
-      return {
-        output: truncated.content,
-        ...meta,
-      };
+      return { output: truncated.content, ...meta };
     }
 
-    if (
-      result !== null &&
-      typeof result === 'object' &&
-      typeof (result as { output?: unknown }).output === 'string'
-    ) {
-      return {
-        ...result,
-        output: truncated.content,
-        ...meta,
-      };
+    if (result !== null && typeof result === 'object' && typeof (result as { output?: unknown }).output === 'string') {
+      return { ...result, output: truncated.content, ...meta };
     }
 
-    return {
-      output: truncated.content,
-      ...meta,
-    };
+    return { output: truncated.content, ...meta };
   };
 }
 
@@ -114,10 +87,7 @@ export function permissionMiddleware(): ToolMiddleware {
     }
 
     const patternTargets = behavior.getPatternTargets(input.args);
-    const permission = await getPermissionDecision({
-      toolName: input.toolName,
-      patternTargets,
-    });
+    const permission = await getPermissionDecision({ toolName: input.toolName, patternTargets });
 
     if (permission === 'allow') {
       return next(input);
@@ -127,9 +97,7 @@ export function permissionMiddleware(): ToolMiddleware {
       throw new PermissionRejectedError(input.toolName);
     }
 
-    const meta = input.executeOptions as
-      | { toolCallId: string; abortSignal?: AbortSignal }
-      | undefined;
+    const meta = input.executeOptions as { toolCallId: string; abortSignal?: AbortSignal } | undefined;
     const toolCallId = meta?.toolCallId;
     if (!toolCallId) {
       log.error(

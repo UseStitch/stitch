@@ -59,11 +59,7 @@ export function registerUsageAdapter(): void {
       usage: event.usage,
       stepIndex: event.step,
       attemptIndex: event.attemptCount,
-      metadata: {
-        phase: 'chat-step',
-        eventType: 'step-success',
-        finishReason: event.finishReason,
-      },
+      metadata: { phase: 'chat-step', eventType: 'step-success', finishReason: event.finishReason },
       startedAt: event.startedAt,
       endedAt: event.startedAt + event.durationMs,
       durationMs: event.durationMs,
@@ -106,10 +102,7 @@ export function registerUsageAdapter(): void {
       source: 'doom_loop_summary',
       status: 'succeeded',
       usage: event.usage,
-      metadata: {
-        phase: 'doom-loop',
-        eventType: 'summary-after-stop',
-      },
+      metadata: { phase: 'doom-loop', eventType: 'summary-after-stop' },
     });
   });
 }

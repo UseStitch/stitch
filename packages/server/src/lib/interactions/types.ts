@@ -21,8 +21,4 @@ export type InteractionWaitOptions<TDecision> = {
   onDuplicate?: () => TDecision | Promise<TDecision>;
 };
 
-export type AbortSessionOptions = {
-  sessionId: PrefixedString<'ses'>;
-  kind?: InteractionKind;
-  error?: Error;
-};
+export type AbortSessionOptions = { sessionId: PrefixedString<'ses'>; kind?: InteractionKind; error?: Error };

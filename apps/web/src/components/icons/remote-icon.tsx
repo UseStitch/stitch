@@ -11,9 +11,7 @@ function useResolvedImageUrl(url: string | null): string | null {
     if (!url) return null;
     return resolvedImageCache.get(url) === true ? url : null;
   });
-  const [failed, setFailed] = React.useState(() =>
-    url ? resolvedImageCache.get(url) === false : false,
-  );
+  const [failed, setFailed] = React.useState(() => (url ? resolvedImageCache.get(url) === false : false));
 
   React.useEffect(() => {
     if (!url) {

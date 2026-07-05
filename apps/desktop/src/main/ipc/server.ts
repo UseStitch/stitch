@@ -1,20 +1,13 @@
 import type { ServerConfigPayload, ServerTestRemoteResult } from '@stitch/shared/ipc/types';
 
 import { stopRecordingCapture } from '../recording-capture.js';
-import {
-  normalizeRemoteUrl,
-  writeServerConnectionConfig,
-  type ServerConnectionConfig,
-} from '../server-config.js';
+import { normalizeRemoteUrl, writeServerConnectionConfig, type ServerConnectionConfig } from '../server-config.js';
 import { checkHealth, killServer } from '../sidecar.js';
 import { registerIpcHandler } from './register.js';
 
 import type { BrowserWindow } from 'electron';
 
-type ServerState = {
-  serverUrl: string;
-  serverConnectionConfig: ServerConnectionConfig;
-};
+type ServerState = { serverUrl: string; serverConnectionConfig: ServerConnectionConfig };
 
 type StartLocalServer = () => Promise<string>;
 
@@ -32,21 +25,15 @@ export function registerServerHandlers(
     }),
   );
 
-  registerIpcHandler(
-    'server:test-remote',
-    async (_event, rawUrl: string): Promise<ServerTestRemoteResult> => {
-      try {
-        const url = normalizeRemoteUrl(rawUrl);
-        const ok = await checkHealth(url);
-        return ok ? { ok: true, url } : { ok: false, error: 'Server health check failed' };
-      } catch (error) {
-        return {
-          ok: false,
-          error: error instanceof Error ? error.message : 'Invalid server URL',
-        };
-      }
-    },
-  );
+  registerIpcHandler('server:test-remote', async (_event, rawUrl: string): Promise<ServerTestRemoteResult> => {
+    try {
+      const url = normalizeRemoteUrl(rawUrl);
+      const ok = await checkHealth(url);
+      return ok ? { ok: true, url } : { ok: false, error: 'Server health check failed' };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : 'Invalid server URL' };
+    }
+  });
 
   registerIpcHandler('server:set-config', async (_event, config): Promise<ServerConfigPayload> => {
     let nextConfig: ServerConnectionConfig;

@@ -12,19 +12,13 @@ import { useStreamingSessionIds } from '@/hooks/use-session-stream-state';
 import { sessionsInfiniteQueryOptions } from '@/lib/queries/chat';
 import { cn } from '@/lib/utils';
 
-type SidebarSession = {
-  id: string;
-  title: string | null;
-  isUnread: boolean;
-};
+type SidebarSession = { id: string; title: string | null; isUnread: boolean };
 
 const selectSidebarSessions = (data: InfiniteData<SessionsPage>) => ({
   ...data,
   pages: data.pages.map((page) => ({
     ...page,
-    sessions: page.sessions.map(
-      ({ id, title, isUnread }) => ({ id, title, isUnread }) as SidebarSession,
-    ),
+    sessions: page.sessions.map(({ id, title, isUnread }) => ({ id, title, isUnread }) as SidebarSession),
   })),
 });
 
@@ -117,8 +111,7 @@ export function ChatSidebarContent() {
                         viewTransition
                         className="flex items-center gap-2 truncate"
                       />
-                    }
-                  >
+                    }>
                     <SessionStatusIcon isStreaming={isStreaming} isUnread={isUnread} />
                     <span className={cn('truncate', isUnread && 'font-semibold')}>
                       {session.title ?? 'New conversation'}
@@ -129,9 +122,7 @@ export function ChatSidebarContent() {
             </InternalSidebar.List>
             {hasNextPage ? (
               <div ref={loadMoreRef} className="flex h-9 items-center justify-center">
-                {isFetchingNextPage ? (
-                  <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
-                ) : null}
+                {isFetchingNextPage ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" /> : null}
               </div>
             ) : null}
           </InternalSidebar.Group>
@@ -139,9 +130,7 @@ export function ChatSidebarContent() {
           <InternalSidebar.EmptyState
             icon={MessageCircleIcon}
             title={deferredSearch ? 'No matching conversations' : 'No conversations yet'}
-            description={
-              deferredSearch ? 'Try a different search' : 'Start a new chat to get going'
-            }
+            description={deferredSearch ? 'Try a different search' : 'Start a new chat to get going'}
           />
         )}
       </InternalSidebar.Content>

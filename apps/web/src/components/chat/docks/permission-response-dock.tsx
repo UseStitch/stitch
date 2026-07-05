@@ -54,16 +54,14 @@ export function PermissionResponseDock({
           size="sm"
           variant="outline"
           disabled={isPending}
-          onClick={() => void onAlwaysAllow(permissionResponse.id)}
-        >
+          onClick={() => void onAlwaysAllow(permissionResponse.id)}>
           Always allow this tool
         </Button>
         <Button
           size="sm"
           variant="destructive"
           disabled={isPending}
-          onClick={() => void onReject(permissionResponse.id)}
-        >
+          onClick={() => void onReject(permissionResponse.id)}>
           Reject
         </Button>
         {suggestion && !isDirectorySuggestion ? (
@@ -71,8 +69,7 @@ export function PermissionResponseDock({
             size="sm"
             variant="outline"
             disabled={isPending}
-            onClick={() => void onApplySuggestion(permissionResponse.id, suggestion.pattern)}
-          >
+            onClick={() => void onApplySuggestion(permissionResponse.id, suggestion.pattern)}>
             {suggestion.message}
           </Button>
         ) : null}
@@ -83,14 +80,9 @@ export function PermissionResponseDock({
           type="button"
           disabled={isPending}
           onClick={() => void onApplySuggestion(permissionResponse.id, suggestion.pattern)}
-          className="group flex w-fit items-baseline gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-        >
-          <span className="underline-offset-2 group-hover:underline">
-            Always allow in directory
-          </span>
-          <span className="max-w-70 truncate font-mono opacity-60 group-hover:opacity-100">
-            {dir}
-          </span>
+          className="group flex w-fit items-baseline gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50">
+          <span className="underline-offset-2 group-hover:underline">Always allow in directory</span>
+          <span className="max-w-70 truncate font-mono opacity-60 group-hover:opacity-100">{dir}</span>
         </button>
       ) : null}
 
@@ -110,8 +102,7 @@ export function PermissionResponseDock({
             const value = entry.trim();
             if (!value) return;
             void onAlternative(permissionResponse.id, value);
-          }}
-        >
+          }}>
           Send
         </Button>
       </div>

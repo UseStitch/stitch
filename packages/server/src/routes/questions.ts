@@ -4,26 +4,16 @@ import { z } from 'zod';
 
 import { getSessionById } from '@/chat/session-crud.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
-import {
-  createQuestion,
-  getPendingQuestions,
-  rejectQuestion,
-  replyQuestion,
-} from '@/question/service.js';
+import { createQuestion, getPendingQuestions, rejectQuestion, replyQuestion } from '@/question/service.js';
 
-const sessionParamSchema = z.object({
-  id: z.templateLiteral(['ses_', z.string()]),
-});
+const sessionParamSchema = z.object({ id: z.templateLiteral(['ses_', z.string()]) });
 
 const questionParamSchema = z.object({
   sessionId: z.templateLiteral(['ses_', z.string()]),
   questionId: z.templateLiteral(['quest_', z.string()]),
 });
 
-const questionOptionSchema = z.object({
-  label: z.string(),
-  description: z.string(),
-});
+const questionOptionSchema = z.object({ label: z.string(), description: z.string() });
 
 const questionInfoSchema = z.object({
   question: z.string(),
@@ -39,25 +29,19 @@ const createQuestionsSchema = z.object({
   messageId: z.templateLiteral(['msg_', z.string()]),
 });
 
-const replySchema = z.object({
-  answers: z.array(z.array(z.string())),
-});
+const replySchema = z.object({ answers: z.array(z.array(z.string())) });
 
 export const questionsRouter = new Hono();
 
-questionsRouter.get(
-  '/sessions/:id/questions',
-  zValidator('param', sessionParamSchema),
-  async (c) => {
-    const { id: sessionId } = c.req.valid('param');
+questionsRouter.get('/sessions/:id/questions', zValidator('param', sessionParamSchema), async (c) => {
+  const { id: sessionId } = c.req.valid('param');
 
-    const sessionResult = await getSessionById(sessionId);
-    if (sessionResult.error) return unwrapResult(c, sessionResult);
+  const sessionResult = await getSessionById(sessionId);
+  if (sessionResult.error) return unwrapResult(c, sessionResult);
 
-    const result = await getPendingQuestions(sessionId);
-    return unwrapResult(c, result);
-  },
-);
+  const result = await getPendingQuestions(sessionId);
+  return unwrapResult(c, result);
+});
 
 questionsRouter.post(
   '/sessions/:id/questions',

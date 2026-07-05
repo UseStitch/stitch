@@ -38,32 +38,34 @@ export async function recordUsageEvent(input: {
   const durationMs = input.durationMs ?? Math.max(0, endedAt - input.startedAt);
   const metrics = normalizeUsage(input.usage);
 
-  await db.insert(llmUsageEvents).values({
-    id: randomUUID(),
-    runId: input.runId,
-    source: input.source,
-    status: input.status ?? 'succeeded',
-    isAttributable: input.isAttributable ?? true,
-    sessionId: input.sessionId ?? null,
-    messageId: input.messageId ?? null,
-    stepIndex: input.stepIndex,
-    attemptIndex: input.attemptIndex,
-    providerId: input.providerId,
-    modelId: input.modelId,
-    usage: input.usage ?? undefined,
-    metadata: input.metadata,
-    inputTokens: metrics.inputTokens,
-    outputTokens: metrics.outputTokens,
-    reasoningTokens: metrics.reasoningTokens,
-    cacheReadTokens: metrics.cacheReadTokens,
-    cacheWriteTokens: metrics.cacheWriteTokens,
-    totalTokens: metrics.totalTokens,
-    costUsd: input.costUsd ?? 0,
-    errorCode: input.errorCode ?? null,
-    startedAt: input.startedAt,
-    endedAt,
-    durationMs,
-  });
+  await db
+    .insert(llmUsageEvents)
+    .values({
+      id: randomUUID(),
+      runId: input.runId,
+      source: input.source,
+      status: input.status ?? 'succeeded',
+      isAttributable: input.isAttributable ?? true,
+      sessionId: input.sessionId ?? null,
+      messageId: input.messageId ?? null,
+      stepIndex: input.stepIndex,
+      attemptIndex: input.attemptIndex,
+      providerId: input.providerId,
+      modelId: input.modelId,
+      usage: input.usage ?? undefined,
+      metadata: input.metadata,
+      inputTokens: metrics.inputTokens,
+      outputTokens: metrics.outputTokens,
+      reasoningTokens: metrics.reasoningTokens,
+      cacheReadTokens: metrics.cacheReadTokens,
+      cacheWriteTokens: metrics.cacheWriteTokens,
+      totalTokens: metrics.totalTokens,
+      costUsd: input.costUsd ?? 0,
+      errorCode: input.errorCode ?? null,
+      startedAt: input.startedAt,
+      endedAt,
+      durationMs,
+    });
 }
 
 export async function recordLlmUsage(input: {
@@ -85,11 +87,7 @@ export async function recordLlmUsage(input: {
   durationMs?: number;
 }): Promise<{ costUsd: number }> {
   const costUsd = input.usage
-    ? await calculateMessageCostUsd({
-        providerId: input.providerId,
-        modelId: input.modelId,
-        usage: input.usage,
-      })
+    ? await calculateMessageCostUsd({ providerId: input.providerId, modelId: input.modelId, usage: input.usage })
     : 0;
 
   try {
@@ -115,18 +113,17 @@ export async function recordEmbeddingUsage(input: {
 
   const db = getDb();
   try {
-    await db.insert(embeddingUsageEvents).values({
-      id: randomUUID(),
-      providerId: input.providerId,
-      modelId: input.modelId,
-      totalTokens: input.tokens,
-      costUsd,
-      metadata: input.metadata,
-    });
+    await db
+      .insert(embeddingUsageEvents)
+      .values({
+        id: randomUUID(),
+        providerId: input.providerId,
+        modelId: input.modelId,
+        totalTokens: input.tokens,
+        costUsd,
+        metadata: input.metadata,
+      });
   } catch (error) {
-    log.warn(
-      { error, providerId: input.providerId, modelId: input.modelId },
-      'embedding usage event write failed',
-    );
+    log.warn({ error, providerId: input.providerId, modelId: input.modelId }, 'embedding usage event write failed');
   }
 }

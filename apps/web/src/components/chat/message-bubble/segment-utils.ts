@@ -6,12 +6,7 @@ type ReasoningSegment = { type: 'reasoning'; text: string; key: string };
 type OtherSegment = { type: 'other'; part: StoredPart; key: string };
 type ToolCallGroupSegment = { type: 'tool-call-group'; parts: StoredPart[]; key: string };
 type LiquidUiSegment = { type: 'liquid-ui'; part: StoredPart & { type: 'tool-call' }; key: string };
-type DisplaySegment =
-  | TextSegment
-  | ReasoningSegment
-  | OtherSegment
-  | ToolCallGroupSegment
-  | LiquidUiSegment;
+type DisplaySegment = TextSegment | ReasoningSegment | OtherSegment | ToolCallGroupSegment | LiquidUiSegment;
 
 type StoredToolResult = StoredPart & { type: 'tool-result' };
 

@@ -2,18 +2,14 @@ import type { FieldDef } from '@stitch/shared/providers/types';
 
 export type FieldValues = Record<string, string>;
 
-type ProviderAuthMethod = {
-  method: string;
-  fields: FieldDef[];
-};
+type ProviderAuthMethod = { method: string; fields: FieldDef[] };
 
 export function resolveDefaultAuthMethod(
   existingMethod: string | undefined,
   enabledAuthMethods: ProviderAuthMethod[],
 ): string {
   const hasExistingMethod =
-    existingMethod !== undefined &&
-    enabledAuthMethods.some((authMethod) => authMethod.method === existingMethod);
+    existingMethod !== undefined && enabledAuthMethods.some((authMethod) => authMethod.method === existingMethod);
 
   if (hasExistingMethod && existingMethod) {
     return existingMethod;
@@ -25,17 +21,9 @@ export function resolveDefaultAuthMethod(
 export function hydrateProviderConfigState(
   existingConfig: Record<string, unknown> | undefined,
   enabledAuthMethods: ProviderAuthMethod[],
-): {
-  activeMethod: string | null;
-  authFields: FieldValues;
-  extraFields: FieldValues;
-} {
+): { activeMethod: string | null; authFields: FieldValues; extraFields: FieldValues } {
   if (!existingConfig) {
-    return {
-      activeMethod: null,
-      authFields: {},
-      extraFields: {},
-    };
+    return { activeMethod: null, authFields: {}, extraFields: {} };
   }
 
   const method = (existingConfig.auth as { method?: string } | undefined)?.method;
@@ -57,14 +45,9 @@ export function hydrateProviderConfigState(
     }
   }
 
-  const isMethodEnabled =
-    method !== undefined && enabledAuthMethods.some((authMethod) => authMethod.method === method);
+  const isMethodEnabled = method !== undefined && enabledAuthMethods.some((authMethod) => authMethod.method === method);
 
-  return {
-    activeMethod: isMethodEnabled ? method : null,
-    authFields,
-    extraFields,
-  };
+  return { activeMethod: isMethodEnabled ? method : null, authFields, extraFields };
 }
 
 export function buildProviderConfigBody({

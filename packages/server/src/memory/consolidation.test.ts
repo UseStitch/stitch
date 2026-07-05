@@ -27,13 +27,7 @@ describe('validateConsolidationActions', () => {
     const group = [memory({ id: 'pinned', pinned: true }), memory({ id: 'other' })];
 
     const result = validateConsolidationActions(group, [
-      {
-        action: 'DELETE',
-        memoryId: 'pinned',
-        content: null,
-        category: null,
-        confidence: null,
-      },
+      { action: 'DELETE', memoryId: 'pinned', content: null, category: null, confidence: null },
     ]);
 
     expect(result.valid).toEqual([]);
@@ -51,13 +45,7 @@ describe('validateConsolidationActions', () => {
         category: null,
         confidence: null,
       },
-      {
-        action: 'DELETE',
-        memoryId: 'missing',
-        content: null,
-        category: null,
-        confidence: null,
-      },
+      { action: 'DELETE', memoryId: 'missing', content: null, category: null, confidence: null },
     ]);
 
     expect(result.valid).toEqual([]);
@@ -82,13 +70,7 @@ describe('validateConsolidationActions', () => {
         category: null,
         confidence: null,
       },
-      {
-        action: 'DELETE',
-        memoryId: 'mem-2',
-        content: null,
-        category: null,
-        confidence: null,
-      },
+      { action: 'DELETE', memoryId: 'mem-2', content: null, category: null, confidence: null },
     ]);
 
     expect(result.valid).toEqual([

@@ -53,10 +53,7 @@ export type ResolvedEmbeddingModel = {
   dimensions: number;
   context: number;
   cost: EmbeddingModel['cost'];
-  modalities: {
-    input: string[];
-    output: string[];
-  };
+  modalities: { input: string[]; output: string[] };
 };
 
 /** Resolved embedding provider with its models keyed by ID. */

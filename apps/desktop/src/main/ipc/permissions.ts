@@ -15,9 +15,7 @@ export function registerPermissionsHandlers(): void {
 
   registerIpcHandler('permissions:openScreenCaptureSettings', () => {
     if (process.platform === 'darwin') {
-      void shell.openExternal(
-        'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture',
-      );
+      void shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture');
     }
   });
 }

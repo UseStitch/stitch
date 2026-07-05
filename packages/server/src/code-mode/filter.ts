@@ -24,25 +24,17 @@ export type CodeModeToolFilter = {
   excludeToolsInToolset?: Record<string, string[]>;
 };
 
-export function applyToolFilter(
-  tools: Record<string, Tool>,
-  filter: CodeModeToolFilter = {},
-): Record<string, Tool> {
+export function applyToolFilter(tools: Record<string, Tool>, filter: CodeModeToolFilter = {}): Record<string, Tool> {
   const { excludeToolsets = [], excludeTools = [], excludeToolsInToolset = {} } = filter;
 
   const specificExclusions = new Set<string>(excludeTools);
 
   const toolNamesByToolset = new Map<string, Set<string>>();
   for (const toolset of listToolsets()) {
-    toolNamesByToolset.set(
-      toolset.id,
-      new Set(toolset.tools().map((toolSummary) => toolSummary.name)),
-    );
+    toolNamesByToolset.set(toolset.id, new Set(toolset.tools().map((toolSummary) => toolSummary.name)));
   }
 
-  const excludedToolsetIds = new Set<string>(
-    [...ALWAYS_EXCLUDED_TOOLSETS, ...excludeToolsets].map(normalizeToolsetId),
-  );
+  const excludedToolsetIds = new Set<string>([...ALWAYS_EXCLUDED_TOOLSETS, ...excludeToolsets].map(normalizeToolsetId));
 
   for (const excludedToolsetId of excludedToolsetIds) {
     const toolNames = toolNamesByToolset.get(excludedToolsetId);

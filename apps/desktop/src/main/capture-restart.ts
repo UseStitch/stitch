@@ -23,10 +23,7 @@ type CaptureRestarterOptions = {
   backoffMs?: number;
 };
 
-export type CaptureRestarter = {
-  trigger: () => void;
-  cancel: () => void;
-};
+export type CaptureRestarter = { trigger: () => void; cancel: () => void };
 
 /**
  * Supervises an audio capture session: device changes and stream-death

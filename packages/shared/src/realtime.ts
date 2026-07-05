@@ -7,10 +7,7 @@ import { RECORDING_EVENT_NAMES, type RecordingEvents } from './recordings/events
 
 const CONNECTION_EVENT_NAMES = ['heartbeat', 'connected'] as const;
 
-export type ConnectionEvents = {
-  heartbeat: { ts: number };
-  connected: { ts: number };
-};
+export type ConnectionEvents = { heartbeat: { ts: number }; connected: { ts: number } };
 
 export type SseEventPayloadMap = ConnectionEvents &
   StreamEvents &
@@ -36,7 +33,4 @@ export type SseHandlers = {
   [K in SseEventName]?: (data: SseEventPayloadMap[K]) => void;
 };
 
-export type UseSseResult = {
-  isConnected: boolean;
-  lastHeartbeat: Date | null;
-};
+export type UseSseResult = { isConnected: boolean; lastHeartbeat: Date | null };

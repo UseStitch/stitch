@@ -12,10 +12,7 @@ import type {
 
 import { clickRef, hoverRef, scroll, selectRef, typeIntoRef } from './input-actions.js';
 import { waitForPageStability } from './page-stability.js';
-import {
-  buildGetDropdownOptionsScript,
-  buildSelectDropdownScript,
-} from './scripts/dropdown.injected.js';
+import { buildGetDropdownOptionsScript, buildSelectDropdownScript } from './scripts/dropdown.injected.js';
 import { buildExtractContentScript } from './scripts/extract-content.injected.js';
 import { buildFindElementsScript } from './scripts/find-elements.injected.js';
 import { buildSearchPageScript } from './scripts/search-page.injected.js';
@@ -89,14 +86,7 @@ export async function executeBrowserCommand(
     case 'executionState':
       return getExecutionState(ctx.browser);
     case 'click':
-      await clickRef(
-        ctx.browser,
-        ctx.refResolver,
-        command.ref,
-        command.doubleClick,
-        command.button,
-        command.modifiers,
-      );
+      await clickRef(ctx.browser, ctx.refResolver, command.ref, command.doubleClick, command.button, command.modifiers);
       await waitForPageStability(ctx.browser, command.timeoutMs);
       return `Clicked ${command.ref}`;
     case 'hover':
@@ -123,16 +113,12 @@ export async function executeBrowserCommand(
       await selectRef(ctx.browser, ctx.refResolver, command.ref, command.values);
       return `Selected ${command.values.join(', ')} in ${command.ref}`;
     case 'getDropdownOptions':
-      return ctx.refResolver.runOnRef<ElectronBrowserDropdownOptionsResult>(
-        command.ref,
-        buildGetDropdownOptionsScript,
-      );
+      return ctx.refResolver.runOnRef<ElectronBrowserDropdownOptionsResult>(command.ref, buildGetDropdownOptionsScript);
     case 'selectDropdown': {
-      const result = await ctx.refResolver.runOnRef<{
-        selected?: boolean;
-        error?: string;
-        text?: string;
-      }>(command.ref, (element) => buildSelectDropdownScript(element, command.text));
+      const result = await ctx.refResolver.runOnRef<{ selected?: boolean; error?: string; text?: string }>(
+        command.ref,
+        (element) => buildSelectDropdownScript(element, command.text),
+      );
       if (!result.selected) {
         throw new Error(result.error ?? `Dropdown option not found: ${command.text}`);
       }
@@ -148,9 +134,7 @@ export async function executeBrowserCommand(
       const format = command.format ?? 'png';
       return {
         data:
-          format === 'png'
-            ? image.toPNG().toString('base64')
-            : image.toJPEG(command.quality ?? 90).toString('base64'),
+          format === 'png' ? image.toPNG().toString('base64') : image.toJPEG(command.quality ?? 90).toString('base64'),
         format,
       };
     }
@@ -158,27 +142,14 @@ export async function executeBrowserCommand(
       return ctx.browser.executeJavaScript(command.expression, true);
     case 'wait':
       await wait(ctx.getBrowser, command.timeMs, command.selector, command.timeoutMs);
-      return command.selector
-        ? `Selector appeared: ${command.selector}`
-        : `Waited ${command.timeMs ?? 0}ms`;
+      return command.selector ? `Selector appeared: ${command.selector}` : `Waited ${command.timeMs ?? 0}ms`;
     case 'extractPageContent':
-      return runScript<string | ElectronBrowserExtractContentResult>(
-        ctx.browser,
-        buildExtractContentScript(command),
-      );
+      return runScript<string | ElectronBrowserExtractContentResult>(ctx.browser, buildExtractContentScript(command));
     case 'searchPage':
-      return runScript<ElectronBrowserSearchPageResult>(
-        ctx.browser,
-        buildSearchPageScript(command),
-      );
+      return runScript<ElectronBrowserSearchPageResult>(ctx.browser, buildSearchPageScript(command));
     case 'findElements': {
       type RawFindResult = {
-        elements: Array<{
-          tag: string;
-          text?: string;
-          attributes?: Record<string, string>;
-          cssPath?: string;
-        }>;
+        elements: Array<{ tag: string; text?: string; attributes?: Record<string, string>; cssPath?: string }>;
         total: number;
       };
       const raw = await runScript<RawFindResult>(ctx.browser, buildFindElementsScript(command));
@@ -186,11 +157,7 @@ export async function executeBrowserCommand(
         total: raw.total,
         elements: raw.elements.map((el) => {
           const ref = el.cssPath ? ctx.refResolver.findRefBySelector(el.cssPath) : undefined;
-          return {
-            tag: el.tag,
-            text: el.text,
-            attributes: { ...el.attributes, ...(ref ? { ref } : {}) },
-          };
+          return { tag: el.tag, text: el.text, attributes: { ...el.attributes, ...(ref ? { ref } : {}) } };
         }),
       };
       return result;

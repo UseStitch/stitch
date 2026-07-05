@@ -55,10 +55,7 @@ export async function findAvailablePort(): Promise<number> {
 
 export async function checkHealth(url: string): Promise<boolean> {
   try {
-    const res = await fetch(`${url}/health`, {
-      method: 'GET',
-      signal: AbortSignal.timeout(3000),
-    });
+    const res = await fetch(`${url}/health`, { method: 'GET', signal: AbortSignal.timeout(3000) });
     return res.ok;
   } catch {
     return false;
@@ -90,10 +87,7 @@ function findStalePids(): number[] {
         .filter(Number.isFinite);
     }
 
-    const output = execSync('pgrep -f stitch-server', {
-      encoding: 'utf8',
-      timeout: 3_000,
-    }).trim();
+    const output = execSync('pgrep -f stitch-server', { encoding: 'utf8', timeout: 3_000 }).trim();
     if (!output) return [];
     return output
       .split('\n')
@@ -193,9 +187,7 @@ async function spawnServerOnce(port: number, extraEnv: NodeJS.ProcessEnv): Promi
     serverProcess!.on('exit', (code, signal) => {
       const tail = logTail.trim();
       const details = tail ? `\n\nServer output:\n${tail}` : ' (no output captured)';
-      const error = new Error(
-        `Server exited before becoming healthy (code=${code}, signal=${signal})${details}`,
-      );
+      const error = new Error(`Server exited before becoming healthy (code=${code}, signal=${signal})${details}`);
       if (isPortInUseError(tail)) {
         (error as Error & { portInUse?: boolean }).portInUse = true;
       }

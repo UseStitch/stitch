@@ -26,26 +26,16 @@ export function SettingsModelSelect({
   const queryClient = useQueryClient();
 
   const saveProviderMutation = useMutation(
-    saveSettingMutationOptions(providerIdKey, queryClient, {
-      successMessage: 'Model preference saved',
-    }),
+    saveSettingMutationOptions(providerIdKey, queryClient, { successMessage: 'Model preference saved' }),
   );
-  const saveModelMutation = useMutation(
-    saveSettingMutationOptions(modelIdKey, queryClient, { silent: true }),
-  );
+  const saveModelMutation = useMutation(saveSettingMutationOptions(modelIdKey, queryClient, { silent: true }));
   const deleteProviderMutation = useMutation(
-    deleteSettingMutationOptions(providerIdKey, queryClient, {
-      successMessage: 'Model preference reset',
-    }),
+    deleteSettingMutationOptions(providerIdKey, queryClient, { successMessage: 'Model preference reset' }),
   );
-  const deleteModelMutation = useMutation(
-    deleteSettingMutationOptions(modelIdKey, queryClient, { silent: true }),
-  );
+  const deleteModelMutation = useMutation(deleteSettingMutationOptions(modelIdKey, queryClient, { silent: true }));
 
   const value: ModelSelection | null =
-    currentProviderId && currentModelId
-      ? { providerId: currentProviderId, modelId: currentModelId }
-      : null;
+    currentProviderId && currentModelId ? { providerId: currentProviderId, modelId: currentModelId } : null;
 
   function handleValueChange(selection: ModelSelection | null) {
     if (!selection) {

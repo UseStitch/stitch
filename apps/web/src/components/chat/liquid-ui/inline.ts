@@ -4,9 +4,7 @@ import { repairLiquidUiSpec } from './repair.js';
 
 const INLINE_LIQUID_UI_PATTERN = /<liquid_ui>\s*([\s\S]*?)\s*<\/liquid_ui>/gi;
 
-type InlineLiquidUiSegment =
-  | { type: 'text'; text: string }
-  | { type: 'liquid-ui'; spec: LiquidUiSpec };
+type InlineLiquidUiSegment = { type: 'text'; text: string } | { type: 'liquid-ui'; spec: LiquidUiSpec };
 
 export function parseInlineLiquidUiText(text: string): InlineLiquidUiSegment[] | null {
   const segments: InlineLiquidUiSegment[] = [];

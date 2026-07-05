@@ -24,16 +24,9 @@ import { cn } from '@/lib/utils';
 
 const VISIBLE_TOOL_COUNT = 4;
 
-type ToolCallGroupProps = {
-  calls: ToolCallDisplayItem[];
-  onAbort?: () => void;
-};
+type ToolCallGroupProps = { calls: ToolCallDisplayItem[]; onAbort?: () => void };
 
-type ToolErrorDetails = {
-  toolName: string;
-  label: string;
-  error: string;
-};
+type ToolErrorDetails = { toolName: string; label: string; error: string };
 
 const STATUS_CLASS: Record<ToolCallStatus, string> = {
   pending: 'text-muted-foreground',
@@ -64,8 +57,7 @@ export function ToolCallGroup({ calls, onAbort }: ToolCallGroupProps) {
   const hiddenCount = Math.max(0, calls.length - VISIBLE_TOOL_COUNT);
   const visibleCalls = expanded ? calls : calls.slice(hiddenCount);
   const previousHiddenCount = usePrevious(hiddenCount);
-  const hiddenCountIncreased =
-    previousHiddenCount !== undefined && hiddenCount > previousHiddenCount;
+  const hiddenCountIncreased = previousHiddenCount !== undefined && hiddenCount > previousHiddenCount;
 
   if (calls.length === 0) return null;
 
@@ -81,11 +73,8 @@ export function ToolCallGroup({ calls, onAbort }: ToolCallGroupProps) {
           className={cn(
             'h-6 w-full justify-start px-1.5 text-muted-foreground hover:bg-muted/50',
             hiddenCountIncreased && 'animate-in fade-in slide-in-from-top-1 duration-200',
-          )}
-        >
-          <ChevronDownIcon
-            className={cn('size-3 transition-transform', expanded && 'rotate-180')}
-          />
+          )}>
+          <ChevronDownIcon className={cn('size-3 transition-transform', expanded && 'rotate-180')} />
           {expanded ? 'Hide earlier tool calls' : `Show ${hiddenCount} earlier tool calls`}
         </Button>
       ) : null}
@@ -122,9 +111,7 @@ function ToolCallDisplayRow({
   const summary = getToolSummary(call, displayName);
   const isActive = call.status === 'pending' || call.status === 'in-progress';
   const errorDetails =
-    call.status === 'error' && call.error
-      ? { toolName: call.toolName, label: summary.label, error: call.error }
-      : null;
+    call.status === 'error' && call.error ? { toolName: call.toolName, label: summary.label, error: call.error } : null;
   const actions = getToolCallActions(call);
 
   return (
@@ -133,8 +120,7 @@ function ToolCallDisplayRow({
       summary={summary}
       errorDetails={errorDetails}
       onViewErrorDetails={onViewErrorDetails}
-      animateIn={animateIn && isActive}
-    >
+      animateIn={animateIn && isActive}>
       <ToolCallRow.Icon />
       <ToolCallRow.Label />
       <ToolCallRow.Preview />
@@ -178,8 +164,7 @@ function ToolCallRowRoot({
         className={cn(
           'group flex min-h-7 min-w-0 items-center gap-2 rounded-md px-1.5 text-xs transition-colors hover:bg-muted/40',
           animateIn && 'animate-in fade-in slide-in-from-top-1 duration-200',
-        )}
-      >
+        )}>
         {children}
       </div>
     </ToolCallRowContext.Provider>
@@ -208,8 +193,7 @@ function ToolCallRowPreview() {
       type="button"
       onClick={() => onViewErrorDetails(errorDetails)}
       className="min-w-0 flex-1 cursor-pointer truncate text-left text-muted-foreground hover:text-destructive"
-      title="View full error"
-    >
+      title="View full error">
       {summary.preview}
     </button>
   );
@@ -240,8 +224,7 @@ function ToolCallRowStatus() {
       type="button"
       onClick={() => onViewErrorDetails(errorDetails)}
       className={cn(className, 'cursor-pointer hover:underline')}
-      title="View full error"
-    >
+      title="View full error">
       {STATUS_LABEL[call.status]}
     </button>
   );
@@ -255,8 +238,7 @@ function ToolCallRowStopButton({ onAbort }: { onAbort: () => void }) {
       size="xs"
       onClick={onAbort}
       className="h-5 pr-0 pl-1.5 text-[11px] leading-none text-destructive hover:text-destructive"
-      title="Stop running response"
-    >
+      title="Stop running response">
       <SquareIcon className="size-2.5" />
       <span className="leading-none">Stop</span>
     </Button>
@@ -275,8 +257,7 @@ function ToolCallRowActions({ actions }: { actions: ToolCallAction[] }) {
             className="h-5 px-1.5 text-[11px] leading-3 text-muted-foreground"
             title="Open child session"
             nativeButton={false}
-            render={<Link to="/session/$id" params={{ id: action.sessionId }} />}
-          >
+            render={<Link to="/session/$id" params={{ id: action.sessionId }} />}>
             <ExternalLinkIcon className="size-3" />
             <span className="leading-3">Open</span>
           </Button>
@@ -341,9 +322,7 @@ function ToolStatusIcon({ status, summary }: { status: ToolCallStatus; summary: 
   }
 
   if (summary.mcpServerId) {
-    return (
-      <McpServerLogo serverId={summary.mcpServerId} name={summary.label} className="size-3.5" />
-    );
+    return <McpServerLogo serverId={summary.mcpServerId} name={summary.label} className="size-3.5" />;
   }
 
   return (

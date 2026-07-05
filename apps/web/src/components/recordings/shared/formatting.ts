@@ -1,8 +1,4 @@
-import type {
-  Recording,
-  RecordingPlatform,
-  RecordingStatus,
-} from '@stitch/shared/recordings/types';
+import type { Recording, RecordingPlatform, RecordingStatus } from '@stitch/shared/recordings/types';
 
 import type { badgeVariants } from '@/components/ui/badge';
 import type { VariantProps } from 'class-variance-authority';
@@ -35,17 +31,11 @@ export function getRecordingDisplayTitle(recording: Recording): string {
 }
 
 export function formatRecordingShortDate(ts: number): string {
-  return new Date(ts).toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-  });
+  return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 export function formatRecordingTime(ts: number): string {
-  return new Date(ts).toLocaleTimeString(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  return new Date(ts).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
 export function formatClockDuration(durationMs: number | null): string {

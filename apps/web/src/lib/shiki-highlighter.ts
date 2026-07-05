@@ -34,10 +34,7 @@ async function getSharedHighlighter(themes: string[], langs: string[]): Promise<
       sharedHighlighter.dispose();
     }
 
-    sharedHighlighter = await createHighlighter({
-      themes: newThemes,
-      langs: newLangs,
-    });
+    sharedHighlighter = await createHighlighter({ themes: newThemes, langs: newLangs });
 
     currentThemes = newThemes;
     currentLangs = newLangs;

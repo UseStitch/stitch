@@ -5,11 +5,7 @@ import { modelVisibility } from '@/db/schema/providers.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 
-type VisibilityOverride = {
-  providerId: string;
-  modelId: string;
-  visibility: 'show' | 'hide';
-};
+type VisibilityOverride = { providerId: string; modelId: string; visibility: 'show' | 'hide' };
 
 export async function listVisibilityOverrides(): Promise<ServiceResult<VisibilityOverride[]>> {
   const db = getDb();
@@ -32,10 +28,7 @@ export async function upsertVisibility(
   return ok(null);
 }
 
-export async function deleteVisibility(
-  providerId: string,
-  modelId: string,
-): Promise<ServiceResult<null>> {
+export async function deleteVisibility(providerId: string, modelId: string): Promise<ServiceResult<null>> {
   const db = getDb();
   const deleted = await db
     .delete(modelVisibility)

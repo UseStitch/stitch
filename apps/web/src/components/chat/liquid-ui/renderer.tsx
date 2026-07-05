@@ -35,8 +35,7 @@ function isObject(input: unknown): input is Record<string, unknown> {
 }
 
 function salvageSpec(input: unknown): LiquidUiSpec | null {
-  if (!isObject(input) || typeof input.root !== 'string' || !Array.isArray(input.nodes))
-    return null;
+  if (!isObject(input) || typeof input.root !== 'string' || !Array.isArray(input.nodes)) return null;
 
   const nodes = input.nodes.flatMap((node) => {
     const result = liquidUiNodeSchema.safeParse(node);

@@ -27,9 +27,7 @@ async function clearLogDir() {
 
 async function writeLogFiles(names: string[]) {
   await fs.mkdir(PATHS.logDir, { recursive: true });
-  await Promise.all(
-    names.map((name) => fs.writeFile(path.join(PATHS.logDir, name), 'test', 'utf-8')),
-  );
+  await Promise.all(names.map((name) => fs.writeFile(path.join(PATHS.logDir, name), 'test', 'utf-8')));
 }
 
 async function readLogOutput(): Promise<string> {

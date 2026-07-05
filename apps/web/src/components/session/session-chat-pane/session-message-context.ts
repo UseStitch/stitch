@@ -1,15 +1,8 @@
 import type { ModelSpec } from '@/components/chat/chat-input-parts/types';
 
-type SessionMessagePart = {
-  type: string;
-};
+type SessionMessagePart = { type: string };
 
-type SessionMessageContext = {
-  providerId: string;
-  modelId: string;
-  isSummary: boolean;
-  parts: SessionMessagePart[];
-};
+type SessionMessageContext = { providerId: string; modelId: string; isSummary: boolean; parts: SessionMessagePart[] };
 
 function shouldSkipMessage(message: SessionMessageContext): boolean {
   if (message.isSummary) return true;
@@ -23,10 +16,7 @@ export function findLastUsedModel(messages: SessionMessageContext[]): ModelSpec 
   for (let index = messages.length - 1; index >= 0; index--) {
     const message = messages[index];
     if (!message || shouldSkipMessage(message)) continue;
-    return {
-      providerId: message.providerId,
-      modelId: message.modelId,
-    };
+    return { providerId: message.providerId, modelId: message.modelId };
   }
 
   return null;

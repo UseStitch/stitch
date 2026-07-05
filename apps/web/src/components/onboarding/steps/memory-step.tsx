@@ -6,22 +6,11 @@ import type { EmbeddingProviderModels } from '@stitch/shared/embedding/types';
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { embeddingProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 
-type ModelOption = {
-  value: string;
-  label: string;
-  providerId: string;
-  modelId: string;
-};
+type ModelOption = { value: string; label: string; providerId: string; modelId: string };
 
 function buildModelOptions(providerModels: EmbeddingProviderModels[] | undefined): ModelOption[] {
   if (!providerModels) return [];
@@ -39,25 +28,18 @@ function buildModelOptions(providerModels: EmbeddingProviderModels[] | undefined
   return options;
 }
 
-type Props = {
-  onComplete: () => void;
-  onBackToProviders: () => void;
-};
+type Props = { onComplete: () => void; onBackToProviders: () => void };
 
 export function MemoryStep({ onComplete, onBackToProviders }: Props) {
   const queryClient = useQueryClient();
   const { data: settings } = useQuery(settingsQueryOptions);
   const { data: providerModels } = useQuery(embeddingProviderModelsQueryOptions);
 
-  const saveEnabled = useMutation(
-    saveSettingMutationOptions('memory.enabled', queryClient, { silent: true }),
-  );
+  const saveEnabled = useMutation(saveSettingMutationOptions('memory.enabled', queryClient, { silent: true }));
   const saveProvider = useMutation(
     saveSettingMutationOptions('memory.embedding.providerId', queryClient, { silent: true }),
   );
-  const saveModel = useMutation(
-    saveSettingMutationOptions('memory.embedding.modelId', queryClient, { silent: true }),
-  );
+  const saveModel = useMutation(saveSettingMutationOptions('memory.embedding.modelId', queryClient, { silent: true }));
 
   const modelOptions = React.useMemo(() => buildModelOptions(providerModels), [providerModels]);
 
@@ -111,9 +93,7 @@ export function MemoryStep({ onComplete, onBackToProviders }: Props) {
           <Label htmlFor="onboarding-memory-model">Embedding model</Label>
           <Select value={selectedValue} onValueChange={(value) => setSelectedValue(value ?? '')}>
             <SelectTrigger id="onboarding-memory-model" className="w-full">
-              <SelectValue placeholder="Select an embedding model">
-                {selectedOption?.label}
-              </SelectValue>
+              <SelectValue placeholder="Select an embedding model">{selectedOption?.label}</SelectValue>
             </SelectTrigger>
             <SelectContent className="max-h-80">
               {modelOptions.map((option) => (

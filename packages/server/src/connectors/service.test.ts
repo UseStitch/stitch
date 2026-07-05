@@ -25,13 +25,7 @@ function oauthDefinition(overrides: Partial<ConnectorDefinition> = {}): Connecto
     enabled: true,
     currentVersion: 3,
     versionHistory: [
-      {
-        version: 1,
-        title: 'Base',
-        description: 'Base',
-        action: 'none',
-        capabilities: ['example.read'],
-      },
+      { version: 1, title: 'Base', description: 'Base', action: 'none', capabilities: ['example.read'] },
       {
         version: 2,
         title: 'Rotate key',
@@ -74,24 +68,26 @@ describe('connector service', () => {
     // Create an instance at v1 so upgrade sees rotate + reauthorize actions
     const db = getDb();
     const instanceId = 'conn_test_upgrade' as never;
-    await db.insert(connectorInstances).values({
-      id: instanceId,
-      connectorId: definition.id,
-      label: 'Example',
-      appliedVersion: 1,
-      capabilities: ['example.read'],
-      clientId: 'client-id',
-      clientSecret: 'client-secret',
-      apiKey: 'old-key',
-      accessToken: 'token',
-      refreshToken: 'refresh',
-      tokenExpiresAt: Date.now() + 60_000,
-      scopes: ['scope:read'],
-      status: 'connected',
-      authIssue: null,
-      accountEmail: null,
-      accountInfo: null,
-    });
+    await db
+      .insert(connectorInstances)
+      .values({
+        id: instanceId,
+        connectorId: definition.id,
+        label: 'Example',
+        appliedVersion: 1,
+        capabilities: ['example.read'],
+        clientId: 'client-id',
+        clientSecret: 'client-secret',
+        apiKey: 'old-key',
+        accessToken: 'token',
+        refreshToken: 'refresh',
+        tokenExpiresAt: Date.now() + 60_000,
+        scopes: ['scope:read'],
+        status: 'connected',
+        authIssue: null,
+        accountEmail: null,
+        accountInfo: null,
+      });
 
     const result = await upgradeConnectorInstance(instanceId, {});
 
@@ -102,10 +98,7 @@ describe('connector service', () => {
     }
 
     // Row should be unchanged
-    const [row] = await db
-      .select()
-      .from(connectorInstances)
-      .where(eq(connectorInstances.id, instanceId));
+    const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
     expect(row?.appliedVersion).toBe(1);
   });
 
@@ -115,32 +108,29 @@ describe('connector service', () => {
 
     const db = getDb();
     const instanceId = 'conn_test_mixed' as never;
-    await db.insert(connectorInstances).values({
-      id: instanceId,
-      connectorId: definition.id,
-      label: 'Example',
-      appliedVersion: 1,
-      capabilities: ['example.read'],
-      clientId: 'client-id',
-      clientSecret: 'client-secret',
-      apiKey: 'old-key',
-      accessToken: 'token',
-      refreshToken: 'refresh',
-      tokenExpiresAt: Date.now() + 60_000,
-      scopes: ['scope:read'],
-      status: 'connected',
-      authIssue: null,
-      accountEmail: null,
-      accountInfo: null,
-    });
+    await db
+      .insert(connectorInstances)
+      .values({
+        id: instanceId,
+        connectorId: definition.id,
+        label: 'Example',
+        appliedVersion: 1,
+        capabilities: ['example.read'],
+        clientId: 'client-id',
+        clientSecret: 'client-secret',
+        apiKey: 'old-key',
+        accessToken: 'token',
+        refreshToken: 'refresh',
+        tokenExpiresAt: Date.now() + 60_000,
+        scopes: ['scope:read'],
+        status: 'connected',
+        authIssue: null,
+        accountEmail: null,
+        accountInfo: null,
+      });
 
     let requestedScopes: string[] = [];
-    const fakeStartOAuthFlow = async (
-      _config: unknown,
-      _id: string,
-      _secret: string,
-      scopes: string[],
-    ) => {
+    const fakeStartOAuthFlow = async (_config: unknown, _id: string, _secret: string, scopes: string[]) => {
       requestedScopes = scopes;
       return {
         authUrl: 'https://example.com/authorize',
@@ -160,19 +150,13 @@ describe('connector service', () => {
 
     expect(result.error).toBeNull();
     if (!result.error) {
-      expect(result.data).toEqual({
-        type: 'reauthorize',
-        authUrl: 'https://example.com/authorize',
-      });
+      expect(result.data).toEqual({ type: 'reauthorize', authUrl: 'https://example.com/authorize' });
     }
 
     // Wait for the background waitForTokens to complete
     await new Promise((r) => setTimeout(r, 50));
 
-    const [row] = await db
-      .select()
-      .from(connectorInstances)
-      .where(eq(connectorInstances.id, instanceId));
+    const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
     // After token exchange the instance should be connected with the new key and merged scopes
     expect(row?.apiKey).toBe('new-key');
     expect((row?.scopes as string[])?.includes('scope:admin')).toBe(true);
@@ -186,34 +170,33 @@ describe('connector service', () => {
         tokenUrl: 'https://example.com/token',
         defaultScopes: ['scope:read'],
         scopeDescriptions: { 'scope:read': 'Read', 'scope:admin': 'Admin' },
-        incrementalAuth: {
-          enabled: true,
-          params: { include_granted_scopes: 'true' },
-        },
+        incrementalAuth: { enabled: true, params: { include_granted_scopes: 'true' } },
       },
     });
     registerConnector(definition);
 
     const db = getDb();
     const instanceId = 'conn_test_incremental' as never;
-    await db.insert(connectorInstances).values({
-      id: instanceId,
-      connectorId: definition.id,
-      label: 'Example',
-      appliedVersion: 2,
-      capabilities: ['example.read', 'example.write'],
-      clientId: 'client-id',
-      clientSecret: 'client-secret',
-      apiKey: null,
-      accessToken: 'token',
-      refreshToken: 'refresh',
-      tokenExpiresAt: Date.now() + 60_000,
-      scopes: ['scope:read'],
-      status: 'connected',
-      authIssue: null,
-      accountEmail: null,
-      accountInfo: null,
-    });
+    await db
+      .insert(connectorInstances)
+      .values({
+        id: instanceId,
+        connectorId: definition.id,
+        label: 'Example',
+        appliedVersion: 2,
+        capabilities: ['example.read', 'example.write'],
+        clientId: 'client-id',
+        clientSecret: 'client-secret',
+        apiKey: null,
+        accessToken: 'token',
+        refreshToken: 'refresh',
+        tokenExpiresAt: Date.now() + 60_000,
+        scopes: ['scope:read'],
+        status: 'connected',
+        authIssue: null,
+        accountEmail: null,
+        accountInfo: null,
+      });
 
     let requestedScopes: string[] = [];
     let requestedParams: Record<string, string> | undefined;
@@ -236,11 +219,7 @@ describe('connector service', () => {
       };
     };
 
-    const result = await upgradeConnectorInstance(
-      instanceId,
-      {},
-      { startOAuthFlow: fakeStartOAuthFlow },
-    );
+    const result = await upgradeConnectorInstance(instanceId, {}, { startOAuthFlow: fakeStartOAuthFlow });
 
     expect(result.error).toBeNull();
     expect(requestedScopes).toEqual(['scope:admin']);
@@ -248,10 +227,7 @@ describe('connector service', () => {
 
     await new Promise((r) => setTimeout(r, 50));
 
-    const [row] = await db
-      .select()
-      .from(connectorInstances)
-      .where(eq(connectorInstances.id, instanceId));
+    const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
     expect(row?.scopes).toEqual(['scope:read', 'scope:admin']);
   });
 
@@ -265,13 +241,7 @@ describe('connector service', () => {
       enabled: false,
       currentVersion: 1,
       versionHistory: [
-        {
-          version: 1,
-          title: 'Initial',
-          description: 'Initial',
-          action: 'none',
-          capabilities: ['example.api.read'],
-        },
+        { version: 1, title: 'Initial', description: 'Initial', action: 'none', capabilities: ['example.api.read'] },
       ],
       authType: 'api_key',
       authConfig: { keyLabel: 'API Key' },
@@ -294,10 +264,8 @@ describe('connector service', () => {
 
     expect(oauthResult.error).not.toBeNull();
     expect(apiKeyResult.error).not.toBeNull();
-    if (oauthResult.error)
-      expect(oauthResult.error.message).toBe('Connector is currently disabled');
-    if (apiKeyResult.error)
-      expect(apiKeyResult.error.message).toBe('Connector is currently disabled');
+    if (oauthResult.error) expect(oauthResult.error.message).toBe('Connector is currently disabled');
+    if (apiKeyResult.error) expect(apiKeyResult.error.message).toBe('Connector is currently disabled');
 
     // Nothing written to DB
     const rows = await getDb().select().from(connectorInstances);
@@ -313,24 +281,26 @@ describe('connector service', () => {
 
     const db = getDb();
     const instanceId = 'conn_auth_fail' as never;
-    await db.insert(connectorInstances).values({
-      id: instanceId,
-      connectorId: definition.id,
-      label: 'Example OAuth',
-      appliedVersion: 1,
-      capabilities: ['example.read'],
-      clientId: 'client-id',
-      clientSecret: 'client-secret',
-      apiKey: null,
-      accessToken: null,
-      refreshToken: null,
-      tokenExpiresAt: null,
-      scopes: ['scope:read'],
-      status: 'awaiting_auth',
-      authIssue: null,
-      accountEmail: null,
-      accountInfo: null,
-    });
+    await db
+      .insert(connectorInstances)
+      .values({
+        id: instanceId,
+        connectorId: definition.id,
+        label: 'Example OAuth',
+        appliedVersion: 1,
+        capabilities: ['example.read'],
+        clientId: 'client-id',
+        clientSecret: 'client-secret',
+        apiKey: null,
+        accessToken: null,
+        refreshToken: null,
+        tokenExpiresAt: null,
+        scopes: ['scope:read'],
+        status: 'awaiting_auth',
+        authIssue: null,
+        accountEmail: null,
+        accountInfo: null,
+      });
 
     const fakeStartOAuthFlow = async () => ({
       authUrl: 'https://example.com/authorize',
@@ -352,10 +322,7 @@ describe('connector service', () => {
     }
     expect(threw).toBe(true);
 
-    const [row] = await db
-      .select()
-      .from(connectorInstances)
-      .where(eq(connectorInstances.id, instanceId));
+    const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
     expect(row?.status).toBe('error');
   });
 
@@ -365,24 +332,26 @@ describe('connector service', () => {
 
     const db = getDb();
     const instanceId = 'conn_auth_success' as never;
-    await db.insert(connectorInstances).values({
-      id: instanceId,
-      connectorId: definition.id,
-      label: 'Example OAuth',
-      appliedVersion: 1,
-      capabilities: ['example.read'],
-      clientId: 'client-id',
-      clientSecret: 'client-secret',
-      apiKey: null,
-      accessToken: null,
-      refreshToken: null,
-      tokenExpiresAt: null,
-      scopes: ['scope:read'],
-      status: 'awaiting_auth',
-      authIssue: null,
-      accountEmail: null,
-      accountInfo: null,
-    });
+    await db
+      .insert(connectorInstances)
+      .values({
+        id: instanceId,
+        connectorId: definition.id,
+        label: 'Example OAuth',
+        appliedVersion: 1,
+        capabilities: ['example.read'],
+        clientId: 'client-id',
+        clientSecret: 'client-secret',
+        apiKey: null,
+        accessToken: null,
+        refreshToken: null,
+        tokenExpiresAt: null,
+        scopes: ['scope:read'],
+        status: 'awaiting_auth',
+        authIssue: null,
+        accountEmail: null,
+        accountInfo: null,
+      });
 
     const fakeStartOAuthFlow = async () => ({
       authUrl: 'https://example.com/authorize',
@@ -400,10 +369,7 @@ describe('connector service', () => {
 
     await result.data.waitForTokens();
 
-    const [row] = await db
-      .select()
-      .from(connectorInstances)
-      .where(eq(connectorInstances.id, instanceId));
+    const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
     expect(row?.status).toBe('connected');
     expect(row?.accessToken).toBe('access-token-123');
     expect(row?.refreshToken).toBe('refresh-token-123');
@@ -419,34 +385,33 @@ describe('connector service', () => {
         tokenUrl: 'https://example.com/token',
         defaultScopes: ['scope:read'],
         scopeDescriptions: { 'scope:read': 'Read', 'scope:docs': 'Docs' },
-        incrementalAuth: {
-          enabled: true,
-          params: { include_granted_scopes: 'true' },
-        },
+        incrementalAuth: { enabled: true, params: { include_granted_scopes: 'true' } },
       },
     });
     registerConnector(definition);
 
     const db = getDb();
     const instanceId = 'conn_auth_incremental_reauth' as never;
-    await db.insert(connectorInstances).values({
-      id: instanceId,
-      connectorId: definition.id,
-      label: 'Example OAuth',
-      appliedVersion: definition.currentVersion,
-      capabilities: ['example.read', 'example.write', 'example.admin'],
-      clientId: 'client-id',
-      clientSecret: 'client-secret',
-      apiKey: null,
-      accessToken: 'old-access-token',
-      refreshToken: 'existing-refresh-token',
-      tokenExpiresAt: Date.now() - 1_000,
-      scopes: ['scope:read', 'scope:docs'],
-      status: 'connected',
-      authIssue: null,
-      accountEmail: null,
-      accountInfo: null,
-    });
+    await db
+      .insert(connectorInstances)
+      .values({
+        id: instanceId,
+        connectorId: definition.id,
+        label: 'Example OAuth',
+        appliedVersion: definition.currentVersion,
+        capabilities: ['example.read', 'example.write', 'example.admin'],
+        clientId: 'client-id',
+        clientSecret: 'client-secret',
+        apiKey: null,
+        accessToken: 'old-access-token',
+        refreshToken: 'existing-refresh-token',
+        tokenExpiresAt: Date.now() - 1_000,
+        scopes: ['scope:read', 'scope:docs'],
+        status: 'connected',
+        authIssue: null,
+        accountEmail: null,
+        accountInfo: null,
+      });
 
     let requestedScopes: string[] = [];
     let requestedParams: Record<string, string> | undefined;
@@ -461,11 +426,7 @@ describe('connector service', () => {
       requestedParams = options?.additionalParams;
       return {
         authUrl: 'https://example.com/authorize',
-        waitForTokens: async () => ({
-          accessToken: 'new-access-token',
-          refreshToken: null,
-          expiresIn: 3600,
-        }),
+        waitForTokens: async () => ({ accessToken: 'new-access-token', refreshToken: null, expiresIn: 3600 }),
       };
     };
 
@@ -482,32 +443,30 @@ describe('connector service', () => {
 
     const db = getDb();
     const instanceId = 'conn_auth_preserve_refresh' as never;
-    await db.insert(connectorInstances).values({
-      id: instanceId,
-      connectorId: definition.id,
-      label: 'Example OAuth',
-      appliedVersion: 1,
-      capabilities: ['example.read'],
-      clientId: 'client-id',
-      clientSecret: 'client-secret',
-      apiKey: null,
-      accessToken: 'old-access-token',
-      refreshToken: 'existing-refresh-token',
-      tokenExpiresAt: Date.now() - 1_000,
-      scopes: ['scope:read'],
-      status: 'connected',
-      authIssue: null,
-      accountEmail: null,
-      accountInfo: null,
-    });
+    await db
+      .insert(connectorInstances)
+      .values({
+        id: instanceId,
+        connectorId: definition.id,
+        label: 'Example OAuth',
+        appliedVersion: 1,
+        capabilities: ['example.read'],
+        clientId: 'client-id',
+        clientSecret: 'client-secret',
+        apiKey: null,
+        accessToken: 'old-access-token',
+        refreshToken: 'existing-refresh-token',
+        tokenExpiresAt: Date.now() - 1_000,
+        scopes: ['scope:read'],
+        status: 'connected',
+        authIssue: null,
+        accountEmail: null,
+        accountInfo: null,
+      });
 
     const fakeStartOAuthFlow = async () => ({
       authUrl: 'https://example.com/authorize',
-      waitForTokens: async () => ({
-        accessToken: 'new-access-token',
-        refreshToken: null,
-        expiresIn: 3600,
-      }),
+      waitForTokens: async () => ({ accessToken: 'new-access-token', refreshToken: null, expiresIn: 3600 }),
     });
 
     const result = await authorizeOAuthInstance(instanceId, { startOAuthFlow: fakeStartOAuthFlow });
@@ -517,10 +476,7 @@ describe('connector service', () => {
 
     await result.data.waitForTokens();
 
-    const [row] = await db
-      .select()
-      .from(connectorInstances)
-      .where(eq(connectorInstances.id, instanceId));
+    const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
     expect(row?.status).toBe('connected');
     expect(row?.accessToken).toBe('new-access-token');
     expect(row?.refreshToken).toBe('existing-refresh-token');

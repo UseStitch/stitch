@@ -12,10 +12,7 @@ import { registerIpcHandler } from './register.js';
 
 import type { BrowserWindow } from 'electron';
 
-export function registerRecordingHandlers(
-  getServerUrl: () => string,
-  getWindow: () => BrowserWindow | null,
-): void {
+export function registerRecordingHandlers(getServerUrl: () => string, getWindow: () => BrowserWindow | null): void {
   registerIpcHandler('recording:start', async (_event, input) => {
     const serverUrl = getServerUrl();
     const startResponse = await serverJson<StartRecordingResponse>(serverUrl, '/recordings/start', {

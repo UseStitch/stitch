@@ -9,12 +9,7 @@ import {
 } from './errors.js';
 import { DANGEROUS_GLOBALS } from './hardening.js';
 import { isWorkerMessage } from './protocol.js';
-import {
-  createAbortRace,
-  createExecutionTimeoutRace,
-  createPausableTimer,
-  createToolTimeoutRace,
-} from './timer.js';
+import { createAbortRace, createExecutionTimeoutRace, createPausableTimer, createToolTimeoutRace } from './timer.js';
 
 import type { HostMessage, WorkerMessage } from './protocol.js';
 import type {
@@ -67,8 +62,7 @@ function validateLibraryNames(libraries: IsolateOptions['libraries']): void {
     }
     if (
       library.globalName !== undefined &&
-      (!IDENTIFIER_PATTERN.test(library.globalName) ||
-        RESERVED_LIBRARY_NAMES.has(library.globalName))
+      (!IDENTIFIER_PATTERN.test(library.globalName) || RESERVED_LIBRARY_NAMES.has(library.globalName))
     ) {
       throw new SandboxSecurityError(`Invalid sandbox library global name: ${library.globalName}`);
     }
@@ -83,11 +77,7 @@ async function dispatchToolCall(
   try {
     const count = ctx.incrementToolCallCount();
     if (count > ctx.maxToolCalls) {
-      ctx.proc.send({
-        type: 'tool_error',
-        id: message.id,
-        error: new SandboxToolLimitError(ctx.maxToolCalls).message,
-      });
+      ctx.proc.send({ type: 'tool_error', id: message.id, error: new SandboxToolLimitError(ctx.maxToolCalls).message });
       return;
     }
 
@@ -95,11 +85,7 @@ async function dispatchToolCall(
 
     const binding = ctx.bindings[message.name];
     if (!binding) {
-      ctx.proc.send({
-        type: 'tool_error',
-        id: message.id,
-        error: new SandboxUnknownToolError(message.name).message,
-      });
+      ctx.proc.send({ type: 'tool_error', id: message.id, error: new SandboxUnknownToolError(message.name).message });
       return;
     }
 
@@ -109,10 +95,7 @@ async function dispatchToolCall(
       `Tool call timed out after ${ctx.toolTimeoutMs}ms`,
     );
     try {
-      const result = await Promise.race([
-        binding.execute(message.args, ctx.abortSignal),
-        timeoutRace.promise,
-      ]);
+      const result = await Promise.race([binding.execute(message.args, ctx.abortSignal), timeoutRace.promise]);
 
       const response: HostMessage = { type: 'tool_result', id: message.id, result };
       assertMessageSize(response, ctx.maxMessageBytes);
@@ -145,10 +128,7 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
   const cmd = isScript ? [process.execPath, '--smol', execPath] : [execPath];
 
   return {
-    async createContext(
-      bindings: Record<string, ToolBinding>,
-      options: IsolateOptions = {},
-    ): Promise<IsolateContext> {
+    async createContext(bindings: Record<string, ToolBinding>, options: IsolateOptions = {}): Promise<IsolateContext> {
       const timeoutMs = options.timeout ?? DEFAULT_TIMEOUT_MS;
       const maxToolCalls = options.maxToolCalls ?? DEFAULT_MAX_TOOL_CALLS;
       const maxMessageBytes = options.maxMessageBytes ?? DEFAULT_MAX_MESSAGE_BYTES;
@@ -181,12 +161,7 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
         }
       };
 
-      proc.send({
-        type: 'init',
-        toolNames,
-        libraries,
-        memoryReportIntervalMs: MEMORY_REPORT_INTERVAL_MS,
-      });
+      proc.send({ type: 'init', toolNames, libraries, memoryReportIntervalMs: MEMORY_REPORT_INTERVAL_MS });
 
       const toolCallCtx: ToolCallContext = {
         bindings,
@@ -225,10 +200,7 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
                 if (message.rss > memoryLimitBytes) {
                   cleanup();
                   terminate();
-                  settle({
-                    result: { error: new SandboxMemoryError(memoryLimitMB).message },
-                    logs: [],
-                  });
+                  settle({ result: { error: new SandboxMemoryError(memoryLimitMB).message }, logs: [] });
                 }
                 return;
               }
@@ -269,9 +241,7 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
             terminate();
             return {
               result: {
-                error: timeoutRace.isTimedOut()
-                  ? new SandboxTimeoutError(timeoutMs).message
-                  : toErrorMessage(err),
+                error: timeoutRace.isTimedOut() ? new SandboxTimeoutError(timeoutMs).message : toErrorMessage(err),
               },
               logs: [],
             };

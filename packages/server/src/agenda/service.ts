@@ -58,9 +58,7 @@ function toAgendaItem(row: AgendaItemRow, listName?: string): AgendaItem {
 
 // --- Lists ---
 
-export function getAgendaLists(input?: {
-  includeArchived?: boolean;
-}): ServiceResult<AgendaListWithCounts[]> {
+export function getAgendaLists(input?: { includeArchived?: boolean }): ServiceResult<AgendaListWithCounts[]> {
   const db = getDb();
   const includeArchived = input?.includeArchived ?? false;
 
@@ -83,15 +81,7 @@ export function getAgendaLists(input?: {
   type Counts = AgendaListWithCounts['itemCounts'];
   const countMap = new Map<string, Counts>();
   for (const list of lists) {
-    countMap.set(list.id, {
-      open: 0,
-      in_progress: 0,
-      done: 0,
-      cancelled: 0,
-      total: 0,
-      overdue: 0,
-      dueSoon: 0,
-    });
+    countMap.set(list.id, { open: 0, in_progress: 0, done: 0, cancelled: 0, total: 0, overdue: 0, dueSoon: 0 });
   }
 
   for (const item of allItems) {
@@ -147,10 +137,7 @@ export function createAgendaList(input: CreateAgendaListInput): ServiceResult<Ag
   return ok(toAgendaList(row as AgendaListRow));
 }
 
-export function updateAgendaList(
-  id: PrefixedString<'alist'>,
-  input: UpdateAgendaListInput,
-): ServiceResult<AgendaList> {
+export function updateAgendaList(id: PrefixedString<'alist'>, input: UpdateAgendaListInput): ServiceResult<AgendaList> {
   const db = getDb();
   const existing = db.select().from(agendaLists).where(eq(agendaLists.id, id)).get();
   if (!existing) return err('List not found', 404);
@@ -184,10 +171,7 @@ export function mergeAgendaLists(
   if (!source) return err('Source list not found', 404);
   if (targetId === sourceId) return ok(toAgendaList(target));
 
-  db.update(agendaItems)
-    .set({ listId: targetId, updatedAt: Date.now() })
-    .where(eq(agendaItems.listId, sourceId))
-    .run();
+  db.update(agendaItems).set({ listId: targetId, updatedAt: Date.now() }).where(eq(agendaItems.listId, sourceId)).run();
 
   db.delete(agendaLists).where(eq(agendaLists.id, sourceId)).run();
 
@@ -289,10 +273,7 @@ export function createAgendaItem(input: CreateAgendaItemInput): ServiceResult<Ag
   return ok(toAgendaItem(itemRow as AgendaItemRow, listRow?.name));
 }
 
-export function updateAgendaItem(
-  id: PrefixedString<'aitm'>,
-  input: UpdateAgendaItemInput,
-): ServiceResult<AgendaItem> {
+export function updateAgendaItem(id: PrefixedString<'aitm'>, input: UpdateAgendaItemInput): ServiceResult<AgendaItem> {
   const db = getDb();
   const existing = db
     .select({ item: agendaItems, listName: agendaLists.name })
@@ -341,10 +322,7 @@ export function reorderAgendaItems(orderedIds: PrefixedString<'aitm'>[]): Servic
   const now = Date.now();
   db.transaction(() => {
     for (let i = 0; i < orderedIds.length; i++) {
-      db.update(agendaItems)
-        .set({ position: i, updatedAt: now })
-        .where(eq(agendaItems.id, orderedIds[i]))
-        .run();
+      db.update(agendaItems).set({ position: i, updatedAt: now }).where(eq(agendaItems.id, orderedIds[i])).run();
     }
   });
   return ok(null);
@@ -355,10 +333,7 @@ export function reorderAgendaLists(orderedIds: PrefixedString<'alist'>[]): Servi
   const now = Date.now();
   db.transaction(() => {
     for (let i = 0; i < orderedIds.length; i++) {
-      db.update(agendaLists)
-        .set({ position: i, updatedAt: now })
-        .where(eq(agendaLists.id, orderedIds[i]))
-        .run();
+      db.update(agendaLists).set({ position: i, updatedAt: now }).where(eq(agendaLists.id, orderedIds[i])).run();
     }
   });
   return ok(null);

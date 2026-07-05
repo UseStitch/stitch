@@ -35,21 +35,14 @@ export const PREBUILT_MEETING_NOTE_TEMPLATES: MeetingNoteTemplate[] = [
   {
     id: 'mnt_prebuilt_standup',
     name: 'Team Standup',
-    content:
-      '# Standup Notes\n\n## Progress\n- \n\n## Today\n- \n\n## Blockers\n- \n\n## Help Needed\n- \n',
+    content: '# Standup Notes\n\n## Progress\n- \n\n## Today\n- \n\n## Blockers\n- \n\n## Help Needed\n- \n',
     createdAt: 0,
     updatedAt: 0,
   },
 ];
 
 function toMeetingNoteTemplate(row: MeetingNoteTemplateRow): MeetingNoteTemplate {
-  return {
-    id: row.id,
-    name: row.name,
-    content: row.content,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-  };
+  return { id: row.id, name: row.name, content: row.content, createdAt: row.createdAt, updatedAt: row.updatedAt };
 }
 
 export function seedMeetingNoteTemplates(db = getDb()): void {
@@ -57,26 +50,15 @@ export function seedMeetingNoteTemplates(db = getDb()): void {
 
   for (const template of PREBUILT_MEETING_NOTE_TEMPLATES) {
     db.insert(meetingNoteTemplates)
-      .values({
-        id: template.id,
-        name: template.name,
-        content: template.content,
-        createdAt: now,
-        updatedAt: now,
-      })
+      .values({ id: template.id, name: template.name, content: template.content, createdAt: now, updatedAt: now })
       .onConflictDoNothing()
       .run();
   }
 }
 
-export async function listMeetingNoteTemplates(): Promise<
-  ServiceResult<ListMeetingNoteTemplatesResponse>
-> {
+export async function listMeetingNoteTemplates(): Promise<ServiceResult<ListMeetingNoteTemplatesResponse>> {
   const db = getDb();
-  const rows = await db
-    .select()
-    .from(meetingNoteTemplates)
-    .orderBy(desc(meetingNoteTemplates.updatedAt));
+  const rows = await db.select().from(meetingNoteTemplates).orderBy(desc(meetingNoteTemplates.updatedAt));
 
   return ok({ templates: rows.map(toMeetingNoteTemplate) });
 }
@@ -100,13 +82,7 @@ export async function createMeetingNoteTemplate(
   const id = createMeetingNoteTemplateId();
   const [row] = await db
     .insert(meetingNoteTemplates)
-    .values({
-      id,
-      name: input.name.trim(),
-      content: input.content,
-      createdAt: now,
-      updatedAt: now,
-    })
+    .values({ id, name: input.name.trim(), content: input.content, createdAt: now, updatedAt: now })
     .returning();
 
   if (!row) return err('Failed to create meeting note template', 500);
@@ -121,11 +97,7 @@ export async function updateMeetingNoteTemplate(
   const db = getDb();
   const [row] = await db
     .update(meetingNoteTemplates)
-    .set({
-      name: input.name.trim(),
-      content: input.content,
-      updatedAt: Date.now(),
-    })
+    .set({ name: input.name.trim(), content: input.content, updatedAt: Date.now() })
     .where(eq(meetingNoteTemplates.id, id))
     .returning();
 
@@ -134,9 +106,7 @@ export async function updateMeetingNoteTemplate(
   return ok({ template: toMeetingNoteTemplate(row) });
 }
 
-export async function deleteMeetingNoteTemplate(
-  id: MeetingNoteTemplate['id'],
-): Promise<ServiceResult<void>> {
+export async function deleteMeetingNoteTemplate(id: MeetingNoteTemplate['id']): Promise<ServiceResult<void>> {
   const db = getDb();
   const rows = await db
     .delete(meetingNoteTemplates)

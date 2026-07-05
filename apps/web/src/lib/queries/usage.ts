@@ -20,10 +20,8 @@ type UsageDashboardFilters = {
 const usageKeys = {
   all: ['usage'] as const,
   dashboard: (filters: UsageDashboardFilters) => [...usageKeys.all, 'dashboard', filters] as const,
-  sttDashboard: (filters: UsageDashboardFilters) =>
-    [...usageKeys.all, 'stt-dashboard', filters] as const,
-  embeddingDashboard: (filters: UsageDashboardFilters) =>
-    [...usageKeys.all, 'embedding-dashboard', filters] as const,
+  sttDashboard: (filters: UsageDashboardFilters) => [...usageKeys.all, 'stt-dashboard', filters] as const,
+  embeddingDashboard: (filters: UsageDashboardFilters) => [...usageKeys.all, 'embedding-dashboard', filters] as const,
 };
 
 function buildQueryString(filters: UsageDashboardFilters): string {

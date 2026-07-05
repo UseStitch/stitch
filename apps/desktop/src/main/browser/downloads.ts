@@ -33,9 +33,7 @@ export class DownloadTracker {
       this.broadcast();
     };
     update('progressing');
-    item.on('updated', (_event, state) =>
-      update(state === 'interrupted' ? 'interrupted' : 'progressing'),
-    );
+    item.on('updated', (_event, state) => update(state === 'interrupted' ? 'interrupted' : 'progressing'));
     item.once('done', (_event, state) => update(state));
   }
 

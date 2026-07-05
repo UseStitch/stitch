@@ -1,7 +1,4 @@
-type OAuthCredentialCarrier = {
-  clientId: string | null;
-  clientSecret: string | null;
-};
+type OAuthCredentialCarrier = { clientId: string | null; clientSecret: string | null };
 
 export async function resolveOAuthCredentials(
   instance: OAuthCredentialCarrier,

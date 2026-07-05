@@ -19,8 +19,5 @@ export function parseSlashCommand(input: string): ParsedSlashCommand | null {
   const match = /^(\S+)(?:\s+([\s\S]*))?$/.exec(withoutSlash);
   if (!match) return null;
 
-  return {
-    name: match[1].toLowerCase(),
-    args: match[2]?.trim() ?? '',
-  };
+  return { name: match[1].toLowerCase(), args: match[2]?.trim() ?? '' };
 }

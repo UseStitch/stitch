@@ -72,26 +72,14 @@ function sanitizeGemini(node: unknown): unknown {
   }
 
   // Array schemas must declare `items`; default empty item schemas to string.
-  if (
-    result.type === 'array' &&
-    !hasCombiner(result) &&
-    (result.items === undefined || result.items === null)
-  ) {
+  if (result.type === 'array' && !hasCombiner(result) && (result.items === undefined || result.items === null)) {
     result.items = { type: 'string' };
   }
 
   return result;
 }
 
-const JSON_SCHEMA_TYPES = [
-  'string',
-  'number',
-  'boolean',
-  'integer',
-  'object',
-  'array',
-  'null',
-] as const;
+const JSON_SCHEMA_TYPES = ['string', 'number', 'boolean', 'integer', 'object', 'array', 'null'] as const;
 const COMBINER_KEYS = ['anyOf', 'oneOf', 'allOf'] as const;
 
 /**
@@ -138,9 +126,7 @@ function sanitizeOpenAI(value: unknown): unknown {
 
   for (const key of ['$defs', 'definitions']) {
     if (isPlainObject(value[key])) {
-      result[key] = Object.fromEntries(
-        Object.entries(value[key]).map(([name, item]) => [name, sanitizeOpenAI(item)]),
-      );
+      result[key] = Object.fromEntries(Object.entries(value[key]).map(([name, item]) => [name, sanitizeOpenAI(item)]));
     }
   }
 
@@ -155,10 +141,7 @@ function sanitizeOpenAI(value: unknown): unknown {
         ? value.type.filter(isType)
         : [];
 
-  if (
-    schemaTypes.length === 0 &&
-    (typeof result.$ref === 'string' || COMBINER_KEYS.some((key) => key in result))
-  ) {
+  if (schemaTypes.length === 0 && (typeof result.$ref === 'string' || COMBINER_KEYS.some((key) => key in result))) {
     return result;
   }
 
@@ -169,11 +152,7 @@ function sanitizeOpenAI(value: unknown): unknown {
     }
     if (['items', 'prefixItems'].some((key) => key in value)) return ['array'];
     if ('enum' in result || 'format' in value) return ['string'];
-    if (
-      ['minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf'].some(
-        (key) => key in value,
-      )
-    ) {
+    if (['minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf'].some((key) => key in value)) {
       return ['number'];
     }
     return [];
@@ -223,10 +202,7 @@ function sanitizeTool(tool: Tool, sanitize: SchemaSanitizer): Tool {
   if (!isPlainObject(raw)) return tool;
 
   const sanitized = sanitize(raw) as JSONSchema7;
-  return {
-    ...tool,
-    inputSchema: toJsonSchema(sanitized, { validate: schema.validate }),
-  } as Tool;
+  return { ...tool, inputSchema: toJsonSchema(sanitized, { validate: schema.validate }) } as Tool;
 }
 
 export function sanitizeToolSchemasForProvider(
@@ -237,7 +213,5 @@ export function sanitizeToolSchemasForProvider(
   const sanitize = selectSanitizer(providerId, modelId);
   if (!sanitize) return tools;
 
-  return Object.fromEntries(
-    Object.entries(tools).map(([name, tool]) => [name, sanitizeTool(tool, sanitize)]),
-  );
+  return Object.fromEntries(Object.entries(tools).map(([name, tool]) => [name, sanitizeTool(tool, sanitize)]));
 }

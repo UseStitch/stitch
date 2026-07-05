@@ -36,9 +36,7 @@ export function UsageDashboardPage() {
             </PageIcon>
             <div>
               <PageTitle>Usage</PageTitle>
-              <PageDescription>
-                Cost and token analytics across providers, models, and sources.
-              </PageDescription>
+              <PageDescription>Cost and token analytics across providers, models, and sources.</PageDescription>
             </div>
           </PageHeaderContent>
         </PageHeader>
@@ -91,10 +89,7 @@ export function UsageDashboardPage() {
               onProviderChange={embedding.setProviderFilter}
               onRangeChange={llm.setRangeFilter}
             />
-            <EmbeddingUsageSummaryCards
-              rangeLabel={embedding.labels.range}
-              usageData={embedding.usageData}
-            />
+            <EmbeddingUsageSummaryCards rangeLabel={embedding.labels.range} usageData={embedding.usageData} />
             <EmbeddingUsageCostChart usageData={embedding.usageData} />
           </TabsContent>
         </Tabs>

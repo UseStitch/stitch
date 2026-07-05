@@ -15,22 +15,16 @@ function stringOrNull(value: unknown): string | null {
 }
 
 function childrenOrEmpty(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((child): child is string => typeof child === 'string')
-    : [];
+  return Array.isArray(value) ? value.filter((child): child is string => typeof child === 'string') : [];
 }
 
 function normalizeColumns(value: unknown): string {
   const normalized = typeof value === 'number' ? String(value) : value;
-  return typeof normalized === 'string' && LIQUID_UI_COLUMNS.includes(normalized as LiquidUiColumn)
-    ? normalized
-    : '1';
+  return typeof normalized === 'string' && LIQUID_UI_COLUMNS.includes(normalized as LiquidUiColumn) ? normalized : '1';
 }
 
 function normalizeTrend(value: unknown): 'up' | 'down' | 'neutral' | null {
-  return typeof value === 'string' && STAT_TRENDS.includes(value as StatTrend)
-    ? (value as StatTrend)
-    : null;
+  return typeof value === 'string' && STAT_TRENDS.includes(value as StatTrend) ? (value as StatTrend) : null;
 }
 
 function repairNode(node: unknown): JsonRecord | null {

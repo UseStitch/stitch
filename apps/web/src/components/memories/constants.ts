@@ -6,10 +6,7 @@ export const CATEGORY_LABELS: Record<MemoryCategory, string> = {
   constraint: 'Constraint',
 };
 
-export const CATEGORY_VARIANTS: Record<
-  MemoryCategory,
-  'default' | 'secondary' | 'outline' | 'destructive'
-> = {
+export const CATEGORY_VARIANTS: Record<MemoryCategory, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   preference: 'default',
   fact: 'secondary',
   constraint: 'destructive',

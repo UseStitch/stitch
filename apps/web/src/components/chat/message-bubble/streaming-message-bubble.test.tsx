@@ -9,9 +9,7 @@ import type { StreamingPart } from '@/stores/stream-store';
 
 const DASHBOARD_SPEC = {
   root: 'n1',
-  nodes: [
-    { id: 'n1', component: 'Stat', label: 'Revenue', value: '$4.2k', caption: null, trend: 'up' },
-  ],
+  nodes: [{ id: 'n1', component: 'Stat', label: 'Revenue', value: '$4.2k', caption: null, trend: 'up' }],
 };
 
 function toolCallPart(overrides: Partial<Extract<StreamingPart, { type: 'tool-call' }>>) {
@@ -30,22 +28,12 @@ function toolCallPart(overrides: Partial<Extract<StreamingPart, { type: 'tool-ca
 }
 
 function textPart(text: string, id: string): StreamingPart {
-  return {
-    type: 'text',
-    id,
-    text,
-    hasContent: true,
-    status: 'complete',
-    startedAt: 0,
-    endedAt: 1,
-  };
+  return { type: 'text', id, text, hasContent: true, status: 'complete', startedAt: 0, endedAt: 1 };
 }
 
 describe('StreamingMessageBubble liquid UI', () => {
   test('renders render_ui tool-call as inline dashboard while streaming', () => {
-    const html = renderToStaticMarkup(
-      <StreamingMessageBubble partIds={['tc1']} parts={{ tc1: toolCallPart({}) }} />,
-    );
+    const html = renderToStaticMarkup(<StreamingMessageBubble partIds={['tc1']} parts={{ tc1: toolCallPart({}) }} />);
 
     expect(html).toContain('Revenue');
     expect(html).toContain('$4.2k');

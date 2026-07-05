@@ -5,14 +5,9 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import type { ModelSpec } from '@/components/chat/chat-input-parts/types';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 
-type UseChatModelResult = {
-  selectedModel: ModelSpec | null;
-  handleModelChange: (model: ModelSpec | null) => void;
-};
+type UseChatModelResult = { selectedModel: ModelSpec | null; handleModelChange: (model: ModelSpec | null) => void };
 
-type UseChatModelInput = {
-  lastUsedModel?: ModelSpec | null;
-};
+type UseChatModelInput = { lastUsedModel?: ModelSpec | null };
 
 export function useChatModel(input?: UseChatModelInput): UseChatModelResult {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);

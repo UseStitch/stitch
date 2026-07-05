@@ -1,14 +1,8 @@
 import { sleep } from './utils.js';
 
-type RateLimitBucket = {
-  capacity: number;
-  windowMs: number;
-};
+type RateLimitBucket = { capacity: number; windowMs: number };
 
-type RateLimitServiceConfig = {
-  project: RateLimitBucket;
-  account: RateLimitBucket;
-};
+type RateLimitServiceConfig = { project: RateLimitBucket; account: RateLimitBucket };
 
 export type GoogleRateLimitConfig = {
   services: {
@@ -23,34 +17,16 @@ export type GoogleRateLimitConfig = {
 
 export const DEFAULT_GOOGLE_RATE_LIMIT_CONFIG: GoogleRateLimitConfig = {
   services: {
-    gmail: {
-      project: { capacity: 1_200_000, windowMs: 60_000 },
-      account: { capacity: 15_000, windowMs: 60_000 },
-    },
-    drive: {
-      project: { capacity: 1_000_000, windowMs: 60_000 },
-      account: { capacity: 325_000, windowMs: 60_000 },
-    },
-    docsRead: {
-      project: { capacity: 3000, windowMs: 60_000 },
-      account: { capacity: 300, windowMs: 60_000 },
-    },
-    docsWrite: {
-      project: { capacity: 600, windowMs: 60_000 },
-      account: { capacity: 60, windowMs: 60_000 },
-    },
-    calendar: {
-      project: { capacity: 6000, windowMs: 60_000 },
-      account: { capacity: 600, windowMs: 60_000 },
-    },
+    gmail: { project: { capacity: 1_200_000, windowMs: 60_000 }, account: { capacity: 15_000, windowMs: 60_000 } },
+    drive: { project: { capacity: 1_000_000, windowMs: 60_000 }, account: { capacity: 325_000, windowMs: 60_000 } },
+    docsRead: { project: { capacity: 3000, windowMs: 60_000 }, account: { capacity: 300, windowMs: 60_000 } },
+    docsWrite: { project: { capacity: 600, windowMs: 60_000 }, account: { capacity: 60, windowMs: 60_000 } },
+    calendar: { project: { capacity: 6000, windowMs: 60_000 }, account: { capacity: 600, windowMs: 60_000 } },
   },
   maxQueueWaitMs: 60_000,
 };
 
-type GoogleQuotaOperation = {
-  service: keyof GoogleRateLimitConfig['services'];
-  quotaCost: number;
-};
+type GoogleQuotaOperation = { service: keyof GoogleRateLimitConfig['services']; quotaCost: number };
 
 const GMAIL_METHOD_COSTS = {
   MESSAGES_LIST: 5,
@@ -138,11 +114,7 @@ function resolveGmailQuotaCost(pathname: string, method: string): number {
   return GMAIL_METHOD_COSTS.DEFAULT;
 }
 
-function resolveDriveQuotaCost(
-  pathname: string,
-  method: string,
-  searchParams: URLSearchParams,
-): number {
+function resolveDriveQuotaCost(pathname: string, method: string, searchParams: URLSearchParams): number {
   if (pathname.endsWith('/files') && method === 'GET') {
     return DRIVE_METHOD_COSTS.FILES_LIST;
   }
@@ -156,9 +128,7 @@ function resolveDriveQuotaCost(
   }
 
   if (/\/files\/[^/]+$/.test(pathname) && method === 'GET') {
-    return searchParams.get('alt') === 'media'
-      ? DRIVE_METHOD_COSTS.FILES_DOWNLOAD
-      : DRIVE_METHOD_COSTS.FILES_GET;
+    return searchParams.get('alt') === 'media' ? DRIVE_METHOD_COSTS.FILES_DOWNLOAD : DRIVE_METHOD_COSTS.FILES_GET;
   }
 
   if (/\/files\/[^/]+$/.test(pathname) && (method === 'PATCH' || method === 'PUT')) {
@@ -168,10 +138,7 @@ function resolveDriveQuotaCost(
   return DRIVE_METHOD_COSTS.DEFAULT;
 }
 
-export function resolveGoogleQuotaOperation(
-  url: string,
-  method: string | undefined,
-): GoogleQuotaOperation | null {
+export function resolveGoogleQuotaOperation(url: string, method: string | undefined): GoogleQuotaOperation | null {
   const parsed = parseUrl(url);
   if (!parsed) {
     return null;
@@ -180,17 +147,11 @@ export function resolveGoogleQuotaOperation(
   const normalizedMethod = normalizeMethod(method);
 
   if (parsed.hostname === 'gmail.googleapis.com') {
-    return {
-      service: 'gmail',
-      quotaCost: resolveGmailQuotaCost(parsed.pathname, normalizedMethod),
-    };
+    return { service: 'gmail', quotaCost: resolveGmailQuotaCost(parsed.pathname, normalizedMethod) };
   }
 
   if (parsed.hostname === 'docs.googleapis.com') {
-    return {
-      service: isWriteMethod(normalizedMethod) ? 'docsWrite' : 'docsRead',
-      quotaCost: 1,
-    };
+    return { service: isWriteMethod(normalizedMethod) ? 'docsWrite' : 'docsRead', quotaCost: 1 };
   }
 
   if (parsed.hostname === 'www.googleapis.com') {
@@ -208,10 +169,7 @@ export function resolveGoogleQuotaOperation(
   return null;
 }
 
-type AcquireOptions = {
-  signal?: AbortSignal;
-  maxWaitMs: number;
-};
+type AcquireOptions = { signal?: AbortSignal; maxWaitMs: number };
 
 class SlidingWindowLimiter {
   private readonly capacity: number;
@@ -323,11 +281,7 @@ export class GoogleRateLimitCoordinator {
     }
 
     const serviceConfig = this.config.services[operation.service];
-    const projectLimiter = getLimiter(
-      projectLimiters,
-      `${operation.service}:project`,
-      serviceConfig.project,
-    );
+    const projectLimiter = getLimiter(projectLimiters, `${operation.service}:project`, serviceConfig.project);
     const accountLimiter = getLimiter(
       accountLimiters,
       `${operation.service}:account:${this.accountKey}`,
@@ -335,14 +289,8 @@ export class GoogleRateLimitCoordinator {
     );
 
     const [projectWait, accountWait] = await Promise.all([
-      projectLimiter.acquire(operation.quotaCost, {
-        maxWaitMs: this.config.maxQueueWaitMs,
-        signal,
-      }),
-      accountLimiter.acquire(operation.quotaCost, {
-        maxWaitMs: this.config.maxQueueWaitMs,
-        signal,
-      }),
+      projectLimiter.acquire(operation.quotaCost, { maxWaitMs: this.config.maxQueueWaitMs, signal }),
+      accountLimiter.acquire(operation.quotaCost, { maxWaitMs: this.config.maxQueueWaitMs, signal }),
     ]);
 
     return projectWait + accountWait;

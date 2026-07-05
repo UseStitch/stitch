@@ -9,12 +9,7 @@ import { SETTINGS_DEFAULTS, isValidLeaderKeyHotkey } from '@stitch/shared/settin
 import { SHORTCUT_CATEGORIES, SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
-import {
-  SettingPage,
-  SettingSection,
-  SettingRows,
-  SettingRow,
-} from '@/components/settings/settings-ui';
+import { SettingPage, SettingSection, SettingRows, SettingRow } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -68,9 +63,7 @@ function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence
     return (
       <span className="inline-flex items-center gap-1.5">
         <kbd className={KBD_CLASS}>Leader</kbd>
-        <span className="text-[11px] font-semibold tracking-widest text-muted-foreground uppercase">
-          then
-        </span>
+        <span className="text-[11px] font-semibold tracking-widest text-muted-foreground uppercase">then</span>
         {suffixDisplayKeys.map((key, i) => (
           <kbd key={`suffix-${i}`} className={KBD_CLASS}>
             {key}
@@ -147,8 +140,7 @@ function ShortcutRow({
               : conflict
                 ? 'text-destructive'
                 : 'hover:bg-accent/60 hover:text-accent-foreground cursor-pointer',
-        )}
-      >
+        )}>
         {isRecording ? (
           <span className="text-xs font-medium text-muted-foreground italic">Press keys...</span>
         ) : conflict ? (
@@ -168,9 +160,7 @@ function ShortcutsContent() {
   const saveShortcut = useSaveShortcut();
   const deleteShortcut = useDeleteShortcut();
   const resetAll = useResetAllShortcuts();
-  const saveLeaderKey = useMutation(
-    saveSettingMutationOptions('shortcuts.leaderKey', queryClient, { silent: true }),
-  );
+  const saveLeaderKey = useMutation(saveSettingMutationOptions('shortcuts.leaderKey', queryClient, { silent: true }));
 
   const leaderKey = settings['shortcuts.leaderKey'] || defaultLeaderKey;
 
@@ -182,9 +172,7 @@ function ShortcutsContent() {
       if (!recordingId) return;
 
       if (BLOCKED_HOTKEYS.includes(hotkey)) {
-        toast.error(`${formatForDisplay(hotkey)} is reserved and cannot be used`, {
-          id: 'shortcut-reserved',
-        });
+        toast.error(`${formatForDisplay(hotkey)} is reserved and cannot be used`, { id: 'shortcut-reserved' });
         setRecordingId(null);
         return;
       }
@@ -198,9 +186,7 @@ function ShortcutsContent() {
           return;
         }
 
-        const conflictEntry = shortcuts.find(
-          (entry) => !entry.isSequence && entry.hotkey === hotkey,
-        );
+        const conflictEntry = shortcuts.find((entry) => !entry.isSequence && entry.hotkey === hotkey);
 
         if (conflictEntry) {
           toast.error(
@@ -303,8 +289,7 @@ function ShortcutsContent() {
           size="sm"
           className="shrink-0 font-medium text-muted-foreground hover:text-foreground"
           onClick={() => resetAll.mutate()}
-          disabled={resetAll.isPending}
-        >
+          disabled={resetAll.isPending}>
           Reset to defaults
         </Button>
       </div>
@@ -316,14 +301,10 @@ function ShortcutsContent() {
               onClick={handleStartLeaderKeyRecording}
               className={cn(
                 'text-sm rounded-md px-2 py-1.5 transition-colors hover:bg-accent/60 cursor-pointer',
-                recordingId === LEADER_KEY_RECORDING_ID &&
-                  'text-foreground bg-accent shadow-inner ring-1 ring-ring/50',
-              )}
-            >
+                recordingId === LEADER_KEY_RECORDING_ID && 'text-foreground bg-accent shadow-inner ring-1 ring-ring/50',
+              )}>
               {recordingId === LEADER_KEY_RECORDING_ID ? (
-                <span className="text-xs font-medium text-muted-foreground italic">
-                  Press keys...
-                </span>
+                <span className="text-xs font-medium text-muted-foreground italic">Press keys...</span>
               ) : (
                 <HotkeyBadge hotkey={leaderKey} isSequence={false} />
               )}
@@ -384,11 +365,7 @@ export function ShortcutsSettings() {
   const Icon = page.icon;
 
   return (
-    <SettingPage
-      title={page.title}
-      description={page.description}
-      icon={<Icon className="size-5" />}
-    >
+    <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
       <ShortcutsContent />
     </SettingPage>
   );

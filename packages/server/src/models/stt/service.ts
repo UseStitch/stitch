@@ -2,11 +2,7 @@ import { getSttProvidersFromRegistry } from '@/models/stt/registry.js';
 import type { SttModel, SttProvider } from '@/models/stt/schema.js';
 import type { ModelDescriptor } from '@/stt/types.js';
 
-type CatalogEntry = {
-  providerId: string;
-  providerName: string;
-  models: ModelDescriptor[];
-};
+type CatalogEntry = { providerId: string; providerName: string; models: ModelDescriptor[] };
 
 function toModelDescriptor(model: SttModel): ModelDescriptor {
   return model as unknown as ModelDescriptor;
@@ -25,10 +21,7 @@ export async function getModelCatalog(): Promise<CatalogEntry[]> {
   return providers.map(toCatalogEntry);
 }
 
-export async function getModelDescriptor(
-  providerId: string,
-  modelId: string,
-): Promise<ModelDescriptor | null> {
+export async function getModelDescriptor(providerId: string, modelId: string): Promise<ModelDescriptor | null> {
   const catalog = await getModelCatalog();
   const entry = catalog.find((e) => e.providerId === providerId);
   if (!entry) return null;

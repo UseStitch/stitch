@@ -4,11 +4,7 @@ import type { Tool } from 'ai';
 
 const EXTERNAL_PREFIX = 'external_';
 
-export type ToolTypeInfo = {
-  name: string;
-  description: string;
-  inputSchema: Record<string, unknown>;
-};
+export type ToolTypeInfo = { name: string; description: string; inputSchema: Record<string, unknown> };
 
 /**
  * Extracts JSON schema from a tool's parameters, handling multiple possible
@@ -45,10 +41,7 @@ type ToolMeta = {
   tool: Tool;
 };
 
-function mapExecutableTools<T>(
-  tools: Record<string, Tool>,
-  mapper: (meta: ToolMeta) => T,
-): Record<string, T> {
+function mapExecutableTools<T>(tools: Record<string, Tool>, mapper: (meta: ToolMeta) => T): Record<string, T> {
   const result: Record<string, T> = {};
 
   for (const [name, tool] of Object.entries(tools)) {
@@ -77,10 +70,7 @@ export function toolsToTypeInfo(tools: Record<string, Tool>): Record<string, Too
   }));
 }
 
-export function toolsToBindings(
-  tools: Record<string, Tool>,
-  abortSignal?: AbortSignal,
-): Record<string, ToolBinding> {
+export function toolsToBindings(tools: Record<string, Tool>, abortSignal?: AbortSignal): Record<string, ToolBinding> {
   return mapExecutableTools(tools, ({ bindingName, description, schema, tool }) => {
     const execute = tool.execute!;
     return {

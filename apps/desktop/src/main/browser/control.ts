@@ -32,9 +32,7 @@ export class ControlArbiter {
     this.broadcast();
     const result = await fn();
     if (this.controlEpoch !== epoch)
-      throw new Error(
-        'Browser control interrupted by user input. Take a fresh snapshot before continuing.',
-      );
+      throw new Error('Browser control interrupted by user input. Take a fresh snapshot before continuing.');
     this.controller = 'none';
     this.broadcast();
     return result;

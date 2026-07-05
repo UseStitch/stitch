@@ -55,8 +55,7 @@ export type StepOptions = {
 };
 
 async function executeStep(opts: StepOptions): Promise<StepResult> {
-  const { sessionId, messageId, step, model, conversation, accumulatedParts, tools, abortSignal } =
-    opts;
+  const { sessionId, messageId, step, model, conversation, accumulatedParts, tools, abortSignal } = opts;
   const initialPartCount = accumulatedParts.length;
 
   log.info(
@@ -73,21 +72,9 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     'step execution started',
   );
 
-  const cachedMessages = addCacheControlToMessages(
-    conversation,
-    opts.providerId as ProviderId,
-    model.modelId,
-  );
-  const sanitizedTools = sanitizeToolSchemasForProvider(
-    tools,
-    opts.providerId as ProviderId,
-    model.modelId,
-  );
-  const cachedTools = addCacheControlToTools(
-    sanitizedTools,
-    opts.providerId as ProviderId,
-    model.modelId,
-  );
+  const cachedMessages = addCacheControlToMessages(conversation, opts.providerId as ProviderId, model.modelId);
+  const sanitizedTools = sanitizeToolSchemasForProvider(tools, opts.providerId as ProviderId, model.modelId);
+  const cachedTools = addCacheControlToTools(sanitizedTools, opts.providerId as ProviderId, model.modelId);
   const providerOptions = getProviderOptions(opts.providerId as ProviderId, opts.sessionId);
 
   const result = streamText({
@@ -113,40 +100,20 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
           'repaired tool call name casing',
         );
 
-        return {
-          ...failed.toolCall,
-          toolName: normalizedToolName,
-        };
+        return { ...failed.toolCall, toolName: normalizedToolName };
       }
 
       return failed.toolCall;
     },
     abortSignal,
-    experimental_transform: smoothStream({
-      delayInMs: 30,
-    }),
+    experimental_transform: smoothStream({ delayInMs: 30 }),
     onError: ({ error }) => {
-      log.error(
-        {
-          sessionId,
-          messageId,
-          streamRunId: opts.streamRunId,
-          error,
-        },
-        'step stream error',
-      );
+      log.error({ sessionId, messageId, streamRunId: opts.streamRunId, error }, 'step stream error');
     },
   });
 
   const toolCalls: ToolCallRecord[] = [];
-  const accumulator = new StreamAccumulator(
-    sessionId,
-    messageId,
-    step,
-    accumulatedParts,
-    toolCalls,
-    opts.streamRunId,
-  );
+  const accumulator = new StreamAccumulator(sessionId, messageId, step, accumulatedParts, toolCalls, opts.streamRunId);
 
   const resolveResponseMessages = async (phase: 'finish' | 'unknown'): Promise<ModelMessage[]> => {
     try {
@@ -307,11 +274,7 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
 
       if (errorInfo.isContextOverflow) {
         log.info(
-          {
-            sessionId: opts.sessionId,
-            streamRunId: opts.streamRunId,
-            messageId: opts.messageId,
-          },
+          { sessionId: opts.sessionId, streamRunId: opts.streamRunId, messageId: opts.messageId },
           'context overflow detected, will trigger compaction',
         );
         const overflowError = new ContextOverflowError('context_overflow', { cause: error });

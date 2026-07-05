@@ -21,11 +21,7 @@ import { useStreamStore } from '@/stores/stream-store';
 type PendingDelta = { sessionId: string; messageId: string; partId: string; delta: PartDelta };
 
 // Helper to mark a session unread in infinite list caches
-function markSessionUnread(
-  queryClient: QueryClient,
-  sessionId: string,
-  currentSessionId: string | undefined,
-): void {
+function markSessionUnread(queryClient: QueryClient, sessionId: string, currentSessionId: string | undefined): void {
   if (sessionId === currentSessionId) return;
 
   // Update infinite list queries
@@ -118,16 +114,7 @@ function useServerEventSync(): void {
         });
       }
     },
-    'stream-tool-state': ({
-      sessionId,
-      messageId,
-      toolCallId,
-      toolName,
-      status,
-      input,
-      output,
-      error,
-    }) => {
+    'stream-tool-state': ({ sessionId, messageId, toolCallId, toolName, status, input, output, error }) => {
       applyToolState(sessionId, messageId, toolCallId, toolName, status, input, output, error);
     },
     'stream-finish': ({ sessionId, messageId, finishReason, usage }) => {
@@ -149,13 +136,7 @@ function useServerEventSync(): void {
       errorStream(sessionId, messageId, error, details);
     },
     'stream-retry': ({ sessionId, messageId, attempt, maxRetries, delayMs, message }) => {
-      retryStream(sessionId, messageId, {
-        attempt,
-        maxRetries,
-        delayMs,
-        message,
-        nextRetryAt: Date.now() + delayMs,
-      });
+      retryStream(sessionId, messageId, { attempt, maxRetries, delayMs, message, nextRetryAt: Date.now() + delayMs });
     },
     'doom-loop-detected': ({ sessionId, messageId, toolName, consecutiveCount }) => {
       doomLoopDetected(sessionId, messageId, toolName, consecutiveCount);
@@ -191,9 +172,8 @@ function useServerEventSync(): void {
           };
         },
       );
-      queryClient.setQueryData<Session>(
-        sessionKeys.detail(sessionId),
-        (prev: Session | undefined) => (prev ? { ...prev, title } : prev),
+      queryClient.setQueryData<Session>(sessionKeys.detail(sessionId), (prev: Session | undefined) =>
+        prev ? { ...prev, title } : prev,
       );
     },
     'session-todos-updated': ({ sessionId }) => {
@@ -218,9 +198,7 @@ function useServerEventSync(): void {
 
     // Permission Events
     'permission-response-requested': ({ permissionResponse }) => {
-      void queryClient.invalidateQueries({
-        queryKey: permissionResponseKeys.list(permissionResponse.sessionId),
-      });
+      void queryClient.invalidateQueries({ queryKey: permissionResponseKeys.list(permissionResponse.sessionId) });
       markSessionUnread(queryClient, permissionResponse.sessionId, currentSessionId);
       if (isSoundEnabled(queryClient)) playNotificationSound();
     },

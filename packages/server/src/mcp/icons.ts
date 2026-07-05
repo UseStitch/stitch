@@ -9,30 +9,17 @@ import { PATHS } from '@/lib/paths.js';
 
 const log = Log.create({ service: 'mcp-icons' });
 
-type CachedIconFile = {
-  key: string;
-  mimeType: string;
-  filePath: string;
-};
+type CachedIconFile = { key: string; mimeType: string; filePath: string };
 
 const KEY_REGEX = /^[a-f0-9]{40}$/;
-const ALLOWED_MIME_TYPES = new Set([
-  'image/png',
-  'image/jpeg',
-  'image/jpg',
-  'image/svg+xml',
-  'image/webp',
-]);
+const ALLOWED_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp']);
 
 function buildKey(scope: string, src: string): string {
   return createHash('sha256').update(`${scope}:${src}`).digest('hex').slice(0, 40);
 }
 
 function getIconFilePaths(key: string, cacheDir: string): { payload: string; metadata: string } {
-  return {
-    payload: path.join(cacheDir, `${key}.bin`),
-    metadata: path.join(cacheDir, `${key}.json`),
-  };
+  return { payload: path.join(cacheDir, `${key}.bin`), metadata: path.join(cacheDir, `${key}.json`) };
 }
 
 function parseDataUri(uri: string): { mimeType: string; data: Uint8Array } | null {
@@ -70,12 +57,7 @@ function isAllowedRemoteIcon(iconUrl: URL, serverUrl: string): boolean {
   return iconUrl.origin === serverOrigin;
 }
 
-async function writeCachedIcon(
-  key: string,
-  mimeType: string,
-  bytes: Uint8Array,
-  cacheDir: string,
-): Promise<void> {
+async function writeCachedIcon(key: string, mimeType: string, bytes: Uint8Array, cacheDir: string): Promise<void> {
   const { payload, metadata } = getIconFilePaths(key, cacheDir);
   await fs.mkdir(cacheDir, { recursive: true });
   await fs.writeFile(payload, bytes);
@@ -130,10 +112,7 @@ export async function cacheMcpIcon(input: {
 
   if (!['http:', 'https:'].includes(iconUrl.protocol)) return null;
   if (!isAllowedRemoteIcon(iconUrl, serverUrl)) {
-    log.warn(
-      { serverUrl, iconUrl: iconUrl.toString() },
-      'blocked mcp icon from non-matching origin',
-    );
+    log.warn({ serverUrl, iconUrl: iconUrl.toString() }, 'blocked mcp icon from non-matching origin');
     return null;
   }
 

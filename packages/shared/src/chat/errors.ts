@@ -26,22 +26,12 @@ export type StreamErrorDetails = {
   statusCode?: number;
 };
 
-type UserFacingStreamError = {
-  title: string;
-  message: string;
-  suggestion?: string;
-};
+type UserFacingStreamError = { title: string; message: string; suggestion?: string };
 
-export function toUserFacingStreamError(input: {
-  error: string;
-  details?: StreamErrorDetails;
-}): UserFacingStreamError {
+export function toUserFacingStreamError(input: { error: string; details?: StreamErrorDetails }): UserFacingStreamError {
   const details = input.details;
   if (!details) {
-    return {
-      title: 'Request failed',
-      message: input.error,
-    };
+    return { title: 'Request failed', message: input.error };
   }
 
   switch (details.category) {
@@ -131,14 +121,8 @@ export function toUserFacingStreamError(input: {
         suggestion: 'Check the file is accessible and try again.',
       };
     case 'unknown':
-      return {
-        title: 'Unexpected error',
-        message: input.error,
-      };
+      return { title: 'Unexpected error', message: input.error };
     default:
-      return {
-        title: 'Request failed',
-        message: input.error,
-      };
+      return { title: 'Request failed', message: input.error };
   }
 }

@@ -57,8 +57,7 @@ export function SessionPageHeader({
             <Link
               to="/session/$id"
               params={{ id: session.parentSessionId! }}
-              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            >
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
               <ArrowLeftIcon className="size-4" />
               <span className="hidden sm:inline">Back to parent</span>
             </Link>
@@ -81,8 +80,7 @@ export function SessionPageHeader({
               size="icon-sm"
               className={cn('hidden lg:inline-flex', rightPanel === 'browser' && 'bg-accent')}
               onClick={onToggleBrowser}
-              aria-label={rightPanel === 'browser' ? 'Hide browser' : 'Show browser'}
-            >
+              aria-label={rightPanel === 'browser' ? 'Hide browser' : 'Show browser'}>
               <GlobeIcon className="size-4" />
             </Button>
           ) : null}
@@ -91,8 +89,7 @@ export function SessionPageHeader({
             size="icon-sm"
             className={cn('hidden lg:inline-flex', rightPanel === 'details' && 'bg-accent')}
             onClick={onToggleDetails}
-            aria-label={rightPanel === 'details' ? 'Hide session details' : 'Show session details'}
-          >
+            aria-label={rightPanel === 'details' ? 'Hide session details' : 'Show session details'}>
             <InfoIcon className="size-4" />
           </Button>
 
@@ -110,10 +107,7 @@ export function SessionPageHeader({
                   <PencilLineIcon className="size-4" />
                   Rename
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={onGenerateAutomation}
-                  disabled={generateAutomationPending}
-                >
+                <DropdownMenuItem onClick={onGenerateAutomation} disabled={generateAutomationPending}>
                   <SparklesIcon className="size-4" />
                   {generateAutomationPending ? 'Generating...' : 'Generate automation'}
                 </DropdownMenuItem>

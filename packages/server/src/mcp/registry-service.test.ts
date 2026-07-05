@@ -9,9 +9,7 @@ import {
   refreshMcpRegistryCache,
 } from '@/mcp/registry-service.js';
 
-type FetchLike = NonNullable<
-  NonNullable<Parameters<typeof listMcpRegistryServers>[0]>['fetchImpl']
->;
+type FetchLike = NonNullable<NonNullable<Parameters<typeof listMcpRegistryServers>[0]>['fetchImpl']>;
 
 const tempDirs: string[] = [];
 
@@ -67,16 +65,9 @@ describe('mcp registry service', () => {
   test('downloads and caches registry payload', async () => {
     const cacheFilePath = await createTempCacheFilePath();
     const fetchImpl: FetchLike = async () =>
-      new Response(JSON.stringify(REGISTRY_PAYLOAD), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
+      new Response(JSON.stringify(REGISTRY_PAYLOAD), { status: 200, headers: { 'content-type': 'application/json' } });
 
-    const refreshResult = await refreshMcpRegistryCache({
-      cacheFilePath,
-      fetchImpl,
-      force: true,
-    });
+    const refreshResult = await refreshMcpRegistryCache({ cacheFilePath, fetchImpl, force: true });
     expect(refreshResult.error).toBeNull();
 
     const listResult = await listMcpRegistryServers({ cacheFilePath });
@@ -101,11 +92,7 @@ describe('mcp registry service', () => {
       });
     };
 
-    const result = await refreshMcpRegistryCache({
-      cacheFilePath,
-      fetchImpl,
-      force: true,
-    });
+    const result = await refreshMcpRegistryCache({ cacheFilePath, fetchImpl, force: true });
 
     expect(result.error).toBeNull();
     expect(captured.userAgent?.startsWith('Stitch/')).toBe(true);
@@ -130,15 +117,9 @@ describe('mcp registry service', () => {
   test('returns service error when remote payload is invalid', async () => {
     const cacheFilePath = await createTempCacheFilePath();
     const fetchImpl: FetchLike = async () =>
-      new Response(JSON.stringify({ version: 1, generatedAt: 'bad-date', servers: [] }), {
-        status: 200,
-      });
+      new Response(JSON.stringify({ version: 1, generatedAt: 'bad-date', servers: [] }), { status: 200 });
 
-    const result = await refreshMcpRegistryCache({
-      cacheFilePath,
-      fetchImpl,
-      force: true,
-    });
+    const result = await refreshMcpRegistryCache({ cacheFilePath, fetchImpl, force: true });
 
     expect(result.error).not.toBeNull();
     if (result.error) {
@@ -168,10 +149,7 @@ describe('mcp registry service', () => {
       ],
     };
     const fetchImpl: FetchLike = async () =>
-      new Response(JSON.stringify(payload), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
+      new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } });
 
     const result = await refreshMcpRegistryCache({ cacheFilePath, fetchImpl, force: true });
     expect(result.error).toBeNull();

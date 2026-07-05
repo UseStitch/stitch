@@ -26,10 +26,7 @@ const log = Log.create({ service: 'mcp-routes' });
 
 const noneAuthSchema = z.object({ type: z.literal('none') });
 const apiKeyAuthSchema = z.object({ type: z.literal('api_key'), apiKey: z.string().min(1) });
-const headersAuthSchema = z.object({
-  type: z.literal('headers'),
-  headers: z.record(z.string(), z.string()),
-});
+const headersAuthSchema = z.object({ type: z.literal('headers'), headers: z.record(z.string(), z.string()) });
 const oauthAuthSchema = z.object({
   type: z.literal('oauth'),
   scopes: z.array(z.string()).optional(),
@@ -141,10 +138,7 @@ mcpRouter.post('/:id/auth', async (c) => {
   const { waitForTokens } = result.data;
   void waitForTokens().catch((error) => {
     const message = error instanceof Error ? error.message : String(error);
-    log.warn(
-      { event: 'mcp.auth.background_failed', id, error: message },
-      'background MCP authorization failed',
-    );
+    log.warn({ event: 'mcp.auth.background_failed', id, error: message }, 'background MCP authorization failed');
   });
 
   return c.json({ authUrl: result.data.authUrl });

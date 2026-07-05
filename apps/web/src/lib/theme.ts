@@ -49,13 +49,7 @@ export const THEME_TOKEN_KEYS = [
 export type ThemeTokenKey = (typeof THEME_TOKEN_KEYS)[number];
 export type ThemeTokens = Record<ThemeTokenKey, string>;
 
-type ThemeDefinition = {
-  name: string;
-  label: string;
-  radius: string;
-  light: ThemeTokens;
-  dark: ThemeTokens;
-};
+type ThemeDefinition = { name: string; label: string; radius: string; light: ThemeTokens; dark: ThemeTokens };
 
 export const THEMES: ThemeDefinition[] = [
   defaultTheme satisfies ThemeDefinition,
@@ -121,9 +115,7 @@ export function removeSplash(): void {
   if (!splash) return;
   // Match the html background to the live theme so there is no flash once the
   // splash is gone but before the app's own surfaces cover the viewport.
-  const background = getComputedStyle(document.documentElement)
-    .getPropertyValue('--background')
-    .trim();
+  const background = getComputedStyle(document.documentElement).getPropertyValue('--background').trim();
   if (background) document.documentElement.style.backgroundColor = background;
 
   splash.style.transition = 'opacity 200ms ease';

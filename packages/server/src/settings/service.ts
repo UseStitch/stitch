@@ -26,9 +26,7 @@ const defaultsByKey = new Map<SettingsKey, string>(SETTINGS_DEFAULTS.map((d) => 
  * Each value is parsed via its SETTINGS_SCHEMAS entry; missing rows fall back
  * to SETTINGS_DEFAULTS. The return type is inferred from the input key tuple.
  */
-export async function getSettings<const Keys extends readonly SettingsKey[]>(
-  keys: Keys,
-): Promise<SettingsMap<Keys>> {
+export async function getSettings<const Keys extends readonly SettingsKey[]>(keys: Keys): Promise<SettingsMap<Keys>> {
   const db = getDb();
   const rows = await db
     .select({ key: userSettings.key, value: userSettings.value })
@@ -76,10 +74,7 @@ async function checkMemoryEnablePrerequisites(): Promise<ServiceResult<null>> {
       provider.models.some((model) => model.id === memoryConfig.embeddingModelId),
   );
   if (!hasConfiguredModel) {
-    return err(
-      'Cannot enable memory without a configured embedding model from an enabled provider.',
-      400,
-    );
+    return err('Cannot enable memory without a configured embedding model from an enabled provider.', 400);
   }
 
   return ok(null);
@@ -124,10 +119,7 @@ export async function saveSetting(key: string, value: string): Promise<ServiceRe
   await db
     .insert(userSettings)
     .values({ key: key as SettingsKey, value })
-    .onConflictDoUpdate({
-      target: userSettings.key,
-      set: { value, updatedAt: Date.now() },
-    });
+    .onConflictDoUpdate({ target: userSettings.key, set: { value, updatedAt: Date.now() } });
 
   await runSettingSideEffects(key);
 

@@ -10,10 +10,7 @@ import { listToolsetIds, registerToolset, unregisterToolset } from '@/tools/tool
 import type { Toolset } from '@/tools/toolsets/types.js';
 import type { ModelMessage, Tool } from 'ai';
 
-const CREDENTIALS: ProviderCredentials = {
-  providerId: 'openai',
-  auth: { method: 'api-key', apiKey: 'test-key' },
-};
+const CREDENTIALS: ProviderCredentials = { providerId: 'openai', auth: { method: 'api-key', apiKey: 'test-key' } };
 
 /** Minimal system message layout matching buildHistoryMessages output. */
 const STUB_MESSAGES: ModelMessage[] = [
@@ -50,15 +47,11 @@ describe('buildExpiredToolsetsPrompt', () => {
       activate: async () => ({ browser_open: makeTool('open') }),
     } satisfies Toolset);
 
-    const prompt = buildExpiredToolsetsPrompt([
-      { id: 'browser', expiredAtTurn: 1, toolNames: ['browser_open'] },
-    ]);
+    const prompt = buildExpiredToolsetsPrompt([{ id: 'browser', expiredAtTurn: 1, toolNames: ['browser_open'] }]);
 
     expect(prompt).toContain('## Toolset Expiry Notice');
     expect(prompt).toContain('Browser (browser) expired');
-    expect(prompt).toContain(
-      'Do not call their tools unless you first call `activate_toolset` again',
-    );
+    expect(prompt).toContain('Do not call their tools unless you first call `activate_toolset` again');
     expect(prompt).toContain('browser_open');
   });
 });

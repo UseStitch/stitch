@@ -43,8 +43,7 @@ export function AutomationsSidebarContent() {
                       params={{ automationId: automation.id }}
                       className="truncate"
                     />
-                  }
-                >
+                  }>
                   <span className="truncate">{automation.title}</span>
                 </InternalSidebar.Item>
               ))}

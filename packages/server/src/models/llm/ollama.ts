@@ -30,10 +30,7 @@ export const OllamaModelInputSchema = z.object({
 
 type OllamaModelInput = z.infer<typeof OllamaModelInputSchema>;
 
-type DiscoveredModel = {
-  id: string;
-  name: string;
-};
+type DiscoveredModel = { id: string; name: string };
 
 export async function listOllamaModels(): Promise<OllamaModel[]> {
   const db = getDb();
@@ -49,9 +46,7 @@ export async function getOllamaModel(id: string): Promise<ServiceResult<OllamaMo
   return ok(model);
 }
 
-export async function upsertOllamaModel(
-  input: OllamaModelInput,
-): Promise<ServiceResult<OllamaModel>> {
+export async function upsertOllamaModel(input: OllamaModelInput): Promise<ServiceResult<OllamaModel>> {
   const parsed = OllamaModelInputSchema.safeParse(input);
   if (!parsed.success) {
     return err('Invalid model data', 400, parsed.error.flatten());
@@ -92,34 +87,24 @@ export async function upsertOllamaModel(
 
 export async function deleteOllamaModel(id: string): Promise<ServiceResult<null>> {
   const db = getDb();
-  const result = await db
-    .delete(ollamaModels)
-    .where(eq(ollamaModels.id, id))
-    .returning({ id: ollamaModels.id });
+  const result = await db.delete(ollamaModels).where(eq(ollamaModels.id, id)).returning({ id: ollamaModels.id });
   if (result.length === 0) {
     return err('Model not found', 404);
   }
   return ok(null);
 }
 
-export async function discoverOllamaModels(
-  baseURL: string,
-): Promise<ServiceResult<DiscoveredModel[]>> {
+export async function discoverOllamaModels(baseURL: string): Promise<ServiceResult<DiscoveredModel[]>> {
   const tagsUrl = `${baseURL}/api/tags`;
 
-  const response = await fetch(tagsUrl, {
-    signal: AbortSignal.timeout(5_000),
-  }).catch(() => null);
+  const response = await fetch(tagsUrl, { signal: AbortSignal.timeout(5_000) }).catch(() => null);
 
   if (!response || !response.ok) {
     return err('Could not connect to Ollama. Make sure it is running.', 500);
   }
 
   const body = (await response.json()) as { models?: { name: string }[] };
-  const models = (body.models ?? []).map((m) => ({
-    id: m.name,
-    name: m.name,
-  }));
+  const models = (body.models ?? []).map((m) => ({ id: m.name, name: m.name }));
 
   return ok(models);
 }

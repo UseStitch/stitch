@@ -46,22 +46,12 @@ export function ToolRow({
     <div
       className={cn(
         'grid items-center gap-3 px-3 py-2.5 sm:px-4',
-        reserveMiddleSlot
-          ? 'grid-cols-[minmax(0,1fr)_5rem_5rem_2.5rem]'
-          : 'grid-cols-[minmax(0,1fr)_5rem_2.5rem]',
+        reserveMiddleSlot ? 'grid-cols-[minmax(0,1fr)_5rem_5rem_2.5rem]' : 'grid-cols-[minmax(0,1fr)_5rem_2.5rem]',
         isNested && 'pl-10 sm:pl-12 bg-muted/10',
-      )}
-    >
+      )}>
       <div className="flex min-w-0 items-center gap-2.5">
         {icon ??
-          (iconPath && (
-            <RemoteImageIcon
-              path={iconPath}
-              label={`${name} icon`}
-              className="size-4"
-              fallback={null}
-            />
-          ))}
+          (iconPath && <RemoteImageIcon path={iconPath} label={`${name} icon`} className="size-4" fallback={null} />)}
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{name}</p>
         </div>
@@ -70,8 +60,7 @@ export function ToolRow({
         size="sm"
         variant="ghost"
         onClick={onConfigure}
-        className="h-7 w-full justify-start px-2 text-muted-foreground hover:text-foreground"
-      >
+        className="h-7 w-full justify-start px-2 text-muted-foreground hover:text-foreground">
         <Settings2Icon className="size-3.5" />
         Settings
       </Button>
@@ -109,8 +98,7 @@ export function ToolsetRow({
         className={cn(
           'h-7 w-full px-2 text-muted-foreground hover:text-foreground',
           settingsAlign === 'end' ? 'justify-end' : 'justify-start',
-        )}
-      >
+        )}>
         <Settings2Icon className="size-3.5" />
         Settings
       </Button>

@@ -22,11 +22,7 @@ type UseSessionDocksOptions = {
   pendingQuestions: QuestionRequest[];
   pendingPermissionResponses: PermissionResponse[];
   todos: SessionTodo[];
-  replyQuestion: UseMutationResult<
-    unknown,
-    Error,
-    { sessionId: string; questionId: string; answers: string[][] }
-  >;
+  replyQuestion: UseMutationResult<unknown, Error, { sessionId: string; questionId: string; answers: string[][] }>;
   rejectQuestion: UseMutationResult<unknown, Error, { sessionId: string; questionId: string }>;
   allowPermissionResponse: UseMutationResult<
     unknown,
@@ -158,10 +154,7 @@ export function useSessionDocks({
                     allowPermissionResponse.mutateAsync({
                       sessionId,
                       permissionResponseId,
-                      setPermission: {
-                        permission: 'allow',
-                        pattern: null,
-                      },
+                      setPermission: { permission: 'allow', pattern: null },
                     }),
                   'Failed to always allow tool:',
                 );
@@ -174,12 +167,7 @@ export function useSessionDocks({
               }}
               onAlternative={async (permissionResponseId, entry) => {
                 await runMutation(
-                  () =>
-                    alternativePermissionResponse.mutateAsync({
-                      sessionId,
-                      permissionResponseId,
-                      entry,
-                    }),
+                  () => alternativePermissionResponse.mutateAsync({ sessionId, permissionResponseId, entry }),
                   'Failed to submit alternative action:',
                 );
               }}
@@ -189,10 +177,7 @@ export function useSessionDocks({
                     allowPermissionResponse.mutateAsync({
                       sessionId,
                       permissionResponseId,
-                      setPermission: {
-                        permission: 'allow',
-                        pattern,
-                      },
+                      setPermission: { permission: 'allow', pattern },
                     }),
                   'Failed to apply permission suggestion:',
                 );
@@ -203,9 +188,7 @@ export function useSessionDocks({
       }
     }
 
-    const activeCount = todos.filter(
-      (todo) => todo.status === 'pending' || todo.status === 'in_progress',
-    ).length;
+    const activeCount = todos.filter((todo) => todo.status === 'pending' || todo.status === 'in_progress').length;
 
     if (todos.length > 0 && activeCount > 0) {
       items.push({

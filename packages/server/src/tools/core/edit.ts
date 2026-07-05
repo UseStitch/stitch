@@ -2,10 +2,7 @@ import { tool } from 'ai';
 import fs from 'node:fs/promises';
 import { z } from 'zod';
 
-import {
-  getFilePathPatternTargets,
-  getParentDirPermissionSuggestion,
-} from '@/tools/runtime/file-permissions.js';
+import { getFilePathPatternTargets, getParentDirPermissionSuggestion } from '@/tools/runtime/file-permissions.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import { isTextFileBuffer, validateAbsoluteFilePath } from '@/tools/runtime/shared.js';
 
@@ -16,13 +13,8 @@ const editInputSchema = z
   .object({
     filePath: z.string().describe('The absolute path to the file to modify'),
     oldString: z.string().min(1).describe('The text to replace'),
-    newString: z
-      .string()
-      .describe('The text to replace it with (must be different from oldString)'),
-    replaceAll: z
-      .boolean()
-      .optional()
-      .describe('Replace all occurrences of oldString (default false)'),
+    newString: z.string().describe('The text to replace it with (must be different from oldString)'),
+    replaceAll: z.boolean().optional().describe('Replace all occurrences of oldString (default false)'),
   })
   .refine((value) => value.newString !== value.oldString, {
     message: 'newString must be different from oldString',
@@ -89,10 +81,7 @@ Parameter sourcing:
     execute: async (input) => {
       const targetPath = await editFileContent(input);
 
-      return {
-        output: `Edited file: ${targetPath}`,
-        filePath: targetPath,
-      };
+      return { output: `Edited file: ${targetPath}`, filePath: targetPath };
     },
   });
 }

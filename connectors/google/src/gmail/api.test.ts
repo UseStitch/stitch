@@ -35,9 +35,7 @@ describe('gmail api', () => {
             parts: [
               {
                 mimeType: 'application/pdf',
-                headers: [
-                  { name: 'Content-Disposition', value: 'attachment; filename="report.pdf"' },
-                ],
+                headers: [{ name: 'Content-Disposition', value: 'attachment; filename="report.pdf"' }],
                 body: { size: 11, attachmentId: 'att-1' },
               },
             ],
@@ -62,9 +60,7 @@ describe('gmail api', () => {
       mimeType: 'application/pdf',
       size: 11,
     });
-    expect(result.attachments[0]?.path).toBe(
-      path.join(root, 'gmail-attachments', 'msg-1', 'report.pdf'),
-    );
+    expect(result.attachments[0]?.path).toBe(path.join(root, 'gmail-attachments', 'msg-1', 'report.pdf'));
     expect(fs.readFile(result.attachments[0]?.path ?? '', 'utf8')).resolves.toBe('hello world');
   });
 });

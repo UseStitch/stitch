@@ -4,12 +4,7 @@ import type { StoredPart } from '@stitch/shared/chat/messages';
 
 import { extractTextFromParts } from './extract-text';
 import { buildDisplaySegments, collectToolResults } from './segment-utils';
-import {
-  AssistantBubbleWrapper,
-  FileBlock,
-  InterruptedLabel,
-  MessageCopyButton,
-} from './shared-components';
+import { AssistantBubbleWrapper, FileBlock, InterruptedLabel, MessageCopyButton } from './shared-components';
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { ErrorPanel } from '@/components/chat/error-panel';
@@ -20,11 +15,7 @@ import { SourceChip } from '@/components/chat/message-bubble/source-chip.js';
 import { buildStoredToolCallDisplayItems } from '@/components/chat/message-bubble/tool-call-display.js';
 import { ToolCallGroup } from '@/components/chat/message-bubble/tool-call-group.js';
 
-type AssistantMessageBubbleProps = {
-  parts: StoredPart[];
-  finishReason?: string | null;
-  onAbortTool?: () => void;
-};
+type AssistantMessageBubbleProps = { parts: StoredPart[]; finishReason?: string | null; onAbortTool?: () => void };
 
 function AssistantTextSegment({ text }: { text: string }) {
   const inlineSegments = parseInlineLiquidUiText(text);
@@ -43,11 +34,7 @@ function AssistantTextSegment({ text }: { text: string }) {
   );
 }
 
-export function AssistantMessageBubble({
-  parts,
-  finishReason,
-  onAbortTool,
-}: AssistantMessageBubbleProps) {
+export function AssistantMessageBubble({ parts, finishReason, onAbortTool }: AssistantMessageBubbleProps) {
   const segments = buildDisplaySegments(parts);
   const resultsByCallId = collectToolResults(parts);
   const text = extractTextFromParts(parts);

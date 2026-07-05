@@ -26,12 +26,7 @@ Return only the title.
 `;
 };
 
-type GeneratedTitle = {
-  title: string;
-  usage: LanguageModelUsage | null;
-  providerId: string;
-  modelId: string;
-};
+type GeneratedTitle = { title: string; usage: LanguageModelUsage | null; providerId: string; modelId: string };
 
 type TitleGeneratorDeps = {
   resolveModel?: typeof resolveCheapModel;
@@ -58,17 +53,10 @@ export async function generateTitle(
   if (!resolved) return null;
 
   try {
-    const model = deps?.getModel
-      ? deps.getModel(resolved)
-      : createProvider(resolved.credentials)(resolved.modelId);
+    const model = deps?.getModel ? deps.getModel(resolved) : createProvider(resolved.credentials)(resolved.modelId);
     const result = await generateText({
       model,
-      messages: [
-        {
-          role: 'user',
-          content: generateTitlePrompt(firstMessage, filenames),
-        },
-      ],
+      messages: [{ role: 'user', content: generateTitlePrompt(firstMessage, filenames) }],
     });
 
     const title = result.text.trim().replace(/^["']|["']$/g, '');
@@ -76,20 +64,11 @@ export async function generateTitle(
       return null;
     }
 
-    return {
-      title,
-      usage: result.usage ?? null,
-      providerId: resolved.providerId,
-      modelId: resolved.modelId,
-    };
+    return { title, usage: result.usage ?? null, providerId: resolved.providerId, modelId: resolved.modelId };
   } catch (error) {
     const mappedError = mapAIError(error, resolved.providerId);
     log.error(
-      {
-        error: mappedError.message,
-        errorCategory: mappedError.category,
-        aiErrorName: mappedError.aiErrorName,
-      },
+      { error: mappedError.message, errorCategory: mappedError.category, aiErrorName: mappedError.aiErrorName },
       'title generation failed',
     );
     return null;

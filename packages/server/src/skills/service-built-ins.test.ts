@@ -24,12 +24,7 @@ afterEach(async () => {
 describe('syncBuiltInSkills', () => {
   test('writes missing built-in skills to disk', async () => {
     await syncBuiltInSkills([
-      {
-        name: 'test-skill',
-        description: 'Use this test skill.',
-        content: 'Test instructions.',
-        files: [],
-      },
+      { name: 'test-skill', description: 'Use this test skill.', content: 'Test instructions.', files: [] },
     ]);
 
     const mdPath = path.join(tempDir, 'test-skill', 'SKILL.md');
@@ -92,9 +87,7 @@ describe('syncBuiltInSkills', () => {
 
     await syncBuiltInSkills([skill]);
 
-    await syncBuiltInSkills([
-      { ...skill, files: [{ relativePath: 'references/guide.md', content: 'updated' }] },
-    ]);
+    await syncBuiltInSkills([{ ...skill, files: [{ relativePath: 'references/guide.md', content: 'updated' }] }]);
 
     const guidePath = path.join(tempDir, 'test-skill', 'references', 'guide.md');
     expect(await fs.readFile(guidePath, 'utf8')).toBe('original');
@@ -104,12 +97,7 @@ describe('syncBuiltInSkills', () => {
 describe('buildSkillsSystemPrompt', () => {
   test('includes skills from the filesystem', async () => {
     await syncBuiltInSkills([
-      {
-        name: 'test-skill',
-        description: 'Use this test skill.',
-        content: 'Test instructions.',
-        files: [],
-      },
+      { name: 'test-skill', description: 'Use this test skill.', content: 'Test instructions.', files: [] },
     ]);
 
     const prompt = await buildSkillsSystemPrompt();
@@ -123,12 +111,7 @@ describe('buildSkillsSystemPrompt', () => {
 
   test('does not write skills that already exist', async () => {
     await syncBuiltInSkills([
-      {
-        name: 'test-skill',
-        description: 'Use this test skill.',
-        content: 'Test instructions.',
-        files: [],
-      },
+      { name: 'test-skill', description: 'Use this test skill.', content: 'Test instructions.', files: [] },
     ]);
 
     expect(existsSync(path.join(tempDir, 'test-skill'))).toBe(true);

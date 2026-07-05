@@ -14,16 +14,12 @@ function jsonSchemaToTypeScript(schema: JsonSchema, indent = 0): string {
 
   const type = schema['type'];
   if (Array.isArray(type)) {
-    return (type as string[])
-      .map((t) => jsonSchemaToTypeScript({ ...schema, type: t }, indent))
-      .join(' | ');
+    return (type as string[]).map((t) => jsonSchemaToTypeScript({ ...schema, type: t }, indent)).join(' | ');
   }
 
   const enumValues = schema['enum'];
   if (Array.isArray(enumValues)) {
-    return (enumValues as unknown[])
-      .map((v) => (typeof v === 'string' ? `"${v}"` : String(v)))
-      .join(' | ');
+    return (enumValues as unknown[]).map((v) => (typeof v === 'string' ? `"${v}"` : String(v))).join(' | ');
   }
 
   switch (type) {
@@ -43,9 +39,7 @@ function jsonSchemaToTypeScript(schema: JsonSchema, indent = 0): string {
     }
     case 'object': {
       const properties = schema['properties'] as Record<string, JsonSchema> | undefined;
-      const required = new Set<string>(
-        Array.isArray(schema['required']) ? (schema['required'] as string[]) : [],
-      );
+      const required = new Set<string>(Array.isArray(schema['required']) ? (schema['required'] as string[]) : []);
       const additionalProperties = schema['additionalProperties'];
 
       if (!properties || Object.keys(properties).length === 0) {
@@ -79,10 +73,7 @@ type TypeStubOptions = {
   includeDescriptions?: boolean;
 };
 
-export function generateTypeStubs(
-  bindings: Record<string, ToolTypeInfo>,
-  options: TypeStubOptions = {},
-): string {
+export function generateTypeStubs(bindings: Record<string, ToolTypeInfo>, options: TypeStubOptions = {}): string {
   const includeDescriptions = options.includeDescriptions ?? true;
   const lines: string[] = [];
 

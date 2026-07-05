@@ -2,10 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import type {
-  CreateAutomationInput,
-  UpdateAutomationInput,
-} from '@stitch/shared/automations/types';
+import type { CreateAutomationInput, UpdateAutomationInput } from '@stitch/shared/automations/types';
 
 import { syncAutomationSchedule, unregisterAutomationSchedule } from '@/automations/scheduler.js';
 import {
@@ -23,12 +20,7 @@ import { paginationQuerySchema, routeSchemas } from '@/lib/route-schemas.js';
 
 const log = Log.create({ service: 'automations' });
 
-const scheduleSchema = z
-  .object({
-    type: z.literal('cron'),
-    expression: z.string().trim().min(1),
-  })
-  .nullable();
+const scheduleSchema = z.object({ type: z.literal('cron'), expression: z.string().trim().min(1) }).nullable();
 
 const createAutomationSchema = z.object({
   providerId: z.string().trim().min(1),
@@ -40,23 +32,17 @@ const createAutomationSchema = z.object({
 
 const updateAutomationSchema = createAutomationSchema
   .partial()
-  .refine((value) => Object.keys(value).length > 0, {
-    message: 'At least one field must be provided',
-  });
+  .refine((value) => Object.keys(value).length > 0, { message: 'At least one field must be provided' });
 
 const automationIdParamSchema = z.object({ id: routeSchemas.automationId });
 
 export const automationsRouter = new Hono();
 
-automationsRouter.get(
-  '/',
-  zValidator('query', paginationQuerySchema({ pageSize: 10 })),
-  async (c) => {
-    const { page, pageSize } = c.req.valid('query');
-    const result = await listAutomations({ page, pageSize });
-    return unwrapResult(c, result);
-  },
-);
+automationsRouter.get('/', zValidator('query', paginationQuerySchema({ pageSize: 10 })), async (c) => {
+  const { page, pageSize } = c.req.valid('query');
+  const result = await listAutomations({ page, pageSize });
+  return unwrapResult(c, result);
+});
 
 automationsRouter.post('/', zValidator('json', createAutomationSchema), async (c) => {
   const body = c.req.valid('json') as CreateAutomationInput;

@@ -12,11 +12,7 @@ import { registerShellHandlers } from './ipc/shell.js';
 import { registerSpellcheckHandlers } from './ipc/spellcheck.js';
 import { registerUpdaterHandlers } from './ipc/updater.js';
 import { registerWindowHandlers } from './ipc/window.js';
-import {
-  startMeetingDetection,
-  stopMeetingDetection,
-  dismissMeetingDetection,
-} from './meeting-detection.js';
+import { startMeetingDetection, stopMeetingDetection, dismissMeetingDetection } from './meeting-detection.js';
 import {
   destroyNotificationWindow,
   dismissDesktopNotification,
@@ -67,17 +63,11 @@ async function startLocalServer(): Promise<string> {
 async function resolveServerUrl(): Promise<string> {
   serverState.serverConnectionConfig = await readServerConnectionConfig();
 
-  if (
-    serverState.serverConnectionConfig.mode === 'remote' &&
-    serverState.serverConnectionConfig.remoteUrl
-  ) {
+  if (serverState.serverConnectionConfig.mode === 'remote' && serverState.serverConnectionConfig.remoteUrl) {
     return serverState.serverConnectionConfig.remoteUrl;
   }
 
-  serverState.serverConnectionConfig = {
-    mode: 'local',
-    remoteUrl: serverState.serverConnectionConfig.remoteUrl,
-  };
+  serverState.serverConnectionConfig = { mode: 'local', remoteUrl: serverState.serverConnectionConfig.remoteUrl };
   return startLocalServer();
 }
 
@@ -193,10 +183,7 @@ void app.whenReady().then(async () => {
 
     updater.init();
     setTimeout(() => void updater.checkForUpdates(), 15_000);
-    updateCheckInterval = setInterval(
-      () => void updater.checkForUpdates(),
-      UPDATE_CHECK_INTERVAL_MS,
-    );
+    updateCheckInterval = setInterval(() => void updater.checkForUpdates(), UPDATE_CHECK_INTERVAL_MS);
 
     initTray(() => mainWindow);
 

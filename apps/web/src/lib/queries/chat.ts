@@ -26,11 +26,7 @@ const EMPTY_USAGE: LanguageModelUsage = {
   inputTokens: 0,
   outputTokens: 0,
   totalTokens: 0,
-  inputTokenDetails: {
-    noCacheTokens: undefined,
-    cacheReadTokens: undefined,
-    cacheWriteTokens: undefined,
-  },
+  inputTokenDetails: { noCacheTokens: undefined, cacheReadTokens: undefined, cacheWriteTokens: undefined },
   outputTokenDetails: { textTokens: undefined, reasoningTokens: undefined },
 };
 
@@ -50,10 +46,7 @@ export const sessionsInfiniteQueryOptions = (search: string) =>
   infiniteQueryOptions({
     queryKey: sessionKeys.infiniteList(search),
     queryFn: ({ pageParam }): Promise<SessionsPage> => {
-      const params = new URLSearchParams({
-        type: 'chat',
-        limit: String(SESSION_PAGE_SIZE),
-      });
+      const params = new URLSearchParams({ type: 'chat', limit: String(SESSION_PAGE_SIZE) });
       if (search) {
         params.set('q', search);
       }
@@ -75,10 +68,7 @@ export const sessionsInfiniteQueryOptions = (search: string) =>
   });
 
 export const sessionQueryOptions = (id: string) =>
-  queryOptions({
-    queryKey: sessionKeys.detail(id),
-    queryFn: () => serverRequest<Session>(`/chat/sessions/${id}`),
-  });
+  queryOptions({ queryKey: sessionKeys.detail(id), queryFn: () => serverRequest<Session>(`/chat/sessions/${id}`) });
 
 export function findSessionInListCache(queryClient: QueryClient, id: string): Session | undefined {
   const cacheEntries = queryClient.getQueriesData<InfiniteData<SessionsPage>>({
@@ -154,17 +144,9 @@ export function flattenMessages(data: InfiniteData<MessagesPage> | undefined): M
   return reversed.flatMap((page) => page.messages);
 }
 
-type CreateSessionInput = {
-  title?: string;
-  parentSessionId?: string;
-};
+type CreateSessionInput = { title?: string; parentSessionId?: string };
 
-type Attachment = {
-  path: string;
-  previewUrl: string | null;
-  mime: string;
-  filename: string;
-};
+type Attachment = { path: string; previewUrl: string | null; mime: string; filename: string };
 
 type SendMessageInput = {
   sessionId: PrefixedString<'ses'>;
@@ -175,10 +157,7 @@ type SendMessageInput = {
   assistantMessageId: PrefixedString<'msg'>;
 };
 
-type SendMessageResult = {
-  messageId: PrefixedString<'msg'>;
-  userMessageId: PrefixedString<'msg'>;
-};
+type SendMessageResult = { messageId: PrefixedString<'msg'>; userMessageId: PrefixedString<'msg'> };
 
 export function useCreateSession() {
   const queryClient = useQueryClient();
@@ -195,19 +174,11 @@ export function useCreateSession() {
   });
 }
 
-type RenameSessionInput = {
-  sessionId: PrefixedString<'ses'>;
-  title: string;
-};
+type RenameSessionInput = { sessionId: PrefixedString<'ses'>; title: string };
 
-type DeleteSessionInput = {
-  sessionId: PrefixedString<'ses'>;
-};
+type DeleteSessionInput = { sessionId: PrefixedString<'ses'> };
 
-type DoomLoopResponseInput = {
-  sessionId: string;
-  response: 'continue' | 'stop';
-};
+type DoomLoopResponseInput = { sessionId: string; response: 'continue' | 'stop' };
 
 export function useRenameSession() {
   const queryClient = useQueryClient();
@@ -225,23 +196,15 @@ export function useRenameSession() {
   });
 }
 
-type SplitSessionInput = {
-  sessionId: PrefixedString<'ses'>;
-  msgId: PrefixedString<'msg'>;
-};
+type SplitSessionInput = { sessionId: PrefixedString<'ses'>; msgId: PrefixedString<'msg'> };
 
-type SplitSessionResult = {
-  session: Session;
-  prefillText: string;
-};
+type SplitSessionResult = { session: Session; prefillText: string };
 
 export function useSplitSession() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: SplitSessionInput) =>
-      serverRequest<SplitSessionResult>(`/chat/sessions/${input.sessionId}/split/${input.msgId}`, {
-        method: 'POST',
-      }),
+      serverRequest<SplitSessionResult>(`/chat/sessions/${input.sessionId}/split/${input.msgId}`, { method: 'POST' }),
     onSuccess: (data) => {
       queryClient.setQueryData(sessionKeys.detail(data.session.id), data.session);
       void queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
@@ -253,9 +216,7 @@ export function useDeleteSession() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: DeleteSessionInput) =>
-      serverRequest<void>(`/chat/sessions/${input.sessionId}`, {
-        method: 'DELETE',
-      }),
+      serverRequest<void>(`/chat/sessions/${input.sessionId}`, { method: 'DELETE' }),
     onSuccess: (_data, input) => {
       void queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
       queryClient.removeQueries({ queryKey: sessionKeys.detail(input.sessionId) });
@@ -303,9 +264,7 @@ export function useGenerateAutomationDraft() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (sessionId: string) =>
-      serverRequest<GeneratedAutomationDraft>(`/chat/sessions/${sessionId}/generate-automation`, {
-        method: 'POST',
-      }),
+      serverRequest<GeneratedAutomationDraft>(`/chat/sessions/${sessionId}/generate-automation`, { method: 'POST' }),
     onSuccess: (_data, sessionId) => {
       void queryClient.invalidateQueries({ queryKey: sessionKeys.messages(sessionId) });
     },
@@ -321,11 +280,7 @@ export function useSendMessage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content: input.content,
-          attachments: input.attachments?.map(({ path, mime, filename }) => ({
-            path,
-            mime,
-            filename,
-          })),
+          attachments: input.attachments?.map(({ path, mime, filename }) => ({ path, mime, filename })),
           providerId: input.providerId,
           modelId: input.modelId,
           assistantMessageId: input.assistantMessageId,
@@ -340,13 +295,7 @@ export function useSendMessage() {
       if (previous) {
         const now = Date.now();
         const optimisticParts: StoredPart[] = [
-          {
-            type: 'text-delta' as const,
-            id: createPartId(),
-            text: input.content,
-            startedAt: now,
-            endedAt: now,
-          },
+          { type: 'text-delta' as const, id: createPartId(), text: input.content, startedAt: now, endedAt: now },
           ...(input.attachments ?? []).map((att): StoredPart => {
             if (att.mime.startsWith('image/')) {
               return {
@@ -403,16 +352,10 @@ export function useSendMessage() {
         const updatedPages = [...previous.pages];
         const firstPage = updatedPages[0];
         if (firstPage) {
-          updatedPages[0] = {
-            ...firstPage,
-            messages: [...firstPage.messages, optimisticMessage],
-          };
+          updatedPages[0] = { ...firstPage, messages: [...firstPage.messages, optimisticMessage] };
         }
 
-        queryClient.setQueryData<InfiniteData<MessagesPage>>(queryKey, {
-          ...previous,
-          pages: updatedPages,
-        });
+        queryClient.setQueryData<InfiniteData<MessagesPage>>(queryKey, { ...previous, pages: updatedPages });
       }
 
       return { previous };

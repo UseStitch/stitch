@@ -18,11 +18,7 @@ const log = Log.create({ service: 'question-service' });
 type QuestionRow = typeof questions.$inferSelect;
 
 function toQuestionRequest(row: QuestionRow): QuestionRequest {
-  return {
-    ...row,
-    answers: row.answers ?? undefined,
-    answeredAt: row.answeredAt ?? undefined,
-  };
+  return { ...row, answers: row.answers ?? undefined, answeredAt: row.answeredAt ?? undefined };
 }
 
 function validateQuestionAnswers(question: QuestionRow, answers: string[][]): ServiceResult<null> {
@@ -124,9 +120,7 @@ export async function askQuestion(opts: {
     throw new Error(`Question not found after create: ${id}`);
   }
 
-  internalBus.emit('question.asked', {
-    question: toQuestionRequest(row),
-  });
+  internalBus.emit('question.asked', { question: toQuestionRequest(row) });
 
   return interactionBroker.wait<string[][]>({
     id,
@@ -155,19 +149,11 @@ export async function replyQuestion(
 
   const [question] = await db
     .update(questions)
-    .set({
-      answers,
-      status: 'answered',
-      answeredAt: now,
-    })
+    .set({ answers, status: 'answered', answeredAt: now })
     .where(eq(questions.id, questionId))
     .returning();
 
-  internalBus.emit('question.replied', {
-    questionId,
-    sessionId: question.sessionId,
-    answers,
-  });
+  internalBus.emit('question.replied', { questionId, sessionId: question.sessionId, answers });
 
   const pending = interactionBroker.get(questionId);
   log.info(
@@ -187,9 +173,7 @@ export async function replyQuestion(
   return ok(null);
 }
 
-export async function rejectQuestion(
-  questionId: PrefixedString<'quest'>,
-): Promise<ServiceResult<null>> {
+export async function rejectQuestion(questionId: PrefixedString<'quest'>): Promise<ServiceResult<null>> {
   const db = getDb();
   const now = Date.now();
 
@@ -198,18 +182,9 @@ export async function rejectQuestion(
     return err(`Question not found: ${questionId}`, 404);
   }
 
-  await db
-    .update(questions)
-    .set({
-      status: 'rejected',
-      answeredAt: now,
-    })
-    .where(eq(questions.id, questionId));
+  await db.update(questions).set({ status: 'rejected', answeredAt: now }).where(eq(questions.id, questionId));
 
-  internalBus.emit('question.rejected', {
-    questionId,
-    sessionId: question.sessionId,
-  });
+  internalBus.emit('question.rejected', { questionId, sessionId: question.sessionId });
 
   const pending = interactionBroker.get(questionId);
   log.info(
@@ -229,9 +204,7 @@ export async function rejectQuestion(
   return ok(null);
 }
 
-export async function getPendingQuestions(
-  sessionId: PrefixedString<'ses'>,
-): Promise<ServiceResult<QuestionRequest[]>> {
+export async function getPendingQuestions(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<QuestionRequest[]>> {
   const db = getDb();
   const rows = await db
     .select()
@@ -273,15 +246,7 @@ export async function abortQuestions(sessionId: PrefixedString<'ses'>): Promise<
       const streamRunId = streamRunIds.get(q.id);
       internalBus.emit('question.rejected', { questionId: q.id, sessionId });
 
-      log.info(
-        {
-          event: 'stream.question.aborted',
-          streamRunId,
-          sessionId,
-          questionId: q.id,
-        },
-        'question aborted',
-      );
+      log.info({ event: 'stream.question.aborted', streamRunId, sessionId, questionId: q.id }, 'question aborted');
     }),
   );
 

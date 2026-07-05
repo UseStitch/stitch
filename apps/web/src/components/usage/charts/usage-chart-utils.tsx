@@ -30,15 +30,8 @@ export function getStackSegmentRadius(ctx: ScriptableContext<'bar'>, radius = 5)
   const { datasetIndex, dataIndex } = ctx;
   const datasets = ctx.chart.data.datasets;
 
-  const hasAbove = datasets
-    .slice(datasetIndex + 1)
-    .some((dataset) => getNumericValue(dataset.data?.[dataIndex]) > 0);
-  return {
-    topLeft: hasAbove ? 0 : radius,
-    topRight: hasAbove ? 0 : radius,
-    bottomLeft: 0,
-    bottomRight: 0,
-  };
+  const hasAbove = datasets.slice(datasetIndex + 1).some((dataset) => getNumericValue(dataset.data?.[dataIndex]) > 0);
+  return { topLeft: hasAbove ? 0 : radius, topRight: hasAbove ? 0 : radius, bottomLeft: 0, bottomRight: 0 };
 }
 
 export function useChartTheme() {

@@ -59,10 +59,7 @@ export type ConnectorServiceHooks = {
     logger: StitchLogger;
   }) => Promise<{ accountEmail: string | null; accountInfo: Record<string, unknown> | null }>;
   onDeleted?: (input: { instance: ConnectorInstanceRecord; logger: StitchLogger }) => Promise<void>;
-  testConnection?: (input: {
-    instance: ConnectorInstanceRecord;
-    logger: StitchLogger;
-  }) => Promise<void>;
+  testConnection?: (input: { instance: ConnectorInstanceRecord; logger: StitchLogger }) => Promise<void>;
 };
 
 export type ConnectorModule = {

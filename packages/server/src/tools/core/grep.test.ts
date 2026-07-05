@@ -23,11 +23,7 @@ describe('grep tool helpers', () => {
     const filePath = path.join(dir, 'example.ts');
     await fs.writeFile(filePath, 'const alpha = 1;\nconst beta = 2;\n', 'utf8');
 
-    const result = await grepContent({
-      pattern: 'beta',
-      path: dir,
-      include: '*.ts',
-    });
+    const result = await grepContent({ pattern: 'beta', path: dir, include: '*.ts' });
 
     expect(result.output).toContain('Found 1 matches');
     expect(result.output).toContain(filePath);
@@ -38,10 +34,7 @@ describe('grep tool helpers', () => {
     const dir = await createTempDir();
     await fs.writeFile(path.join(dir, 'example.txt'), 'hello', 'utf8');
 
-    const result = await grepContent({
-      pattern: 'missing-pattern',
-      path: dir,
-    });
+    const result = await grepContent({ pattern: 'missing-pattern', path: dir });
 
     expect(result.output).toBe('No files found');
   });
@@ -49,21 +42,13 @@ describe('grep tool helpers', () => {
   test('rejects invalid regex pattern', async () => {
     const dir = await createTempDir();
 
-    expect(
-      grepContent({
-        pattern: '[unterminated',
-        path: dir,
-      }),
-    ).rejects.toThrow('Invalid regex pattern');
+    expect(grepContent({ pattern: '[unterminated', path: dir })).rejects.toThrow('Invalid regex pattern');
   });
 
   test('rejects non-absolute path', async () => {
-    expect(
-      grepContent({
-        pattern: 'x',
-        path: 'relative/path',
-      }),
-    ).rejects.toThrow('path must be an absolute directory path');
+    expect(grepContent({ pattern: 'x', path: 'relative/path' })).rejects.toThrow(
+      'path must be an absolute directory path',
+    );
   });
 
   test('truncates after 100 matches for performance', async () => {
@@ -71,11 +56,7 @@ describe('grep tool helpers', () => {
     const lines = Array.from({ length: 140 }, () => 'match me').join('\n');
     await fs.writeFile(path.join(dir, 'many.txt'), lines, 'utf8');
 
-    const result = await grepContent({
-      pattern: 'match me',
-      path: dir,
-      include: '*.txt',
-    });
+    const result = await grepContent({ pattern: 'match me', path: dir, include: '*.txt' });
 
     expect(result.output).toContain('Found at least 100 matches');
     expect(result.output).toContain('Results truncated at 100 matches');

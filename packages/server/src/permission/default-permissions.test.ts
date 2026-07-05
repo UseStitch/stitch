@@ -14,9 +14,7 @@ describe('syncDefaultPermissions', () => {
     await syncDefaultPermissions();
 
     const rows = await getDb().select().from(toolPermissions);
-    const skillsRule = rows.find(
-      (r) => r.toolName === 'read' && r.pattern === `${PATHS.dirPaths.skills}${path.sep}*`,
-    );
+    const skillsRule = rows.find((r) => r.toolName === 'read' && r.pattern === `${PATHS.dirPaths.skills}${path.sep}*`);
 
     expect(skillsRule).toBeDefined();
     expect(skillsRule!.permission).toBe('allow');

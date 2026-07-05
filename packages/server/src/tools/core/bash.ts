@@ -6,10 +6,7 @@ import { z } from 'zod';
 import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
 
 import { resolvePreferredShell } from '@/lib/shell.js';
-import {
-  deriveCommandFamilies,
-  getCommandFamilySuggestion,
-} from '@/tools/runtime/bash-families.js';
+import { deriveCommandFamilies, getCommandFamilySuggestion } from '@/tools/runtime/bash-families.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import { validateExistingDirectoryPath } from '@/tools/runtime/shared.js';
 
@@ -29,14 +26,8 @@ function stripAnsi(value: string): string {
 const bashInputSchema = z.object({
   command: z.string().min(1).describe('The shell command to run'),
   workdir: z.string().describe('The absolute working directory to run the command in'),
-  timeout: z
-    .number()
-    .optional()
-    .describe('Optional timeout in milliseconds (defaults to 120000, max 600000)'),
-  description: z
-    .string()
-    .min(1)
-    .describe('Short plain-language description (5-10 words) of what this command does'),
+  timeout: z.number().optional().describe('Optional timeout in milliseconds (defaults to 120000, max 600000)'),
+  description: z.string().min(1).describe('Short plain-language description (5-10 words) of what this command does'),
 });
 
 function normalizeTimeout(timeout: number | undefined): number {
@@ -64,16 +55,10 @@ function spawnShellCommand(input: {
   };
 
   if (process.platform === 'win32') {
-    return spawn(input.exe, input.argv, {
-      ...options,
-      detached: false,
-    });
+    return spawn(input.exe, input.argv, { ...options, detached: false });
   }
 
-  return spawn(input.command, [], {
-    ...options,
-    shell: input.shell,
-  });
+  return spawn(input.command, [], { ...options, shell: input.shell });
 }
 
 async function killProcessTree(proc: ChildProcess, exited: () => boolean): Promise<void> {
@@ -82,10 +67,7 @@ async function killProcessTree(proc: ChildProcess, exited: () => boolean): Promi
 
   if (process.platform === 'win32') {
     await new Promise<void>((resolve) => {
-      const killer = spawn('taskkill', ['/pid', String(pid), '/f', '/t'], {
-        stdio: 'ignore',
-        windowsHide: true,
-      });
+      const killer = spawn('taskkill', ['/pid', String(pid), '/f', '/t'], { stdio: 'ignore', windowsHide: true });
       killer.once('exit', () => resolve());
       killer.once('error', () => resolve());
     });

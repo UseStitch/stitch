@@ -11,9 +11,7 @@ describe('generateTypeStubs', () => {
         description: 'Read a file from disk',
         inputSchema: {
           type: 'object',
-          properties: {
-            filePath: { type: 'string', description: 'Path to the file' },
-          },
+          properties: { filePath: { type: 'string', description: 'Path to the file' } },
           required: ['filePath'],
         },
       },
@@ -23,9 +21,7 @@ describe('generateTypeStubs', () => {
 
     expect(result).toContain('type ExternalReadInput');
     expect(result).toContain('filePath: string');
-    expect(result).toContain(
-      'declare function external_read(input: ExternalReadInput): Promise<unknown>',
-    );
+    expect(result).toContain('declare function external_read(input: ExternalReadInput): Promise<unknown>');
     expect(result).toContain('/** Read a file from disk */');
   });
 
@@ -36,10 +32,7 @@ describe('generateTypeStubs', () => {
         description: 'Search files',
         inputSchema: {
           type: 'object',
-          properties: {
-            query: { type: 'string' },
-            limit: { type: 'number' },
-          },
+          properties: { query: { type: 'string' }, limit: { type: 'number' } },
           required: ['query'],
         },
       },
@@ -58,9 +51,7 @@ describe('generateTypeStubs', () => {
         description: 'Batch operation',
         inputSchema: {
           type: 'object',
-          properties: {
-            items: { type: 'array', items: { type: 'string' } },
-          },
+          properties: { items: { type: 'array', items: { type: 'string' } } },
           required: ['items'],
         },
       },
@@ -75,13 +66,7 @@ describe('generateTypeStubs', () => {
       external_action: {
         name: 'external_action',
         description: 'Perform action',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            mode: { enum: ['fast', 'slow', 'auto'] },
-          },
-          required: ['mode'],
-        },
+        inputSchema: { type: 'object', properties: { mode: { enum: ['fast', 'slow', 'auto'] } }, required: ['mode'] },
       },
     };
 
@@ -99,10 +84,7 @@ describe('generateTypeStubs', () => {
           properties: {
             config: {
               type: 'object',
-              properties: {
-                name: { type: 'string' },
-                enabled: { type: 'boolean' },
-              },
+              properties: { name: { type: 'string' }, enabled: { type: 'boolean' } },
               required: ['name'],
             },
           },
@@ -123,9 +105,7 @@ describe('generateTypeStubs', () => {
         description: 'Flexible input',
         inputSchema: {
           type: 'object',
-          properties: {
-            value: { anyOf: [{ type: 'string' }, { type: 'number' }] },
-          },
+          properties: { value: { anyOf: [{ type: 'string' }, { type: 'number' }] } },
           required: ['value'],
         },
       },
@@ -171,11 +151,7 @@ describe('generateTypeStubs', () => {
       external_read: {
         name: 'external_read',
         description: 'Read',
-        inputSchema: {
-          type: 'object',
-          properties: { path: { type: 'string' } },
-          required: ['path'],
-        },
+        inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
       },
       external_write: {
         name: 'external_write',

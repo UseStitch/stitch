@@ -9,21 +9,9 @@ import { SETTINGS_SCHEMAS } from '@stitch/shared/settings/types';
 import { PermissionPolicyEditor } from './permissions/permission-policy-editor';
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
-import {
-  EmptyState,
-  SectionCard,
-  ToolRow,
-  ToolsetRow,
-} from '@/components/settings/permissions/components';
-import {
-  filterCoreTools,
-  filterToolsetsByQuery,
-} from '@/components/settings/permissions/filtering';
-import {
-  McpToolsTab,
-  filterMcpGroups,
-  useMcpToolsetGroups,
-} from '@/components/settings/permissions/mcp-tools-tab';
+import { EmptyState, SectionCard, ToolRow, ToolsetRow } from '@/components/settings/permissions/components';
+import { filterCoreTools, filterToolsetsByQuery } from '@/components/settings/permissions/filtering';
+import { McpToolsTab, filterMcpGroups, useMcpToolsetGroups } from '@/components/settings/permissions/mcp-tools-tab';
 import type { EditingTarget } from '@/components/settings/permissions/types';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
@@ -36,13 +24,7 @@ import {
 } from '@/components/settings/settings-ui';
 import { NativeToolsetIcon, ToolNameIcon } from '@/components/tools/tool-icons';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 import {
@@ -70,9 +52,7 @@ function ToolsetActivationSettings() {
   const saveDefaultScope = useMutation(
     saveSettingMutationOptions('toolsets.defaultScope', queryClient, { silent: true }),
   );
-  const parsedDefaultScope = SETTINGS_SCHEMAS['toolsets.defaultScope'].safeParse(
-    settings['toolsets.defaultScope'],
-  );
+  const parsedDefaultScope = SETTINGS_SCHEMAS['toolsets.defaultScope'].safeParse(settings['toolsets.defaultScope']);
   const defaultScope = parsedDefaultScope.success
     ? (parsedDefaultScope.data as ToolsetDefaultScope)
     : DEFAULT_TOOLSET_SCOPE;
@@ -82,20 +62,15 @@ function ToolsetActivationSettings() {
   return (
     <SettingSection
       title="Toolset activation"
-      description="Control how long activated toolsets stay available across conversation turns."
-    >
+      description="Control how long activated toolsets stay available across conversation turns.">
       <SettingRows>
-        <SettingRow
-          label="Default scope"
-          description="Scope used when activate_toolset does not request a lifetime."
-        >
+        <SettingRow label="Default scope" description="Scope used when activate_toolset does not request a lifetime.">
           <SettingRowControl>
             <Select
               value={defaultScope}
               onValueChange={(value) => {
                 if (value) saveDefaultScope.mutate(value);
-              }}
-            >
+              }}>
               <SelectTrigger className="w-full">
                 <SelectValue>{selectedScopeLabel}</SelectValue>
               </SelectTrigger>
@@ -150,9 +125,7 @@ function ToolsContent() {
   }, [knownMcpTools]);
 
   const enabledMap = React.useMemo(() => {
-    return new Map(
-      enabledStates.map((state) => [`${state.scope}:${state.identifier}`, state.enabled]),
-    );
+    return new Map(enabledStates.map((state) => [`${state.scope}:${state.identifier}`, state.enabled]));
   }, [enabledStates]);
 
   const getEnabled = React.useCallback(
@@ -164,13 +137,9 @@ function ToolsContent() {
 
   const updateEnabled = React.useCallback(
     (kind: 'tool' | 'toolset' | 'mcp_tool', identifier: string, enabled: boolean) => {
-      void setToolEnabledState
-        .mutateAsync({ scope: kind, identifier, enabled })
-        .catch((error: unknown) => {
-          toast.error(error instanceof Error ? error.message : 'Failed to update tool state', {
-            id: 'tool-state',
-          });
-        });
+      void setToolEnabledState.mutateAsync({ scope: kind, identifier, enabled }).catch((error: unknown) => {
+        toast.error(error instanceof Error ? error.message : 'Failed to update tool state', { id: 'tool-state' });
+      });
     },
     [setToolEnabledState],
   );
@@ -182,10 +151,7 @@ function ToolsContent() {
   const connectorToolsets = filteredToolsets.filter((toolset) => toolset.source === 'connector');
 
   const mcpToolsetGroups = useMcpToolsetGroups(knownTools, mcpToolMetaByName);
-  const filteredMcpGroups = React.useMemo(
-    () => filterMcpGroups(mcpToolsetGroups, query),
-    [mcpToolsetGroups, query],
-  );
+  const filteredMcpGroups = React.useMemo(() => filterMcpGroups(mcpToolsetGroups, query), [mcpToolsetGroups, query]);
 
   if (editingTarget) {
     return (
@@ -201,11 +167,7 @@ function ToolsContent() {
   const isMutating = setToolEnabledState.isPending;
 
   return (
-    <SettingPage
-      title={page.title}
-      description={page.description}
-      icon={<Icon className="size-5" />}
-    >
+    <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
       <div className="space-y-5">
         {scope !== 'settings' && (
           <div className="relative">
@@ -219,11 +181,7 @@ function ToolsContent() {
           </div>
         )}
 
-        <Tabs
-          value={scope}
-          onValueChange={(value) => setScope(value as ScopeFilter)}
-          className="space-y-4"
-        >
+        <Tabs value={scope} onValueChange={(value) => setScope(value as ScopeFilter)} className="space-y-4">
           <TabsList variant="line">
             <TabsTrigger value="stitch">Core tools</TabsTrigger>
             <TabsTrigger value="native">Native toolsets</TabsTrigger>
@@ -237,19 +195,13 @@ function ToolsContent() {
               <SectionCard
                 title="Core tools"
                 description="Built-in tools provided by Stitch"
-                count={stitchTools.length}
-              >
+                count={stitchTools.length}>
                 <div className="divide-y divide-border/40">
                   {stitchTools.map((tool) => (
                     <ToolRow
                       key={tool.toolName}
                       name={tool.displayName}
-                      icon={
-                        <ToolNameIcon
-                          toolName={tool.toolName}
-                          className="size-4 shrink-0 text-muted-foreground"
-                        />
-                      }
+                      icon={<ToolNameIcon toolName={tool.toolName} className="size-4 shrink-0 text-muted-foreground" />}
                       technicalName={tool.toolName}
                       enabled={getEnabled('tool', tool.toolName)}
                       onConfigure={() =>
@@ -276,8 +228,7 @@ function ToolsContent() {
               <SectionCard
                 title="Native toolsets"
                 description="Built-in toolsets available in Stitch"
-                count={nativeToolsets.length}
-              >
+                count={nativeToolsets.length}>
                 <div className="divide-y divide-border/40">
                   {nativeToolsets.map((toolset) => (
                     <ToolsetRow
@@ -285,10 +236,7 @@ function ToolsContent() {
                       name={toolset.name}
                       description={toolset.description}
                       icon={
-                        <NativeToolsetIcon
-                          toolsetId={toolset.id}
-                          className="size-4 shrink-0 text-muted-foreground"
-                        />
+                        <NativeToolsetIcon toolsetId={toolset.id} className="size-4 shrink-0 text-muted-foreground" />
                       }
                       enabled={getEnabled('toolset', toolset.id)}
                       settingsAlign="end"
@@ -317,8 +265,7 @@ function ToolsContent() {
               <SectionCard
                 title="Connector tools"
                 description="Toolsets from connected apps like Google Workspace"
-                count={connectorToolsets.length}
-              >
+                count={connectorToolsets.length}>
                 <div className="divide-y divide-border/40">
                   {connectorToolsets.map((toolset) => (
                     <ToolsetRow
@@ -327,10 +274,7 @@ function ToolsContent() {
                       description={toolset.description}
                       icon={
                         toolset.icon ? (
-                          <ConnectorIcon
-                            icon={toolset.icon}
-                            className="size-4 shrink-0 text-muted-foreground"
-                          />
+                          <ConnectorIcon icon={toolset.icon} className="size-4 shrink-0 text-muted-foreground" />
                         ) : undefined
                       }
                       enabled={getEnabled('toolset', toolset.id)}
@@ -371,8 +315,8 @@ function ToolsContent() {
         </Tabs>
 
         <p className="text-xs text-muted-foreground">
-          Tip: use <span className="font-medium text-foreground">Settings</span> to configure ask,
-          allow, deny, and path/command rules.
+          Tip: use <span className="font-medium text-foreground">Settings</span> to configure ask, allow, deny, and
+          path/command rules.
         </p>
       </div>
     </SettingPage>

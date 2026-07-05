@@ -4,12 +4,7 @@ import { queryOptions, type MutationOptions, type QueryClient } from '@tanstack/
 
 import { serverRequest } from '@/lib/api';
 
-export type {
-  MemoryCategory,
-  MemoryConfidence,
-  MemorySource,
-  SemanticMemory,
-} from '@stitch/shared/memory/types';
+export type { MemoryCategory, MemoryConfidence, MemorySource, SemanticMemory } from '@stitch/shared/memory/types';
 
 type SemanticMemoryUpdate = {
   content?: string;
@@ -47,13 +42,7 @@ export const semanticMemoriesQueryOptions = (input: {
   category?: import('@stitch/shared/memory/types').MemoryCategory;
 }) =>
   queryOptions({
-    queryKey: [
-      ...memoriesKeys.semantic(),
-      input.source ?? 'all',
-      input.category ?? 'all',
-      input.page,
-      input.pageSize,
-    ],
+    queryKey: [...memoriesKeys.semantic(), input.source ?? 'all', input.category ?? 'all', input.page, input.pageSize],
     queryFn: () => {
       const params = new URLSearchParams();
       params.set('page', String(input.page));
@@ -82,11 +71,7 @@ export const semanticMemorySearchQueryOptions = (input: {
       input.pageSize,
     ],
     queryFn: () => {
-      const params = new URLSearchParams({
-        q: input.q,
-        page: String(input.page),
-        pageSize: String(input.pageSize),
-      });
+      const params = new URLSearchParams({ q: input.q, page: String(input.page), pageSize: String(input.pageSize) });
       if (input.source) params.set('source', input.source);
       if (input.category) params.set('category', input.category);
       return serverRequest<import('@stitch/shared/memory/types').SearchSemanticMemoriesResponse>(
@@ -131,9 +116,7 @@ export function pinMemoryMutationOptions(
   };
 }
 
-export function pruneMemoriesMutationOptions(
-  queryClient: QueryClient,
-): MutationOptions<void, Error, void> {
+export function pruneMemoriesMutationOptions(queryClient: QueryClient): MutationOptions<void, Error, void> {
   return {
     mutationFn: () => serverRequest<void>('/memory/prune', { method: 'POST' }),
     onSuccess: () => {
@@ -144,9 +127,7 @@ export function pruneMemoriesMutationOptions(
   };
 }
 
-export function deleteMemoryMutationOptions(
-  queryClient: QueryClient,
-): MutationOptions<void, Error, string> {
+export function deleteMemoryMutationOptions(queryClient: QueryClient): MutationOptions<void, Error, string> {
   return {
     mutationFn: (id) => serverRequest<void>(`/memory/semantic/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
@@ -157,9 +138,7 @@ export function deleteMemoryMutationOptions(
   };
 }
 
-export function bulkDeleteMemoriesMutationOptions(
-  queryClient: QueryClient,
-): MutationOptions<void, Error, string[]> {
+export function bulkDeleteMemoriesMutationOptions(queryClient: QueryClient): MutationOptions<void, Error, string[]> {
   return {
     mutationFn: (ids) =>
       serverRequest<void>('/memory/semantic', {
@@ -169,19 +148,13 @@ export function bulkDeleteMemoriesMutationOptions(
       }),
     onSuccess: (_, ids) => {
       void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
-      toast.success(`${ids.length} ${ids.length === 1 ? 'memory' : 'memories'} deleted`, {
-        id: 'memory-bulk-delete',
-      });
+      toast.success(`${ids.length} ${ids.length === 1 ? 'memory' : 'memories'} deleted`, { id: 'memory-bulk-delete' });
     },
     onError: (err) => toast.error(err.message, { id: 'memory-bulk-delete' }),
   };
 }
 
-type MaintenanceResult = {
-  pruned: number;
-  deduplicated: number;
-  stats: MemoryHealthStats | null;
-};
+type MaintenanceResult = { pruned: number; deduplicated: number; stats: MemoryHealthStats | null };
 
 export function runMaintenanceMutationOptions(
   queryClient: QueryClient,
@@ -194,9 +167,7 @@ export function runMaintenanceMutationOptions(
       if (result.pruned > 0) parts.push(`${result.pruned} pruned`);
       if (result.deduplicated > 0) parts.push(`${result.deduplicated} deduplicated`);
       toast.success(
-        parts.length > 0
-          ? `Maintenance complete: ${parts.join(', ')}`
-          : 'Maintenance complete — nothing to clean up',
+        parts.length > 0 ? `Maintenance complete: ${parts.join(', ')}` : 'Maintenance complete — nothing to clean up',
         { id: 'memory-maintenance' },
       );
     },
@@ -204,9 +175,7 @@ export function runMaintenanceMutationOptions(
   };
 }
 
-export function resetMemoriesMutationOptions(
-  queryClient: QueryClient,
-): MutationOptions<void, Error, void> {
+export function resetMemoriesMutationOptions(queryClient: QueryClient): MutationOptions<void, Error, void> {
   return {
     mutationFn: () => serverRequest<void>('/memory/reset', { method: 'POST' }),
     onSuccess: () => {

@@ -6,18 +6,9 @@ import type {
   ElectronBrowserSearchPageResult,
 } from '@stitch/shared/browser/electron';
 
-export type BrowserTab = {
-  id: string;
-  title: string;
-  url: string;
-  type: string;
-};
+export type BrowserTab = { id: string; title: string; url: string; type: string };
 
-export type LaunchOptions = {
-  port?: number;
-  width?: number;
-  height?: number;
-};
+export type LaunchOptions = { port?: number; width?: number; height?: number };
 
 export type ScrollDirection = 'up' | 'down' | 'left' | 'right';
 
