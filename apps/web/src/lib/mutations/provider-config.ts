@@ -2,7 +2,7 @@ import { toast } from 'sonner';
 
 import { useMutation, type QueryClient } from '@tanstack/react-query';
 
-import { serverFetch } from '@/lib/api';
+import { serverRequest } from '@/lib/api';
 import { getErrorMessage } from '@/lib/errors';
 import { providerKeys } from '@/lib/queries/providers';
 
@@ -43,17 +43,11 @@ export function useSaveProviderConfigMutation({
 }: SaveProviderConfigMutationOptions) {
   return useMutation({
     mutationFn: async (body: ProviderConfigBody) => {
-      const res = await serverFetch(`/llm/provider/${providerId}/config`, {
+      await serverRequest<void>(`/llm/provider/${providerId}/config`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-
-      if (!res.ok) {
-        const payload = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(payload.error ?? errorMessage);
-      }
-
       return body;
     },
     onSuccess: async (savedConfig) => {
@@ -77,10 +71,7 @@ export function useDeleteProviderConfigMutation({
   onSuccess,
 }: DeleteProviderConfigMutationOptions) {
   return useMutation({
-    mutationFn: async () => {
-      const res = await serverFetch(`/llm/provider/${providerId}/config`, { method: 'DELETE' });
-      if (!res.ok) throw new Error(errorMessage);
-    },
+    mutationFn: () => serverRequest<void>(`/llm/provider/${providerId}/config`, { method: 'DELETE' }),
     onSuccess: async () => {
       queryClient.setQueryData(providerKeys.config(providerId), null);
       await invalidateProviderQueries(queryClient);
