@@ -1,6 +1,12 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["unicorn", "typescript", "oxc", "import", "react"],
+  "jsPlugins": [
+    {
+      "name": "stitch",
+      "specifier": "./tools/oxlint-plugins/index.mjs"
+    }
+  ],
   "options": {
     "typeAware": true
   },
@@ -23,7 +29,8 @@
     "react/jsx-no-target-blank": "error",
     "react/react-in-jsx-scope": "off",
     "react/rules-of-hooks": "error",
-    "react/exhaustive-deps": "error"
+    "react/exhaustive-deps": "error",
+    "stitch/no-collapsible-if": "error"
   },
   "ignorePatterns": ["node_modules", "dist", "out", "dist-electron", ".turbo"],
   "env": {

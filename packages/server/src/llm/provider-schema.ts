@@ -72,8 +72,12 @@ function sanitizeGemini(node: unknown): unknown {
   }
 
   // Array schemas must declare `items`; default empty item schemas to string.
-  if (result.type === 'array' && !hasCombiner(result)) {
-    if (result.items === undefined || result.items === null) result.items = { type: 'string' };
+  if (
+    result.type === 'array' &&
+    !hasCombiner(result) &&
+    (result.items === undefined || result.items === null)
+  ) {
+    result.items = { type: 'string' };
   }
 
   return result;

@@ -387,13 +387,14 @@ class StreamRunner {
         this.state.conversation.push(msg);
       }
 
-      if (compactionSettings.auto) {
-        if (isOverflow(stepResult.usage, modelLimits, { reserved: compactionSettings.reserved })) {
-          this.state.contextOverflow = true;
-          this.setNeedsCompaction(true, 'mid-loop-overflow');
-          this.setFinishReason('context-overflow', 'mid-loop-overflow');
-          break;
-        }
+      if (
+        compactionSettings.auto &&
+        isOverflow(stepResult.usage, modelLimits, { reserved: compactionSettings.reserved })
+      ) {
+        this.state.contextOverflow = true;
+        this.setNeedsCompaction(true, 'mid-loop-overflow');
+        this.setFinishReason('context-overflow', 'mid-loop-overflow');
+        break;
       }
 
       if (stepResult.toolCalls.length === 0) {
