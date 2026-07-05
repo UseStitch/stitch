@@ -4,7 +4,6 @@ import {
   addCacheControlToMessages,
   addCacheControlToTools,
   getCacheConfig,
-  getProviderOptions,
 } from '@/llm/cache-control.js';
 import type { ModelMessage, Tool } from 'ai';
 
@@ -360,44 +359,6 @@ describe('addCacheControlToTools', () => {
     expect((result.bash as { providerOptions?: unknown }).providerOptions).toBeUndefined();
     expect((result.read as { providerOptions?: unknown }).providerOptions).toEqual({
       bedrock: { cachePoint: { type: 'default' } },
-    });
-  });
-});
-
-describe('getProviderOptions', () => {
-  const sessionId = 'ses_test-session-123';
-
-  test('returns promptCacheKey for openai provider', () => {
-    expect(getProviderOptions('openai', sessionId)).toEqual({
-      openai: { promptCacheKey: sessionId },
-    });
-  });
-
-  test('returns prompt_cache_key for openrouter provider', () => {
-    expect(getProviderOptions('openrouter', sessionId)).toEqual({
-      openrouter: { prompt_cache_key: sessionId },
-    });
-  });
-
-  test('returns undefined for anthropic provider', () => {
-    expect(getProviderOptions('anthropic', sessionId)).toBeUndefined();
-  });
-
-  test('returns undefined for amazon-bedrock provider', () => {
-    expect(getProviderOptions('amazon-bedrock', sessionId)).toBeUndefined();
-  });
-
-  test('returns undefined for google provider', () => {
-    expect(getProviderOptions('google', sessionId)).toBeUndefined();
-  });
-
-  test('returns undefined for google-vertex provider', () => {
-    expect(getProviderOptions('google-vertex', sessionId)).toBeUndefined();
-  });
-
-  test('returns gateway caching auto for vercel provider', () => {
-    expect(getProviderOptions('vercel', sessionId)).toEqual({
-      gateway: { caching: 'auto' },
     });
   });
 });
