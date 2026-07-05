@@ -10,11 +10,8 @@ import type { ToolCallRecord } from './doom-loop.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from '@/lib/retry.js';
-import {
-  addCacheControlToMessages,
-  addCacheControlToTools,
-  getProviderOptions,
-} from '@/llm/cache-control.js';
+import { addCacheControlToMessages, addCacheControlToTools } from '@/llm/cache-control.js';
+import { getProviderOptions } from '@/llm/provider-options.js';
 import { sanitizeToolSchemasForProvider } from '@/llm/provider-schema.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import {

@@ -50,11 +50,11 @@ export function getCacheConfig(
       }
       return null;
 
-    // OpenAI: automatic prefix caching, session-level key handled by getProviderOptions
+    // OpenAI: automatic prefix caching, session-level key handled by provider options
     case 'openai':
     // Google, Google Vertex (Gemini): implicit caching enabled by default, no API control
     case 'google':
-    // Vercel (AI Gateway): caching handled by gateway via getProviderOptions
+    // Vercel (AI Gateway): caching handled by gateway via provider options
     case 'vercel':
     // Ollama: local inference, no cache control support
     case 'ollama_local':
@@ -182,53 +182,4 @@ export function addCacheControlToTools(
   } as Tool;
 
   return { ...tools, [lastKey]: markedTool };
-}
-
-/**
- * Returns provider-level options for the `streamText` call that enable
- * session-based prompt caching. This is separate from the message-level
- * cache markers added by `addCacheControlToMessages`.
- *
- * - OpenAI: `promptCacheKey` improves cache hit rates by associating
- *   the session with a stable key, especially important for GPT-5+ where
- *   automatic caching may not activate reliably without it.
- * - OpenRouter: `prompt_cache_key` serves the same purpose for
- *   OpenRouter's caching infrastructure.
- * - Vercel (AI Gateway): `caching: 'auto'` lets the gateway
- *   automatically apply the correct caching strategy for the
- *   underlying provider the model routes to.
- * - NVIDIA: `stream_options.include_usage` requests token usage in
- *   OpenAI-compatible streaming responses.
- */
-export function getProviderOptions(
-  providerId: ProviderId,
-  sessionId: string,
-): Record<string, Record<string, JSONValue>> | undefined {
-  switch (providerId) {
-    case 'openai':
-      return { openai: { promptCacheKey: sessionId } };
-
-    case 'openrouter':
-      return { openrouter: { prompt_cache_key: sessionId } };
-
-    case 'nvidia':
-      return { nvidia: { stream_options: { include_usage: true } } };
-
-    // Anthropic, Bedrock: caching is handled by message-level markers only
-    case 'anthropic':
-    case 'amazon-bedrock':
-    // Google, Google Vertex: implicit caching, no session key mechanism
-    case 'google':
-    case 'google-vertex':
-    // ElevenLabs, AssemblyAI: STT-only, no LLM cache control
-    case 'elevenlabs':
-    case 'assemblyai':
-    // Ollama: local inference, no cache control support
-    case 'ollama_local':
-      return undefined;
-
-    // Vercel (AI Gateway): automatic caching based on underlying provider
-    case 'vercel':
-      return { gateway: { caching: 'auto' } };
-  }
 }
