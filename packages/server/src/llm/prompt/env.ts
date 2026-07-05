@@ -40,6 +40,7 @@ export function buildPromptEnvironment(input?: { userTimezone?: string | null })
     `Operating system: ${process.platform} ${os.release()}`,
     `Home directory: ${homeDir}`,
     `Recordings directory: ${PATHS.dirPaths.recordings}`,
+    `Skills directory: ${PATHS.dirPaths.skills}`,
     `Preferred shell: ${preferredShell}`,
   ];
 

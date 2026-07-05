@@ -93,20 +93,43 @@ Rules for the generated skill:
 
 Success criteria: The draft is complete enough to save without additional hidden assumptions.
 
+### 3b. Identify Reference Files (Optional)
+
+Decide whether the skill benefits from companion files alongside `SKILL.md`. Reference files are useful when:
+
+- The skill references a template, schema, or boilerplate that would be too long to inline.
+- The skill runs scripts or config files that are better maintained separately.
+- Examples, sample data, or lookup tables would clutter the main skill body.
+
+If reference files are needed, plan each file with a relative path inside the skill directory (e.g., `reference/template.md`, `scripts/run.sh`). These will be written using the `Write` tool after `SKILL.md` is saved.
+
+If no reference files are needed, skip this step.
+
+Success criteria: You know exactly which additional files (if any) to write and their paths relative to the skill directory.
+
 ### 4. Confirm And Save
 
-Show the user the proposed skill name, description, and full content. Then use the `question` tool to ask whether it should be saved.
+Show the user:
+- The proposed skill name and description.
+- The full `SKILL.md` content.
+- A list of any reference files to be created alongside it.
 
-Only after confirmation, call `create_skill` with:
+Use the `question` tool to ask whether it should be saved.
 
-- `name`: lowercase letters, numbers, and single hyphens only.
-- `description`: concise one-line description.
-- `content`: the final Markdown body, without YAML frontmatter.
+Only after confirmation:
+
+1. Call `create_skill` with:
+   - `name`: lowercase letters, numbers, and single hyphens only.
+   - `description`: concise one-line description.
+   - `content`: the final Markdown body, without YAML frontmatter.
+
+2. If there are reference files, use the `Write` tool to create each one at its absolute path inside the skill directory. The skill directory is located at the path reported in the `create_skill` output (the `location` field points to `SKILL.md`; companion files sit alongside it in the same directory).
 
 After saving, tell the user:
 
 - The skill name.
 - Where it was saved.
+- Any reference files that were written and their paths.
 - That future chats can invoke it by matching the skill description, and `/skillify` can be used again to create more skills.
 
-Success criteria: The skill is saved successfully and the user knows how it will be reused.
+Success criteria: The skill and all reference files are saved successfully and the user knows how it will be reused.
