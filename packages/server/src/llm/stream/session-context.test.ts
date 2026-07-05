@@ -4,8 +4,8 @@ import { getDb } from '@/db/client.js';
 import { sessions } from '@/db/schema/sessions.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
-import { getSessionToolsetState, setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { buildExpiredToolsetsPrompt, SessionContext } from '@/llm/stream/session-context.js';
+import { getSessionToolsetState, setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
 import type { ModelMessage, Tool } from 'ai';
@@ -159,5 +159,33 @@ describe('SessionContext expired toolset handling', () => {
       .join('\n');
     expect(semiStaticContent).toContain('Toolset Expiry Notice');
     expect(expired.toolsetManager.getActiveTools()).not.toHaveProperty('browser_open');
+  });
+
+  test('does not restore excluded active toolsets', async () => {
+    const sessionId = 'ses_excluded_toolsets' as never;
+    getDb().insert(sessions).values({ id: sessionId, title: 'Excluded toolsets test' }).run();
+
+    registerToolset({
+      id: 'browser',
+      kind: 'native',
+      name: 'Browser',
+      description: 'Browser toolset',
+      tools: () => [{ name: 'browser_open', description: 'open' }],
+      activate: async () => ({ browser_open: makeTool('open') }),
+    } satisfies Toolset);
+
+    const assembled = await SessionContext.create({
+      sessionId,
+      messageId: 'msg_excluded_toolsets' as never,
+      streamRunId: 'run_excluded_toolsets',
+      credentials: CREDENTIALS,
+      modelId: 'openai/gpt-5.3-codex',
+      abortSignal: new AbortController().signal,
+      llmMessages: STUB_MESSAGES,
+      activeToolsetIds: ['browser'],
+      excludedToolsetIds: ['browser'],
+    }).assemble();
+
+    expect(assembled.toolsetManager.getActiveTools()).not.toHaveProperty('browser_open');
   });
 });

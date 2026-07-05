@@ -225,6 +225,8 @@ export async function sendMessage(
   const assistantMessageId = input.assistantMessageId as PrefixedString<'msg'>;
   const abortSignal = AbortRegistry.register(input.sessionId);
 
+  const isChildSession = session.parentSessionId !== null;
+
   void runStream({
     sessionId: input.sessionId,
     assistantMessageId,
@@ -232,7 +234,8 @@ export async function sendMessage(
     llmMessages,
     credentials: config.credentials,
     abortSignal,
-    allowTaskTool: session.parentSessionId === null,
+    allowTaskTool: !isChildSession,
+    excludedToolsetIds: isChildSession ? ['browser'] : undefined,
   })
     .catch((error) => {
       log.error(

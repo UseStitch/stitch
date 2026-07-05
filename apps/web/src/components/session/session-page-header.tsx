@@ -74,31 +74,29 @@ export function SessionPageHeader({
           </h1>
         </div>
 
-        {isChildSession ? null : (
-          <div className="flex items-center gap-1">
-            {hasBrowser ? (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className={cn('hidden lg:inline-flex', rightPanel === 'browser' && 'bg-accent')}
-                onClick={onToggleBrowser}
-                aria-label={rightPanel === 'browser' ? 'Hide browser' : 'Show browser'}
-              >
-                <GlobeIcon className="size-4" />
-              </Button>
-            ) : null}
+        <div className="flex items-center gap-1">
+          {!isChildSession && hasBrowser ? (
             <Button
               variant="ghost"
               size="icon-sm"
-              className={cn('hidden lg:inline-flex', rightPanel === 'details' && 'bg-accent')}
-              onClick={onToggleDetails}
-              aria-label={
-                rightPanel === 'details' ? 'Hide session details' : 'Show session details'
-              }
+              className={cn('hidden lg:inline-flex', rightPanel === 'browser' && 'bg-accent')}
+              onClick={onToggleBrowser}
+              aria-label={rightPanel === 'browser' ? 'Hide browser' : 'Show browser'}
             >
-              <InfoIcon className="size-4" />
+              <GlobeIcon className="size-4" />
             </Button>
+          ) : null}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className={cn('hidden lg:inline-flex', rightPanel === 'details' && 'bg-accent')}
+            onClick={onToggleDetails}
+            aria-label={rightPanel === 'details' ? 'Hide session details' : 'Show session details'}
+          >
+            <InfoIcon className="size-4" />
+          </Button>
 
+          {!isChildSession ? (
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={
@@ -125,8 +123,8 @@ export function SessionPageHeader({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
-        )}
+          ) : null}
+        </div>
       </div>
     </header>
   );

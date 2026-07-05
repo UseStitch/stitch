@@ -1175,6 +1175,8 @@ export async function runStream(opts: {
   activeToolsetIds?: string[];
   /** Child sessions are not allowed to invoke task recursively. */
   allowTaskTool?: boolean;
+  /** Toolset IDs unavailable for this stream. */
+  excludedToolsetIds?: string[];
   model?: ReturnType<ReturnType<typeof createProvider>>;
   deps?: Partial<StreamRunnerDeps>;
 }): Promise<void> {
@@ -1191,6 +1193,7 @@ export async function runStream(opts: {
     llmMessages: opts.llmMessages,
     activeToolsetIds: opts.activeToolsetIds,
     allowTaskTool: canUseTaskTool,
+    excludedToolsetIds: opts.excludedToolsetIds,
   }).assemble();
 
   const transformedMessages = await transformAttachmentsForModel(

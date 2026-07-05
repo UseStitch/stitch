@@ -75,6 +75,47 @@ describe('toolset management tools', () => {
     });
   });
 
+  test('list_toolsets omits excluded toolsets', async () => {
+    registerTestToolset({ id: 'browser', name: 'Browser' });
+    registerTestToolset({ id: 'database', name: 'Database' });
+    const manager = new ToolsetManager(
+      {
+        sessionId: TEST_SESSION_ID,
+        messageId: 'msg_test' as never,
+        streamRunId: 'run_test',
+      },
+      [],
+      { excludedToolsetIds: ['browser'] },
+    );
+    const tools = createToolsetTools(manager, TEST_SESSION_ID);
+    const result = (await tools.list_toolsets.execute?.({}, {} as never)) as {
+      toolsets: { id: string }[];
+    };
+
+    expect(result.toolsets.map((toolset) => toolset.id)).toEqual(['database']);
+  });
+
+  test('excluded toolsets cannot be inspected or activated', async () => {
+    registerTestToolset({ id: 'browser', name: 'Browser' });
+    const manager = new ToolsetManager(
+      {
+        sessionId: TEST_SESSION_ID,
+        messageId: 'msg_test' as never,
+        streamRunId: 'run_test',
+      },
+      [],
+      { excludedToolsetIds: ['browser'] },
+    );
+    const tools = createToolsetTools(manager, TEST_SESSION_ID);
+
+    expect(tools.list_toolsets.execute?.({ toolsetId: 'browser' }, {} as never)).rejects.toThrow(
+      'not in the catalog',
+    );
+    expect(tools.activate_toolset.execute?.({ toolsetId: 'browser' }, {} as never)).rejects.toThrow(
+      'has been disabled',
+    );
+  });
+
   test('activate_toolset omits verbose details by default', async () => {
     registerTestToolset();
     const manager = createManager();
