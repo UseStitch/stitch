@@ -39,10 +39,8 @@ const RECORDINGS_PAGE_SIZE = 12;
 export function recordingsQueryOptions(input: { page: number; pageSize: number }) {
   return queryOptions({
     queryKey: recordingsKeys.list(input.page, input.pageSize),
-    queryFn: () => {
-      const params = new URLSearchParams({ page: String(input.page), pageSize: String(input.pageSize) });
-      return serverRequest<ListRecordingsResponse>(`/recordings?${params.toString()}`);
-    },
+    queryFn: () =>
+      serverRequest<ListRecordingsResponse>('/recordings', { params: { page: input.page, pageSize: input.pageSize } }),
     placeholderData: keepPreviousData,
   });
 }
@@ -50,10 +48,10 @@ export function recordingsQueryOptions(input: { page: number; pageSize: number }
 export const recordingsInfiniteQueryOptions = () =>
   infiniteQueryOptions({
     queryKey: recordingsKeys.infiniteList(RECORDINGS_PAGE_SIZE),
-    queryFn: ({ pageParam }) => {
-      const params = new URLSearchParams({ page: String(pageParam), pageSize: String(RECORDINGS_PAGE_SIZE) });
-      return serverRequest<ListRecordingsResponse>(`/recordings?${params.toString()}`);
-    },
+    queryFn: ({ pageParam }) =>
+      serverRequest<ListRecordingsResponse>('/recordings', {
+        params: { page: pageParam, pageSize: RECORDINGS_PAGE_SIZE },
+      }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       if (lastPage.page >= lastPage.totalPages) return undefined;
@@ -289,21 +287,13 @@ export function useStartRecordingAnalysis() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: { recordingId: string; force?: boolean; templateId: string }) => {
-      const params = new URLSearchParams();
-      if (input.force) {
-        params.set('force', '1');
-      }
-      const suffix = params.toString();
-      return serverRequest<StartRecordingAnalysisResponse>(
-        `/recordings/${input.recordingId}/analyze${suffix ? `?${suffix}` : ''}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ templateId: input.templateId }),
-        },
-      );
-    },
+    mutationFn: (input: { recordingId: string; force?: boolean; templateId: string }) =>
+      serverRequest<StartRecordingAnalysisResponse>(`/recordings/${input.recordingId}/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templateId: input.templateId }),
+        params: { force: input.force ? '1' : undefined },
+      }),
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.detail(variables.recordingId) });
     },

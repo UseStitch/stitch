@@ -43,16 +43,10 @@ export const semanticMemoriesQueryOptions = (input: {
 }) =>
   queryOptions({
     queryKey: [...memoriesKeys.semantic(), input.source ?? 'all', input.category ?? 'all', input.page, input.pageSize],
-    queryFn: () => {
-      const params = new URLSearchParams();
-      params.set('page', String(input.page));
-      params.set('pageSize', String(input.pageSize));
-      if (input.source) params.set('source', input.source);
-      if (input.category) params.set('category', input.category);
-      return serverRequest<import('@stitch/shared/memory/types').ListSemanticMemoriesResponse>(
-        `/memory/semantic?${params.toString()}`,
-      );
-    },
+    queryFn: () =>
+      serverRequest<import('@stitch/shared/memory/types').ListSemanticMemoriesResponse>('/memory/semantic', {
+        params: { page: input.page, pageSize: input.pageSize, source: input.source, category: input.category },
+      }),
   });
 
 export const semanticMemorySearchQueryOptions = (input: {
@@ -70,14 +64,16 @@ export const semanticMemorySearchQueryOptions = (input: {
       input.page,
       input.pageSize,
     ],
-    queryFn: () => {
-      const params = new URLSearchParams({ q: input.q, page: String(input.page), pageSize: String(input.pageSize) });
-      if (input.source) params.set('source', input.source);
-      if (input.category) params.set('category', input.category);
-      return serverRequest<import('@stitch/shared/memory/types').SearchSemanticMemoriesResponse>(
-        `/memory/semantic?${params.toString()}`,
-      );
-    },
+    queryFn: () =>
+      serverRequest<import('@stitch/shared/memory/types').SearchSemanticMemoriesResponse>('/memory/semantic', {
+        params: {
+          q: input.q,
+          page: input.page,
+          pageSize: input.pageSize,
+          source: input.source,
+          category: input.category,
+        },
+      }),
     enabled: input.q.trim().length > 0,
   });
 

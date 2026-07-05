@@ -24,50 +24,23 @@ const usageKeys = {
   embeddingDashboard: (filters: UsageDashboardFilters) => [...usageKeys.all, 'embedding-dashboard', filters] as const,
 };
 
-function buildQueryString(filters: UsageDashboardFilters): string {
-  const params = new URLSearchParams();
-
-  if (filters.providerId) params.set('providerId', filters.providerId);
-  if (filters.modelId) params.set('modelId', filters.modelId);
-  if (filters.range) params.set('range', filters.range);
-  if (filters.from) params.set('from', String(filters.from));
-  if (filters.to) params.set('to', String(filters.to));
-
-  return params.toString();
-}
-
 export const usageDashboardQueryOptions = (filters: UsageDashboardFilters) =>
   queryOptions({
     queryKey: usageKeys.dashboard(filters),
-    queryFn: () => {
-      const query = buildQueryString(filters);
-      const path = query.length > 0 ? `/usage?${query}` : '/usage';
-
-      return serverRequest<UsageDashboardResponse>(path);
-    },
+    queryFn: () => serverRequest<UsageDashboardResponse>('/usage', { params: filters }),
     staleTime: 30_000,
   });
 
 export const sttUsageDashboardQueryOptions = (filters: UsageDashboardFilters) =>
   queryOptions({
     queryKey: usageKeys.sttDashboard(filters),
-    queryFn: () => {
-      const query = buildQueryString(filters);
-      const path = query.length > 0 ? `/usage/stt?${query}` : '/usage/stt';
-
-      return serverRequest<SttUsageDashboardResponse>(path);
-    },
+    queryFn: () => serverRequest<SttUsageDashboardResponse>('/usage/stt', { params: filters }),
     staleTime: 30_000,
   });
 
 export const embeddingUsageDashboardQueryOptions = (filters: UsageDashboardFilters) =>
   queryOptions({
     queryKey: usageKeys.embeddingDashboard(filters),
-    queryFn: () => {
-      const query = buildQueryString(filters);
-      const path = query.length > 0 ? `/usage/embedding?${query}` : '/usage/embedding';
-
-      return serverRequest<EmbeddingUsageDashboardResponse>(path);
-    },
+    queryFn: () => serverRequest<EmbeddingUsageDashboardResponse>('/usage/embedding', { params: filters }),
     staleTime: 30_000,
   });

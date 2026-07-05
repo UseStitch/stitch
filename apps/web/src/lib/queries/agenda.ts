@@ -22,11 +22,10 @@ const agendaKeys = {
 export function agendaListsQueryOptions(includeArchived = false) {
   return queryOptions({
     queryKey: [...agendaKeys.lists(), includeArchived],
-    queryFn: () => {
-      const params = new URLSearchParams();
-      if (includeArchived) params.set('includeArchived', 'true');
-      return serverRequest<{ lists: AgendaListWithCounts[] }>(`/agenda/lists?${params.toString()}`);
-    },
+    queryFn: () =>
+      serverRequest<{ lists: AgendaListWithCounts[] }>('/agenda/lists', {
+        params: { includeArchived: includeArchived ? 'true' : undefined },
+      }),
   });
 }
 
@@ -46,13 +45,16 @@ export function agendaItemsQueryOptions(input: {
       input.page,
       input.pageSize,
     ],
-    queryFn: () => {
-      const params = new URLSearchParams({ page: String(input.page), pageSize: String(input.pageSize) });
-      if (input.listId) params.set('listId', input.listId);
-      if (input.status) params.set('status', input.status);
-      if (input.priority) params.set('priority', input.priority);
-      return serverRequest<ListAgendaItemsResponse>(`/agenda/items?${params.toString()}`);
-    },
+    queryFn: () =>
+      serverRequest<ListAgendaItemsResponse>('/agenda/items', {
+        params: {
+          page: input.page,
+          pageSize: input.pageSize,
+          listId: input.listId,
+          status: input.status,
+          priority: input.priority,
+        },
+      }),
   });
 }
 

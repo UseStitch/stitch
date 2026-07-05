@@ -45,17 +45,10 @@ const SESSION_PAGE_SIZE = 30;
 export const sessionsInfiniteQueryOptions = (search: string) =>
   infiniteQueryOptions({
     queryKey: sessionKeys.infiniteList(search),
-    queryFn: ({ pageParam }): Promise<SessionsPage> => {
-      const params = new URLSearchParams({ type: 'chat', limit: String(SESSION_PAGE_SIZE) });
-      if (search) {
-        params.set('q', search);
-      }
-      if (pageParam !== undefined) {
-        params.set('cursor', String(pageParam));
-      }
-
-      return serverRequest<SessionsPage>(`/chat/sessions?${params.toString()}`);
-    },
+    queryFn: ({ pageParam }): Promise<SessionsPage> =>
+      serverRequest<SessionsPage>('/chat/sessions', {
+        params: { type: 'chat', limit: SESSION_PAGE_SIZE, q: search || undefined, cursor: pageParam },
+      }),
     initialPageParam: undefined as number | undefined,
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
       if (!lastPage.hasMore || lastPage.sessions.length === 0) return undefined;
@@ -114,13 +107,8 @@ const PAGE_SIZE = 50;
 export const sessionMessagesInfiniteQueryOptions = (id: string) =>
   infiniteQueryOptions({
     queryKey: sessionKeys.messages(id),
-    queryFn: ({ pageParam }): Promise<MessagesPage> => {
-      const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
-      if (pageParam !== undefined) {
-        params.set('cursor', String(pageParam));
-      }
-      return serverRequest<MessagesPage>(`/chat/sessions/${id}/messages?${params.toString()}`);
-    },
+    queryFn: ({ pageParam }): Promise<MessagesPage> =>
+      serverRequest<MessagesPage>(`/chat/sessions/${id}/messages`, { params: { limit: PAGE_SIZE, cursor: pageParam } }),
     initialPageParam: undefined as number | undefined,
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
       if (!lastPage.hasMore || lastPage.messages.length === 0) return undefined;
