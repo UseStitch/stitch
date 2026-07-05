@@ -23,7 +23,9 @@ describe('generateTypeStubs', () => {
 
     expect(result).toContain('type ExternalReadInput');
     expect(result).toContain('filePath: string');
-    expect(result).toContain('declare function external_read(input: ExternalReadInput): Promise<unknown>');
+    expect(result).toContain(
+      'declare function external_read(input: ExternalReadInput): Promise<unknown>',
+    );
     expect(result).toContain('/** Read a file from disk */');
   });
 

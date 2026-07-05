@@ -52,7 +52,9 @@ export async function generateRecordingTitle(
   if (!resolved) return null;
 
   try {
-    const model = deps?.getModel ? deps.getModel(resolved) : createProvider(resolved.credentials)(resolved.modelId);
+    const model = deps?.getModel
+      ? deps.getModel(resolved)
+      : createProvider(resolved.credentials)(resolved.modelId);
     const result = await generateText({
       model,
       messages: [

@@ -9,7 +9,10 @@ import { rawSocketDataToString } from './url.js';
 
 const HOST = '127.0.0.1';
 
-type BrowserCommandHandler = (sessionId: string, command: ElectronBrowserCommand) => Promise<unknown>;
+type BrowserCommandHandler = (
+  sessionId: string,
+  command: ElectronBrowserCommand,
+) => Promise<unknown>;
 
 export class BrowserBridge {
   private wss: WebSocketServer | null = null;

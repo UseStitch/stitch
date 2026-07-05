@@ -16,5 +16,7 @@ export async function writeCachedText(filePath: string, value: string): Promise<
 }
 
 export function isSvgResponse(response: Response): boolean {
-  return response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() === 'image/svg+xml';
+  return (
+    response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() === 'image/svg+xml'
+  );
 }

@@ -1,6 +1,5 @@
-import * as Log from '@/lib/log.js';
-
 import type { InternalEventMap } from './internal-bus-events.js';
+import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'internal-bus' });
 
@@ -86,10 +85,7 @@ class InternalBus {
     this.wildcardListeners.clear();
   }
 
-  private addListener<K extends InternalEventName>(
-    event: K,
-    entry: ListenerEntry<K>,
-  ): () => void {
+  private addListener<K extends InternalEventName>(event: K, entry: ListenerEntry<K>): () => void {
     let existing = this.listeners.get(event);
     if (!existing) {
       existing = new Set();

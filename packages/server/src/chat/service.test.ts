@@ -37,38 +37,40 @@ describe('splitSession', () => {
       updatedAt: now,
     });
 
-    await getDb().insert(messages).values([
-      {
-        id: priorMessageId,
-        sessionId,
-        role: 'assistant',
-        parts: [textPart('Earlier context', now - 2)],
-        modelId: 'test-model',
-        providerId: 'test-provider',
-        costUsd: 0,
-        finishReason: 'stop',
-        isSummary: false,
-        createdAt: now - 2,
-        updatedAt: now - 2,
-        startedAt: now - 2,
-        duration: 0,
-      },
-      {
-        id: splitMessageId,
-        sessionId,
-        role: 'user',
-        parts: [textPart('Continue from here', now - 1)],
-        modelId: 'test-model',
-        providerId: 'test-provider',
-        costUsd: 0,
-        finishReason: null,
-        isSummary: false,
-        createdAt: now - 1,
-        updatedAt: now - 1,
-        startedAt: now - 1,
-        duration: null,
-      },
-    ]);
+    await getDb()
+      .insert(messages)
+      .values([
+        {
+          id: priorMessageId,
+          sessionId,
+          role: 'assistant',
+          parts: [textPart('Earlier context', now - 2)],
+          modelId: 'test-model',
+          providerId: 'test-provider',
+          costUsd: 0,
+          finishReason: 'stop',
+          isSummary: false,
+          createdAt: now - 2,
+          updatedAt: now - 2,
+          startedAt: now - 2,
+          duration: 0,
+        },
+        {
+          id: splitMessageId,
+          sessionId,
+          role: 'user',
+          parts: [textPart('Continue from here', now - 1)],
+          modelId: 'test-model',
+          providerId: 'test-provider',
+          costUsd: 0,
+          finishReason: null,
+          isSummary: false,
+          createdAt: now - 1,
+          updatedAt: now - 1,
+          startedAt: now - 1,
+          duration: null,
+        },
+      ]);
 
     const result = await splitSession(sessionId, splitMessageId);
 

@@ -1,4 +1,9 @@
-import type { Recording, RecordingPlatform, RecordingStatus } from '@stitch/shared/recordings/types';
+import type {
+  Recording,
+  RecordingPlatform,
+  RecordingStatus,
+} from '@stitch/shared/recordings/types';
+
 import type { badgeVariants } from '@/components/ui/badge';
 import type { VariantProps } from 'class-variance-authority';
 

@@ -1,10 +1,10 @@
+import { afterEach, describe, expect, test } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, test } from 'bun:test';
 
-import { clearMcpRegistryCacheForTests } from '@/mcp/registry-service.js';
 import { getMcpRegistryLogo } from '@/mcp/registry-logos.js';
+import { clearMcpRegistryCacheForTests } from '@/mcp/registry-service.js';
 
 type FetchLike = NonNullable<Parameters<typeof getMcpRegistryLogo>[1]>['fetchImpl'];
 
@@ -58,7 +58,7 @@ describe('mcp registry logos', () => {
       throw new Error('fetch should not be called');
     };
 
-     expect(
+    expect(
       getMcpRegistryLogo('alpha', { cacheDir, registryCacheFilePath, fetchImpl }),
     ).resolves.toBe(SVG);
   });
@@ -74,10 +74,10 @@ describe('mcp registry logos', () => {
     const fetchImpl: FetchLike = async () =>
       new Response(SVG, { status: 200, headers: { 'content-type': 'image/svg+xml' } });
 
-     expect(
+    expect(
       getMcpRegistryLogo('alpha', { cacheDir, registryCacheFilePath, fetchImpl }),
     ).resolves.toBe(SVG);
-     expect(fs.readFile(path.join(cacheDir, 'alpha.svg'), 'utf8')).resolves.toBe(SVG);
+    expect(fs.readFile(path.join(cacheDir, 'alpha.svg'), 'utf8')).resolves.toBe(SVG);
   });
 
   test('returns undefined when registry server has no logo url', async () => {
@@ -87,7 +87,7 @@ describe('mcp registry logos', () => {
     const fetchImpl: FetchLike = async () =>
       new Response(SVG, { status: 200, headers: { 'content-type': 'image/svg+xml' } });
 
-     expect(
+    expect(
       getMcpRegistryLogo('alpha', { cacheDir, registryCacheFilePath, fetchImpl }),
     ).resolves.toBeUndefined();
   });
@@ -103,7 +103,7 @@ describe('mcp registry logos', () => {
     const fetchImpl: FetchLike = async () =>
       new Response('not svg', { status: 200, headers: { 'content-type': 'text/plain' } });
 
-     expect(
+    expect(
       getMcpRegistryLogo('alpha', { cacheDir, registryCacheFilePath, fetchImpl }),
     ).resolves.toBeUndefined();
   });

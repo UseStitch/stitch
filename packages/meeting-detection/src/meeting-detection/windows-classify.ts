@@ -1,7 +1,7 @@
 import { mergeObservations } from './observations.js';
 
-import type { MeetingObservation } from './engine.js';
 import type { NativeWatchRow } from '../native.js';
+import type { MeetingObservation } from './engine.js';
 
 type WatchRow = NativeWatchRow;
 

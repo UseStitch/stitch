@@ -1,5 +1,6 @@
 import type { PrefixedString } from '@stitch/shared/id';
 import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
+
 import type { Tool } from 'ai';
 
 export type ToolRuntimeContext = {

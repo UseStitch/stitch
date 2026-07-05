@@ -46,7 +46,10 @@ describe('resolveAppName', () => {
 describe('createPaths', () => {
   test('creates Windows paths with the resolved app name', () => {
     const paths = createPaths({
-      env: { APPDATA: 'C:\\Users\\test\\AppData\\Roaming', LOCALAPPDATA: 'C:\\Users\\test\\AppData\\Local' },
+      env: {
+        APPDATA: 'C:\\Users\\test\\AppData\\Roaming',
+        LOCALAPPDATA: 'C:\\Users\\test\\AppData\\Local',
+      },
       platform: 'win32',
       homedir: 'C:\\Users\\test',
       tmpdir: 'C:\\Users\\test\\AppData\\Local\\Temp',
@@ -54,7 +57,9 @@ describe('createPaths', () => {
     });
 
     expect(paths.appName).toBe('stitch-custom');
-    expect(paths.dataDir).toBe(path.join('C:\\Users\\test\\AppData\\Local', 'stitch-custom', 'Data'));
+    expect(paths.dataDir).toBe(
+      path.join('C:\\Users\\test\\AppData\\Local', 'stitch-custom', 'Data'),
+    );
     expect(paths.configDir).toBe(
       path.join('C:\\Users\\test\\AppData\\Roaming', 'stitch-custom', 'Config'),
     );

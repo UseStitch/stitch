@@ -83,9 +83,7 @@ const textNodeSchema = baseNodeSchema
   })
   .strict();
 
-const dividerNodeSchema = baseNodeSchema
-  .extend({ component: z.literal('Divider') })
-  .strict();
+const dividerNodeSchema = baseNodeSchema.extend({ component: z.literal('Divider') }).strict();
 
 const chartDatasetSchema = z
   .object({
@@ -134,7 +132,11 @@ function validateGraph(spec: { root: string; nodes: LiquidUiNode[] }, ctx: z.Ref
   }
 
   if (!nodesById.has(spec.root)) {
-    ctx.addIssue({ code: 'custom', path: ['root'], message: `Root node "${spec.root}" does not exist.` });
+    ctx.addIssue({
+      code: 'custom',
+      path: ['root'],
+      message: `Root node "${spec.root}" does not exist.`,
+    });
     return;
   }
 

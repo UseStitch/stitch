@@ -4,9 +4,9 @@ import * as React from 'react';
 import { EmptyState, SectionCard } from './components';
 
 import { McpServerLogo } from '@/components/mcp/mcp-server-logo';
+import type { EditingTarget } from '@/components/settings/permissions/types';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import type { EditingTarget } from '@/components/settings/permissions/types';
 
 type McpToolGroup = {
   serverId: string;
@@ -86,7 +86,11 @@ export function filterMcpGroups(groups: McpToolGroup[], query: string): McpToolG
 type McpToolsTabProps = {
   groups: McpToolGroup[];
   getEnabled: (scope: 'tool' | 'toolset' | 'mcp_tool', identifier: string) => boolean;
-  updateEnabled: (scope: 'tool' | 'toolset' | 'mcp_tool', identifier: string, enabled: boolean) => void;
+  updateEnabled: (
+    scope: 'tool' | 'toolset' | 'mcp_tool',
+    identifier: string,
+    enabled: boolean,
+  ) => void;
   isMutating: boolean;
   onEditTarget: (target: EditingTarget) => void;
 };

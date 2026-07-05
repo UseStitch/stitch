@@ -192,7 +192,8 @@ export async function updateEvent(
   if (patch.location !== undefined) body['location'] = patch.location;
   if (patch.start !== undefined) body['start'] = patch.start;
   if (patch.end !== undefined) body['end'] = patch.end;
-  if (patch.attendees !== undefined) body['attendees'] = patch.attendees.map((email) => ({ email }));
+  if (patch.attendees !== undefined)
+    body['attendees'] = patch.attendees.map((email) => ({ email }));
   if (patch.addMeet) {
     body['conferenceData'] = {
       createRequest: { requestId: `meet-${Date.now()}` },
