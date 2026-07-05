@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
@@ -552,44 +553,25 @@ export function AgendaPage({ listId }: { listId?: string }) {
       </Dialog>
 
       {/* Bulk delete confirmation */}
-      <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>
-              Delete {selectedIds.size} item{selectedIds.size === 1 ? '' : 's'}?
-            </DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">These items will be permanently removed.</p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleBulkDelete} disabled={deleteMutation.isPending}>
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+        title={`Delete ${selectedIds.size} item${selectedIds.size === 1 ? '' : 's'}?`}
+        description="These items will be permanently removed."
+        onConfirm={handleBulkDelete}
+        isPending={deleteMutation.isPending}
+      />
 
       {/* Delete list confirmation */}
-      <Dialog open={deleteListOpen} onOpenChange={setDeleteListOpen}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Delete list "{currentList?.name}"?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            This will permanently delete the list and all {total} item{total === 1 ? '' : 's'} in it.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteListOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteList} disabled={deleteListMutation.isPending}>
-              {deleteListMutation.isPending ? 'Deleting...' : 'Delete List'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteListOpen}
+        onOpenChange={setDeleteListOpen}
+        title={`Delete list "${currentList?.name}"?`}
+        description={`This will permanently delete the list and all ${total} item${total === 1 ? '' : 's'} in it.`}
+        onConfirm={handleDeleteList}
+        confirmLabel="Delete List"
+        isPending={deleteListMutation.isPending}
+      />
     </Page>
   );
 }
