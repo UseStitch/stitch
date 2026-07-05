@@ -3,11 +3,7 @@ import * as React from 'react';
 import { Popover, PopoverContent } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-export type TextareaCompletionOption = {
-  value: string;
-  label: string;
-  description?: string;
-};
+export type TextareaCompletionOption = { value: string; label: string; description?: string };
 
 export type TextareaCompletionGroup = {
   prefix: string;
@@ -21,11 +17,7 @@ export type TextareaCompletionGroup = {
   anchor?: 'word' | 'start';
 };
 
-type CompletionState = {
-  group: TextareaCompletionGroup;
-  anchorIndex: number;
-  filter: string;
-};
+type CompletionState = { group: TextareaCompletionGroup; anchorIndex: number; filter: string };
 
 type TextareaCompletionChildProps = {
   textareaProps: Pick<
@@ -53,10 +45,7 @@ type TextareaCompletionsProps = {
   children: (props: TextareaCompletionChildProps) => React.ReactNode;
 };
 
-function getCompletionState(
-  textarea: HTMLTextAreaElement,
-  groups: TextareaCompletionGroup[],
-): CompletionState | null {
+function getCompletionState(textarea: HTMLTextAreaElement, groups: TextareaCompletionGroup[]): CompletionState | null {
   const { selectionStart, selectionEnd, value } = textarea;
   if (selectionStart !== selectionEnd || document.activeElement !== textarea) return null;
 
@@ -94,10 +83,7 @@ function filterCompletionOptions(state: CompletionState | null): TextareaComplet
   if (!filter) return state.group.options;
 
   return state.group.options.filter((option) => {
-    return (
-      option.value.toLocaleLowerCase().startsWith(filter) ||
-      option.label.toLocaleLowerCase().startsWith(filter)
-    );
+    return option.value.toLocaleLowerCase().startsWith(filter) || option.label.toLocaleLowerCase().startsWith(filter);
   });
 }
 
@@ -271,12 +257,9 @@ export function TextareaCompletions({
           initialFocus={false}
           side="bottom"
           sideOffset={6}
-          className="w-72 gap-1 p-1"
-        >
+          className="w-72 gap-1 p-1">
           <div id={listId} role="listbox" className="thin-scrollbar max-h-64 overflow-y-auto">
-            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-              {completionState?.group.label}
-            </div>
+            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">{completionState?.group.label}</div>
             {completionOptions.map((option, index) => (
               <button
                 id={`${listId}-${index}`}
@@ -290,8 +273,7 @@ export function TextareaCompletions({
                 )}
                 onMouseDown={(event) => event.preventDefault()}
                 onMouseEnter={() => setActiveIndex(index)}
-                onClick={() => applyCompletion(option)}
-              >
+                onClick={() => applyCompletion(option)}>
                 <span className="font-medium">
                   {completionState?.group.prefix}
                   {option.value}

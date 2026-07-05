@@ -37,31 +37,13 @@ const DAYS_OF_WEEK = [
   { value: '0', label: 'Sun' },
 ];
 
-const MONTHS_SHORT = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5); // 0, 5, 10...
 const DAYS_OF_MONTH = Array.from({ length: 31 }, (_, i) => i + 1);
 
-export function CronExpressionBuilder({
-  value,
-  onChange,
-  timezone = 'UTC',
-  className,
-}: CronExpressionBuilderProps) {
+export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', className }: CronExpressionBuilderProps) {
   // State
   const [frequency, setFrequency] = React.useState<Frequency>('daily');
   const [minutes, setMinutes] = React.useState<number[]>([0]); // Single minute for > hourly
@@ -222,14 +204,12 @@ export function CronExpressionBuilder({
           const val = vals[0];
           if (val) setMinutes([Number.parseInt(val)]);
         }}
-        className="flex flex-wrap justify-start gap-1"
-      >
+        className="flex flex-wrap justify-start gap-1">
         {MINUTES.map((m) => (
           <ToggleGroupItem
             key={m}
             value={m.toString()}
-            className="h-8 w-9 p-0 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm"
-          >
+            className="h-8 w-9 p-0 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
             {m.toString().padStart(2, '0')}
           </ToggleGroupItem>
         ))}
@@ -246,14 +226,12 @@ export function CronExpressionBuilder({
         onValueChange={(vals) => {
           if (vals.length > 0) setHours(vals.map((v) => Number.parseInt(v)).sort((a, b) => a - b));
         }}
-        className="flex flex-wrap justify-start gap-1"
-      >
+        className="flex flex-wrap justify-start gap-1">
         {HOURS.map((h) => (
           <ToggleGroupItem
             key={h}
             value={h.toString()}
-            className="h-8 w-9 p-0 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm"
-          >
+            className="h-8 w-9 p-0 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
             {h.toString().padStart(2, '0')}
           </ToggleGroupItem>
         ))}
@@ -270,14 +248,12 @@ export function CronExpressionBuilder({
         onValueChange={(vals) => {
           if (vals.length > 0) setDaysOfWeek(vals.map((v) => Number.parseInt(v)));
         }}
-        className="flex flex-wrap justify-start gap-1"
-      >
+        className="flex flex-wrap justify-start gap-1">
         {DAYS_OF_WEEK.map((day) => (
           <ToggleGroupItem
             key={day.value}
             value={day.value}
-            className="h-8 min-w-12 px-2 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm"
-          >
+            className="h-8 min-w-12 px-2 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
             {day.label}
           </ToggleGroupItem>
         ))}
@@ -292,17 +268,14 @@ export function CronExpressionBuilder({
         multiple
         value={daysOfMonth.map((d) => d.toString())}
         onValueChange={(vals) => {
-          if (vals.length > 0)
-            setDaysOfMonth(vals.map((v) => Number.parseInt(v)).sort((a, b) => a - b));
+          if (vals.length > 0) setDaysOfMonth(vals.map((v) => Number.parseInt(v)).sort((a, b) => a - b));
         }}
-        className="flex flex-wrap justify-start gap-1"
-      >
+        className="flex flex-wrap justify-start gap-1">
         {DAYS_OF_MONTH.map((d) => (
           <ToggleGroupItem
             key={d}
             value={d.toString()}
-            className="h-8 w-9 p-0 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm"
-          >
+            className="h-8 w-9 p-0 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
             {d}
           </ToggleGroupItem>
         ))}
@@ -320,14 +293,12 @@ export function CronExpressionBuilder({
           // If empty, it means all months (cron *)
           setMonths(vals.map((v) => Number.parseInt(v)).sort((a, b) => a - b));
         }}
-        className="flex flex-wrap justify-start gap-1"
-      >
+        className="flex flex-wrap justify-start gap-1">
         {MONTHS_SHORT.map((m, i) => (
           <ToggleGroupItem
             key={m}
             value={(i + 1).toString()}
-            className="h-8 w-10 p-0 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm"
-          >
+            className="h-8 w-10 p-0 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
             {m}
           </ToggleGroupItem>
         ))}
@@ -357,14 +328,12 @@ export function CronExpressionBuilder({
               }
             }
           }}
-          className="w-fit justify-start rounded-md border bg-muted/30 p-1"
-        >
+          className="w-fit justify-start rounded-md border bg-muted/30 p-1">
           {FREQUENCIES.map((f) => (
             <ToggleGroupItem
               key={f.value}
               value={f.value}
-              className="h-8 rounded-sm px-3 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-background! aria-pressed:text-foreground! aria-pressed:shadow-sm"
-            >
+              className="h-8 rounded-sm px-3 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-background! aria-pressed:text-foreground! aria-pressed:shadow-sm">
               {f.label}
             </ToggleGroupItem>
           ))}
@@ -421,8 +390,7 @@ export function CronExpressionBuilder({
               upcomingExecutions.map((execution) => (
                 <div
                   key={execution.key}
-                  className="flex flex-col gap-0.5 rounded-md border bg-card/50 p-2.5 text-sm shadow-sm"
-                >
+                  className="flex flex-col gap-0.5 rounded-md border bg-card/50 p-2.5 text-sm shadow-sm">
                   <span className="font-medium text-foreground">{execution.date}</span>
                   <span className="text-xs text-muted-foreground">at {execution.time}</span>
                 </div>

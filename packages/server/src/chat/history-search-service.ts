@@ -31,10 +31,7 @@ type SessionMessageView = {
   role: 'user' | 'assistant';
   createdAt: number;
   text: string;
-  toolResults: Array<{
-    toolName: string;
-    output: string;
-  }>;
+  toolResults: Array<{ toolName: string; output: string }>;
 };
 
 const MAX_SESSIONS_TO_SCAN = 120;
@@ -90,12 +87,8 @@ function extractToolResultPreviews(parts: unknown): Array<{ toolName: string; ou
       continue;
     }
 
-    const outputText =
-      typeof typed.output === 'string' ? typed.output : JSON.stringify(typed.output ?? null);
-    rows.push({
-      toolName: typed.toolName,
-      output: normalizeText(outputText).slice(0, MAX_TOOL_RESULT_PREVIEW_CHARS),
-    });
+    const outputText = typeof typed.output === 'string' ? typed.output : JSON.stringify(typed.output ?? null);
+    rows.push({ toolName: typed.toolName, output: normalizeText(outputText).slice(0, MAX_TOOL_RESULT_PREVIEW_CHARS) });
   }
 
   return rows;
@@ -146,11 +139,7 @@ export async function searchSessionHistory(
 ): Promise<{ hits: SessionSearchHit[]; scannedSessions: number }> {
   const db = getDb();
 
-  const rawSessions = await db
-    .select()
-    .from(sessions)
-    .orderBy(desc(sessions.updatedAt))
-    .limit(MAX_SESSIONS_TO_SCAN);
+  const rawSessions = await db.select().from(sessions).orderBy(desc(sessions.updatedAt)).limit(MAX_SESSIONS_TO_SCAN);
 
   const sessionRows = rawSessions.filter((row) =>
     input.includeCurrentSession ? true : row.id !== input.currentSessionId,
@@ -162,9 +151,7 @@ export async function searchSessionHistory(
 
   const sessionIds = sessionRows.map((row) => row.id);
   const roleCondition =
-    input.roleFilter === 'all'
-      ? undefined
-      : eq(messages.role, input.roleFilter === 'user' ? 'user' : 'assistant');
+    input.roleFilter === 'all' ? undefined : eq(messages.role, input.roleFilter === 'user' ? 'user' : 'assistant');
 
   const messageRows = await db
     .select({
@@ -265,10 +252,7 @@ export async function searchSessionHistory(
     })
     .slice(0, input.limit);
 
-  return {
-    hits: sorted,
-    scannedSessions: sessionRows.length,
-  };
+  return { hits: sorted, scannedSessions: sessionRows.length };
 }
 
 export async function getSessionHistoryMessages(input: {
@@ -288,16 +272,9 @@ export async function getSessionHistoryMessages(input: {
   }
 
   const rows = await db
-    .select({
-      id: messages.id,
-      role: messages.role,
-      parts: messages.parts,
-      createdAt: messages.createdAt,
-    })
+    .select({ id: messages.id, role: messages.role, parts: messages.parts, createdAt: messages.createdAt })
     .from(messages)
-    .where(
-      and(eq(messages.sessionId, input.sessionId), inArray(messages.role, ['user', 'assistant'])),
-    )
+    .where(and(eq(messages.sessionId, input.sessionId), inArray(messages.role, ['user', 'assistant'])))
     .orderBy(desc(messages.createdAt))
     .limit(input.limit);
 
@@ -311,8 +288,5 @@ export async function getSessionHistoryMessages(input: {
     }))
     .reverse();
 
-  return {
-    title: session.title,
-    messages: normalized,
-  };
+  return { title: session.title, messages: normalized };
 }

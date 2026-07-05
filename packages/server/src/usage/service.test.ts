@@ -65,37 +65,36 @@ async function insertEvent(opts: {
   isAttributable?: boolean;
 }): Promise<void> {
   const db = getDb();
-  await db.insert(llmUsageEvents).values({
-    id: randomUUID(),
-    runId: opts.runId ?? randomUUID(),
-    source: opts.source,
-    status: opts.status ?? 'succeeded',
-    isAttributable: opts.isAttributable ?? true,
-    sessionId: null,
-    messageId: null,
-    providerId: opts.providerId,
-    modelId: opts.modelId,
-    inputTokens: 100,
-    outputTokens: 50,
-    reasoningTokens: 0,
-    cacheReadTokens: 0,
-    cacheWriteTokens: 0,
-    totalTokens: 150,
-    costUsd: opts.costUsd,
-    errorCode: null,
-    startedAt: opts.startedAt,
-    endedAt: opts.startedAt + 1000,
-    durationMs: 1000,
-  });
+  await db
+    .insert(llmUsageEvents)
+    .values({
+      id: randomUUID(),
+      runId: opts.runId ?? randomUUID(),
+      source: opts.source,
+      status: opts.status ?? 'succeeded',
+      isAttributable: opts.isAttributable ?? true,
+      sessionId: null,
+      messageId: null,
+      providerId: opts.providerId,
+      modelId: opts.modelId,
+      inputTokens: 100,
+      outputTokens: 50,
+      reasoningTokens: 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      totalTokens: 150,
+      costUsd: opts.costUsd,
+      errorCode: null,
+      startedAt: opts.startedAt,
+      endedAt: opts.startedAt + 1000,
+      durationMs: 1000,
+    });
 }
 
 describe('getUsageDashboard', () => {
   test('returns empty totals when no events exist', async () => {
     const now = Date.now();
-    const result = await getUsageDashboard({
-      from: now - 60_000,
-      to: now,
-    });
+    const result = await getUsageDashboard({ from: now - 60_000, to: now });
 
     expect(result.error).toBeNull();
     if (result.error) return;
@@ -234,8 +233,7 @@ describe('getUsageDashboard', () => {
     expect(result.data.usedProviders).toContain('anthropic');
     expect(
       result.data.usedModels.some(
-        (m: { providerId: string; modelId: string }) =>
-          m.providerId === 'anthropic' && m.modelId === 'claude-3',
+        (m: { providerId: string; modelId: string }) => m.providerId === 'anthropic' && m.modelId === 'claude-3',
       ),
     ).toBe(true);
   });

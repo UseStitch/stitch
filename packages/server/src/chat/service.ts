@@ -23,10 +23,7 @@ import { runStream } from '@/llm/stream/runner.js';
 import { generateTitle } from '@/llm/title-generator.js';
 import * as Models from '@/models/llm/registry.js';
 import { abortPermissionResponses } from '@/permission/service.js';
-import {
-  listProvidersWithCapabilities,
-  type ProviderWithCapabilities,
-} from '@/provider/service.js';
+import { listProvidersWithCapabilities, type ProviderWithCapabilities } from '@/provider/service.js';
 import { abortQuestions } from '@/question/service.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
 import { normalizeUsage } from '@/utils/usage.js';
@@ -36,11 +33,7 @@ const log = Log.create({ service: 'chat-service' });
 type SendMessageInput = {
   sessionId: PrefixedString<'ses'>;
   content: string;
-  attachments?: Array<{
-    path: string;
-    mime: string;
-    filename: string;
-  }>;
+  attachments?: Array<{ path: string; mime: string; filename: string }>;
   providerId: string;
   modelId: string;
   assistantMessageId: string;
@@ -89,9 +82,7 @@ async function maybeGenerateTitle(input: {
         providerId: generatedTitle.providerId,
         modelId: generatedTitle.modelId,
         usage: generatedTitle.usage ?? null,
-        metadata: {
-          phase: 'title-generation',
-        },
+        metadata: { phase: 'title-generation' },
         startedAt: now,
         endedAt: now,
         durationMs: 0,
@@ -113,10 +104,7 @@ async function maybeGenerateTitle(input: {
         .set({ title: generatedTitle.title, updatedAt: Date.now() })
         .where(eq(sessions.id, input.sessionId));
 
-      internalBus.emit('session.title.updated', {
-        sessionId: input.sessionId,
-        title: generatedTitle.title,
-      });
+      internalBus.emit('session.title.updated', { sessionId: input.sessionId, title: generatedTitle.title });
     })
     .catch((error) => {
       log.error({ sessionId: input.sessionId, error }, 'title generation failed');
@@ -133,10 +121,7 @@ export async function sendMessage(
     return err('Session not found', 404);
   }
 
-  const [config] = await db
-    .select()
-    .from(providerConfig)
-    .where(eq(providerConfig.providerId, input.providerId));
+  const [config] = await db.select().from(providerConfig).where(eq(providerConfig.providerId, input.providerId));
   if (!config) {
     return err(`Provider "${input.providerId}" is not configured`, 400);
   }
@@ -202,26 +187,25 @@ export async function sendMessage(
     }),
   );
 
-  await db.insert(messages).values({
-    id: userMessageId,
-    sessionId: input.sessionId,
-    role: 'user',
-    parts: [userPart, ...attachmentParts],
-    modelId: input.modelId,
-    providerId: input.providerId,
-    costUsd: 0,
-    createdAt: now,
-    updatedAt: now,
-    startedAt: now,
-    duration: null,
-  });
+  await db
+    .insert(messages)
+    .values({
+      id: userMessageId,
+      sessionId: input.sessionId,
+      role: 'user',
+      parts: [userPart, ...attachmentParts],
+      modelId: input.modelId,
+      providerId: input.providerId,
+      costUsd: 0,
+      createdAt: now,
+      updatedAt: now,
+      startedAt: now,
+      duration: null,
+    });
 
   await db.update(sessions).set({ updatedAt: Date.now() }).where(eq(sessions.id, input.sessionId));
 
-  const llmMessages = await buildSessionLlmMessages(input.sessionId, {
-    useBasePrompt: true,
-    systemPrompt: null,
-  });
+  const llmMessages = await buildSessionLlmMessages(input.sessionId, { useBasePrompt: true, systemPrompt: null });
   const assistantMessageId = input.assistantMessageId as PrefixedString<'msg'>;
   const abortSignal = AbortRegistry.register(input.sessionId);
 
@@ -239,12 +223,7 @@ export async function sendMessage(
   })
     .catch((error) => {
       log.error(
-        {
-          event: 'stream.failed',
-          sessionId: input.sessionId,
-          messageId: assistantMessageId,
-          error,
-        },
+        { event: 'stream.failed', sessionId: input.sessionId, messageId: assistantMessageId, error },
         'stream run failed',
       );
     })
@@ -267,9 +246,7 @@ export function resolveDoomLoop(
   return ok({ ok: true });
 }
 
-export async function abortSessionRun(
-  sessionId: PrefixedString<'ses'>,
-): Promise<ServiceResult<null>> {
+export async function abortSessionRun(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<null>> {
   log.info({ event: 'stream.abort.requested', sessionId }, 'stream abort requested');
   AbortRegistry.abort(sessionId);
   cancelDecision(sessionId);
@@ -344,27 +321,23 @@ export async function splitSession(
 
   const [newSession] = await db
     .insert(sessions)
-    .values({
-      id: newSessionId,
-      title: newTitle,
-      parentSessionId: null,
-      createdAt: now,
-      updatedAt: now,
-    })
+    .values({ id: newSessionId, title: newTitle, parentSessionId: null, createdAt: now, updatedAt: now })
     .returning();
 
   if (priorMessages.length > 0) {
-    await db.insert(messages).values(
-      priorMessages.map((msg) => ({
-        ...msg,
-        id: createMessageId(),
-        sessionId: newSessionId,
-        usage: undefined,
-        costUsd: 0,
-        createdAt: msg.createdAt,
-        updatedAt: msg.updatedAt,
-      })),
-    );
+    await db
+      .insert(messages)
+      .values(
+        priorMessages.map((msg) => ({
+          ...msg,
+          id: createMessageId(),
+          sessionId: newSessionId,
+          usage: undefined,
+          costUsd: 0,
+          createdAt: msg.createdAt,
+          updatedAt: msg.updatedAt,
+        })),
+      );
   }
 
   const prefillText = splitMsg.parts
@@ -375,9 +348,7 @@ export async function splitSession(
   return ok({ session: newSession, prefillText });
 }
 
-export async function requestCompaction(
-  sessionId: PrefixedString<'ses'>,
-): Promise<ServiceResult<{ ok: true }>> {
+export async function requestCompaction(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<{ ok: true }>> {
   const db = getDb();
 
   const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
@@ -397,19 +368,12 @@ export async function requestCompaction(
     return err('Session has no messages to compact', 400);
   }
 
-  void compact({
-    sessionId,
-    providerId: lastMessage.providerId,
-    modelId: lastMessage.modelId,
-    auto: false,
-  });
+  void compact({ sessionId, providerId: lastMessage.providerId, modelId: lastMessage.modelId, auto: false });
 
   return ok({ ok: true });
 }
 
-export async function getSessionStats(
-  sessionId: PrefixedString<'ses'>,
-): Promise<ServiceResult<SessionStats>> {
+export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<SessionStats>> {
   const db = getDb();
 
   const getMessageTokens = (usage: (typeof messages.$inferSelect)['usage']): number =>
@@ -437,10 +401,7 @@ export async function getSessionStats(
   ]);
 
   const currentSessionCostUsd = sessionMessages.reduce((acc, m) => acc + (m.costUsd ?? 0), 0);
-  const currentSessionTokens = sessionMessages.reduce(
-    (acc, m) => acc + getMessageTokens(m.usage),
-    0,
-  );
+  const currentSessionTokens = sessionMessages.reduce((acc, m) => acc + getMessageTokens(m.usage), 0);
   const userMessageCount = sessionMessages.filter((m) => m.role === 'user').length;
   const assistantMessageCount = sessionMessages.filter((m) => m.role === 'assistant').length;
 
@@ -474,12 +435,8 @@ export async function getSessionStats(
   const totalTokens = latestUsage.totalTokens;
 
   // Resolve provider/model labels and context limit
-  const latestMessage =
-    sessionMessages.length > 0 ? sessionMessages[sessionMessages.length - 1] : null;
-  const [providersResult, modelCatalog] = await Promise.all([
-    listProvidersWithCapabilities(),
-    Models.get(),
-  ]);
+  const latestMessage = sessionMessages.length > 0 ? sessionMessages[sessionMessages.length - 1] : null;
+  const [providersResult, modelCatalog] = await Promise.all([listProvidersWithCapabilities(), Models.get()]);
   const providers: ProviderWithCapabilities[] = providersResult.error ? [] : providersResult.data;
 
   let providerLabel = '-';
@@ -502,9 +459,7 @@ export async function getSessionStats(
   }
 
   const usagePercent =
-    contextLimit && contextLimit > 0
-      ? `${Math.min(100, Math.round((totalTokens / contextLimit) * 100))}%`
-      : '-';
+    contextLimit && contextLimit > 0 ? `${Math.min(100, Math.round((totalTokens / contextLimit) * 100))}%` : '-';
 
   return ok({
     sessionTitle: session.title ?? 'New conversation',

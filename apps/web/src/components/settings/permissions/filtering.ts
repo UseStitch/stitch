@@ -1,8 +1,4 @@
-export type KnownToolSummary = {
-  toolType: 'stitch' | 'mcp' | 'plugin';
-  toolName: string;
-  displayName: string;
-};
+export type KnownToolSummary = { toolType: 'stitch' | 'mcp' | 'plugin'; toolName: string; displayName: string };
 
 export type KnownToolsetSummary = {
   id: string;
@@ -24,10 +20,7 @@ export function filterCoreTools(tools: KnownToolSummary[], query: string): Known
     });
 }
 
-export function filterToolsetsByQuery<T extends KnownToolsetSummary>(
-  toolsets: T[],
-  query: string,
-): T[] {
+export function filterToolsetsByQuery<T extends KnownToolsetSummary>(toolsets: T[], query: string): T[] {
   return toolsets.filter((toolset) => {
     if (!query) return true;
 
@@ -40,8 +33,6 @@ export function filterToolsetsByQuery<T extends KnownToolsetSummary>(
       return true;
     }
 
-    return toolset.tools.some(
-      (tool) => includesQuery(tool.displayName, query) || includesQuery(tool.toolName, query),
-    );
+    return toolset.tools.some((tool) => includesQuery(tool.displayName, query) || includesQuery(tool.toolName, query));
   });
 }

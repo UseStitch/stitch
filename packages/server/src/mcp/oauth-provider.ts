@@ -8,10 +8,7 @@ import { mcpOAuthSessions, mcpServers } from '@/db/schema/mcp.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { getMcpOAuthRedirectUri } from '@/mcp/oauth-callback.js';
-import type {
-  OAuthClientProvider,
-  OAuthDiscoveryState,
-} from '@modelcontextprotocol/sdk/client/auth.js';
+import type { OAuthClientProvider, OAuthDiscoveryState } from '@modelcontextprotocol/sdk/client/auth.js';
 import type {
   OAuthClientInformation,
   OAuthClientInformationFull,
@@ -26,22 +23,12 @@ const CLIENT_URI = 'https://usestitch.ai';
 
 type OAuthClientInformationMixed = OAuthClientInformation | OAuthClientInformationFull;
 
-type McpOAuthServerRef = {
-  id: PrefixedString<'mcp'>;
-  url: string;
-  authConfig: OAuthAuth;
-};
+type McpOAuthServerRef = { id: PrefixedString<'mcp'>; url: string; authConfig: OAuthAuth };
 
 /** Persist an auth-status transition and notify the FE via the SSE bridge. */
-export async function setMcpAuthStatus(
-  serverId: PrefixedString<'mcp'>,
-  status: McpAuthStatus,
-): Promise<void> {
+export async function setMcpAuthStatus(serverId: PrefixedString<'mcp'>, status: McpAuthStatus): Promise<void> {
   const db = getDb();
-  await db
-    .update(mcpServers)
-    .set({ authStatus: status, updatedAt: Date.now() })
-    .where(eq(mcpServers.id, serverId));
+  await db.update(mcpServers).set({ authStatus: status, updatedAt: Date.now() }).where(eq(mcpServers.id, serverId));
   internalBus.emit('mcp.auth.status_changed', { serverId, authStatus: status });
 }
 
@@ -85,24 +72,16 @@ export class McpOAuthProvider implements OAuthClientProvider {
 
   private async getSession() {
     const db = getDb();
-    const [row] = await db
-      .select()
-      .from(mcpOAuthSessions)
-      .where(eq(mcpOAuthSessions.serverId, this.serverId));
+    const [row] = await db.select().from(mcpOAuthSessions).where(eq(mcpOAuthSessions.serverId, this.serverId));
     return row ?? null;
   }
 
-  private async upsertSession(
-    values: Partial<typeof mcpOAuthSessions.$inferInsert>,
-  ): Promise<void> {
+  private async upsertSession(values: Partial<typeof mcpOAuthSessions.$inferInsert>): Promise<void> {
     const db = getDb();
     await db
       .insert(mcpOAuthSessions)
       .values({ serverId: this.serverId, ...values })
-      .onConflictDoUpdate({
-        target: mcpOAuthSessions.serverId,
-        set: { ...values, updatedAt: Date.now() },
-      });
+      .onConflictDoUpdate({ target: mcpOAuthSessions.serverId, set: { ...values, updatedAt: Date.now() } });
   }
 
   state(): string {
@@ -111,10 +90,7 @@ export class McpOAuthProvider implements OAuthClientProvider {
 
   async clientInformation(): Promise<OAuthClientInformationMixed | undefined> {
     if (this.authConfig.clientId) {
-      return {
-        client_id: this.authConfig.clientId,
-        client_secret: this.authConfig.clientSecret,
-      };
+      return { client_id: this.authConfig.clientId, client_secret: this.authConfig.clientSecret };
     }
     const session = await this.getSession();
     return session?.clientInformation ?? undefined;
@@ -158,14 +134,9 @@ export class McpOAuthProvider implements OAuthClientProvider {
     return (session?.discoveryState as unknown as OAuthDiscoveryState | undefined) ?? undefined;
   }
 
-  async invalidateCredentials(
-    scope: 'all' | 'client' | 'tokens' | 'verifier' | 'discovery',
-  ): Promise<void> {
+  async invalidateCredentials(scope: 'all' | 'client' | 'tokens' | 'verifier' | 'discovery'): Promise<void> {
     const db = getDb();
-    log.info(
-      { event: 'mcp.oauth.invalidate', serverId: this.serverId, scope },
-      'invalidating MCP OAuth credentials',
-    );
+    log.info({ event: 'mcp.oauth.invalidate', serverId: this.serverId, scope }, 'invalidating MCP OAuth credentials');
 
     if (scope === 'all') {
       await db.delete(mcpOAuthSessions).where(eq(mcpOAuthSessions.serverId, this.serverId));

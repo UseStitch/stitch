@@ -16,11 +16,7 @@ export type MeetingObservation = {
   windowTitle: string | null;
 };
 
-type Candidate = {
-  observation: MeetingObservation;
-  firstSeenAt: number;
-  lastSeenAt: number;
-};
+type Candidate = { observation: MeetingObservation; firstSeenAt: number; lastSeenAt: number };
 
 type MeetingEngineOptions = {
   activationThresholdMs?: number;
@@ -39,17 +35,10 @@ type MeetingDetectionEngine = Pick<MeetingDetector, 'subscribe' | 'getActive' | 
   ingest: (observations: MeetingObservation[], now?: number) => void;
 };
 
-const PLATFORM_PRIORITY: ReadonlyArray<MeetingPlatform> = [
-  'zoom',
-  'teams',
-  'slack',
-  'discord',
-  'google-meet',
-];
+const PLATFORM_PRIORITY: ReadonlyArray<MeetingPlatform> = ['zoom', 'teams', 'slack', 'discord', 'google-meet'];
 
 function compareObservations(a: MeetingObservation, b: MeetingObservation): number {
-  const platformScore =
-    PLATFORM_PRIORITY.indexOf(a.platform) - PLATFORM_PRIORITY.indexOf(b.platform);
+  const platformScore = PLATFORM_PRIORITY.indexOf(a.platform) - PLATFORM_PRIORITY.indexOf(b.platform);
   if (platformScore !== 0) {
     return platformScore;
   }
@@ -69,9 +58,7 @@ function toDetection(candidate: Candidate): MeetingDetection {
   };
 }
 
-export function createMeetingDetectionEngine(
-  options: MeetingEngineOptions = {},
-): MeetingDetectionEngine {
+export function createMeetingDetectionEngine(options: MeetingEngineOptions = {}): MeetingDetectionEngine {
   const activationThresholdMs = options.activationThresholdMs ?? DEFAULT_ACTIVATION_THRESHOLD_MS;
   const cooldownMs = options.cooldownMs ?? DEFAULT_COOLDOWN_MS;
   const staleCandidateThresholdMs = options.staleCandidateThresholdMs ?? activationThresholdMs * 2;
@@ -173,10 +160,7 @@ export function createMeetingDetectionEngine(
 
       if (!active) {
         const next = chooseCandidate(now);
-        if (
-          next &&
-          (lastDetectedEmitAt === null || now - lastDetectedEmitAt >= minRepromptIntervalMs)
-        ) {
+        if (next && (lastDetectedEmitAt === null || now - lastDetectedEmitAt >= minRepromptIntervalMs)) {
           active = toDetection(next);
           pendingEndSince = null;
           lastDetectedEmitAt = now;

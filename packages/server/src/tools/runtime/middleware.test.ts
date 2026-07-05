@@ -7,11 +7,7 @@ import { PATHS } from '@/lib/paths.js';
 import { resultNormalizationMiddleware, truncationMiddleware } from '@/tools/runtime/middleware.js';
 import { createToolRuntime } from '@/tools/runtime/runtime.js';
 
-const context = {
-  sessionId: 'ses_test' as never,
-  messageId: 'msg_test' as never,
-  streamRunId: 'run_test',
-};
+const context = { sessionId: 'ses_test' as never, messageId: 'msg_test' as never, streamRunId: 'run_test' };
 
 describe('truncationMiddleware', () => {
   test('returns compact result when truncation is triggered', async () => {
@@ -23,11 +19,7 @@ describe('truncationMiddleware', () => {
         tool({
           description: 'test tool',
           inputSchema: z.object({}),
-          execute: async () => ({
-            output: largeOutput,
-            title: 'kept title',
-            attachment: 'x'.repeat(20_000),
-          }),
+          execute: async () => ({ output: largeOutput, title: 'kept title', attachment: 'x'.repeat(20_000) }),
         }),
       );
 
@@ -47,10 +39,7 @@ describe('truncationMiddleware', () => {
 
     expect(result).toMatchObject({
       output: expect.stringContaining('truncated'),
-      __stitchToolResultMeta: {
-        truncated: true,
-        outputPath: expect.stringContaining(PATHS.dirPaths.toolOutput),
-      },
+      __stitchToolResultMeta: { truncated: true, outputPath: expect.stringContaining(PATHS.dirPaths.toolOutput) },
     });
 
     await fs.stat(outputPath);
@@ -86,11 +75,7 @@ describe('resultNormalizationMiddleware', () => {
       .use(resultNormalizationMiddleware())
       .wrapTool(
         'test',
-        tool({
-          description: 'test tool',
-          inputSchema: z.object({}),
-          execute: async () => ({ error: 'boom' }),
-        }),
+        tool({ description: 'test tool', inputSchema: z.object({}), execute: async () => ({ error: 'boom' }) }),
       );
 
     expect(wrapped.execute?.({}, {} as never)).rejects.toThrow('boom');
@@ -101,11 +86,7 @@ describe('resultNormalizationMiddleware', () => {
       .use(resultNormalizationMiddleware())
       .wrapTool(
         'test',
-        tool({
-          description: 'test tool',
-          inputSchema: z.object({}),
-          execute: async () => ({ data: { ok: true } }),
-        }),
+        tool({ description: 'test tool', inputSchema: z.object({}), execute: async () => ({ data: { ok: true } }) }),
       );
 
     expect(wrapped.execute?.({}, {} as never)).resolves.toMatchObject({ ok: true });
@@ -116,11 +97,7 @@ describe('resultNormalizationMiddleware', () => {
       .use(resultNormalizationMiddleware())
       .wrapTool(
         'test',
-        tool({
-          description: 'test tool',
-          inputSchema: z.object({}),
-          execute: async () => ({ output: 'hello' }),
-        }),
+        tool({ description: 'test tool', inputSchema: z.object({}), execute: async () => ({ output: 'hello' }) }),
       );
 
     expect(wrapped.execute?.({}, {} as never)).resolves.toEqual({ output: 'hello' });
@@ -138,10 +115,6 @@ describe('resultNormalizationMiddleware', () => {
         }),
       );
 
-    expect(wrapped.execute?.({}, {} as never)).resolves.toEqual({
-      error: 'non-fatal',
-      matches: [],
-      total: 0,
-    });
+    expect(wrapped.execute?.({}, {} as never)).resolves.toEqual({ error: 'non-fatal', matches: [], total: 0 });
   });
 });

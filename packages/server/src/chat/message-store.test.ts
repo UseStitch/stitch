@@ -38,9 +38,7 @@ describe('saveAssistantMessage', () => {
       assistantMessageId,
       modelId: 'test-model',
       providerId: 'test-provider',
-      accumulatedParts: [
-        { type: 'text-delta', id: 'p1', text: 'Hello', startedAt, endedAt: startedAt } as never,
-      ],
+      accumulatedParts: [{ type: 'text-delta', id: 'p1', text: 'Hello', startedAt, endedAt: startedAt } as never],
       totalUsage: { ...ZERO_USAGE, inputTokens: 10, outputTokens: 5, totalTokens: 15 },
       finalFinishReason: 'stop',
       startedAt,
@@ -83,11 +81,7 @@ describe('saveAssistantMessage', () => {
     cleanup();
 
     expect(emitted).toHaveLength(1);
-    expect(emitted[0]).toMatchObject({
-      sessionId,
-      messageId: assistantMessageId,
-      finishReason: 'error',
-    });
+    expect(emitted[0]).toMatchObject({ sessionId, messageId: assistantMessageId, finishReason: 'error' });
   });
 });
 

@@ -1,10 +1,4 @@
-import {
-  checkPermissions,
-  listDevices,
-  primeSystemAudio,
-  startCapture,
-  stopCapture,
-} from './native.js';
+import { checkPermissions, listDevices, primeSystemAudio, startCapture, stopCapture } from './native.js';
 
 import type {
   ActiveCapture,
@@ -28,9 +22,7 @@ type AudioCaptureHandle = {
   onEvent: (listener: CaptureEventListener) => void;
 };
 
-export function createAudioCaptureHandle(
-  platform: NodeJS.Platform = process.platform,
-): AudioCaptureHandle {
+export function createAudioCaptureHandle(platform: NodeJS.Platform = process.platform): AudioCaptureHandle {
   if (!SUPPORTED_PLATFORMS.has(platform)) {
     throw new Error(`Audio capture is not supported on ${platform}`);
   }

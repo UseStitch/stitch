@@ -2,16 +2,9 @@ import { type StitchLogger } from '@stitch/shared/logger';
 
 export type SchedulerLogger = StitchLogger;
 
-export type IntervalSchedule = {
-  type: 'interval';
-  everyMs: number;
-};
+export type IntervalSchedule = { type: 'interval'; everyMs: number };
 
-export type CronSchedule = {
-  type: 'cron';
-  expression: string;
-  timezone?: string;
-};
+export type CronSchedule = { type: 'cron'; expression: string; timezone?: string };
 
 export type JobSchedule = IntervalSchedule | CronSchedule;
 
@@ -47,13 +40,7 @@ export type PersistedJob = {
   updatedAt: number;
 };
 
-export type PersistedJobRun = {
-  id: string;
-  jobId: string;
-  key: string;
-  scheduledFor: number;
-  startedAt: number;
-};
+export type PersistedJobRun = { id: string; jobId: string; key: string; scheduledFor: number; startedAt: number };
 
 export type SchedulerStore = {
   upsertJob(input: {

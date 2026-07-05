@@ -19,27 +19,19 @@ describe('resolveAppName', () => {
   });
 
   test('uses safe STITCH_APP_NAME over environment defaults', () => {
-    expect(resolveAppName({ env: { NODE_ENV: 'test', STITCH_APP_NAME: 'custom-app' } })).toBe(
-      'custom-app',
-    );
+    expect(resolveAppName({ env: { NODE_ENV: 'test', STITCH_APP_NAME: 'custom-app' } })).toBe('custom-app');
   });
 
   test('falls back when STITCH_APP_NAME is unsafe', () => {
-    expect(resolveAppName({ env: { NODE_ENV: 'test', STITCH_APP_NAME: '../stitch' } })).toBe(
-      'stitch-test',
-    );
+    expect(resolveAppName({ env: { NODE_ENV: 'test', STITCH_APP_NAME: '../stitch' } })).toBe('stitch-test');
   });
 
   test('explicit appName overrides environment app name', () => {
-    expect(resolveAppName({ appName: 'explicit-app', env: { STITCH_APP_NAME: 'env-app' } })).toBe(
-      'explicit-app',
-    );
+    expect(resolveAppName({ appName: 'explicit-app', env: { STITCH_APP_NAME: 'env-app' } })).toBe('explicit-app');
   });
 
   test('rejects unsafe explicit appName', () => {
-    expect(() => resolveAppName({ appName: 'bad/name', env: EMPTY_ENV })).toThrow(
-      'Unsafe filename',
-    );
+    expect(() => resolveAppName({ appName: 'bad/name', env: EMPTY_ENV })).toThrow('Unsafe filename');
   });
 });
 
@@ -55,9 +47,7 @@ describe('createPaths', () => {
 
     expect(paths.appName).toBe('stitch-custom');
     expect(paths.dataDir).toBe(path.join('C:\\Users\\test\\AppData\\Local', 'stitch-custom', 'Data'));
-    expect(paths.configDir).toBe(
-      path.join('C:\\Users\\test\\AppData\\Roaming', 'stitch-custom', 'Config'),
-    );
+    expect(paths.configDir).toBe(path.join('C:\\Users\\test\\AppData\\Roaming', 'stitch-custom', 'Config'));
     expect(paths.logDir).toBe(path.join('C:\\Users\\test\\AppData\\Local', 'stitch-custom', 'Log'));
     expect(paths.filePaths.db).toBe(path.join(paths.dataDir, 'stitch-custom.db'));
     expect(paths.dirPaths.recordings).toBe(path.join(paths.dataDir, 'recordings'));
@@ -106,12 +96,8 @@ describe('createPaths', () => {
       appName: 'stitch-custom',
     });
 
-    expect(paths.dataDir).toBe(
-      path.join('/Users/tester', 'Library', 'Application Support', 'stitch-custom'),
-    );
-    expect(paths.configDir).toBe(
-      path.join('/Users/tester', 'Library', 'Preferences', 'stitch-custom'),
-    );
+    expect(paths.dataDir).toBe(path.join('/Users/tester', 'Library', 'Application Support', 'stitch-custom'));
+    expect(paths.configDir).toBe(path.join('/Users/tester', 'Library', 'Preferences', 'stitch-custom'));
     expect(paths.cacheDir).toBe(path.join('/Users/tester', 'Library', 'Caches', 'stitch-custom'));
     expect(paths.logDir).toBe(path.join('/Users/tester', 'Library', 'Logs', 'stitch-custom'));
     expect(paths.tempDir).toBe(path.join('/var/folders/tmp', 'stitch-custom'));

@@ -7,26 +7,11 @@ export type { LanguageModelV3Source, LanguageModelUsage };
 
 export const MESSAGE_ROLES = ['user', 'assistant', 'system', 'tool'] as const;
 
-export type UserImagePart = {
-  type: 'user-image';
-  dataUrl: string;
-  mime: string;
-  filename: string;
-};
+export type UserImagePart = { type: 'user-image'; dataUrl: string; mime: string; filename: string };
 
-export type UserFilePart = {
-  type: 'user-file';
-  dataUrl: string;
-  mime: string;
-  filename: string;
-};
+export type UserFilePart = { type: 'user-file'; dataUrl: string; mime: string; filename: string };
 
-export type UserTextFilePart = {
-  type: 'user-text-file';
-  content: string;
-  mime: string;
-  filename: string;
-};
+export type UserTextFilePart = { type: 'user-text-file'; content: string; mime: string; filename: string };
 
 export type MessageRole = (typeof MESSAGE_ROLES)[number];
 
@@ -47,22 +32,11 @@ export type ToolResultStreamPart = Extract<FullStreamPart, { type: 'tool-result'
   truncated: boolean;
   outputPath?: string;
 };
-export type CompactionPart = {
-  type: 'compaction';
-  auto: boolean;
-  overflow?: boolean;
-};
+export type CompactionPart = { type: 'compaction'; auto: boolean; overflow?: boolean };
 
-export type SessionTitlePart = {
-  type: 'session-title';
-  title: string;
-};
+export type SessionTitlePart = { type: 'session-title'; title: string };
 
-export type StreamErrorPart = {
-  type: 'stream-error';
-  error: string;
-  details?: StreamErrorDetails;
-};
+export type StreamErrorPart = { type: 'stream-error'; error: string; details?: StreamErrorDetails };
 
 export type AutomationGenerationPart = {
   type: 'automation-generation';
@@ -123,15 +97,9 @@ export type Session = {
   updatedAt: number;
 };
 
-export type MessagesPage = {
-  messages: Message[];
-  hasMore: boolean;
-};
+export type MessagesPage = { messages: Message[]; hasMore: boolean };
 
-export type SessionsPage = {
-  sessions: Session[];
-  hasMore: boolean;
-};
+export type SessionsPage = { sessions: Session[]; hasMore: boolean };
 
 export type SessionStats = {
   sessionTitle: string;

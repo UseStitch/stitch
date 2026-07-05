@@ -47,20 +47,22 @@ export async function saveAssistantMessage(opts: SaveAssistantMessageOpts): Prom
   const db = getDb();
   const costUsd = await calculateMessageCostUsd({ providerId, modelId, usage: totalUsage });
 
-  await db.insert(messages).values({
-    id: assistantMessageId,
-    sessionId,
-    role: 'assistant',
-    parts: accumulatedParts,
-    modelId,
-    providerId,
-    usage: totalUsage,
-    costUsd,
-    finishReason: finalFinishReason,
-    createdAt: startedAt,
-    startedAt,
-    duration: finishedAt - startedAt,
-  });
+  await db
+    .insert(messages)
+    .values({
+      id: assistantMessageId,
+      sessionId,
+      role: 'assistant',
+      parts: accumulatedParts,
+      modelId,
+      providerId,
+      usage: totalUsage,
+      costUsd,
+      finishReason: finalFinishReason,
+      createdAt: startedAt,
+      startedAt,
+      duration: finishedAt - startedAt,
+    });
 
   internalBus.emit('session.message.saved', {
     sessionId,
@@ -75,30 +77,29 @@ export async function saveAssistantMessage(opts: SaveAssistantMessageOpts): Prom
 
 export async function markSessionUnread(sessionId: PrefixedString<'ses'>): Promise<void> {
   const db = getDb();
-  await db
-    .update(sessions)
-    .set({ isUnread: true, updatedAt: Date.now() })
-    .where(eq(sessions.id, sessionId));
+  await db.update(sessions).set({ isUnread: true, updatedAt: Date.now() }).where(eq(sessions.id, sessionId));
 }
 
 export async function saveTitleMessage(opts: SaveTitleMessageOpts): Promise<void> {
   const { sessionId, messageId, modelId, providerId, parts, usage, costUsd, createdAt } = opts;
   const db = getDb();
 
-  await db.insert(messages).values({
-    id: messageId,
-    sessionId,
-    role: 'assistant',
-    parts,
-    modelId,
-    providerId,
-    usage,
-    costUsd,
-    finishReason: 'stop',
-    isSummary: false,
-    createdAt,
-    updatedAt: createdAt,
-    startedAt: createdAt,
-    duration: 0,
-  });
+  await db
+    .insert(messages)
+    .values({
+      id: messageId,
+      sessionId,
+      role: 'assistant',
+      parts,
+      modelId,
+      providerId,
+      usage,
+      costUsd,
+      finishReason: 'stop',
+      isSummary: false,
+      createdAt,
+      updatedAt: createdAt,
+      startedAt: createdAt,
+      duration: 0,
+    });
 }

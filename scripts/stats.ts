@@ -17,12 +17,8 @@ interface CloudflareGraphQLResponse<T> {
 
 interface RegistryStatsGroup {
   count: number;
-  dimensions: {
-    clientRequestPath: string;
-  };
-  sum: {
-    edgeResponseBytes: number;
-  };
+  dimensions: { clientRequestPath: string };
+  sum: { edgeResponseBytes: number };
 }
 
 interface RegistryStats {
@@ -88,11 +84,7 @@ async function reportToPostHog(total: number, releases: Release[]) {
       api_key: key,
       distinct_id: 'download',
       event: 'download',
-      properties: {
-        source: 'github',
-        total,
-        per_release: perRelease,
-      },
+      properties: { source: 'github', total, per_release: perRelease },
     }),
   }).catch(() => null);
 
@@ -101,11 +93,7 @@ async function reportToPostHog(total: number, releases: Release[]) {
   }
 }
 
-function aggregateRegistryStats(
-  groups: RegistryStatsGroup[],
-  since: string,
-  until: string,
-): RegistryStats {
+function aggregateRegistryStats(groups: RegistryStatsGroup[], since: string, until: string): RegistryStats {
   const perPath = new Map<string, { requests: number; bytes: number }>();
 
   for (const group of groups) {
@@ -169,19 +157,10 @@ async function fetchCloudflareRegistryStats(): Promise<RegistryStats | null> {
 
   const response = await fetch('https://api.cloudflare.com/client/v4/graphql', {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       query,
-      variables: {
-        zoneTag,
-        host,
-        paths: REGISTRY_PATHS,
-        since: since.toISOString(),
-        until: until.toISOString(),
-      },
+      variables: { zoneTag, host, paths: REGISTRY_PATHS, since: since.toISOString(), until: until.toISOString() },
     }),
   });
 
@@ -194,9 +173,7 @@ async function fetchCloudflareRegistryStats(): Promise<RegistryStats | null> {
   }> = await response.json();
 
   if (payload.errors?.length) {
-    throw new Error(
-      `Cloudflare GraphQL error: ${payload.errors.map((error) => error.message).join(', ')}`,
-    );
+    throw new Error(`Cloudflare GraphQL error: ${payload.errors.map((error) => error.message).join(', ')}`);
   }
 
   const groups = payload.data?.viewer.zones[0]?.httpRequestsAdaptiveGroups ?? [];
@@ -216,10 +193,7 @@ async function reportRegistryStatsToPostHog(stats: RegistryStats | null) {
       api_key: key,
       distinct_id: 'registry',
       event: 'registry_fetch',
-      properties: {
-        source: 'cloudflare',
-        ...stats,
-      },
+      properties: { source: 'cloudflare', ...stats },
     }),
   }).catch(() => null);
 

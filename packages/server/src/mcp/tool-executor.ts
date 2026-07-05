@@ -12,12 +12,7 @@ import { fetchMcpTools, getMcpServersWithCachedTools } from '@/mcp/service.js';
 import type { McpServerWithTools } from '@/mcp/service.js';
 import { ToolPipeline } from '@/tools/runtime/pipeline.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
-import {
-  getToolset,
-  listToolsets,
-  registerToolset,
-  unregisterToolset,
-} from '@/tools/toolsets/registry.js';
+import { getToolset, listToolsets, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset, ToolsetPrompt } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
 
@@ -43,10 +38,7 @@ const DEFAULT_DEPS: McpToolExecutorDeps = {
   buildServerPresentation,
 };
 
-async function getToolsForServer(
-  server: McpServerWithTools,
-  context: ToolContext,
-): Promise<Record<string, Tool>> {
+async function getToolsForServer(server: McpServerWithTools, context: ToolContext): Promise<Record<string, Tool>> {
   const rawTools = await listMcpAiTools(server);
 
   const pipeline = ToolPipeline.create(context);
@@ -81,11 +73,7 @@ async function fetchServerInfo(server: McpServerWithTools): Promise<McpServerLiv
         jsonrpc: '2.0',
         id: 1,
         method: 'initialize',
-        params: {
-          protocolVersion: '2025-03-26',
-          capabilities: {},
-          clientInfo: { name: 'stitch', version: '1.0' },
-        },
+        params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'stitch', version: '1.0' } },
       }),
       signal: AbortSignal.timeout(5_000),
     });
@@ -105,12 +93,7 @@ async function fetchServerInfo(server: McpServerWithTools): Promise<McpServerLiv
 
     const rpc = body as {
       result?: {
-        serverInfo?: {
-          name?: string;
-          title?: string;
-          description?: string;
-          icons?: McpIcon[];
-        };
+        serverInfo?: { name?: string; title?: string; description?: string; icons?: McpIcon[] };
         instructions?: string;
       };
     };
@@ -233,10 +216,7 @@ function createMcpToolset(
 }
 
 async function refreshMcpToolsetsInternal(
-  options?: {
-    serverIds?: string[];
-    refreshTools?: boolean;
-  },
+  options?: { serverIds?: string[]; refreshTools?: boolean },
   deps: McpToolExecutorDeps = DEFAULT_DEPS,
 ): Promise<void> {
   const refreshTools = options?.refreshTools ?? true;
@@ -246,9 +226,7 @@ async function refreshMcpToolsetsInternal(
     ? configuredServers.filter((server) => serverIdSet.has(server.id))
     : configuredServers;
 
-  const desiredMcpToolsetIds = new Set(
-    configuredServers.map((server) => buildMcpToolsetId(server.id)),
-  );
+  const desiredMcpToolsetIds = new Set(configuredServers.map((server) => buildMcpToolsetId(server.id)));
   const staleIds = listToolsets()
     .filter((toolset) => toolset.kind === 'mcp' && !desiredMcpToolsetIds.has(toolset.id))
     .map((toolset) => toolset.id);
@@ -258,11 +236,7 @@ async function refreshMcpToolsetsInternal(
 
   if (serversToRefresh.length === 0) {
     log.info(
-      {
-        event: 'mcp.toolsets.refreshed',
-        count: 0,
-        staleRemovedCount: staleIds.length,
-      },
+      { event: 'mcp.toolsets.refreshed', count: 0, staleRemovedCount: staleIds.length },
       'no MCP servers configured',
     );
     return;
@@ -276,33 +250,25 @@ async function refreshMcpToolsetsInternal(
             .then((result) => (result.error ? (server.tools ?? []) : result.data))
             .catch(() => server.tools ?? [])
         : (server.tools ?? []);
-      return {
-        ...server,
-        tools,
-      } satisfies McpServerWithTools;
+      return { ...server, tools } satisfies McpServerWithTools;
     }),
   );
 
   const infoResults = await Promise.allSettled(serverSnapshots.map(deps.fetchServerInfo));
   const promptResults = await Promise.allSettled(serverSnapshots.map(deps.fetchServerPrompts));
   const registryResults = await Promise.allSettled(
-    serverSnapshots.map((server) =>
-      deps.findRegistryServer({ name: server.name, url: server.url }),
-    ),
+    serverSnapshots.map((server) => deps.findRegistryServer({ name: server.name, url: server.url })),
   );
 
   const resolved = serverSnapshots.map((server, index) => ({
     server,
     liveInfo: infoResults[index]?.status === 'fulfilled' ? infoResults[index].value : null,
     prompts: promptResults[index]?.status === 'fulfilled' ? promptResults[index].value : [],
-    registryServer:
-      registryResults[index]?.status === 'fulfilled' ? registryResults[index].value : null,
+    registryServer: registryResults[index]?.status === 'fulfilled' ? registryResults[index].value : null,
   }));
 
   const presentations = await Promise.all(
-    resolved.map((entry) =>
-      deps.buildServerPresentation(entry.server, entry.liveInfo, entry.registryServer),
-    ),
+    resolved.map((entry) => deps.buildServerPresentation(entry.server, entry.liveInfo, entry.registryServer)),
   );
 
   const registeredIds: string[] = [];
@@ -323,13 +289,7 @@ async function refreshMcpToolsetsInternal(
       );
     }
 
-    const toolset = createMcpToolset(
-      server,
-      liveInfo,
-      registryServer,
-      prompts,
-      presentations[index],
-    );
+    const toolset = createMcpToolset(server, liveInfo, registryServer, prompts, presentations[index]);
     registerToolset(toolset);
     registeredIds.push(toolset.id);
   }
@@ -346,16 +306,10 @@ async function refreshMcpToolsetsInternal(
 }
 
 export async function refreshMcpToolsets(
-  options?: {
-    serverIds?: string[];
-    refreshTools?: boolean;
-  },
+  options?: { serverIds?: string[]; refreshTools?: boolean },
   deps?: Partial<McpToolExecutorDeps>,
 ): Promise<void> {
-  const resolvedDeps: McpToolExecutorDeps = {
-    ...DEFAULT_DEPS,
-    ...deps,
-  };
+  const resolvedDeps: McpToolExecutorDeps = { ...DEFAULT_DEPS, ...deps };
 
   const run = () => refreshMcpToolsetsInternal(options, resolvedDeps);
 

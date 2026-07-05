@@ -1,9 +1,4 @@
-type ErrorPanelProps = {
-  title: string;
-  message: string;
-  suggestion?: string;
-  className?: string;
-};
+type ErrorPanelProps = { title: string; message: string; suggestion?: string; className?: string };
 
 export function ErrorPanel({ title, message, suggestion, className }: ErrorPanelProps) {
   return (
@@ -13,8 +8,7 @@ export function ErrorPanel({ title, message, suggestion, className }: ErrorPanel
         className,
       ]
         .filter(Boolean)
-        .join(' ')}
-    >
+        .join(' ')}>
       <p className="font-medium">{title}</p>
       <p>{message}</p>
       {suggestion ? <p className="mt-1 text-xs text-destructive/80">{suggestion}</p> : null}

@@ -1,10 +1,4 @@
-import {
-  Trash2Icon,
-  RefreshCwIcon,
-  ExternalLinkIcon,
-  Loader2Icon,
-  ArrowUpCircleIcon,
-} from 'lucide-react';
+import { Trash2Icon, RefreshCwIcon, ExternalLinkIcon, Loader2Icon, ArrowUpCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -24,45 +18,20 @@ import {
   useUpgradeConnector,
 } from '@/lib/queries/connectors';
 
-type Props = {
-  instances: ConnectorInstanceSafe[];
-  definitions: ConnectorDefinition[];
-};
+type Props = { instances: ConnectorInstanceSafe[]; definitions: ConnectorDefinition[] };
 
-const STATUS_CONFIG: Record<
-  ConnectorStatus,
-  {
-    label: string;
-    dotClassName: string;
-    textClassName: string;
-  }
-> = {
-  connected: {
-    label: 'Connected',
-    dotClassName: 'bg-success shadow-success-glow',
-    textClassName: 'text-success',
-  },
-  awaiting_auth: {
-    label: 'Awaiting Auth',
-    dotClassName: 'bg-warning',
-    textClassName: 'text-warning',
-  },
+const STATUS_CONFIG: Record<ConnectorStatus, { label: string; dotClassName: string; textClassName: string }> = {
+  connected: { label: 'Connected', dotClassName: 'bg-success shadow-success-glow', textClassName: 'text-success' },
+  awaiting_auth: { label: 'Awaiting Auth', dotClassName: 'bg-warning', textClassName: 'text-warning' },
   pending_setup: {
     label: 'Pending Setup',
     dotClassName: 'bg-muted-foreground',
     textClassName: 'text-muted-foreground',
   },
-  error: {
-    label: 'Error',
-    dotClassName: 'bg-destructive shadow-destructive-glow',
-    textClassName: 'text-destructive',
-  },
+  error: { label: 'Error', dotClassName: 'bg-destructive shadow-destructive-glow', textClassName: 'text-destructive' },
 };
 
-const AUTH_ISSUE_COPY: Record<
-  ConnectorAuthIssue,
-  { label: string; message: string; actionLabel: string }
-> = {
+const AUTH_ISSUE_COPY: Record<ConnectorAuthIssue, { label: string; message: string; actionLabel: string }> = {
   reauthorization_required: {
     label: 'Reauth Required',
     message: 'Google needs you to sign in again for this connector.',
@@ -78,19 +47,10 @@ const AUTH_ISSUE_COPY: Record<
 function getStatusPresentation(instance: ConnectorInstanceSafe) {
   if (instance.status === 'error' && instance.authIssue) {
     const issue = AUTH_ISSUE_COPY[instance.authIssue];
-    return {
-      ...STATUS_CONFIG.error,
-      label: issue.label,
-      message: issue.message,
-      actionLabel: issue.actionLabel,
-    };
+    return { ...STATUS_CONFIG.error, label: issue.label, message: issue.message, actionLabel: issue.actionLabel };
   }
 
-  return {
-    ...STATUS_CONFIG[instance.status],
-    message: null,
-    actionLabel: 'Authorize',
-  };
+  return { ...STATUS_CONFIG[instance.status], message: null, actionLabel: 'Authorize' };
 }
 
 export function ConnectorInstanceList({ instances, definitions }: Props) {
@@ -110,9 +70,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
       await testMutation.mutateAsync(instanceId);
       toast.success('Connection test successful', { id: 'connector-test' });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Connection test failed', {
-        id: 'connector-test',
-      });
+      toast.error(e instanceof Error ? e.message : 'Connection test failed', { id: 'connector-test' });
     } finally {
       setTestingId(null);
     }
@@ -123,9 +81,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
       await deleteMutation.mutateAsync(instanceId);
       toast.success(`Disconnected ${label}`, { id: 'connector-delete' });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to disconnect', {
-        id: 'connector-delete',
-      });
+      toast.error(e instanceof Error ? e.message : 'Failed to disconnect', { id: 'connector-delete' });
     }
   }
 
@@ -135,9 +91,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
       void (window.api?.shell?.openExternal(authUrl) ?? window.open(authUrl, '_blank'));
       toast.info('Opening browser for authorization...', { id: 'connector-auth' });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to start authorization', {
-        id: 'connector-auth',
-      });
+      toast.error(e instanceof Error ? e.message : 'Failed to start authorization', { id: 'connector-auth' });
     }
   }
 
@@ -156,24 +110,17 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
         apiKey = enteredApiKey.trim();
       }
 
-      const result = await upgradeMutation.mutateAsync({
-        instanceId: instance.id,
-        apiKey,
-      });
+      const result = await upgradeMutation.mutateAsync({ instanceId: instance.id, apiKey });
 
       if (result.type === 'reauthorize') {
-        void (
-          window.api?.shell?.openExternal(result.authUrl) ?? window.open(result.authUrl, '_blank')
-        );
+        void (window.api?.shell?.openExternal(result.authUrl) ?? window.open(result.authUrl, '_blank'));
         toast.info('Opening browser to complete connector upgrade...', { id: 'connector-upgrade' });
         return;
       }
 
       toast.success('Connector upgraded successfully', { id: 'connector-upgrade' });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to upgrade connector', {
-        id: 'connector-upgrade',
-      });
+      toast.error(e instanceof Error ? e.message : 'Failed to upgrade connector', { id: 'connector-upgrade' });
     }
   }
 
@@ -188,8 +135,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
         return (
           <div
             key={instance.id}
-            className="flex flex-col gap-4 rounded-xl border border-border/60 bg-card/80 px-5 py-4 text-sm sm:flex-row sm:items-center"
-          >
+            className="flex flex-col gap-4 rounded-xl border border-border/60 bg-card/80 px-5 py-4 text-sm sm:flex-row sm:items-center">
             <div className="flex min-w-0 flex-1 items-start gap-4">
               <div className="shrink-0 rounded-xl border border-border/70 bg-muted/70 p-2">
                 <ConnectorIcon
@@ -203,18 +149,14 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
                   <span className="leading-6 font-medium">{instance.label}</span>
                 </div>
                 <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                  <span
-                    className={`inline-flex items-center gap-1.5 ${statusConfig.textClassName}`}
-                  >
+                  <span className={`inline-flex items-center gap-1.5 ${statusConfig.textClassName}`}>
                     <span className={`size-1.5 rounded-full ${statusConfig.dotClassName}`} />
                     {statusConfig.label}
                   </span>
                   {instance.accountEmail && (
                     <>
                       <span className="text-muted-foreground/60">/</span>
-                      <span className="truncate text-muted-foreground">
-                        {instance.accountEmail}
-                      </span>
+                      <span className="truncate text-muted-foreground">{instance.accountEmail}</span>
                     </>
                   )}
                   {instance.upgrade?.available && (
@@ -227,9 +169,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
                     </>
                   )}
                 </div>
-                {statusConfig.message && (
-                  <p className="text-xs text-muted-foreground">{statusConfig.message}</p>
-                )}
+                {statusConfig.message && <p className="text-xs text-muted-foreground">{statusConfig.message}</p>}
               </div>
             </div>
 
@@ -239,55 +179,39 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
                   variant="outline"
                   size="sm"
                   onClick={() => handleUpgrade(instance)}
-                  disabled={upgradeMutation.isPending}
-                >
+                  disabled={upgradeMutation.isPending}>
                   <ArrowUpCircleIcon className="size-3.5" />
                   Upgrade
                 </Button>
               )}
-              {canReauthorize &&
-                (instance.status === 'awaiting_auth' || instance.status === 'error') && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleReauthorize(instance.id)}
-                    disabled={authorizeMutation.isPending}
-                  >
-                    <ExternalLinkIcon className="size-3.5" />
-                    {statusConfig.actionLabel}
-                  </Button>
-                )}
-              {canReauthorize &&
-                instance.status === 'connected' &&
-                !instance.upgrade?.available && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleReauthorize(instance.id)}
-                    disabled={authorizeMutation.isPending}
-                  >
-                    <ExternalLinkIcon className="size-3.5" />
-                    Reauthorize
-                  </Button>
-                )}
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => handleTest(instance.id)}
-                disabled={isTesting}
-              >
-                {isTesting ? (
-                  <Loader2Icon className="size-3.5 animate-spin" />
-                ) : (
-                  <RefreshCwIcon className="size-3.5" />
-                )}
+              {canReauthorize && (instance.status === 'awaiting_auth' || instance.status === 'error') && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleReauthorize(instance.id)}
+                  disabled={authorizeMutation.isPending}>
+                  <ExternalLinkIcon className="size-3.5" />
+                  {statusConfig.actionLabel}
+                </Button>
+              )}
+              {canReauthorize && instance.status === 'connected' && !instance.upgrade?.available && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleReauthorize(instance.id)}
+                  disabled={authorizeMutation.isPending}>
+                  <ExternalLinkIcon className="size-3.5" />
+                  Reauthorize
+                </Button>
+              )}
+              <Button variant="ghost" size="icon-sm" onClick={() => handleTest(instance.id)} disabled={isTesting}>
+                {isTesting ? <Loader2Icon className="size-3.5 animate-spin" /> : <RefreshCwIcon className="size-3.5" />}
               </Button>
               <Button
                 variant="ghost"
                 size="icon-sm"
                 onClick={() => handleDelete(instance.id, instance.label)}
-                disabled={deleteMutation.isPending}
-              >
+                disabled={deleteMutation.isPending}>
                 <Trash2Icon className="size-3.5 text-destructive" />
               </Button>
             </div>

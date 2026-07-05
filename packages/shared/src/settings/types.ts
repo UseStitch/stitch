@@ -112,24 +112,18 @@ export function isValidLeaderKeyHotkey(value: string): boolean {
   return SETTINGS_SCHEMAS['shortcuts.leaderKey'].safeParse(value).success;
 }
 
-type SettingDefault = {
-  key: SettingsKey;
-  value: string;
-  description: string;
-};
+type SettingDefault = { key: SettingsKey; value: string; description: string };
 
 export const SETTINGS_DEFAULTS: SettingDefault[] = [
   {
     key: 'model.default.providerId',
     value: '',
-    description:
-      'Provider ID for the default model used for general conversations and assistance tasks.',
+    description: 'Provider ID for the default model used for general conversations and assistance tasks.',
   },
   {
     key: 'model.default.modelId',
     value: '',
-    description:
-      'Model ID for the default model used for general conversations and assistance tasks.',
+    description: 'Model ID for the default model used for general conversations and assistance tasks.',
   },
   {
     key: 'model.compaction.providerId',
@@ -154,8 +148,7 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
   {
     key: 'compaction.auto',
     value: 'true',
-    description:
-      'Enable automatic context compaction when token usage reaches the configured threshold.',
+    description: 'Enable automatic context compaction when token usage reaches the configured threshold.',
   },
   {
     key: 'compaction.prune',
@@ -172,37 +165,13 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     value: 'ttl_turns',
     description: 'Default activation lifetime when activate_toolset omits a scope.',
   },
-  {
-    key: 'toolsets.ttlTurns',
-    value: '3',
-    description: 'Turns of inactivity before a TTL-scoped toolset expires.',
-  },
-  {
-    key: 'appearance.mode',
-    value: 'system',
-    description: 'Preferred appearance mode: light, dark, or system.',
-  },
+  { key: 'toolsets.ttlTurns', value: '3', description: 'Turns of inactivity before a TTL-scoped toolset expires.' },
+  { key: 'appearance.mode', value: 'system', description: 'Preferred appearance mode: light, dark, or system.' },
   { key: 'appearance.theme', value: 'default', description: 'Selected application theme name.' },
-  {
-    key: 'onboarding.status',
-    value: 'pending',
-    description: 'Tracks whether onboarding is pending or completed.',
-  },
-  {
-    key: 'onboarding.version',
-    value: '1',
-    description: 'Tracks which onboarding step version has been completed.',
-  },
-  {
-    key: 'profile.name',
-    value: '',
-    description: 'Preferred user display name used in prompts and transcripts.',
-  },
-  {
-    key: 'profile.timezone',
-    value: '',
-    description: 'Preferred IANA timezone used for time-aware prompts and tools.',
-  },
+  { key: 'onboarding.status', value: 'pending', description: 'Tracks whether onboarding is pending or completed.' },
+  { key: 'onboarding.version', value: '1', description: 'Tracks which onboarding step version has been completed.' },
+  { key: 'profile.name', value: '', description: 'Preferred user display name used in prompts and transcripts.' },
+  { key: 'profile.timezone', value: '', description: 'Preferred IANA timezone used for time-aware prompts and tools.' },
   {
     key: 'notifications.sound.enabled',
     value: 'true',
@@ -211,26 +180,22 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
   {
     key: 'browser.profileImported',
     value: '',
-    description:
-      'Tracks the last Chrome profile import (name and timestamp), or "skipped" if the user declined.',
+    description: 'Tracks the last Chrome profile import (name and timestamp), or "skipped" if the user declined.',
   },
   {
     key: 'browser.activeProfile',
     value: '',
-    description:
-      'Active browser profile path in "<browser>/<profileId>" format (e.g. "chrome/Default").',
+    description: 'Active browser profile path in "<browser>/<profileId>" format (e.g. "chrome/Default").',
   },
   {
     key: 'shortcuts.leaderKey',
     value: 'Mod+X',
-    description:
-      'Leader key prefix for key sequences. Shortcuts using LEADER+ are prefixed with this key.',
+    description: 'Leader key prefix for key sequences. Shortcuts using LEADER+ are prefixed with this key.',
   },
   {
     key: 'memory.enabled',
     value: 'false',
-    description:
-      'Enable persistent memory system that learns user preferences and facts across sessions.',
+    description: 'Enable persistent memory system that learns user preferences and facts across sessions.',
   },
   {
     key: 'memory.autoExtract',
@@ -265,20 +230,17 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
   {
     key: 'memory.extraction.importanceMinScore',
     value: '0.7',
-    description:
-      'Minimum importance score (0–1) a fact must have to be persisted. Lower scores are discarded.',
+    description: 'Minimum importance score (0–1) a fact must have to be persisted. Lower scores are discarded.',
   },
   {
     key: 'memory.extraction.maxFactsPerSession',
     value: '20',
-    description:
-      'Hard cap on total auto-extracted facts written per session. Prevents burst over-capture.',
+    description: 'Hard cap on total auto-extracted facts written per session. Prevents burst over-capture.',
   },
   {
     key: 'memory.extraction.minTurnsBetweenWrites',
     value: '3',
-    description:
-      'Minimum user turns between consecutive auto-memory writes for the same session. Acts as a cooldown.',
+    description: 'Minimum user turns between consecutive auto-memory writes for the same session. Acts as a cooldown.',
   },
   {
     key: 'memory.retention.maxMemories',
@@ -295,26 +257,17 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     value: 'true',
     description: 'Run automatic pruning after extraction to stay within limits.',
   },
-  {
-    key: 'memory.retrieval.maxResults',
-    value: '3',
-    description: 'Max memories injected into context per turn.',
-  },
+  { key: 'memory.retrieval.maxResults', value: '3', description: 'Max memories injected into context per turn.' },
   {
     key: 'memory.retrieval.minScore',
     value: '0.6',
     description: 'Minimum relevance score to include a memory in context.',
   },
-  {
-    key: 'memory.retrieval.recencyBoost',
-    value: 'true',
-    description: 'Boost recently-accessed memories in ranking.',
-  },
+  { key: 'memory.retrieval.recencyBoost', value: 'true', description: 'Boost recently-accessed memories in ranking.' },
   {
     key: 'agents.customInstructions',
     value: '',
-    description:
-      'Custom Markdown instructions appended to the system prompt for every conversation.',
+    description: 'Custom Markdown instructions appended to the system prompt for every conversation.',
   },
   {
     key: 'recordings.autoAnalyze',
@@ -329,8 +282,7 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
   {
     key: 'recordings.outputDeviceId',
     value: '',
-    description:
-      'Preferred speaker device name for system audio capture. Empty string uses the system default.',
+    description: 'Preferred speaker device name for system audio capture. Empty string uses the system default.',
   },
   {
     key: 'recordings.transcription.providerId',
@@ -360,14 +312,12 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
   {
     key: 'stt.default.providerId',
     value: '',
-    description:
-      'Provider ID for the default STT model used for live speech-to-text in the chat input.',
+    description: 'Provider ID for the default STT model used for live speech-to-text in the chat input.',
   },
   {
     key: 'stt.default.modelId',
     value: '',
-    description:
-      'Model ID for the default STT model used for live speech-to-text in the chat input.',
+    description: 'Model ID for the default STT model used for live speech-to-text in the chat input.',
   },
   {
     key: 'stt.holdToTalk',

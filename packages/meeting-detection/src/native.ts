@@ -3,17 +3,9 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export type NativeWatchRow = {
-  pid: number;
-  processName: string;
-  windowTitle?: string;
-};
+export type NativeWatchRow = { pid: number; processName: string; windowTitle?: string };
 
-export type NativeWatchEvent = {
-  kind: 'snapshot' | 'error';
-  rows?: NativeWatchRow[];
-  message?: string;
-};
+export type NativeWatchEvent = { kind: 'snapshot' | 'error'; rows?: NativeWatchRow[]; message?: string };
 
 type NativeAddon = {
   startWatcher: (callback: (err: Error | null, event: NativeWatchEvent) => void) => void;

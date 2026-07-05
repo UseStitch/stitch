@@ -1,13 +1,5 @@
 import { sql } from 'drizzle-orm';
-import {
-  blob,
-  check,
-  index,
-  integer,
-  sqliteTable,
-  text,
-  uniqueIndex,
-} from 'drizzle-orm/sqlite-core';
+import { blob, check, index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 import type { JobSchedule, CatchupPolicy } from '@stitch/scheduler';
 import type { PrefixedString } from '@stitch/shared/id';
@@ -65,9 +57,6 @@ export const scheduledJobRuns = sqliteTable(
   (table) => [
     index('scheduled_job_runs_job_id_idx').on(table.jobId),
     index('scheduled_job_runs_key_idx').on(table.key),
-    check(
-      'scheduled_job_runs_status_check',
-      sql`${table.status} in ('running', 'succeeded', 'failed')`,
-    ),
+    check('scheduled_job_runs_status_check', sql`${table.status} in ('running', 'succeeded', 'failed')`),
   ],
 );

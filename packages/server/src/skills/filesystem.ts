@@ -31,11 +31,7 @@ export async function ensureSkillsDir(): Promise<void> {
   }
 }
 
-export function buildSkillMd(input: {
-  name: string;
-  description: string;
-  content: string;
-}): string {
+export function buildSkillMd(input: { name: string; description: string; content: string }): string {
   return `---\nname: ${input.name}\ndescription: ${input.description}\n---\n\n${input.content}`;
 }
 

@@ -59,20 +59,9 @@ function expandWorkspaces(globs: string[]): string[] {
 const workspacePkgPaths = expandWorkspaces(workspaceGlobs);
 
 // --- Check each workspace package ---
-const DEP_FIELDS = [
-  'dependencies',
-  'devDependencies',
-  'peerDependencies',
-  'optionalDependencies',
-] as const;
+const DEP_FIELDS = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'] as const;
 
-type Violation = {
-  file: string;
-  field: string;
-  pkg: string;
-  actual: string;
-  expected: string;
-};
+type Violation = { file: string; field: string; pkg: string; actual: string; expected: string };
 
 const violations: Violation[] = [];
 
@@ -85,13 +74,7 @@ for (const pkgPath of workspacePkgPaths) {
     for (const [name, version] of Object.entries(deps)) {
       if (!catalogPackages.has(name)) continue;
       if (version.startsWith('catalog:')) continue; // already using catalog
-      violations.push({
-        file: relPath,
-        field,
-        pkg: name,
-        actual: version,
-        expected: catalogPackages.get(name)!,
-      });
+      violations.push({ file: relPath, field, pkg: name, actual: version, expected: catalogPackages.get(name)! });
     }
   }
 }

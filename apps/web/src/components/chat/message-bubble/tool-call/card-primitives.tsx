@@ -10,10 +10,7 @@ export function useStitchToolDisplayName(toolName: string): string {
   const queryClient = useQueryClient();
   return React.useMemo(() => {
     const knownTools = queryClient.getQueryData<KnownTool[]>(toolKeys.knownTools());
-    return (
-      knownTools?.find((t) => t.toolName === toolName)?.displayName ??
-      formatToolDisplayName(toolName)
-    );
+    return knownTools?.find((t) => t.toolName === toolName)?.displayName ?? formatToolDisplayName(toolName);
   }, [queryClient, toolName]);
 }
 

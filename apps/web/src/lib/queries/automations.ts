@@ -13,8 +13,7 @@ import { serverRequest } from '@/lib/api';
 
 const automationKeys = {
   all: ['automations'] as const,
-  page: (page: number, pageSize: number) =>
-    [...automationKeys.all, 'page', page, pageSize] as const,
+  page: (page: number, pageSize: number) => [...automationKeys.all, 'page', page, pageSize] as const,
   detail: (automationId: string) => [...automationKeys.all, 'detail', automationId] as const,
   sidebarList: () => [...automationKeys.all, 'sidebar-list'] as const,
   sessions: (automationId: string) => [...automationKeys.all, 'sessions', automationId] as const,
@@ -24,10 +23,7 @@ export function automationsPageQueryOptions(input: { page: number; pageSize: num
   return queryOptions({
     queryKey: automationKeys.page(input.page, input.pageSize),
     queryFn: () => {
-      const params = new URLSearchParams({
-        page: String(input.page),
-        pageSize: String(input.pageSize),
-      });
+      const params = new URLSearchParams({ page: String(input.page), pageSize: String(input.pageSize) });
       return serverRequest<ListAutomationsResponse>(`/automations?${params.toString()}`);
     },
   });
@@ -81,8 +77,7 @@ export function useUpdateAutomation() {
 export function useDeleteAutomation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (automationId: string) =>
-      serverRequest<void>(`/automations/${automationId}`, { method: 'DELETE' }),
+    mutationFn: (automationId: string) => serverRequest<void>(`/automations/${automationId}`, { method: 'DELETE' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: automationKeys.all });
     },
@@ -100,9 +95,7 @@ export function useRunAutomation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (automationId: string) =>
-      serverRequest<RunAutomationResponse>(`/automations/${automationId}/run`, {
-        method: 'POST',
-      }),
+      serverRequest<RunAutomationResponse>(`/automations/${automationId}/run`, { method: 'POST' }),
     onSuccess: (_data, automationId) => {
       void queryClient.invalidateQueries({ queryKey: automationKeys.sessions(automationId) });
       void queryClient.invalidateQueries({ queryKey: automationKeys.all });

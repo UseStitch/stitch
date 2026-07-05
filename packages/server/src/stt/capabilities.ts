@@ -33,10 +33,7 @@ export class CapabilityNegotiationError extends Error {
  *
  * Throws CapabilityNegotiationError if any 'required' capability resolves to 'unsupported'.
  */
-export function resolve(
-  request: CapabilityRequest,
-  modelCapabilities: ModelCapabilities,
-): CapabilityResolution {
+export function resolve(request: CapabilityRequest, modelCapabilities: ModelCapabilities): CapabilityResolution {
   const satisfied = {} as Record<STTCapability, CapabilitySupport>;
   const degraded: STTCapability[] = [];
   const unsatisfied: STTCapability[] = [];
@@ -51,10 +48,7 @@ export function resolve(
     }
   }
 
-  for (const [cap, level] of Object.entries(request) as [
-    STTCapability,
-    'required' | 'preferred',
-  ][]) {
+  for (const [cap, level] of Object.entries(request) as [STTCapability, 'required' | 'preferred'][]) {
     if (satisfied[cap] === 'unsupported') {
       if (level === 'required') {
         unsatisfied.push(cap);

@@ -12,12 +12,7 @@ import {
 
 import type { Recording } from '@stitch/shared/recordings/types';
 
-import {
-  formatClockDuration,
-  getRecordingDisplayTitle,
-  STATUS_LABELS,
-  STATUS_VARIANTS,
-} from '../shared/formatting';
+import { formatClockDuration, getRecordingDisplayTitle, STATUS_LABELS, STATUS_VARIANTS } from '../shared/formatting';
 import { LiveDuration } from '../shared/live-duration';
 import { PlatformBadge } from '../shared/platform-badge';
 
@@ -61,15 +56,10 @@ export function RecordingsTable({
       columnHelper.accessor('status', {
         header: 'Capturing',
         cell: ({ getValue }) => (
-          <Table.Badge variant={STATUS_VARIANTS[getValue()]}>
-            {STATUS_LABELS[getValue()]}
-          </Table.Badge>
+          <Table.Badge variant={STATUS_VARIANTS[getValue()]}>{STATUS_LABELS[getValue()]}</Table.Badge>
         ),
       }),
-      columnHelper.accessor('startedAt', {
-        header: 'Date',
-        cell: ({ getValue }) => <Table.Time value={getValue()} />,
-      }),
+      columnHelper.accessor('startedAt', { header: 'Date', cell: ({ getValue }) => <Table.Time value={getValue()} /> }),
       columnHelper.display({
         id: 'duration',
         header: 'Duration',
@@ -81,10 +71,7 @@ export function RecordingsTable({
           return <Table.Duration>{formatClockDuration(recording.durationMs)}</Table.Duration>;
         },
       }),
-      columnHelper.accessor('costUsd', {
-        header: 'Cost',
-        cell: ({ getValue }) => <Table.Money value={getValue()} />,
-      }),
+      columnHelper.accessor('costUsd', { header: 'Cost', cell: ({ getValue }) => <Table.Money value={getValue()} /> }),
       columnHelper.display({
         id: 'actions',
         header: () => <div className="pr-1 text-right">Actions</div>,
@@ -101,8 +88,7 @@ export function RecordingsTable({
               title="Delete recording"
               aria-label="Delete recording"
               disabled={row.original.id === activeRecordingId}
-              className="text-destructive hover:text-destructive"
-            >
+              className="text-destructive hover:text-destructive">
               <Trash2Icon className="size-4" />
             </Button>
           </Table.Actions>
@@ -135,11 +121,8 @@ export function RecordingsTable({
                     header.column.id === 'title'
                       ? 'w-full max-w-xs min-w-48 px-4 py-2 font-medium'
                       : 'px-4 py-2 font-medium whitespace-nowrap'
-                  }
-                >
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(header.column.columnDef.header, header.getContext())}
+                  }>
+                  {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                 </Table.Head>
               ))}
             </Table.Row>
@@ -153,27 +136,18 @@ export function RecordingsTable({
                   <MicIcon className="size-10 text-muted-foreground/30" />
                 </EmptyMedia>
                 <EmptyTitle>No recordings yet</EmptyTitle>
-                <EmptyDescription>
-                  Start recording to capture your first meeting audio.
-                </EmptyDescription>
+                <EmptyDescription>Start recording to capture your first meeting audio.</EmptyDescription>
               </Empty>
             </Table.EmptyRow>
           ) : (
             table.getRowModel().rows.map((row) => (
-              <Table.Row
-                key={row.id}
-                className="cursor-pointer"
-                onClick={() => onNavigate(row.original.id)}
-              >
+              <Table.Row key={row.id} className="cursor-pointer" onClick={() => onNavigate(row.original.id)}>
                 {row.getVisibleCells().map((cell) => (
                   <Table.Cell
                     key={cell.id}
                     className={
-                      cell.column.id === 'title'
-                        ? 'w-full max-w-xs min-w-48 px-4 py-3'
-                        : 'px-4 py-3 whitespace-nowrap'
-                    }
-                  >
+                      cell.column.id === 'title' ? 'w-full max-w-xs min-w-48 px-4 py-3' : 'px-4 py-3 whitespace-nowrap'
+                    }>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </Table.Cell>
                 ))}

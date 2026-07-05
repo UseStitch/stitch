@@ -74,10 +74,7 @@ describe('ToolsetManager.activate collision detection', () => {
         { name: 'search', description: 'search' },
         { name: 'list', description: 'list' },
       ],
-      activate: async () => ({
-        search: makeTool('search from Y'),
-        list: makeTool('list from Y'),
-      }),
+      activate: async () => ({ search: makeTool('search from Y'), list: makeTool('list from Y') }),
     } satisfies Toolset);
 
     const manager = createManager();
@@ -167,10 +164,7 @@ describe('ToolsetManager.getActiveTools ordering', () => {
         { name: 'zebra_tool', description: 'z' },
         { name: 'apple_tool', description: 'a' },
       ],
-      activate: async () => ({
-        zebra_tool: makeTool('z'),
-        apple_tool: makeTool('a'),
-      }),
+      activate: async () => ({ zebra_tool: makeTool('z'), apple_tool: makeTool('a') }),
     } satisfies Toolset);
 
     registerToolset({
@@ -179,9 +173,7 @@ describe('ToolsetManager.getActiveTools ordering', () => {
       name: 'Beta',
       description: 'Beta toolset',
       tools: () => [{ name: 'mango_tool', description: 'm' }],
-      activate: async () => ({
-        mango_tool: makeTool('m'),
-      }),
+      activate: async () => ({ mango_tool: makeTool('m') }),
     } satisfies Toolset);
 
     const manager = createManager();
@@ -252,9 +244,7 @@ describe('ToolsetManager activation state', () => {
     await manager.activate('run-only');
     manager.pin('persisted');
 
-    expect(manager.getPersistableActivationState()).toEqual([
-      { id: 'persisted', scope: 'until_deactivated' },
-    ]);
+    expect(manager.getPersistableActivationState()).toEqual([{ id: 'persisted', scope: 'until_deactivated' }]);
     expect(manager.getPersistedIds()).toEqual(new Set(['persisted']));
     expect(manager.getExpiredRunToolsets()).toEqual([{ id: 'run-only', toolNames: ['run_tool'] }]);
   });
@@ -270,11 +260,7 @@ describe('ToolsetManager activation state', () => {
     } satisfies Toolset);
 
     const manager = new ToolsetManager(
-      {
-        sessionId: 'ses_test' as never,
-        messageId: 'msg_test' as never,
-        streamRunId: 'run_test',
-      },
+      { sessionId: 'ses_test' as never, messageId: 'msg_test' as never, streamRunId: 'run_test' },
       [{ id: 'restored', scope: 'until_deactivated' }],
     );
 
@@ -284,19 +270,12 @@ describe('ToolsetManager activation state', () => {
     expect(manager.getPersistedIds()).toEqual(new Set(['restored']));
 
     const catalog = await manager.getCatalogWithState();
-    expect(catalog.find((entry) => entry.id === 'restored')).toMatchObject({
-      active: false,
-      persisted: true,
-    });
+    expect(catalog.find((entry) => entry.id === 'restored')).toMatchObject({ active: false, persisted: true });
   });
 
   test('can unpin restored persisted state before activation', async () => {
     const manager = new ToolsetManager(
-      {
-        sessionId: 'ses_test' as never,
-        messageId: 'msg_test' as never,
-        streamRunId: 'run_test',
-      },
+      { sessionId: 'ses_test' as never, messageId: 'msg_test' as never, streamRunId: 'run_test' },
       [{ id: 'restored', scope: 'until_deactivated' }],
     );
 
@@ -317,11 +296,7 @@ describe('ToolsetManager activation state', () => {
     } satisfies Toolset);
 
     const manager = new ToolsetManager(
-      {
-        sessionId: 'ses_test' as never,
-        messageId: 'msg_test' as never,
-        streamRunId: 'run_test',
-      },
+      { sessionId: 'ses_test' as never, messageId: 'msg_test' as never, streamRunId: 'run_test' },
       [{ id: 'restored', scope: 'until_deactivated' }],
     );
 
@@ -347,11 +322,7 @@ describe('ToolsetManager activation state', () => {
     } satisfies Toolset);
 
     const manager = new ToolsetManager(
-      {
-        sessionId: 'ses_test' as never,
-        messageId: 'msg_test' as never,
-        streamRunId: 'run_test',
-      },
+      { sessionId: 'ses_test' as never, messageId: 'msg_test' as never, streamRunId: 'run_test' },
       [{ id: 'ttl-toolset', scope: 'ttl_turns', expiresAtTurn: 1 }],
     );
     await manager.activate('ttl-toolset');
@@ -377,8 +348,6 @@ describe('ToolsetManager activation state', () => {
 
     expect(manager.renewTtlForTool('missing_tool', 5)).toBeNull();
     expect(manager.renewTtlForTool('persisted_tool', 5)).toBeNull();
-    expect(manager.getPersistableActivationState()).toEqual([
-      { id: 'persisted', scope: 'until_deactivated' },
-    ]);
+    expect(manager.getPersistableActivationState()).toEqual([{ id: 'persisted', scope: 'until_deactivated' }]);
   });
 });

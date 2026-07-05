@@ -22,22 +22,11 @@ export type ModelSummary = {
   family?: string;
   release_date?: string;
   cost?: Record<string, unknown>;
-  limit?: {
-    context: number;
-    input?: number;
-    output: number;
-  };
-  modalities?: {
-    input: string[];
-    output: string[];
-  };
+  limit?: { context: number; input?: number; output: number };
+  modalities?: { input: string[]; output: string[] };
 };
 
-export type ProviderModels = {
-  providerId: string;
-  providerName: string;
-  models: ModelSummary[];
-};
+export type ProviderModels = { providerId: string; providerName: string; models: ModelSummary[] };
 
 type ProviderCredentials = Record<string, unknown>;
 
@@ -89,13 +78,9 @@ export const visibleProviderModelsQueryOptions = queryOptions({
   queryFn: async (): Promise<ProviderModels[]> => {
     const [providers, overridesList] = await Promise.all([
       serverRequest<ProviderSummary[]>('/providers'),
-      serverRequest<
-        Array<{
-          providerId: string;
-          modelId: string;
-          visibility: 'show' | 'hide';
-        }>
-      >('/llm/models/visibility'),
+      serverRequest<Array<{ providerId: string; modelId: string; visibility: 'show' | 'hide' }>>(
+        '/llm/models/visibility',
+      ),
     ]);
 
     const enabled = providers.filter((p) => p.enabled && p.capabilities.includes('llm'));
@@ -107,11 +92,7 @@ export const visibleProviderModelsQueryOptions = queryOptions({
           const models = await serverRequest<ModelSummary[]>(`/llm/provider/${provider.id}/models`);
           return { providerId: provider.id, providerName: provider.name, models };
         } catch {
-          return {
-            providerId: provider.id,
-            providerName: provider.name,
-            models: [] as ModelSummary[],
-          };
+          return { providerId: provider.id, providerName: provider.name, models: [] as ModelSummary[] };
         }
       }),
     );
@@ -123,9 +104,7 @@ export const visibleProviderModelsQueryOptions = queryOptions({
       })),
     );
 
-    const overridesMap = new Map(
-      overridesList.map((o) => [`${o.providerId}:${o.modelId}`, o.visibility]),
-    );
+    const overridesMap = new Map(overridesList.map((o) => [`${o.providerId}:${o.modelId}`, o.visibility]));
 
     return allProviderModels
       .map((provider) => ({
@@ -142,12 +121,10 @@ export const providerConfigQueryOptions = (providerId: string) =>
   queryOptions({
     queryKey: providerKeys.config(providerId),
     queryFn: () =>
-      serverRequest<ProviderCredentials | null>(`/llm/provider/${providerId}/config`).catch(
-        (err) => {
-          if (err instanceof Error && err.message.includes('status 404')) return null;
-          throw err;
-        },
-      ),
+      serverRequest<ProviderCredentials | null>(`/llm/provider/${providerId}/config`).catch((err) => {
+        if (err instanceof Error && err.message.includes('status 404')) return null;
+        throw err;
+      }),
   });
 
 export const embeddingProviderModelsQueryOptions = queryOptions({

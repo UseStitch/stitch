@@ -42,11 +42,7 @@ describe('read tool helpers', () => {
     const filePath = path.join(dir, 'example.txt');
     await fs.writeFile(filePath, 'one\ntwo\nthree\nfour', 'utf8');
 
-    const result = await readPathContent({
-      filePath,
-      offset: 2,
-      limit: 2,
-    });
+    const result = await readPathContent({ filePath, offset: 2, limit: 2 });
 
     expect(result.output).toBe('2: two\n3: three');
   });
@@ -73,9 +69,7 @@ describe('read tool helpers', () => {
   });
 
   test('rejects non-absolute paths', async () => {
-    expect(readPathContent({ filePath: 'relative/file.txt' })).rejects.toThrow(
-      'filePath must be an absolute path',
-    );
+    expect(readPathContent({ filePath: 'relative/file.txt' })).rejects.toThrow('filePath must be an absolute path');
   });
 
   test('throws when path does not exist', async () => {

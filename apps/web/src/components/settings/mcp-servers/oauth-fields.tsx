@@ -31,8 +31,7 @@ export function OAuthFields({
       {showAdvanced ? (
         <div className="space-y-3 rounded-md border border-border/60 p-3">
           <p className="text-xs text-muted-foreground">
-            Provide a pre-registered client only if the server does not support dynamic client
-            registration.
+            Provide a pre-registered client only if the server does not support dynamic client registration.
           </p>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Client ID</Label>
@@ -56,8 +55,7 @@ export function OAuthFields({
         <button
           type="button"
           className="text-xs text-muted-foreground underline hover:text-foreground"
-          onClick={() => setShowAdvanced(true)}
-        >
+          onClick={() => setShowAdvanced(true)}>
           Advanced: provide a pre-registered client
         </button>
       )}

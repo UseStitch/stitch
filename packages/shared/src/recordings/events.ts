@@ -7,28 +7,15 @@ export type RecordingAnalysisUpdatedPayload = {
   title: string | null;
 };
 
-export type RecordingWarningPayload = {
-  code: string;
-  message: string;
-};
+export type RecordingWarningPayload = { code: string; message: string };
 
-export type RecordingDeviceChangedPayload = {
-  kind: 'input' | 'output' | 'list';
-  deviceName: string | null;
-};
+export type RecordingDeviceChangedPayload = { kind: 'input' | 'output' | 'list'; deviceName: string | null };
 
-export type RecordingStartedPayload = {
-  recordingId: PrefixedString<'rec'>;
-};
+export type RecordingStartedPayload = { recordingId: PrefixedString<'rec'> };
 
-export type RecordingStoppedPayload = {
-  recordingId: PrefixedString<'rec'>;
-};
+export type RecordingStoppedPayload = { recordingId: PrefixedString<'rec'> };
 
-export type RecordingUnrecoverablePayload = {
-  recordingId: PrefixedString<'rec'>;
-  reason: string;
-};
+export type RecordingUnrecoverablePayload = { recordingId: PrefixedString<'rec'>; reason: string };
 
 export type RecordingTranscriptEntryPayload = {
   recordingId: string;

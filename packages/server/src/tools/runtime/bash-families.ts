@@ -4,10 +4,7 @@ import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
 import type { FamilyRule } from '@stitch/shared/tools/bash-families';
 import { FAMILY_RULES } from '@stitch/shared/tools/bash-families';
 
-type CommandFamily = {
-  pattern: string;
-  description: string;
-};
+type CommandFamily = { pattern: string; description: string };
 
 function normalizeToken(token: string): string {
   let value = token.trim().toLowerCase();
@@ -145,10 +142,7 @@ export function deriveCommandFamilies(command: string): CommandFamily[] {
 
     if (seen.has(pattern)) continue;
     seen.add(pattern);
-    families.push({
-      pattern,
-      description: rule.description,
-    });
+    families.push({ pattern, description: rule.description });
   }
 
   return families;
@@ -158,8 +152,5 @@ export function getCommandFamilySuggestion(command: string): PermissionSuggestio
   const firstFamily = deriveCommandFamilies(command)[0];
   if (!firstFamily) return null;
 
-  return {
-    message: `Always allow: ${firstFamily.description}`,
-    pattern: firstFamily.pattern,
-  };
+  return { message: `Always allow: ${firstFamily.description}`, pattern: firstFamily.pattern };
 }

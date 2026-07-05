@@ -39,32 +39,16 @@ const PRUNE_MINIMUM = 20_000;
 
 type ModelLimits = { context: number; input?: number; output: number };
 
-type CompactionSettings = {
-  auto: boolean;
-  prune: boolean;
-  reserved?: number;
-};
+type CompactionSettings = { auto: boolean; prune: boolean; reserved?: number };
 
 type StoredMessage = typeof messages.$inferSelect;
 
 export async function getCompactionSettings(): Promise<CompactionSettings> {
-  const s = await getSettings([
-    'compaction.auto',
-    'compaction.prune',
-    'compaction.reserved',
-  ] as const);
-  return {
-    auto: s['compaction.auto'],
-    prune: s['compaction.prune'],
-    reserved: s['compaction.reserved'],
-  };
+  const s = await getSettings(['compaction.auto', 'compaction.prune', 'compaction.reserved'] as const);
+  return { auto: s['compaction.auto'], prune: s['compaction.prune'], reserved: s['compaction.reserved'] };
 }
 
-export function isOverflow(
-  usage: LanguageModelUsage,
-  limits: ModelLimits,
-  settings?: { reserved?: number },
-): boolean {
+export function isOverflow(usage: LanguageModelUsage, limits: ModelLimits, settings?: { reserved?: number }): boolean {
   if (limits.context === 0) return false;
 
   const count = normalizeUsage(usage).totalTokens;
@@ -136,17 +120,11 @@ async function prune(msgs: StoredMessage[]): Promise<number> {
           for (const partIndex of partIndices) {
             const part = updatedParts[partIndex];
             if (part?.type === 'tool-result') {
-              updatedParts[partIndex] = {
-                ...part,
-                output: '[Old tool result content cleared]',
-              } as StoredPart;
+              updatedParts[partIndex] = { ...part, output: '[Old tool result content cleared]' } as StoredPart;
             }
           }
 
-          await tx
-            .update(messages)
-            .set({ parts: updatedParts, updatedAt: now })
-            .where(eq(messages.id, messageId));
+          await tx.update(messages).set({ parts: updatedParts, updatedAt: now }).where(eq(messages.id, messageId));
         }),
       );
     });
@@ -216,12 +194,7 @@ type CompactionSeverity = 'normal' | 'overflow';
 async function resolveCompactionModel(
   fallbackProviderId: string,
   fallbackModelId: string,
-): Promise<{
-  providerId: string;
-  modelId: string;
-  credentials: ProviderCredentials;
-  limits: ModelLimits;
-}> {
+): Promise<{ providerId: string; modelId: string; credentials: ProviderCredentials; limits: ModelLimits }> {
   const resolved = await resolveCheapModel({
     providerIdKey: 'model.compaction.providerId',
     modelIdKey: 'model.compaction.modelId',
@@ -289,19 +262,21 @@ export async function compact(input: {
       endedAt: now,
     } as StoredPart;
 
-    await db.insert(messages).values({
-      id: compactionMarkerId,
-      sessionId,
-      role: 'user',
-      parts: [compactionPart],
-      modelId: input.modelId,
-      providerId: input.providerId,
-      costUsd: 0,
-      createdAt: now,
-      updatedAt: now,
-      startedAt: now,
-      duration: null,
-    });
+    await db
+      .insert(messages)
+      .values({
+        id: compactionMarkerId,
+        sessionId,
+        role: 'user',
+        parts: [compactionPart],
+        modelId: input.modelId,
+        providerId: input.providerId,
+        costUsd: 0,
+        createdAt: now,
+        updatedAt: now,
+        startedAt: now,
+        duration: null,
+      });
 
     const allMsgs = await db
       .select()
@@ -340,17 +315,10 @@ export async function compact(input: {
 
     const llmMessages: ModelMessage[] = [
       ...historyMessages,
-      {
-        role: 'user',
-        content: severity === 'overflow' ? COMPACTION_PROMPT_OVERFLOW : COMPACTION_PROMPT,
-      },
+      { role: 'user', content: severity === 'overflow' ? COMPACTION_PROMPT_OVERFLOW : COMPACTION_PROMPT },
     ];
 
-    const cachedMessages = addCacheControlToMessages(
-      llmMessages,
-      resolved.providerId as ProviderId,
-      resolved.modelId,
-    );
+    const cachedMessages = addCacheControlToMessages(llmMessages, resolved.providerId as ProviderId, resolved.modelId);
     const providerOptions = getProviderOptions(resolved.providerId as ProviderId, sessionId);
 
     let summaryText = '';
@@ -390,33 +358,31 @@ export async function compact(input: {
       providerId: resolved.providerId,
       modelId: resolved.modelId,
       usage,
-      metadata: {
-        phase: 'compaction',
-        auto: input.auto,
-        overflow: input.overflow ?? false,
-      },
+      metadata: { phase: 'compaction', auto: input.auto, overflow: input.overflow ?? false },
       startedAt: now,
       endedAt: summaryNow,
       durationMs: summaryNow - now,
     });
 
     await db.transaction(async (tx) => {
-      await tx.insert(messages).values({
-        id: summaryMessageId,
-        sessionId,
-        role: 'assistant',
-        parts: [summaryPart],
-        modelId: resolved.modelId,
-        providerId: resolved.providerId,
-        usage,
-        costUsd,
-        finishReason: 'stop',
-        isSummary: true,
-        createdAt: summaryNow,
-        updatedAt: summaryNow,
-        startedAt: summaryNow,
-        duration: summaryNow - now,
-      });
+      await tx
+        .insert(messages)
+        .values({
+          id: summaryMessageId,
+          sessionId,
+          role: 'assistant',
+          parts: [summaryPart],
+          modelId: resolved.modelId,
+          providerId: resolved.providerId,
+          usage,
+          costUsd,
+          finishReason: 'stop',
+          isSummary: true,
+          createdAt: summaryNow,
+          updatedAt: summaryNow,
+          startedAt: summaryNow,
+          duration: summaryNow - now,
+        });
 
       await tx.update(sessions).set({ updatedAt: summaryNow }).where(eq(sessions.id, sessionId));
     });
@@ -467,11 +433,7 @@ export async function compact(input: {
       providerId: input.providerId,
       modelId: input.modelId,
       errorCode: mappedError.category,
-      metadata: {
-        phase: 'compaction',
-        auto: input.auto,
-        overflow: input.overflow ?? false,
-      },
+      metadata: { phase: 'compaction', auto: input.auto, overflow: input.overflow ?? false },
       startedAt: failedAt,
       endedAt: failedAt,
       durationMs: 0,

@@ -4,10 +4,7 @@ import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query
 
 import type { ServerConnectionConfig, ServerMode } from '@/lib/api';
 
-const connectionKeys = {
-  all: ['connection'] as const,
-  config: () => [...connectionKeys.all, 'config'] as const,
-};
+const connectionKeys = { all: ['connection'] as const, config: () => [...connectionKeys.all, 'config'] as const };
 
 export const serverConfigQueryOptions = queryOptions({
   queryKey: connectionKeys.config(),
@@ -34,10 +31,7 @@ export function useSaveServerConfig() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: {
-      mode: ServerMode;
-      remoteUrl: string | null;
-    }): Promise<ServerConnectionConfig> => {
+    mutationFn: async (input: { mode: ServerMode; remoteUrl: string | null }): Promise<ServerConnectionConfig> => {
       if (!window.api?.server?.setConfig) {
         throw new Error('Server config is only available from the desktop app');
       }
@@ -48,9 +42,7 @@ export function useSaveServerConfig() {
       toast.success('Server connection updated', { id: 'connection-update' });
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to update server connection', {
-        id: 'connection-update',
-      });
+      toast.error(error.message || 'Failed to update server connection', { id: 'connection-update' });
     },
   });
 }

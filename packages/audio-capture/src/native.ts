@@ -35,20 +35,11 @@ type NativeStartInput = {
   echoCancellation?: boolean;
 };
 
-type NativeStopResult = {
-  endedAt: number;
-  durationMs: number;
-  warnings: string[];
-};
+type NativeStopResult = { endedAt: number; durationMs: number; warnings: string[] };
 
 type NativeAddon = {
-  startCapture: (
-    input: NativeStartInput,
-    callback: (err: Error | null, event: NativeCaptureEvent) => void,
-  ) => void;
-  stopCapture: (
-    callback: (err: Error | null, event: NativeCaptureEvent) => void,
-  ) => NativeStopResult | null;
+  startCapture: (input: NativeStartInput, callback: (err: Error | null, event: NativeCaptureEvent) => void) => void;
+  stopCapture: (callback: (err: Error | null, event: NativeCaptureEvent) => void) => NativeStopResult | null;
   listDevices: () => AudioDeviceList;
   checkPermissions: () => AudioPermissionsStatus;
   primeSystemAudio: () => AudioPermissionsStatus;

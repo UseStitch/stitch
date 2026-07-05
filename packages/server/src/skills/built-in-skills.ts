@@ -34,17 +34,13 @@ export async function loadBuiltInSkills(builtInsDir?: string): Promise<BuiltInSk
       const skillMdPath = path.join(skillDir, SKILL_MD_FILENAME);
 
       if (!existsSync(skillMdPath)) {
-        throw new SkillInvalidError(
-          `Built-in skill directory "${skillDirEntry.name}" is missing ${SKILL_MD_FILENAME}`,
-        );
+        throw new SkillInvalidError(`Built-in skill directory "${skillDirEntry.name}" is missing ${SKILL_MD_FILENAME}`);
       }
 
       const markdown = await readFile(skillMdPath, 'utf8');
       const parsed = parseSkillMarkdown(markdown);
       if (!parsed) {
-        throw new SkillInvalidError(
-          `Invalid built-in skill markdown: ${skillDirEntry.name}/${SKILL_MD_FILENAME}`,
-        );
+        throw new SkillInvalidError(`Invalid built-in skill markdown: ${skillDirEntry.name}/${SKILL_MD_FILENAME}`);
       }
 
       const result = createSkillSchema.safeParse(parsed);
@@ -56,12 +52,7 @@ export async function loadBuiltInSkills(builtInsDir?: string): Promise<BuiltInSk
 
       const files = await collectSkillDirFiles(skillDir, skillDir);
 
-      return {
-        name: result.data.name,
-        description: result.data.description,
-        content: result.data.content,
-        files,
-      };
+      return { name: result.data.name, description: result.data.description, content: result.data.content, files };
     }),
   );
 

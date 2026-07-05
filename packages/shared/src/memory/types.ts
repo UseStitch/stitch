@@ -21,15 +21,9 @@ export type SemanticMemory = {
   pinned: boolean;
 };
 
-export type ExtractedFact = {
-  content: string;
-  category: MemoryCategory;
-  confidence: MemoryConfidence;
-};
+export type ExtractedFact = { content: string; category: MemoryCategory; confidence: MemoryConfidence };
 
-export type MemorySearchResult = SemanticMemory & {
-  score: number;
-};
+export type MemorySearchResult = SemanticMemory & { score: number };
 
 export type ListSemanticMemoriesResponse = {
   memories: SemanticMemory[];

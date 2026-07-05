@@ -5,11 +5,7 @@ import { z } from 'zod';
 import { createToolRuntime, defineRuntimeTool } from '@/tools/runtime/runtime.js';
 import type { ToolMiddleware } from '@/tools/runtime/runtime.js';
 
-const context = {
-  sessionId: 'ses_test' as never,
-  messageId: 'msg_test' as never,
-  streamRunId: 'run_test',
-};
+const context = { sessionId: 'ses_test' as never, messageId: 'msg_test' as never, streamRunId: 'run_test' };
 
 describe('tool runtime', () => {
   test('executes middleware in declaration order', async () => {
@@ -47,11 +43,7 @@ describe('tool runtime', () => {
     const tools = createToolRuntime(context).toAiToolRecord([
       defineRuntimeTool(
         'example',
-        tool({
-          description: 'example tool',
-          inputSchema: z.object({}),
-          execute: async () => 'ok',
-        }),
+        tool({ description: 'example tool', inputSchema: z.object({}), execute: async () => 'ok' }),
         { source: 'core', displayName: 'Example' },
       ),
     ]);

@@ -29,13 +29,7 @@ export function RowContent({
 }: RowContentProps) {
   switch (row.kind) {
     case 'load-more':
-      return (
-        <LoadMoreRow
-          isFetchingMore={isFetchingMore}
-          onLoadMore={onLoadMore}
-          sentinelRef={sentinelRef}
-        />
-      );
+      return <LoadMoreRow isFetchingMore={isFetchingMore} onLoadMore={onLoadMore} sentinelRef={sentinelRef} />;
 
     case 'compaction':
       return <CompactionDivider summaryParts={row.summaryParts} />;
@@ -47,21 +41,13 @@ export function RowContent({
           parts={row.parts}
           finishReason={row.finishReason}
           onAbortTool={onAbortTool}
-          onSplit={
-            row.role === 'user' && !row.isFirstUserMessage && onSplit
-              ? () => onSplit(row.id)
-              : undefined
-          }
+          onSplit={row.role === 'user' && !row.isFirstUserMessage && onSplit ? () => onSplit(row.id) : undefined}
         />
       );
 
     case 'streaming':
       return (
-        <StreamingMessageBubble
-          partIds={streamState.partIds}
-          parts={streamState.parts}
-          onAbortTool={onAbortTool}
-        />
+        <StreamingMessageBubble partIds={streamState.partIds} parts={streamState.parts} onAbortTool={onAbortTool} />
       );
 
     case 'error':

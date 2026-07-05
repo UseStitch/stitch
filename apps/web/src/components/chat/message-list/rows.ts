@@ -37,11 +37,7 @@ export function buildRows(
 
   for (let i = 0; i < messages.length; i++) {
     const message = messages[i];
-    if (
-      message.parts.some(
-        (part) => part.type === 'session-title' || part.type === 'automation-generation',
-      )
-    ) {
+    if (message.parts.some((part) => part.type === 'session-title' || part.type === 'automation-generation')) {
       continue;
     }
 
@@ -72,12 +68,10 @@ export function buildRows(
     });
   }
 
-  const hasStreamContent =
-    streamState.isStreaming || streamState.partIds.length > 0 || streamState.error !== null;
+  const hasStreamContent = streamState.isStreaming || streamState.partIds.length > 0 || streamState.error !== null;
 
   const persistedMessageLanded =
-    streamState.activeMessageId !== null &&
-    messages.some((message) => message.id === streamState.activeMessageId);
+    streamState.activeMessageId !== null && messages.some((message) => message.id === streamState.activeMessageId);
 
   if (hasStreamContent && !persistedMessageLanded) {
     if (streamState.error) {

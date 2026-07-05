@@ -19,13 +19,7 @@ import { SettingSubPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAddMcpServer, useStartMcpAuth } from '@/lib/queries/mcp';
 
 export function InstallRegistryMcpServer({
@@ -56,12 +50,7 @@ export function InstallRegistryMcpServer({
   const [selectedAuthId, setSelectedAuthId] = React.useState(authOptions[0]?.id ?? '0');
   const [form, setForm] = React.useState<AddFormState>(() =>
     applyAuthConfigToForm(
-      {
-        ...EMPTY_ADD_FORM,
-        name: server.install.name,
-        url: server.install.url,
-        transport: server.install.transport,
-      },
+      { ...EMPTY_ADD_FORM, name: server.install.name, url: server.install.url, transport: server.install.transport },
       authOptions[0]?.config ?? server.install.authConfig,
     ),
   );
@@ -70,8 +59,7 @@ export function InstallRegistryMcpServer({
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const selectedAuthOption =
-    authOptions.find((entry) => entry.id === selectedAuthId) ?? authOptions[0];
+  const selectedAuthOption = authOptions.find((entry) => entry.id === selectedAuthId) ?? authOptions[0];
 
   const handleAuthPresetChange = (id: string | null) => {
     if (!id) return;
@@ -107,17 +95,13 @@ export function InstallRegistryMcpServer({
       });
       if (form.authType === 'oauth') {
         await startAuth.mutateAsync(id);
-        toast.success('Authorization started — complete it in your browser', {
-          id: 'mcp-install-auth',
-        });
+        toast.success('Authorization started — complete it in your browser', { id: 'mcp-install-auth' });
       } else {
         toast.success(`${server.name} installed`, { id: 'mcp-install-success' });
       }
       onInstalled();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to install MCP server', {
-        id: 'mcp-install-error',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to install MCP server', { id: 'mcp-install-error' });
     }
   };
 
@@ -134,12 +118,10 @@ export function InstallRegistryMcpServer({
           href={server.docsUrl}
           target="_blank"
           rel="noreferrer"
-          className="text-xs text-muted-foreground underline hover:text-foreground"
-        >
+          className="text-xs text-muted-foreground underline hover:text-foreground">
           View docs
         </a>
-      }
-    >
+      }>
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
@@ -166,10 +148,7 @@ export function InstallRegistryMcpServer({
           ) : (
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-muted-foreground">Authentication</Label>
-              <Select
-                value={form.authType}
-                onValueChange={(v) => set('authType', v as AddFormState['authType'])}
-              >
+              <Select value={form.authType} onValueChange={(v) => set('authType', v as AddFormState['authType'])}>
                 <SelectTrigger className="w-full">
                   <SelectValue>{AUTH_TYPE_LABELS[form.authType].label}</SelectValue>
                 </SelectTrigger>

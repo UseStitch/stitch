@@ -17,9 +17,4 @@ export type SessionTodo = {
   updatedAt: number;
 };
 
-export type TodoInput = {
-  id?: PrefixedString<'todo'>;
-  content: string;
-  status: TodoStatus;
-  priority: TodoPriority;
-};
+export type TodoInput = { id?: PrefixedString<'todo'>; content: string; status: TodoStatus; priority: TodoPriority };

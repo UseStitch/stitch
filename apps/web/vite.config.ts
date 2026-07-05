@@ -11,24 +11,13 @@ const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8')
 
 export default defineConfig({
   base: './',
-  define: {
-    __APP_VERSION__: JSON.stringify(pkg.version as string),
-  },
+  define: { __APP_VERSION__: JSON.stringify(pkg.version as string) },
   plugins: [
-    tanstackRouter({
-      target: 'react',
-      autoCodeSplitting: true,
-    }),
+    tanstackRouter({ target: 'react', autoCodeSplitting: true }),
     react(),
     babel({ presets: [reactCompilerPreset()] }),
     tailwindcss(),
   ],
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, 'src'),
-    },
-  },
-  build: {
-    outDir: 'dist',
-  },
+  resolve: { alias: { '@': resolve(__dirname, 'src') } },
+  build: { outDir: 'dist' },
 });

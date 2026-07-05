@@ -9,24 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { ServerMode } from '@/lib/api';
-import {
-  serverConfigQueryOptions,
-  useSaveServerConfig,
-  useTestRemoteConnection,
-} from '@/lib/queries/connection';
+import { serverConfigQueryOptions, useSaveServerConfig, useTestRemoteConnection } from '@/lib/queries/connection';
 import { cn } from '@/lib/utils';
 
-type TestState =
-  | { status: 'idle' }
-  | { status: 'success'; message: string }
-  | { status: 'error'; message: string };
+type TestState = { status: 'idle' } | { status: 'success'; message: string } | { status: 'error'; message: string };
 
 const MODE_OPTIONS: { mode: ServerMode; label: string; description: string }[] = [
-  {
-    mode: 'local',
-    label: 'Local server',
-    description: 'Run the bundled Stitch server on this machine.',
-  },
+  { mode: 'local', label: 'Local server', description: 'Run the bundled Stitch server on this machine.' },
   {
     mode: 'remote',
     label: 'Remote server',
@@ -79,19 +68,12 @@ function ConnectionContent() {
 
   function handleSave() {
     setTestState({ status: 'idle' });
-    saveConfig.mutate({
-      mode,
-      remoteUrl: remoteSelected ? remoteUrl : remoteUrl.trim() || null,
-    });
+    saveConfig.mutate({ mode, remoteUrl: remoteSelected ? remoteUrl : remoteUrl.trim() || null });
   }
 
   return (
     <div className="flex h-full flex-col">
-      <SettingPage
-        title={page.title}
-        description={page.description}
-        icon={<Icon className="size-5" />}
-      >
+      <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
         <SettingSection title="Server">
           <div className="grid grid-cols-2 gap-3">
             {MODE_OPTIONS.map((option) => (
@@ -104,12 +86,9 @@ function ConnectionContent() {
                   mode === option.mode
                     ? 'border-primary bg-primary/5 shadow-sm ring-2 ring-primary/20'
                     : 'border-border bg-background hover:bg-accent/50',
-                )}
-              >
+                )}>
                 <span className="text-sm font-medium">{option.label}</span>
-                <span className="mt-1 block text-xs text-muted-foreground">
-                  {option.description}
-                </span>
+                <span className="mt-1 block text-xs text-muted-foreground">{option.description}</span>
               </button>
             ))}
           </div>
@@ -139,8 +118,7 @@ function ConnectionContent() {
               type="button"
               variant="outline"
               onClick={handleTestConnection}
-              disabled={!remoteSelected || testing || saving}
-            >
+              disabled={!remoteSelected || testing || saving}>
               {testing ? (
                 <>
                   <LoaderIcon className="size-3.5 animate-spin" />
@@ -152,12 +130,7 @@ function ConnectionContent() {
             </Button>
           </div>
           {testState.status !== 'idle' ? (
-            <p
-              className={cn(
-                'text-xs',
-                testState.status === 'success' ? 'text-success' : 'text-destructive',
-              )}
-            >
+            <p className={cn('text-xs', testState.status === 'success' ? 'text-success' : 'text-destructive')}>
               {testState.message}
             </p>
           ) : null}

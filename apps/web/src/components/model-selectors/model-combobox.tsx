@@ -13,28 +13,13 @@ import {
   ComboboxSeparator,
 } from '@/components/ui/combobox';
 
-export type ModelSelection = {
-  providerId: string;
-  modelId: string;
-};
+export type ModelSelection = { providerId: string; modelId: string };
 
-type MinimalProviderModels = {
-  providerId: string;
-  providerName: string;
-  models: { id: string; name: string }[];
-};
+type MinimalProviderModels = { providerId: string; providerName: string; models: { id: string; name: string }[] };
 
-type ModelOption = {
-  label: string;
-  providerId: string;
-  providerName: string;
-  modelId: string;
-};
+type ModelOption = { label: string; providerId: string; providerName: string; modelId: string };
 
-type ModelGroup = {
-  value: string;
-  items: ModelOption[];
-};
+type ModelGroup = { value: string; items: ModelOption[] };
 
 function buildGroups(providerModels: MinimalProviderModels[]): ModelGroup[] {
   return providerModels.map((provider) => ({
@@ -71,8 +56,7 @@ export function ModelCombobox({
   const allOptions = React.useMemo(() => flattenGroups(groups), [groups]);
 
   const selectedOption = value
-    ? (allOptions.find((o) => o.providerId === value.providerId && o.modelId === value.modelId) ??
-      null)
+    ? (allOptions.find((o) => o.providerId === value.providerId && o.modelId === value.modelId) ?? null)
     : null;
 
   const resolvedShowClear = showClear ?? !!value;
@@ -90,8 +74,7 @@ export function ModelCombobox({
       value={selectedOption}
       onValueChange={handleValueChange}
       isItemEqualToValue={(a, b) => a.providerId === b.providerId && a.modelId === b.modelId}
-      items={groups}
-    >
+      items={groups}>
       <ComboboxInput placeholder={placeholder} showClear={resolvedShowClear} />
       <ComboboxContent side="bottom" sideOffset={4} align="start">
         <ComboboxEmpty>No models found</ComboboxEmpty>

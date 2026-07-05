@@ -29,9 +29,7 @@ document.addEventListener('click', (e: MouseEvent) => {
 
   if (!downloadLink || !posthogKey) return;
 
-  posthog.capture('app_download', {
-    platform: downloadLink.dataset.appDownloadPlatform,
-  });
+  posthog.capture('app_download', { platform: downloadLink.dataset.appDownloadPlatform });
 });
 
 // Theme toggle
@@ -86,11 +84,7 @@ document.addEventListener('click', (e: MouseEvent) => {
 
     if (posthogKey) {
       posthog.identify(email);
-      posthog.capture('waitlist_signup', {
-        email,
-        interest_inference: inference,
-        interest_remote: remote,
-      });
+      posthog.capture('waitlist_signup', { email, interest_inference: inference, interest_remote: remote });
     }
 
     form.hidden = true;

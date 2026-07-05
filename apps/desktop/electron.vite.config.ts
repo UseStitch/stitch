@@ -2,11 +2,7 @@ import { defineConfig } from 'electron-vite';
 
 export default defineConfig({
   main: {
-    build: {
-      externalizeDeps: {
-        exclude: ['@stitch/audio-capture', '@stitch/meeting-detection', '@stitch/shared'],
-      },
-    },
+    build: { externalizeDeps: { exclude: ['@stitch/audio-capture', '@stitch/meeting-detection', '@stitch/shared'] } },
   },
   preload: {},
 });

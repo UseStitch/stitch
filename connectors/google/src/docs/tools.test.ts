@@ -4,9 +4,7 @@ import { createDocsTools } from './tools.js';
 
 import type { GoogleClient } from '../client.js';
 
-type ExecutableTool = {
-  execute: (input: unknown) => Promise<unknown>;
-};
+type ExecutableTool = { execute: (input: unknown) => Promise<unknown> };
 
 function getToolExecutor(tools: Record<string, unknown>, name: string): ExecutableTool {
   const candidate = tools[name];
@@ -21,14 +19,7 @@ function createDocsDocument(documentId: string, title: string, text: string) {
   return {
     documentId,
     title,
-    body: {
-      content: [
-        {
-          endIndex: text.length + 1,
-          paragraph: { elements: [{ textRun: { content: text } }] },
-        },
-      ],
-    },
+    body: { content: [{ endIndex: text.length + 1, paragraph: { elements: [{ textRun: { content: text } }] } }] },
   };
 }
 
@@ -59,26 +50,16 @@ function createDocsClient(documentId: string, title: string, text: string) {
 
 describe('createDocsTools docs_edit', () => {
   test('edits the first matching string by default', async () => {
-    const { batchUpdates, resolveClient } = createDocsClient(
-      'doc-1',
-      'Roadmap',
-      'alpha beta alpha',
-    );
+    const { batchUpdates, resolveClient } = createDocsClient('doc-1', 'Roadmap', 'alpha beta alpha');
     const tools = createDocsTools(resolveClient, true);
     const docsEdit = getToolExecutor(tools, 'docs_edit');
-    const result = await docsEdit.execute({
-      documentId: 'doc-1',
-      oldString: 'beta',
-      newString: 'gamma',
-    });
+    const result = await docsEdit.execute({ documentId: 'doc-1', oldString: 'beta', newString: 'gamma' });
 
     expect(batchUpdates).toHaveLength(1);
     expect(batchUpdates[0]).toEqual(
       expect.objectContaining({
         requests: expect.arrayContaining([
-          expect.objectContaining({
-            insertText: { location: { index: 1 }, text: 'alpha gamma alpha' },
-          }),
+          expect.objectContaining({ insertText: { location: { index: 1 }, text: 'alpha gamma alpha' } }),
         ]),
       }),
     );
@@ -95,58 +76,35 @@ describe('createDocsTools docs_edit', () => {
     const tools = createDocsTools(resolveClient, true);
     const docsEdit = getToolExecutor(tools, 'docs_edit');
 
-    expect(
-      docsEdit.execute({
-        documentId: 'doc-2',
-        oldString: 'missing',
-        newString: 'found',
-      }),
-    ).rejects.toThrow('oldString not found in content');
+    expect(docsEdit.execute({ documentId: 'doc-2', oldString: 'missing', newString: 'found' })).rejects.toThrow(
+      'oldString not found in content',
+    );
     expect(batchUpdates).toHaveLength(0);
   });
 
   test('throws when oldString has multiple matches and replaceAll is false', async () => {
-    const { batchUpdates, resolveClient } = createDocsClient(
-      'doc-3',
-      'Draft',
-      'repeat this repeat this',
-    );
+    const { batchUpdates, resolveClient } = createDocsClient('doc-3', 'Draft', 'repeat this repeat this');
     const tools = createDocsTools(resolveClient, true);
     const docsEdit = getToolExecutor(tools, 'docs_edit');
 
-    expect(
-      docsEdit.execute({
-        documentId: 'doc-3',
-        oldString: 'repeat',
-        newString: 'replace',
-      }),
-    ).rejects.toThrow('Found multiple matches for oldString');
+    expect(docsEdit.execute({ documentId: 'doc-3', oldString: 'repeat', newString: 'replace' })).rejects.toThrow(
+      'Found multiple matches for oldString',
+    );
     expect(batchUpdates).toHaveLength(0);
   });
 
   test('replaces all matches when replaceAll is true', async () => {
-    const { batchUpdates, resolveClient } = createDocsClient(
-      'doc-4',
-      'Checklist',
-      'task task done',
-    );
+    const { batchUpdates, resolveClient } = createDocsClient('doc-4', 'Checklist', 'task task done');
     const tools = createDocsTools(resolveClient, true);
     const docsEdit = getToolExecutor(tools, 'docs_edit');
 
-    await docsEdit.execute({
-      documentId: 'doc-4',
-      oldString: 'task',
-      newString: 'item',
-      replaceAll: true,
-    });
+    await docsEdit.execute({ documentId: 'doc-4', oldString: 'task', newString: 'item', replaceAll: true });
 
     expect(batchUpdates).toHaveLength(1);
     expect(batchUpdates[0]).toEqual(
       expect.objectContaining({
         requests: expect.arrayContaining([
-          expect.objectContaining({
-            insertText: { location: { index: 1 }, text: 'item item done' },
-          }),
+          expect.objectContaining({ insertText: { location: { index: 1 }, text: 'item item done' } }),
         ]),
       }),
     );

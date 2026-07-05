@@ -5,10 +5,7 @@ import type { ToolContext } from '@/tools/runtime/runtime.js';
 import type { Tool } from 'ai';
 
 /** Brief summary of a single tool inside a toolset, used for LLM discovery. */
-export type ToolSummary = {
-  name: string;
-  description: string;
-};
+export type ToolSummary = { name: string; description: string };
 
 /** An MCP prompt template exposed by a toolset for user-controlled invocation. */
 export type ToolsetPrompt = {

@@ -17,10 +17,7 @@ type DriveFileRaw = {
   owners?: { displayName: string; emailAddress: string }[];
 };
 
-type DriveListResponse = {
-  files: DriveFileRaw[];
-  nextPageToken?: string;
-};
+type DriveListResponse = { files: DriveFileRaw[]; nextPageToken?: string };
 
 type DriveFile = {
   id: string;
@@ -33,17 +30,9 @@ type DriveFile = {
   owners: { displayName: string; emailAddress: string }[] | undefined;
 };
 
-type DriveSearchResult = {
-  files: DriveFile[];
-  nextPageToken: string | undefined;
-};
+type DriveSearchResult = { files: DriveFile[]; nextPageToken: string | undefined };
 
-type DriveFileContent = {
-  id: string;
-  name: string;
-  mimeType: string;
-  content: string;
-};
+type DriveFileContent = { id: string; name: string; mimeType: string; content: string };
 
 function mapFile(raw: DriveFileRaw): DriveFile {
   return {
@@ -71,14 +60,9 @@ export async function searchFiles(
   });
   if (pageToken) params.set('pageToken', pageToken);
 
-  const response = await client.request<DriveListResponse>(
-    `${DRIVE_API}/files?${params.toString()}`,
-  );
+  const response = await client.request<DriveListResponse>(`${DRIVE_API}/files?${params.toString()}`);
 
-  return {
-    files: response.files.map(mapFile),
-    nextPageToken: response.nextPageToken,
-  };
+  return { files: response.files.map(mapFile), nextPageToken: response.nextPageToken };
 }
 
 export async function getFileMetadata(client: GoogleClient, fileId: string): Promise<DriveFile> {
@@ -86,9 +70,7 @@ export async function getFileMetadata(client: GoogleClient, fileId: string): Pro
     fields: 'id,name,mimeType,size,createdTime,modifiedTime,webViewLink,parents,owners',
   });
 
-  const raw = await client.request<DriveFileRaw>(
-    `${DRIVE_API}/files/${fileId}?${params.toString()}`,
-  );
+  const raw = await client.request<DriveFileRaw>(`${DRIVE_API}/files/${fileId}?${params.toString()}`);
 
   return mapFile(raw);
 }
@@ -127,20 +109,10 @@ export async function getFileContent(
     content = await client.requestText(`${DRIVE_API}/files/${fileId}?alt=media`);
   }
 
-  return {
-    id: fileId,
-    name: fileName,
-    mimeType: fileMimeType,
-    content,
-  };
+  return { id: fileId, name: fileName, mimeType: fileMimeType, content };
 }
 
-type DriveWriteResult = {
-  id: string;
-  name: string;
-  mimeType: string;
-  webViewLink: string | undefined;
-};
+type DriveWriteResult = { id: string; name: string; mimeType: string; webViewLink: string | undefined };
 
 export async function createFile(
   client: GoogleClient,
@@ -169,19 +141,10 @@ export async function createFile(
 
   const raw = await client.request<DriveFileRaw>(
     `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,webViewLink`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
-      body,
-    },
+    { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body },
   );
 
-  return {
-    id: raw.id,
-    name: raw.name,
-    mimeType: raw.mimeType,
-    webViewLink: raw.webViewLink,
-  };
+  return { id: raw.id, name: raw.name, mimeType: raw.mimeType, webViewLink: raw.webViewLink };
 }
 
 export async function uploadFile(
@@ -222,10 +185,5 @@ export async function uploadFile(
     },
   );
 
-  return {
-    id: raw.id,
-    name: raw.name,
-    mimeType: raw.mimeType,
-    webViewLink: raw.webViewLink,
-  };
+  return { id: raw.id, name: raw.name, mimeType: raw.mimeType, webViewLink: raw.webViewLink };
 }

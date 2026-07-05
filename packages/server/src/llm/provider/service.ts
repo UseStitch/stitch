@@ -13,13 +13,7 @@ import { isAllowedProvider } from '@/models/llm/registry.js';
 import * as Models from '@/models/llm/registry.js';
 import * as ProviderLogos from '@/provider/logos.js';
 
-type ProviderSummary = {
-  id: string;
-  name: string;
-  api: string | undefined;
-  model_count: number;
-  enabled: boolean;
-};
+type ProviderSummary = { id: string; name: string; api: string | undefined; model_count: number; enabled: boolean };
 
 type ModelSummary = {
   id: string;
@@ -127,21 +121,12 @@ function ollamaModelToSummary(m: OllamaModels.OllamaModel): ModelSummary {
       ...(m.cacheReadCostPerMillion !== null && { cache_read: m.cacheReadCostPerMillion }),
       ...(m.cacheWriteCostPerMillion !== null && { cache_write: m.cacheWriteCostPerMillion }),
     },
-    limit: {
-      context: m.contextWindow,
-      ...(m.inputLimit !== null && { input: m.inputLimit }),
-      output: m.outputLimit,
-    },
-    modalities: {
-      input: m.inputModalities,
-      output: m.outputModalities,
-    },
+    limit: { context: m.contextWindow, ...(m.inputLimit !== null && { input: m.inputLimit }), output: m.outputLimit },
+    modalities: { input: m.inputModalities, output: m.outputModalities },
   };
 }
 
-export async function listProviderModels(
-  providerId: string,
-): Promise<ServiceResult<ModelSummary[]>> {
+export async function listProviderModels(providerId: string): Promise<ServiceResult<ModelSummary[]>> {
   if (providerId === 'ollama_local') {
     const models = await OllamaModels.listOllamaModels();
     return ok(models.map(ollamaModelToSummary));
@@ -155,21 +140,11 @@ export async function listProviderModels(
   return ok(Object.values(providerResult.data.models).map(toModelSummary));
 }
 
-function toEmbeddingModelSummary(
-  model: ResolvedEmbeddingModel,
-): EmbeddingProviderModels['models'][number] {
-  return {
-    id: model.id,
-    name: model.name,
-    family: model.family,
-    dimensions: model.dimensions,
-    context: model.context,
-  };
+function toEmbeddingModelSummary(model: ResolvedEmbeddingModel): EmbeddingProviderModels['models'][number] {
+  return { id: model.id, name: model.name, family: model.family, dimensions: model.dimensions, context: model.context };
 }
 
-export async function listEnabledProviderEmbeddingModels(): Promise<
-  ServiceResult<EmbeddingProviderModels[]>
-> {
+export async function listEnabledProviderEmbeddingModels(): Promise<ServiceResult<EmbeddingProviderModels[]>> {
   const db = getDb();
   const [providers, configs] = await Promise.all([
     EmbeddingModels.getEmbeddingModels(),
@@ -188,10 +163,7 @@ export async function listEnabledProviderEmbeddingModels(): Promise<
   );
 }
 
-export async function getEmbeddingModelDimensions(
-  providerId: string,
-  modelId: string,
-): Promise<number | undefined> {
+export async function getEmbeddingModelDimensions(providerId: string, modelId: string): Promise<number | undefined> {
   const providers = await EmbeddingModels.getEmbeddingModels();
   const model = providers[providerId]?.models[modelId];
   if (!model) return undefined;

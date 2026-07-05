@@ -11,8 +11,7 @@ const log = Log.create({ service: 'stt.assemblyai' });
 
 const ASSEMBLYAI_STREAMING_URL = 'wss://streaming.assemblyai.com/v3/ws';
 const ASSEMBLYAI_VERSION = 'v3';
-const CREDENTIALS_ERROR_REASON =
-  'Invalid transcription API credentials. Please check your settings.';
+const CREDENTIALS_ERROR_REASON = 'Invalid transcription API credentials. Please check your settings.';
 const QUOTA_ERROR_REASON = 'Transcription quota exceeded. Please check your billing.';
 const STREAM_LIMIT_REASON = 'AssemblyAI transcription stream limit reached.';
 
@@ -49,11 +48,7 @@ export function createAssemblyAIMessageParser(sessionStartMs: number) {
 
         const words =
           'words' in msg && msg.words
-            ? msg.words.map((w) => ({
-                text: w.text,
-                startMs: Math.round(w.start),
-                endMs: Math.round(w.end),
-              }))
+            ? msg.words.map((w) => ({ text: w.text, startMs: Math.round(w.start), endMs: Math.round(w.end) }))
             : undefined;
 
         const offsetMs = words && words.length > 0 ? words[0].startMs : Date.now() - sessionStartMs;
@@ -62,22 +57,11 @@ export function createAssemblyAIMessageParser(sessionStartMs: number) {
         if (!msg.end_of_turn || msg.turn_is_formatted === false) {
           if (!msg.transcript) return null;
 
-          const transcript: TranscriptEvent = {
-            id,
-            kind: 'partial',
-            text: msg.transcript,
-            offsetMs,
-          };
+          const transcript: TranscriptEvent = { id, kind: 'partial', text: msg.transcript, offsetMs };
           return { transcript };
         }
 
-        const transcript: TranscriptEvent = {
-          id,
-          kind: 'final',
-          text: msg.transcript,
-          offsetMs,
-          words,
-        };
+        const transcript: TranscriptEvent = { id, kind: 'final', text: msg.transcript, offsetMs, words };
         const usage: STTUsage = { durationMs: Date.now() - sessionStartMs };
         return { transcript, usage };
       }

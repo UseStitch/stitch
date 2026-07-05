@@ -7,11 +7,7 @@ export function AgendaSettings() {
   const Icon = page.icon;
 
   return (
-    <SettingPage
-      title={page.title}
-      description={page.description}
-      icon={<Icon className="size-5" />}
-    >
+    <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
       <SettingSection title="App">
         <SettingRows>
           <AppEnableSetting appId="agenda" label="Agenda" />

@@ -6,49 +6,19 @@
   "additionalProperties": false,
   "required": ["id", "name", "description", "docsUrl", "tags", "install"],
   "properties": {
-    "$schema": {
-      "type": "string",
-      "description": "Optional JSON Schema reference for editor tooling"
-    },
-    "id": {
-      "type": "string",
-      "pattern": "^[a-z0-9][a-z0-9-_]*$",
-      "description": "Stable marketplace identifier"
-    },
-    "name": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Display name shown in the marketplace"
-    },
-    "description": {
-      "type": "string",
-      "minLength": 1
-    },
-    "homepageUrl": {
-      "type": "string",
-      "format": "uri"
-    },
-    "docsUrl": {
-      "type": "string",
-      "format": "uri"
-    },
+    "$schema": { "type": "string", "description": "Optional JSON Schema reference for editor tooling" },
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-_]*$", "description": "Stable marketplace identifier" },
+    "name": { "type": "string", "minLength": 1, "description": "Display name shown in the marketplace" },
+    "description": { "type": "string", "minLength": 1 },
+    "homepageUrl": { "type": "string", "format": "uri" },
+    "docsUrl": { "type": "string", "format": "uri" },
     "logoUrl": {
       "type": "string",
       "format": "uri",
       "description": "Optional hosted SVG logo URL added to generated registry payloads"
     },
-    "tags": {
-      "type": "array",
-      "minItems": 1,
-      "uniqueItems": true,
-      "items": {
-        "type": "string",
-        "minLength": 1
-      }
-    },
-    "install": {
-      "$ref": "#/$defs/mcpInstallConfig"
-    }
+    "tags": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "install": { "$ref": "#/$defs/mcpInstallConfig" }
   },
   "$defs": {
     "mcpInstallConfig": {
@@ -56,28 +26,14 @@
       "additionalProperties": false,
       "required": ["name", "transport", "url", "authConfig"],
       "properties": {
-        "name": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Default name prefilled in Stitch"
-        },
-        "transport": {
-          "type": "string",
-          "enum": ["stdio", "http"]
-        },
-        "url": {
-          "type": "string",
-          "format": "uri"
-        },
-        "authConfig": {
-          "$ref": "#/$defs/authConfig"
-        },
+        "name": { "type": "string", "minLength": 1, "description": "Default name prefilled in Stitch" },
+        "transport": { "type": "string", "enum": ["stdio", "http"] },
+        "url": { "type": "string", "format": "uri" },
+        "authConfig": { "$ref": "#/$defs/authConfig" },
         "optionalAuthConfigs": {
           "type": "array",
           "description": "Additional auth presets a user may choose instead of the default authConfig",
-          "items": {
-            "$ref": "#/$defs/authConfig"
-          }
+          "items": { "$ref": "#/$defs/authConfig" }
         }
       }
     },
@@ -87,40 +43,21 @@
           "type": "object",
           "additionalProperties": false,
           "required": ["type"],
-          "properties": {
-            "type": {
-              "const": "none"
-            }
-          }
+          "properties": { "type": { "const": "none" } }
         },
         {
           "type": "object",
           "additionalProperties": false,
           "required": ["type", "apiKey"],
-          "properties": {
-            "type": {
-              "const": "api_key"
-            },
-            "apiKey": {
-              "type": "string",
-              "minLength": 1
-            }
-          }
+          "properties": { "type": { "const": "api_key" }, "apiKey": { "type": "string", "minLength": 1 } }
         },
         {
           "type": "object",
           "additionalProperties": false,
           "required": ["type", "headers"],
           "properties": {
-            "type": {
-              "const": "headers"
-            },
-            "headers": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "string"
-              }
-            }
+            "type": { "const": "headers" },
+            "headers": { "type": "object", "additionalProperties": { "type": "string" } }
           }
         },
         {
@@ -128,24 +65,10 @@
           "additionalProperties": false,
           "required": ["type"],
           "properties": {
-            "type": {
-              "const": "oauth"
-            },
-            "scopes": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "minLength": 1
-              }
-            },
-            "clientId": {
-              "type": "string",
-              "minLength": 1
-            },
-            "clientSecret": {
-              "type": "string",
-              "minLength": 1
-            }
+            "type": { "const": "oauth" },
+            "scopes": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+            "clientId": { "type": "string", "minLength": 1 },
+            "clientSecret": { "type": "string", "minLength": 1 }
           }
         }
       ]

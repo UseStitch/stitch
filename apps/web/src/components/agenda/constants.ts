@@ -7,10 +7,7 @@ export const STATUS_LABELS: Record<AgendaItemStatus, string> = {
   cancelled: 'Cancelled',
 };
 
-export const STATUS_VARIANTS: Record<
-  AgendaItemStatus,
-  'default' | 'secondary' | 'outline' | 'destructive'
-> = {
+export const STATUS_VARIANTS: Record<AgendaItemStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   open: 'default',
   in_progress: 'secondary',
   done: 'outline',
@@ -24,10 +21,7 @@ export const PRIORITY_LABELS: Record<AgendaItemPriority, string> = {
   urgent: 'Urgent',
 };
 
-export const PRIORITY_VARIANTS: Record<
-  AgendaItemPriority,
-  'default' | 'secondary' | 'outline' | 'destructive'
-> = {
+export const PRIORITY_VARIANTS: Record<AgendaItemPriority, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   low: 'outline',
   medium: 'secondary',
   high: 'default',

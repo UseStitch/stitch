@@ -17,9 +17,7 @@ export function registerFilesHandlers(): void {
   });
 
   registerIpcHandler('dialog:openPath', async () => {
-    const result = await dialog.showOpenDialog({
-      properties: ['openFile', 'openDirectory', 'multiSelections'],
-    });
+    const result = await dialog.showOpenDialog({ properties: ['openFile', 'openDirectory', 'multiSelections'] });
     return result.canceled ? [] : result.filePaths;
   });
 }

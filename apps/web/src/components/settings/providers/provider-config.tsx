@@ -19,10 +19,7 @@ import { SettingSubPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  useDeleteProviderConfigMutation,
-  useSaveProviderConfigMutation,
-} from '@/lib/mutations/provider-config';
+import { useDeleteProviderConfigMutation, useSaveProviderConfigMutation } from '@/lib/mutations/provider-config';
 import { providerConfigQueryOptions, type ProviderSummary } from '@/lib/queries/providers';
 
 type Props = {
@@ -33,25 +30,13 @@ type Props = {
   showDisconnect?: boolean;
 };
 
-export function ProviderConfig({
-  provider,
-  onBack,
-  saveLabel = 'Save',
-  onSaved,
-  showDisconnect = true,
-}: Props) {
+export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, showDisconnect = true }: Props) {
   const meta = (PROVIDER_IDS as readonly string[]).includes(provider.id)
     ? PROVIDER_META[provider.id as ProviderId]
     : undefined;
-  const enabledAuthMethods = React.useMemo(
-    () => meta?.authMethods.filter((method) => method.enabled) ?? [],
-    [meta],
-  );
+  const enabledAuthMethods = React.useMemo(() => meta?.authMethods.filter((method) => method.enabled) ?? [], [meta]);
   const queryClient = useQueryClient();
-  const { data: existingConfig } = useQuery({
-    ...providerConfigQueryOptions(provider.id),
-    enabled: provider.enabled,
-  });
+  const { data: existingConfig } = useQuery({ ...providerConfigQueryOptions(provider.id), enabled: provider.enabled });
 
   const existingMethod = (existingConfig?.auth as { method?: string } | undefined)?.method;
   const defaultMethod = resolveDefaultAuthMethod(existingMethod, enabledAuthMethods);
@@ -63,10 +48,7 @@ export function ProviderConfig({
 
   React.useEffect(() => {
     if (!existingConfig || !meta) return;
-    const hydrated = hydrateProviderConfigState(
-      existingConfig as Record<string, unknown>,
-      enabledAuthMethods,
-    );
+    const hydrated = hydrateProviderConfigState(existingConfig as Record<string, unknown>, enabledAuthMethods);
     const activeMethod = hydrated.activeMethod;
     if (activeMethod) {
       setActiveTab(activeMethod);
@@ -107,10 +89,7 @@ export function ProviderConfig({
   const currentMethodFields = fieldsByMethod[activeTab] ?? {};
 
   function handleMethodFieldChange(key: string, value: string) {
-    setFieldsByMethod((prev) => ({
-      ...prev,
-      [activeTab]: { ...prev[activeTab], [key]: value },
-    }));
+    setFieldsByMethod((prev) => ({ ...prev, [activeTab]: { ...prev[activeTab], [key]: value } }));
     if (fieldErrors[key]) {
       setFieldErrors((prev) => {
         const next = { ...prev };
@@ -182,11 +161,7 @@ export function ProviderConfig({
       backLabel="Back to providers"
       actions={
         <div className="flex items-center gap-3">
-          <ProviderLogo
-            providerId={provider.id}
-            providerName={meta.displayName}
-            className="size-5"
-          />
+          <ProviderLogo providerId={provider.id} providerName={meta.displayName} className="size-5" />
           {provider.enabled && (
             <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
               <span className="inline-block size-1.5 rounded-full bg-emerald-500" />
@@ -194,13 +169,10 @@ export function ProviderConfig({
             </span>
           )}
         </div>
-      }
-    >
+      }>
       {provider.id === 'ollama_local' && provider.enabled ? (
         <div className="flex flex-1 flex-col gap-5">
-          <OllamaModelsPanel
-            baseURL={(extraFields['baseURL'] as string | undefined) || undefined}
-          />
+          <OllamaModelsPanel baseURL={(extraFields['baseURL'] as string | undefined) || undefined} />
         </div>
       ) : (
         <div className="flex flex-1 flex-col gap-5">
@@ -234,10 +206,7 @@ export function ProviderConfig({
                       values={fieldsByMethod[m.method] ?? {}}
                       errors={fieldErrors}
                       onChange={(key, value) =>
-                        setFieldsByMethod((prev) => ({
-                          ...prev,
-                          [m.method]: { ...prev[m.method], [key]: value },
-                        }))
+                        setFieldsByMethod((prev) => ({ ...prev, [m.method]: { ...prev[m.method], [key]: value } }))
                       }
                     />
                   ) : (
@@ -270,8 +239,7 @@ export function ProviderConfig({
                 variant="destructive"
                 size="sm"
                 onClick={() => deleteMutation.mutate()}
-                disabled={deleteMutation.isPending}
-              >
+                disabled={deleteMutation.isPending}>
                 {deleteMutation.isPending ? 'Disconnecting...' : 'Disconnect'}
               </Button>
             )}

@@ -5,21 +5,11 @@ export type ToolBinding = {
   execute: (input: unknown, abortSignal?: AbortSignal) => Promise<unknown>;
 };
 
-export type IsolateExecuteResult = {
-  result: unknown;
-  logs: string[];
-};
+export type IsolateExecuteResult = { result: unknown; logs: string[] };
 
-export type IsolateContext = {
-  execute(code: string): Promise<IsolateExecuteResult>;
-  dispose(): void;
-};
+export type IsolateContext = { execute(code: string): Promise<IsolateExecuteResult>; dispose(): void };
 
-export type SandboxLibrary = {
-  specifier: string;
-  globalName?: string;
-  inject?: boolean;
-};
+export type SandboxLibrary = { specifier: string; globalName?: string; inject?: boolean };
 
 export type SandboxProcessDriverOptions = {
   /** Path to the compiled sandbox process binary. */
@@ -42,8 +32,5 @@ export type IsolateOptions = {
 };
 
 export type IsolateDriver = {
-  createContext(
-    bindings: Record<string, ToolBinding>,
-    options?: IsolateOptions,
-  ): Promise<IsolateContext>;
+  createContext(bindings: Record<string, ToolBinding>, options?: IsolateOptions): Promise<IsolateContext>;
 };

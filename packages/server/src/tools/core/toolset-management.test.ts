@@ -21,11 +21,7 @@ const TEST_SESSION_ID = 'ses_test' as never;
 setupTestDb();
 
 function createManager(): ToolsetManager {
-  return new ToolsetManager({
-    sessionId: TEST_SESSION_ID,
-    messageId: 'msg_test' as never,
-    streamRunId: 'run_test',
-  });
+  return new ToolsetManager({ sessionId: TEST_SESSION_ID, messageId: 'msg_test' as never, streamRunId: 'run_test' });
 }
 
 function makeTool(description: string): Tool {
@@ -63,15 +59,7 @@ describe('toolset management tools', () => {
     const result = await tools.list_toolsets.execute?.({}, {} as never);
 
     expect(result).toMatchObject({
-      toolsets: [
-        {
-          id: 'test-toolset',
-          name: 'Test Toolset',
-          active: false,
-          hasInstructions: true,
-          promptCount: 1,
-        },
-      ],
+      toolsets: [{ id: 'test-toolset', name: 'Test Toolset', active: false, hasInstructions: true, promptCount: 1 }],
     });
   });
 
@@ -79,18 +67,12 @@ describe('toolset management tools', () => {
     registerTestToolset({ id: 'browser', name: 'Browser' });
     registerTestToolset({ id: 'database', name: 'Database' });
     const manager = new ToolsetManager(
-      {
-        sessionId: TEST_SESSION_ID,
-        messageId: 'msg_test' as never,
-        streamRunId: 'run_test',
-      },
+      { sessionId: TEST_SESSION_ID, messageId: 'msg_test' as never, streamRunId: 'run_test' },
       [],
       { excludedToolsetIds: ['browser'] },
     );
     const tools = createToolsetTools(manager, TEST_SESSION_ID);
-    const result = (await tools.list_toolsets.execute?.({}, {} as never)) as {
-      toolsets: { id: string }[];
-    };
+    const result = (await tools.list_toolsets.execute?.({}, {} as never)) as { toolsets: { id: string }[] };
 
     expect(result.toolsets.map((toolset) => toolset.id)).toEqual(['database']);
   });
@@ -98,19 +80,13 @@ describe('toolset management tools', () => {
   test('excluded toolsets cannot be inspected or activated', async () => {
     registerTestToolset({ id: 'browser', name: 'Browser' });
     const manager = new ToolsetManager(
-      {
-        sessionId: TEST_SESSION_ID,
-        messageId: 'msg_test' as never,
-        streamRunId: 'run_test',
-      },
+      { sessionId: TEST_SESSION_ID, messageId: 'msg_test' as never, streamRunId: 'run_test' },
       [],
       { excludedToolsetIds: ['browser'] },
     );
     const tools = createToolsetTools(manager, TEST_SESSION_ID);
 
-    expect(tools.list_toolsets.execute?.({ toolsetId: 'browser' }, {} as never)).rejects.toThrow(
-      'not in the catalog',
-    );
+    expect(tools.list_toolsets.execute?.({ toolsetId: 'browser' }, {} as never)).rejects.toThrow('not in the catalog');
     expect(tools.activate_toolset.execute?.({ toolsetId: 'browser' }, {} as never)).rejects.toThrow(
       'has been disabled',
     );
@@ -120,10 +96,7 @@ describe('toolset management tools', () => {
     registerTestToolset();
     const manager = createManager();
     const tools = createToolsetTools(manager, TEST_SESSION_ID);
-    const result = await tools.activate_toolset.execute?.(
-      { toolsetId: 'test-toolset' },
-      {} as never,
-    );
+    const result = await tools.activate_toolset.execute?.({ toolsetId: 'test-toolset' }, {} as never);
     const message = (result as { message: string }).message;
 
     expect(result).toMatchObject({
@@ -143,10 +116,7 @@ describe('toolset management tools', () => {
     const manager = createManager();
     const tools = createToolsetTools(manager, TEST_SESSION_ID);
     await tools.activate_toolset.execute?.({ toolsetId: 'test-toolset' }, {} as never);
-    const result = await tools.activate_toolset.execute?.(
-      { toolsetId: 'test-toolset' },
-      {} as never,
-    );
+    const result = await tools.activate_toolset.execute?.({ toolsetId: 'test-toolset' }, {} as never);
     const status = (result as { status: string }).status;
     const message = (result as { message: string }).message;
 
@@ -158,13 +128,7 @@ describe('toolset management tools', () => {
     registerTestToolset();
     const manager = createManager();
     const tools = createToolsetTools(manager, TEST_SESSION_ID);
-    const result = await tools.activate_toolset.execute?.(
-      {
-        toolsetId: 'test-toolset',
-        verbose: true,
-      },
-      {} as never,
-    );
+    const result = await tools.activate_toolset.execute?.({ toolsetId: 'test-toolset', verbose: true }, {} as never);
 
     expect(result).toMatchObject({
       toolsetId: 'test-toolset',
@@ -179,10 +143,10 @@ describe('toolset management tools', () => {
     const manager = createManager();
     const tools = createToolsetTools(manager, TEST_SESSION_ID);
 
-    const result = (await tools.activate_toolset.execute?.(
-      { toolsetId: 'test-toolset' },
-      {} as never,
-    )) as { message: string; persisted: boolean };
+    const result = (await tools.activate_toolset.execute?.({ toolsetId: 'test-toolset' }, {} as never)) as {
+      message: string;
+      persisted: boolean;
+    };
 
     expect(result.persisted).toBe(false);
     expect(result.message).toContain('multi-turn TTL');
@@ -203,9 +167,7 @@ describe('toolset management tools', () => {
 
     expect(result.persisted).toBe(true);
     expect(result.message).toContain('persist until explicitly deactivated');
-    expect(manager.getPersistableActivationState()).toEqual([
-      { id: 'test-toolset', scope: 'until_deactivated' },
-    ]);
+    expect(manager.getPersistableActivationState()).toEqual([{ id: 'test-toolset', scope: 'until_deactivated' }]);
   });
 
   test('activate_toolset supports current_run scope', async () => {
@@ -229,15 +191,8 @@ describe('toolset management tools', () => {
       id: 'mcp:mcp_12345678901234567890123456',
       kind: 'mcp',
       name: 'Exa',
-      tools: () => [
-        {
-          name: 'mcp_12345678901234567890123456_web_search_exa',
-          description: 'Search the web',
-        },
-      ],
-      activate: async () => ({
-        mcp_12345678901234567890123456_web_search_exa: makeTool('Search the web'),
-      }),
+      tools: () => [{ name: 'mcp_12345678901234567890123456_web_search_exa', description: 'Search the web' }],
+      activate: async () => ({ mcp_12345678901234567890123456_web_search_exa: makeTool('Search the web') }),
     });
     const manager = createManager();
     const tools = createToolsetTools(manager, TEST_SESSION_ID);
@@ -256,18 +211,18 @@ describe('toolset management tools', () => {
     const manager = createManager();
     const tools = createToolsetTools(manager, TEST_SESSION_ID);
 
-    expect(
-      tools.list_toolsets.execute?.({ toolsetId: 'missing-toolset' }, {} as never),
-    ).rejects.toThrow('Unknown toolset');
+    expect(tools.list_toolsets.execute?.({ toolsetId: 'missing-toolset' }, {} as never)).rejects.toThrow(
+      'Unknown toolset',
+    );
   });
 
   test('activate_toolset throws when unknown toolsetId is requested', async () => {
     const manager = createManager();
     const tools = createToolsetTools(manager, TEST_SESSION_ID);
 
-    expect(
-      tools.activate_toolset.execute?.({ toolsetId: 'missing-toolset' }, {} as never),
-    ).rejects.toThrow('Unknown toolset');
+    expect(tools.activate_toolset.execute?.({ toolsetId: 'missing-toolset' }, {} as never)).rejects.toThrow(
+      'Unknown toolset',
+    );
   });
 
   test('activate_toolset includes warning and collisions when tool names overlap', async () => {
@@ -289,19 +244,16 @@ describe('toolset management tools', () => {
         { name: 'search', description: 'search' },
         { name: 'list', description: 'list' },
       ],
-      activate: async () => ({
-        search: makeTool('search from second'),
-        list: makeTool('list from second'),
-      }),
+      activate: async () => ({ search: makeTool('search from second'), list: makeTool('list from second') }),
     } satisfies Toolset);
 
     const manager = createManager();
     const tools = createToolsetTools(manager, TEST_SESSION_ID);
     await tools.activate_toolset.execute?.({ toolsetId: 'first-toolset' }, {} as never);
-    const result = (await tools.activate_toolset.execute?.(
-      { toolsetId: 'second-toolset' },
-      {} as never,
-    )) as { warning?: string; collisions?: string[] };
+    const result = (await tools.activate_toolset.execute?.({ toolsetId: 'second-toolset' }, {} as never)) as {
+      warning?: string;
+      collisions?: string[];
+    };
 
     expect(result.warning).toContain('search');
     expect(result.collisions).toEqual(['search']);
@@ -329,10 +281,10 @@ describe('toolset management tools', () => {
     const manager = createManager();
     const tools = createToolsetTools(manager, TEST_SESSION_ID);
     await tools.activate_toolset.execute?.({ toolsetId: 'no-overlap-a' }, {} as never);
-    const result = (await tools.activate_toolset.execute?.(
-      { toolsetId: 'no-overlap-b' },
-      {} as never,
-    )) as { warning?: string; collisions?: string[] };
+    const result = (await tools.activate_toolset.execute?.({ toolsetId: 'no-overlap-b' }, {} as never)) as {
+      warning?: string;
+      collisions?: string[];
+    };
 
     expect(result.warning).toBeUndefined();
     expect(result.collisions).toBeUndefined();
@@ -396,10 +348,7 @@ describe('toolset management tools', () => {
     test('filters by id match', async () => {
       const manager = createManager();
       const tools = createToolsetTools(manager, TEST_SESSION_ID);
-      const result = (await tools.list_toolsets.execute?.(
-        { query: 'email-sender' },
-        {} as never,
-      )) as {
+      const result = (await tools.list_toolsets.execute?.({ query: 'email-sender' }, {} as never)) as {
         toolsets: { id: string }[];
         totalAvailable: number;
       };
@@ -412,10 +361,7 @@ describe('toolset management tools', () => {
     test('returns empty array with totalAvailable when no match', async () => {
       const manager = createManager();
       const tools = createToolsetTools(manager, TEST_SESSION_ID);
-      const result = (await tools.list_toolsets.execute?.(
-        { query: 'xyz_nomatch' },
-        {} as never,
-      )) as {
+      const result = (await tools.list_toolsets.execute?.({ query: 'xyz_nomatch' }, {} as never)) as {
         toolsets: unknown[];
         totalAvailable: number;
       };

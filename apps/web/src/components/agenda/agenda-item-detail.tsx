@@ -8,13 +8,7 @@ import { PRIORITY_LABELS, STATUS_LABELS } from '@/components/agenda/constants';
 import { formatDateInTz, useUserTimezone } from '@/components/agenda/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -26,11 +20,7 @@ import { cn } from '@/lib/utils';
 
 const DEBOUNCE_MS = 600;
 
-type Props = {
-  item: AgendaItem | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-};
+type Props = { item: AgendaItem | null; open: boolean; onOpenChange: (open: boolean) => void };
 
 export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
   const timeZone = useUserTimezone();
@@ -244,8 +234,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
                     className={cn(
                       'flex h-8 w-full items-center gap-2 rounded-lg border border-input bg-transparent px-2.5 text-sm transition-colors hover:bg-muted/50',
                       !dueDate && 'text-muted-foreground',
-                    )}
-                  >
+                    )}>
                     <CalendarIcon className="size-3.5 shrink-0 text-muted-foreground" />
                     {dueDate ? formatDateInTz(dateToMs(dueDate), timeZone) : 'Pick a date'}
                   </PopoverTrigger>
@@ -255,19 +244,13 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
                       variant="ghost"
                       size="icon-xs"
                       className="shrink-0 text-muted-foreground hover:text-foreground"
-                      onClick={handleClearDate}
-                    >
+                      onClick={handleClearDate}>
                       <XIcon className="size-3" />
                     </Button>
                   )}
                 </div>
                 <PopoverContent align="start" className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={dueDate}
-                    onSelect={handleDateSelect}
-                    defaultMonth={dueDate}
-                  />
+                  <Calendar mode="single" selected={dueDate} onSelect={handleDateSelect} defaultMonth={dueDate} />
                 </PopoverContent>
               </Popover>
             </div>
@@ -278,14 +261,11 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
               variant="destructive"
               size="sm"
               onClick={() => setConfirmDeleteOpen(true)}
-              disabled={deleteMutation.isPending}
-            >
+              disabled={deleteMutation.isPending}>
               <Trash2Icon className="size-3.5" />
               Delete
             </Button>
-            {updateMutation.isPending && (
-              <span className="text-xs text-muted-foreground">Saving…</span>
-            )}
+            {updateMutation.isPending && <span className="text-xs text-muted-foreground">Saving…</span>}
           </SheetFooter>
         </SheetContent>
       </Sheet>
@@ -295,18 +275,12 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
           <DialogHeader>
             <DialogTitle>Delete item?</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            This agenda item will be permanently removed.
-          </p>
+          <p className="text-sm text-muted-foreground">This agenda item will be permanently removed.</p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmDeleteOpen(false)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleteMutation.isPending}
-            >
+            <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending}>
               {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
             </Button>
           </DialogFooter>

@@ -40,10 +40,7 @@ export function recordingsQueryOptions(input: { page: number; pageSize: number }
   return queryOptions({
     queryKey: recordingsKeys.list(input.page, input.pageSize),
     queryFn: () => {
-      const params = new URLSearchParams({
-        page: String(input.page),
-        pageSize: String(input.pageSize),
-      });
+      const params = new URLSearchParams({ page: String(input.page), pageSize: String(input.pageSize) });
       return serverRequest<ListRecordingsResponse>(`/recordings?${params.toString()}`);
     },
     placeholderData: keepPreviousData,
@@ -54,10 +51,7 @@ export const recordingsInfiniteQueryOptions = () =>
   infiniteQueryOptions({
     queryKey: recordingsKeys.infiniteList(RECORDINGS_PAGE_SIZE),
     queryFn: ({ pageParam }) => {
-      const params = new URLSearchParams({
-        page: String(pageParam),
-        pageSize: String(RECORDINGS_PAGE_SIZE),
-      });
+      const params = new URLSearchParams({ page: String(pageParam), pageSize: String(RECORDINGS_PAGE_SIZE) });
       return serverRequest<ListRecordingsResponse>(`/recordings?${params.toString()}`);
     },
     initialPageParam: 1,
@@ -118,8 +112,7 @@ export function useDeleteMeetingNoteTemplate() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) =>
-      serverRequest<void>(`/recordings/templates/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: string) => serverRequest<void>(`/recordings/templates/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.templates() });
       toast.success('Template deleted', { id: 'recording-template-delete' });
@@ -128,17 +121,11 @@ export function useDeleteMeetingNoteTemplate() {
   });
 }
 
-type AudioDeviceList = {
-  microphoneDevices: string[];
-  speakerDevices: string[];
-};
+type AudioDeviceList = { microphoneDevices: string[]; speakerDevices: string[] };
 
 type PermissionState = 'granted' | 'denied' | 'unknown';
 
-type AudioPermissionsStatus = {
-  microphone: PermissionState;
-  screenCapture: PermissionState;
-};
+type AudioPermissionsStatus = { microphone: PermissionState; screenCapture: PermissionState };
 
 export const audioDevicesQueryOptions = queryOptions({
   queryKey: recordingsKeys.devices(),
@@ -284,8 +271,7 @@ export function useDeleteRecording() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (recordingId: string) =>
-      serverRequest<void>(`/recordings/${recordingId}`, { method: 'DELETE' }),
+    mutationFn: (recordingId: string) => serverRequest<void>(`/recordings/${recordingId}`, { method: 'DELETE' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.lists() });
     },
@@ -319,9 +305,7 @@ export function useStartRecordingAnalysis() {
       );
     },
     onSuccess: (_, variables) => {
-      void queryClient.invalidateQueries({
-        queryKey: recordingsKeys.detail(variables.recordingId),
-      });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.detail(variables.recordingId) });
     },
   });
 }
@@ -331,9 +315,7 @@ export function useCancelRecordingAnalysis() {
 
   return useMutation({
     mutationFn: (recordingId: string) =>
-      serverRequest<void>(`/recordings/${recordingId}/analysis/cancel`, {
-        method: 'POST',
-      }),
+      serverRequest<void>(`/recordings/${recordingId}/analysis/cancel`, { method: 'POST' }),
     onSuccess: (_, recordingId) => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.detail(recordingId) });
     },

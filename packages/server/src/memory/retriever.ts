@@ -55,10 +55,7 @@ function getConfidenceFactor(confidence: string): number {
  * @param sourceFilter - When set, only semantic memories from this source are returned.
  *   Automations pass `undefined` to read all memories; chat passes `'chat'`.
  */
-export async function retrieveMemoryContext(
-  query: string,
-  sourceFilter?: MemorySource,
-): Promise<string | null> {
+export async function retrieveMemoryContext(query: string, sourceFilter?: MemorySource): Promise<string | null> {
   const config = await getMemoryConfig();
   if (!isMemoryActive(config)) return null;
 
@@ -81,8 +78,7 @@ export async function retrieveMemoryContext(
     const lexicalFactor = getLexicalFactor(query, m.content);
     const recencyFactor = config.retrievalRecencyBoost ? getRecencyFactor(m.lastAccessedAt) : 0;
     const confidenceFactor = getConfidenceFactor(m.confidence);
-    const blendedScore =
-      m.score * 0.6 + lexicalFactor * 0.25 + recencyFactor * 0.1 + confidenceFactor * 0.05;
+    const blendedScore = m.score * 0.6 + lexicalFactor * 0.25 + recencyFactor * 0.1 + confidenceFactor * 0.05;
     return { ...m, blendedScore };
   });
 
@@ -96,9 +92,7 @@ export async function retrieveMemoryContext(
     log.warn({ error: err }, 'failed to touch semantic memories'),
   );
 
-  const entries = relevant.map(
-    (m) => `- [${m.category}] ${m.content} (confidence: ${m.confidence})`,
-  );
+  const entries = relevant.map((m) => `- [${m.category}] ${m.content} (confidence: ${m.confidence})`);
 
   log.debug({ semanticCount: relevant.length }, 'retrieved memory context');
 

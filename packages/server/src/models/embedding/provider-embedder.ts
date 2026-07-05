@@ -14,12 +14,7 @@ export class ProviderEmbedder implements Embedder {
   readonly modelId: string;
   private readonly model: EmbeddingModel;
 
-  constructor(
-    credentials: ProviderCredentials,
-    providerId: string,
-    modelId: string,
-    dimensions: number,
-  ) {
+  constructor(credentials: ProviderCredentials, providerId: string, modelId: string, dimensions: number) {
     const embeddingProvider = createProvider(credentials);
     this.model = embeddingProvider.embeddingModel(modelId);
     this.dimensions = dimensions;

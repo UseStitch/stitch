@@ -3,10 +3,7 @@ import { spawnSync } from 'bun';
 
 const checkOnly = process.argv.includes('--check');
 
-const result = spawnSync(['git', 'diff', '--name-only', 'HEAD'], {
-  stdout: 'pipe',
-  stderr: 'pipe',
-});
+const result = spawnSync(['git', 'diff', '--name-only', 'HEAD'], { stdout: 'pipe', stderr: 'pipe' });
 
 const files = result.stdout
   .toString()

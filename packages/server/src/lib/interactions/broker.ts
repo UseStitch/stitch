@@ -68,9 +68,7 @@ export class InteractionBroker {
         timeout = setTimeout(() => {
           Promise.resolve(opts.onTimeout?.())
             .then(settleResolve)
-            .catch((error: unknown) =>
-              settleReject(error instanceof Error ? error : new Error(String(error))),
-            );
+            .catch((error: unknown) => settleReject(error instanceof Error ? error : new Error(String(error))));
         }, opts.timeoutMs);
       }
 
@@ -148,10 +146,5 @@ export class InteractionBroker {
 export const interactionBroker = new InteractionBroker();
 
 function toSnapshot(entry: PendingInteraction): PendingInteractionSnapshot {
-  return {
-    id: entry.id,
-    kind: entry.kind,
-    sessionId: entry.sessionId,
-    streamRunId: entry.streamRunId,
-  };
+  return { id: entry.id, kind: entry.kind, sessionId: entry.sessionId, streamRunId: entry.streamRunId };
 }

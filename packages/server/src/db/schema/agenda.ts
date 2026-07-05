@@ -60,13 +60,7 @@ export const agendaItems = sqliteTable(
     index('agenda_items_due_at_idx').on(table.dueAt),
     index('agenda_items_created_at_idx').on(table.createdAt),
     check('agenda_items_type_check', sql`${table.type} in ('todo', 'reminder', 'checkup')`),
-    check(
-      'agenda_items_status_check',
-      sql`${table.status} in ('open', 'in_progress', 'done', 'cancelled')`,
-    ),
-    check(
-      'agenda_items_priority_check',
-      sql`${table.priority} in ('low', 'medium', 'high', 'urgent')`,
-    ),
+    check('agenda_items_status_check', sql`${table.status} in ('open', 'in_progress', 'done', 'cancelled')`),
+    check('agenda_items_priority_check', sql`${table.priority} in ('low', 'medium', 'high', 'urgent')`),
   ],
 );

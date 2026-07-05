@@ -10,8 +10,6 @@
     "name": "DeepWiki",
     "transport": "http",
     "url": "https://mcp.deepwiki.com/mcp",
-    "authConfig": {
-      "type": "none"
-    }
+    "authConfig": { "type": "none" }
   }
 }

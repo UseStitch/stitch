@@ -40,13 +40,8 @@ const driveWriteSchema = z.object({
     .string()
     .optional()
     .default('text/plain')
-    .describe(
-      'MIME type of the file (default: text/plain). Use "text/markdown" for Markdown files.',
-    ),
-  parentId: z
-    .string()
-    .optional()
-    .describe('Optional parent folder ID to place the file in. Defaults to Drive root.'),
+    .describe('MIME type of the file (default: text/plain). Use "text/markdown" for Markdown files.'),
+  parentId: z.string().optional().describe('Optional parent folder ID to place the file in. Defaults to Drive root.'),
 });
 
 const driveUploadSchema = z.object({
@@ -55,24 +50,16 @@ const driveUploadSchema = z.object({
     .optional()
     .describe('Optional account email or label when multiple Google accounts are connected'),
   filePath: z.string().describe('Local file path to upload to Google Drive'),
-  name: z
-    .string()
-    .optional()
-    .describe('Optional Google Drive file name. Defaults to the local file basename.'),
+  name: z.string().optional().describe('Optional Google Drive file name. Defaults to the local file basename.'),
   mimeType: z
     .string()
     .optional()
     .describe('Optional MIME type of the uploaded file. Defaults to application/octet-stream.'),
-  parentId: z
-    .string()
-    .optional()
-    .describe('Optional parent folder ID to place the file in. Defaults to Drive root.'),
+  parentId: z.string().optional().describe('Optional parent folder ID to place the file in. Defaults to Drive root.'),
 });
 
 export function createDriveTools(
-  resolveClient: (
-    account?: string,
-  ) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
+  resolveClient: (account?: string) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
   hasWrite = false,
 ): Record<string, Tool> {
   const tools: Record<string, Tool> = {
@@ -82,12 +69,7 @@ export function createDriveTools(
       inputSchema: driveSearchSchema,
       execute: async (input: z.infer<typeof driveSearchSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);
-        const result = await DriveApi.searchFiles(
-          client,
-          input.query,
-          input.maxResults,
-          input.pageToken,
-        );
+        const result = await DriveApi.searchFiles(client, input.query, input.maxResults, input.pageToken);
         return { ...result, usedAccount };
       },
     }),
@@ -114,18 +96,11 @@ export function createDriveTools(
 
   if (hasWrite) {
     tools['drive_write'] = tool({
-      description:
-        'Create a new text file in Google Drive with the given content. Supports plain text and Markdown.',
+      description: 'Create a new text file in Google Drive with the given content. Supports plain text and Markdown.',
       inputSchema: driveWriteSchema,
       execute: async (input: z.infer<typeof driveWriteSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);
-        const result = await DriveApi.createFile(
-          client,
-          input.name,
-          input.content,
-          input.mimeType,
-          input.parentId,
-        );
+        const result = await DriveApi.createFile(client, input.name, input.content, input.mimeType, input.parentId);
         return { ...result, usedAccount };
       },
     });

@@ -4,11 +4,7 @@ import * as React from 'react';
 import { RemoteMaskedIcon } from '@/components/icons/remote-icon';
 import { cn } from '@/lib/utils';
 
-type SimpleIconProps = {
-  slug: string;
-  className?: string;
-  fallback?: React.ReactNode;
-};
+type SimpleIconProps = { slug: string; className?: string; fallback?: React.ReactNode };
 
 export function SimpleIcon({ slug, className, fallback }: SimpleIconProps) {
   return (

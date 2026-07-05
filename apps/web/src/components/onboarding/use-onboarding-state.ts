@@ -5,14 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { providersQueryOptions } from '@/lib/queries/providers';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 
-type OnboardingStep =
-  | 'welcome'
-  | 'profile'
-  | 'appearance'
-  | 'apps'
-  | 'provider'
-  | 'memory'
-  | 'success';
+type OnboardingStep = 'welcome' | 'profile' | 'appearance' | 'apps' | 'provider' | 'memory' | 'success';
 
 const SUCCESS_CLOSE_DELAY_MS = 1200;
 const CURRENT_ONBOARDING_VERSION = '4';
@@ -45,9 +38,7 @@ export function useOnboardingState(): OnboardingState {
   const saveOnboardingVersion = useMutation(
     saveSettingMutationOptions('onboarding.version', queryClient, { silent: true }),
   );
-  const saveProfileName = useMutation(
-    saveSettingMutationOptions('profile.name', queryClient, { silent: true }),
-  );
+  const saveProfileName = useMutation(saveSettingMutationOptions('profile.name', queryClient, { silent: true }));
   const saveProfileTimezone = useMutation(
     saveSettingMutationOptions('profile.timezone', queryClient, { silent: true }),
   );

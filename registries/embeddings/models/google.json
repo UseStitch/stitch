@@ -14,13 +14,7 @@
       "context": 8192,
       "inputModalities": ["text", "image", "video", "audio", "pdf"],
       "outputModalities": ["text"],
-      "cost": {
-        "input": 0.2,
-        "inputImage": 0.45,
-        "inputAudio": 6.5,
-        "inputVideo": 12,
-        "output": 0
-      }
+      "cost": { "input": 0.2, "inputImage": 0.45, "inputAudio": 6.5, "inputVideo": 12, "output": 0 }
     },
     {
       "id": "gemini-embedding-001",
@@ -32,10 +26,7 @@
       "context": 2048,
       "inputModalities": ["text"],
       "outputModalities": ["text"],
-      "cost": {
-        "input": 0.15,
-        "output": 0
-      }
+      "cost": { "input": 0.15, "output": 0 }
     }
   ]
 }

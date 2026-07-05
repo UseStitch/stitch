@@ -1,10 +1,6 @@
 import { PATHS } from '@/lib/paths.js';
 import { createRegistryCache, getStitchRegistryUserAgent } from '@/lib/registry-cache.js';
-import {
-  SttRegistryPayloadSchema,
-  type SttProvider,
-  type SttRegistryPayload,
-} from '@/models/stt/schema.js';
+import { SttRegistryPayloadSchema, type SttProvider, type SttRegistryPayload } from '@/models/stt/schema.js';
 
 const DEFAULT_STT_REGISTRY_URL = 'https://usestitch.ai/stt-models.json';
 

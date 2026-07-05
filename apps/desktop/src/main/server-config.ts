@@ -4,17 +4,11 @@ import { dirname, join } from 'node:path';
 
 export type ServerMode = 'local' | 'remote';
 
-export type ServerConnectionConfig = {
-  mode: ServerMode;
-  remoteUrl: string | null;
-};
+export type ServerConnectionConfig = { mode: ServerMode; remoteUrl: string | null };
 
 const CONFIG_FILE_NAME = 'server-config.json';
 
-const DEFAULT_CONFIG: ServerConnectionConfig = {
-  mode: 'local',
-  remoteUrl: null,
-};
+const DEFAULT_CONFIG: ServerConnectionConfig = { mode: 'local', remoteUrl: null };
 
 function getConfigPath(): string {
   return join(app.getPath('userData'), CONFIG_FILE_NAME);

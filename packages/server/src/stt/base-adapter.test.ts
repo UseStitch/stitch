@@ -8,12 +8,7 @@ import type { BufferConfig, ReconnectConfig } from '@/stt/types.js';
 
 function makeChunk(index: number): AudioChunk {
   // 1600 samples @ 16kHz = 100ms. samplesB64 carries the index so received order is checkable.
-  return {
-    samplesB64: `chunk-${index}`,
-    sampleRateHz: 16_000,
-    numSamples: 1600,
-    encoding: 'pcm_s16le',
-  };
+  return { samplesB64: `chunk-${index}`, sampleRateHz: 16_000, numSamples: 1600, encoding: 'pcm_s16le' };
 }
 
 function makePcmChunk(index: number): AudioChunk {
@@ -324,9 +319,7 @@ describe('createManagedConnection recovery', () => {
     await sleep(40);
     await conn.close();
 
-    const allReceived = transports.flatMap((t) =>
-      t.received.flatMap((c) => [...Buffer.from(c.samplesB64, 'base64')]),
-    );
+    const allReceived = transports.flatMap((t) => t.received.flatMap((c) => [...Buffer.from(c.samplesB64, 'base64')]));
     for (let i = 0; i < total; i++) {
       expect(allReceived).toContain(i);
     }
@@ -340,9 +333,7 @@ describe('createManagedConnection recovery', () => {
       reconnect: { ...baseReconnect, rotateBeforeMs: undefined },
       partialStrategy: 'cumulative',
       classifyError: (err) =>
-        err.message.includes('FATAL')
-          ? { fatal: true, reason: 'adapter classified auth as fatal' }
-          : { fatal: false },
+        err.message.includes('FATAL') ? { fatal: true, reason: 'adapter classified auth as fatal' } : { fatal: false },
       openConnection: async () => {
         openCount++;
         if (openCount === 1) {

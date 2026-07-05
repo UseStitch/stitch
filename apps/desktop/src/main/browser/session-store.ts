@@ -5,12 +5,10 @@ import { join } from 'node:path';
 import type { ElectronBrowserState } from '@stitch/shared/browser/electron';
 
 import { DEFAULT_URL } from './url.js';
+
 import type { PersistedBrowserState, SessionTabState, TabInfo } from './types.js';
 
-type Persistence = {
-  load: () => PersistedBrowserState;
-  save: (state: PersistedBrowserState) => void;
-};
+type Persistence = { load: () => PersistedBrowserState; save: (state: PersistedBrowserState) => void };
 
 function getStatePath(): string {
   return join(app.getPath('home'), '.stitch', 'browser-state.json');
@@ -69,7 +67,10 @@ export class SessionStore {
     this.snapshotIdentities = new Set(identities);
   }
 
-  getState(downloads: ElectronBrowserState['downloads'], controller: ElectronBrowserState['controller']): ElectronBrowserState {
+  getState(
+    downloads: ElectronBrowserState['downloads'],
+    controller: ElectronBrowserState['controller'],
+  ): ElectronBrowserState {
     return {
       tabs: Array.from(this.tabs.values()).map((tab) => ({
         ...tab,

@@ -3,10 +3,7 @@ import type { SttUsageDashboardResponse } from '@stitch/shared/usage/types';
 import { UsageSummaryCards } from '@/components/usage/cards/usage-summary-cards';
 import { formatCost } from '@/components/usage/utils/usage-dashboard-utils';
 
-type SttUsageSummaryCardsProps = {
-  rangeLabel: string;
-  usageData: SttUsageDashboardResponse | undefined;
-};
+type SttUsageSummaryCardsProps = { rangeLabel: string; usageData: SttUsageDashboardResponse | undefined };
 
 function formatDuration(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);

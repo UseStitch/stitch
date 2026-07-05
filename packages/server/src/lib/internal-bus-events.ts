@@ -137,19 +137,11 @@ export type SessionMessageSavedEvent = {
   finishReason: string;
 };
 
-export type SessionTitleUpdatedEvent = {
-  sessionId: PrefixedString<'ses'>;
-  title: string;
-};
+export type SessionTitleUpdatedEvent = { sessionId: PrefixedString<'ses'>; title: string };
 
-export type SessionTodosUpdatedEvent = {
-  sessionId: PrefixedString<'ses'>;
-};
+export type SessionTodosUpdatedEvent = { sessionId: PrefixedString<'ses'> };
 
-export type SessionCompactionStartedEvent = {
-  sessionId: PrefixedString<'ses'>;
-  messageId: PrefixedString<'msg'>;
-};
+export type SessionCompactionStartedEvent = { sessionId: PrefixedString<'ses'>; messageId: PrefixedString<'msg'> };
 
 export type SessionCompactionCompletedEvent = {
   sessionId: PrefixedString<'ses'>;
@@ -216,9 +208,7 @@ export type UsageDoomLoopSummaryEvent = {
 
 // ─── Questions ───────────────────────────────────────────────────────────────
 
-export type QuestionAskedEvent = {
-  question: QuestionRequest;
-};
+export type QuestionAskedEvent = { question: QuestionRequest };
 
 export type QuestionRepliedEvent = {
   questionId: PrefixedString<'quest'>;
@@ -226,16 +216,11 @@ export type QuestionRepliedEvent = {
   answers: string[][];
 };
 
-export type QuestionRejectedEvent = {
-  questionId: PrefixedString<'quest'>;
-  sessionId: PrefixedString<'ses'>;
-};
+export type QuestionRejectedEvent = { questionId: PrefixedString<'quest'>; sessionId: PrefixedString<'ses'> };
 
 // ─── Permissions ─────────────────────────────────────────────────────────────
 
-export type PermissionRequestedEvent = {
-  permissionResponse: PermissionResponse;
-};
+export type PermissionRequestedEvent = { permissionResponse: PermissionResponse };
 
 export type PermissionResolvedEvent = {
   permissionResponseId: PrefixedString<'permres'>;
@@ -244,18 +229,11 @@ export type PermissionResolvedEvent = {
 
 // ─── Recordings ──────────────────────────────────────────────────────────────
 
-export type RecordingStartedEvent = {
-  recordingId: PrefixedString<'rec'>;
-};
+export type RecordingStartedEvent = { recordingId: PrefixedString<'rec'> };
 
-export type RecordingStoppedEvent = {
-  recordingId: PrefixedString<'rec'>;
-};
+export type RecordingStoppedEvent = { recordingId: PrefixedString<'rec'> };
 
-export type RecordingUnrecoverableEvent = {
-  recordingId: PrefixedString<'rec'>;
-  reason: string;
-};
+export type RecordingUnrecoverableEvent = { recordingId: PrefixedString<'rec'>; reason: string };
 
 export type RecordingAnalysisUpdatedEvent = {
   recordingId: PrefixedString<'rec'>;
@@ -274,16 +252,9 @@ export type RecordingTranscriptEntryEvent = {
 
 // ─── MCP ─────────────────────────────────────────────────────────────────────
 
-export type McpToolsChangedEvent = {
-  serverId: PrefixedString<'mcp'>;
-  serverName: string;
-  toolCount: number | null;
-};
+export type McpToolsChangedEvent = { serverId: PrefixedString<'mcp'>; serverName: string; toolCount: number | null };
 
-export type McpAuthStatusChangedEvent = {
-  serverId: PrefixedString<'mcp'>;
-  authStatus: McpAuthStatus;
-};
+export type McpAuthStatusChangedEvent = { serverId: PrefixedString<'mcp'>; authStatus: McpAuthStatus };
 
 // ─── Event Map ───────────────────────────────────────────────────────────────
 

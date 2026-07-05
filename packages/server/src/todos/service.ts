@@ -9,9 +9,7 @@ import { sessionTodos, sessions } from '@/db/schema/sessions.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import { err, ok, type ServiceResult } from '@/lib/service-result.js';
 
-export async function listSessionTodos(
-  sessionId: PrefixedString<'ses'>,
-): Promise<ServiceResult<SessionTodo[]>> {
+export async function listSessionTodos(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<SessionTodo[]>> {
   const db = getDb();
   const rows = await db
     .select()
@@ -60,9 +58,7 @@ export async function replaceSessionTodos(input: {
   return ok(updated);
 }
 
-export async function getSessionTodosPromptBlock(
-  sessionId: PrefixedString<'ses'>,
-): Promise<string | null> {
+export async function getSessionTodosPromptBlock(sessionId: PrefixedString<'ses'>): Promise<string | null> {
   const result = await listSessionTodos(sessionId);
   if (result.error || result.data.length === 0) return null;
 

@@ -66,9 +66,7 @@ export function useAuthorizeConnector() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (instanceId: string) =>
-      serverRequest<{ authUrl: string }>(`/connectors/instances/${instanceId}/authorize`, {
-        method: 'POST',
-      }),
+      serverRequest<{ authUrl: string }>(`/connectors/instances/${instanceId}/authorize`, { method: 'POST' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: connectorKeys.all });
     },
@@ -79,9 +77,7 @@ export function useDeleteConnector() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (instanceId: string) =>
-      serverRequest<void>(`/connectors/instances/${instanceId}`, {
-        method: 'DELETE',
-      }),
+      serverRequest<void>(`/connectors/instances/${instanceId}`, { method: 'DELETE' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: connectorKeys.all });
     },
@@ -92,9 +88,7 @@ export function useTestConnector() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (instanceId: string) =>
-      serverRequest<{ success: boolean }>(`/connectors/instances/${instanceId}/test`, {
-        method: 'POST',
-      }),
+      serverRequest<{ success: boolean }>(`/connectors/instances/${instanceId}/test`, { method: 'POST' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: connectorKeys.all });
     },

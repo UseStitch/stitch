@@ -25,12 +25,7 @@ const dateFormattersCache = new Map<string, Intl.DateTimeFormat>();
 function getDateFormatter(timeZone: string): Intl.DateTimeFormat {
   let formatter = dateFormattersCache.get(timeZone);
   if (!formatter) {
-    formatter = new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      timeZone,
-    });
+    formatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone });
     dateFormattersCache.set(timeZone, formatter);
   }
   return formatter;
@@ -42,12 +37,7 @@ function parseDueDate(dateStr: string, timeZone: string): number | null {
     const [year, month, day] = dateStr.split('-').map(Number);
     const utcNoon = Date.UTC(year, month - 1, day, 12, 0, 0);
 
-    const tzFormatter = new Intl.DateTimeFormat('en-US', {
-      timeZone,
-      hour: '2-digit',
-      day: '2-digit',
-      hour12: false,
-    });
+    const tzFormatter = new Intl.DateTimeFormat('en-US', { timeZone, hour: '2-digit', day: '2-digit', hour12: false });
     const utcFormatter = new Intl.DateTimeFormat('en-US', {
       timeZone: 'UTC',
       hour: '2-digit',
@@ -89,10 +79,7 @@ Use when the user asks to add a todo, task, or follow-up. Default priority is "m
     inputSchema: z.object({
       title: z.string().describe('Title for the new item'),
       description: z.string().optional().describe('Description or details for the item'),
-      listName: z
-        .string()
-        .optional()
-        .describe('Name of the agenda list. Auto-creates if it does not exist.'),
+      listName: z.string().optional().describe('Name of the agenda list. Auto-creates if it does not exist.'),
       status: z
         .enum(AGENDA_ITEM_STATUSES)
         .optional()
@@ -101,10 +88,7 @@ Use when the user asks to add a todo, task, or follow-up. Default priority is "m
         .enum(AGENDA_ITEM_PRIORITIES)
         .optional()
         .describe('Priority level: "low", "medium", "high", or "urgent"'),
-      dueAt: z
-        .string()
-        .optional()
-        .describe('Due date in ISO 8601 format (e.g. "2025-01-15T09:00:00Z")'),
+      dueAt: z.string().optional().describe('Due date in ISO 8601 format (e.g. "2025-01-15T09:00:00Z")'),
     }),
     execute: async (input) => {
       const dueAt = input.dueAt ? parseDueDate(input.dueAt, userTimezone) : null;
@@ -154,11 +138,7 @@ Use when the user asks to mark something as done, change priority, reschedule, o
       dueAt: z.string().optional().describe('New due date in ISO 8601, or empty string to clear'),
     }),
     execute: async (input) => {
-      const dueAt = input.dueAt
-        ? parseDueDate(input.dueAt, userTimezone)
-        : input.dueAt === ''
-          ? null
-          : undefined;
+      const dueAt = input.dueAt ? parseDueDate(input.dueAt, userTimezone) : input.dueAt === '' ? null : undefined;
 
       const result = updateAgendaItem(input.itemId as PrefixedString<'aitm'>, {
         title: input.title,
@@ -218,9 +198,7 @@ Use when the user asks about their tasks, what's pending, or what's due.`,
         return `- [${item.status}] [${item.priority}] ${item.title} (id: ${item.id}, list: ${item.listName ?? 'Unknown'}${due})`;
       });
 
-      return {
-        output: `${total} item(s) found\n${lines.join('\n')}`,
-      };
+      return { output: `${total} item(s) found\n${lines.join('\n')}` };
     },
   });
 
@@ -228,9 +206,7 @@ Use when the user asks about their tasks, what's pending, or what's due.`,
     description: `Get full details for a single agenda item by itemId.
 
 Use when the user wants to see the complete information about a specific item.`,
-    inputSchema: z.object({
-      itemId: z.string().describe('The ID of the agenda item'),
-    }),
+    inputSchema: z.object({ itemId: z.string().describe('The ID of the agenda item') }),
     execute: async (input) => {
       const result = getAgendaItem(input.itemId as PrefixedString<'aitm'>);
       if (result.error) {
@@ -246,8 +222,7 @@ Use when the user wants to see the complete information about a specific item.`,
       ];
       if (detail.description) parts.push(`Description: ${detail.description}`);
       if (detail.dueAt) parts.push(`Due: ${formatter.format(new Date(detail.dueAt))}`);
-      if (detail.completedAt)
-        parts.push(`Completed: ${formatter.format(new Date(detail.completedAt))}`);
+      if (detail.completedAt) parts.push(`Completed: ${formatter.format(new Date(detail.completedAt))}`);
 
       return { output: parts.join('\n') };
     },
@@ -262,10 +237,7 @@ Use when the user wants to organize items into a new list/topic.`,
       description: z.string().optional().describe('Optional description for the list'),
     }),
     execute: async (input) => {
-      const result = createAgendaList({
-        name: input.name,
-        description: input.description,
-      });
+      const result = createAgendaList({ name: input.name, description: input.description });
 
       if (result.error) {
         return { output: `Failed to create list: ${result.error.message}` };

@@ -4,11 +4,7 @@ import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema/providers.js';
 import * as Log from '@/lib/log.js';
 import { getEmbeddingModelDimensions } from '@/llm/provider/service.js';
-import {
-  getMemoryConfig,
-  hasConfiguredEmbeddingModel,
-  invalidateMemoryConfig,
-} from '@/memory/config.js';
+import { getMemoryConfig, hasConfiguredEmbeddingModel, invalidateMemoryConfig } from '@/memory/config.js';
 import type { Embedder } from '@/models/embedding/embedder.js';
 import { ProviderEmbedder } from '@/models/embedding/provider-embedder.js';
 

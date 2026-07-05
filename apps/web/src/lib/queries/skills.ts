@@ -36,8 +36,7 @@ export function useSearchSkills(query: string) {
   return useQuery({
     queryKey: skillKeys.search(debouncedQuery),
     enabled: debouncedQuery.length >= 2,
-    queryFn: () =>
-      serverRequest<SkillSearchResult[]>(`/skills/search?q=${encodeURIComponent(debouncedQuery)}`),
+    queryFn: () => serverRequest<SkillSearchResult[]>(`/skills/search?q=${encodeURIComponent(debouncedQuery)}`),
   });
 }
 
@@ -78,8 +77,7 @@ export function useUpdateSkill() {
 export function useDeleteSkill() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (name: string) =>
-      serverRequest<void>(`/skills/${encodeURIComponent(name)}`, { method: 'DELETE' }),
+    mutationFn: (name: string) => serverRequest<void>(`/skills/${encodeURIComponent(name)}`, { method: 'DELETE' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: skillKeys.all });
       toast.success('Skill deleted', { id: 'skill-delete' });

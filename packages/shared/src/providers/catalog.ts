@@ -15,13 +15,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
         label: 'API Key',
         enabled: true,
         fields: [
-          {
-            key: 'apiKey',
-            label: 'API Key',
-            placeholder: 'your-assemblyai-api-key',
-            required: true,
-            secret: true,
-          },
+          { key: 'apiKey', label: 'API Key', placeholder: 'your-assemblyai-api-key', required: true, secret: true },
         ],
       },
     ],
@@ -37,23 +31,13 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
         method: 'api-key',
         label: 'API Key',
         enabled: true,
-        fields: [
-          {
-            key: 'apiKey',
-            label: 'API Key',
-            placeholder: 'sk-ant-...',
-            required: true,
-            secret: true,
-          },
-        ],
+        fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'sk-ant-...', required: true, secret: true }],
       },
       {
         method: 'auth-token',
         label: 'Auth Token',
         enabled: false,
-        fields: [
-          { key: 'authToken', label: 'Auth Token', placeholder: '', required: true, secret: true },
-        ],
+        fields: [{ key: 'authToken', label: 'Auth Token', placeholder: '', required: true, secret: true }],
       },
     ],
   },
@@ -63,13 +47,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     api: 'https://api.openai.com',
     capabilities: ['llm', 'stt', 'embedding'],
     extraFields: [
-      {
-        key: 'organization',
-        label: 'Organization',
-        placeholder: 'org-...',
-        required: false,
-        secret: false,
-      },
+      { key: 'organization', label: 'Organization', placeholder: 'org-...', required: false, secret: false },
       { key: 'project', label: 'Project', placeholder: 'proj_...', required: false, secret: false },
     ],
     authMethods: [
@@ -77,9 +55,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
         method: 'api-key',
         label: 'API Key',
         enabled: true,
-        fields: [
-          { key: 'apiKey', label: 'API Key', placeholder: 'sk-...', required: true, secret: true },
-        ],
+        fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'sk-...', required: true, secret: true }],
       },
     ],
   },
@@ -94,15 +70,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
         method: 'api-key',
         label: 'API Key',
         enabled: true,
-        fields: [
-          {
-            key: 'apiKey',
-            label: 'API Key',
-            placeholder: 'sk_...',
-            required: true,
-            secret: true,
-          },
-        ],
+        fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'sk_...', required: true, secret: true }],
       },
     ],
   },
@@ -117,9 +85,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
         method: 'api-key',
         label: 'API Key',
         enabled: true,
-        fields: [
-          { key: 'apiKey', label: 'API Key', placeholder: 'AIza...', required: true, secret: true },
-        ],
+        fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'AIza...', required: true, secret: true }],
       },
     ],
   },
@@ -129,42 +95,18 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     api: 'https://us-central1-aiplatform.googleapis.com',
     capabilities: ['llm'],
     extraFields: [
-      {
-        key: 'project',
-        label: 'Project',
-        placeholder: 'my-gcp-project',
-        required: false,
-        secret: false,
-      },
-      {
-        key: 'location',
-        label: 'Location',
-        placeholder: 'us-central1',
-        required: false,
-        secret: false,
-      },
+      { key: 'project', label: 'Project', placeholder: 'my-gcp-project', required: false, secret: false },
+      { key: 'location', label: 'Location', placeholder: 'us-central1', required: false, secret: false },
     ],
     authMethods: [
       {
         method: 'api-key',
         label: 'API Key',
         enabled: false,
-        fields: [
-          { key: 'apiKey', label: 'API Key', placeholder: '', required: true, secret: true },
-        ],
+        fields: [{ key: 'apiKey', label: 'API Key', placeholder: '', required: true, secret: true }],
       },
-      {
-        method: 'adc',
-        label: 'Application Default Credentials',
-        enabled: false,
-        fields: [],
-      },
-      {
-        method: 'service-account',
-        label: 'Service Account',
-        enabled: false,
-        fields: [],
-      },
+      { method: 'adc', label: 'Application Default Credentials', enabled: false, fields: [] },
+      { method: 'service-account', label: 'Service Account', enabled: false, fields: [] },
     ],
   },
   'amazon-bedrock': {
@@ -180,10 +122,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
         required: true,
         secret: false,
         type: 'select',
-        options: AWS_BEDROCK_REGIONS.map((r) => ({
-          value: r.value,
-          label: `${r.label} (${r.value})`,
-        })),
+        options: AWS_BEDROCK_REGIONS.map((r) => ({ value: r.value, label: `${r.label} (${r.value})` })),
       },
     ],
     authMethods: [
@@ -191,44 +130,19 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
         method: 'api-key',
         label: 'API Key',
         enabled: true,
-        fields: [
-          { key: 'apiKey', label: 'API Key', placeholder: 'Key', required: true, secret: true },
-        ],
+        fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'Key', required: true, secret: true }],
       },
       {
         method: 'iam',
         label: 'IAM Credentials',
         enabled: false,
         fields: [
-          {
-            key: 'accessKeyId',
-            label: 'Access Key ID',
-            placeholder: 'AKIA...',
-            required: true,
-            secret: false,
-          },
-          {
-            key: 'secretAccessKey',
-            label: 'Secret Access Key',
-            placeholder: '',
-            required: true,
-            secret: true,
-          },
-          {
-            key: 'sessionToken',
-            label: 'Session Token',
-            placeholder: '',
-            required: false,
-            secret: true,
-          },
+          { key: 'accessKeyId', label: 'Access Key ID', placeholder: 'AKIA...', required: true, secret: false },
+          { key: 'secretAccessKey', label: 'Secret Access Key', placeholder: '', required: true, secret: true },
+          { key: 'sessionToken', label: 'Session Token', placeholder: '', required: false, secret: true },
         ],
       },
-      {
-        method: 'credential-provider',
-        label: 'Credential Provider Chain',
-        enabled: false,
-        fields: [],
-      },
+      { method: 'credential-provider', label: 'Credential Provider Chain', enabled: false, fields: [] },
     ],
   },
   nvidia: {
@@ -242,15 +156,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
         method: 'api-key',
         label: 'API Key',
         enabled: true,
-        fields: [
-          {
-            key: 'apiKey',
-            label: 'API Key',
-            placeholder: 'nvapi-...',
-            required: true,
-            secret: true,
-          },
-        ],
+        fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'nvapi-...', required: true, secret: true }],
       },
     ],
   },
@@ -260,22 +166,9 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     api: 'http://localhost:11434',
     capabilities: ['llm'],
     extraFields: [
-      {
-        key: 'baseURL',
-        label: 'Base URL',
-        placeholder: 'http://localhost:11434',
-        required: false,
-        secret: false,
-      },
+      { key: 'baseURL', label: 'Base URL', placeholder: 'http://localhost:11434', required: false, secret: false },
     ],
-    authMethods: [
-      {
-        method: 'none',
-        label: 'No authentication',
-        enabled: true,
-        fields: [],
-      },
-    ],
+    authMethods: [{ method: 'none', label: 'No authentication', enabled: true, fields: [] }],
   },
   openrouter: {
     displayName: 'OpenRouter',
@@ -288,15 +181,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
         method: 'api-key',
         label: 'API Key',
         enabled: true,
-        fields: [
-          {
-            key: 'apiKey',
-            label: 'API Key',
-            placeholder: 'sk-or-...',
-            required: true,
-            secret: true,
-          },
-        ],
+        fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'sk-or-...', required: true, secret: true }],
       },
     ],
   },
@@ -311,9 +196,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
         method: 'api-key',
         label: 'API Key',
         enabled: true,
-        fields: [
-          { key: 'apiKey', label: 'API Key', placeholder: 'Key', required: true, secret: true },
-        ],
+        fields: [{ key: 'apiKey', label: 'API Key', placeholder: 'Key', required: true, secret: true }],
       },
     ],
   },

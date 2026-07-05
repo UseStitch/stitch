@@ -105,13 +105,7 @@ describe('buildGoogleToolsets', () => {
     expect(toolNames(readOnly)).not.toContain('docs_update');
     expect(toolNames(readOnly)).not.toContain('docs_edit');
     expect(toolNames(writable)).toEqual(
-      expect.arrayContaining([
-        'docs_search',
-        'docs_read',
-        'docs_create',
-        'docs_update',
-        'docs_edit',
-      ]),
+      expect.arrayContaining(['docs_search', 'docs_read', 'docs_create', 'docs_update', 'docs_edit']),
     );
   });
 
@@ -152,19 +146,11 @@ describe('buildGoogleToolsets', () => {
       capabilities: ['google.drive.read', 'google.drive.write'],
     }).find((toolset) => toolset.id === 'google-drive');
 
-    expect(toolNames(readOnly)).toEqual(
-      expect.arrayContaining(['drive_search', 'drive_read', 'drive_info']),
-    );
+    expect(toolNames(readOnly)).toEqual(expect.arrayContaining(['drive_search', 'drive_read', 'drive_info']));
     expect(toolNames(readOnly)).not.toContain('drive_write');
     expect(toolNames(readOnly)).not.toContain('drive_upload');
     expect(toolNames(writable)).toEqual(
-      expect.arrayContaining([
-        'drive_search',
-        'drive_read',
-        'drive_info',
-        'drive_write',
-        'drive_upload',
-      ]),
+      expect.arrayContaining(['drive_search', 'drive_read', 'drive_info', 'drive_write', 'drive_upload']),
     );
   });
 });

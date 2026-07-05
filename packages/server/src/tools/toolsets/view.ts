@@ -2,24 +2,11 @@ import { humanizeToolName } from '@stitch/shared/tools/display';
 
 import type { Toolset, ToolsetPrompt } from '@/tools/toolsets/types.js';
 
-type ToolsetViewOptions = {
-  active: boolean;
-  persisted: boolean;
-  includePrompts?: boolean;
-  includeTools?: boolean;
-};
+type ToolsetViewOptions = { active: boolean; persisted: boolean; includePrompts?: boolean; includeTools?: boolean };
 
-type ToolsetPromptView = {
-  name: string;
-  description?: string;
-  arguments?: ToolsetPrompt['arguments'];
-};
+type ToolsetPromptView = { name: string; description?: string; arguments?: ToolsetPrompt['arguments'] };
 
-type ToolsetToolView = {
-  name: string;
-  displayName: string;
-  description: string;
-};
+type ToolsetToolView = { name: string; displayName: string; description: string };
 
 export type ToolsetView = {
   id: string;
@@ -53,11 +40,9 @@ export function toToolsetView(toolset: Toolset, options: ToolsetViewOptions): To
         })) ?? [],
     }),
     ...(options.includeTools && {
-      tools: toolset.tools().map((tool) => ({
-        name: tool.name,
-        displayName: humanizeToolName(tool.name),
-        description: tool.description,
-      })),
+      tools: toolset
+        .tools()
+        .map((tool) => ({ name: tool.name, displayName: humanizeToolName(tool.name), description: tool.description })),
     }),
   };
 }

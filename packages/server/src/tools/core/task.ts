@@ -47,12 +47,7 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
   return tool({
     description: TASK_DESCRIPTION,
     inputSchema: z.object({
-      title: z
-        .string()
-        .trim()
-        .min(1)
-        .max(30)
-        .describe('Short task title for the child session (30 chars max)'),
+      title: z.string().trim().min(1).max(30).describe('Short task title for the child session (30 chars max)'),
       task: z.string().describe('Detailed description of the task to accomplish'),
       toolsets: z
         .array(z.string())
@@ -60,10 +55,7 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
         .describe('Additional toolset IDs to activate in the child session beyond inherited ones'),
     }),
     execute: async ({ title, task, toolsets: additionalToolsets }, { toolCallId }) => {
-      const sessionResult = await createSession({
-        title,
-        parentSessionId: deps.parentSessionId,
-      });
+      const sessionResult = await createSession({ title, parentSessionId: deps.parentSessionId });
       if (sessionResult.error) {
         return {
           childSessionId: null,
@@ -80,10 +72,7 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
         messageId: context.messageId,
         toolCallId,
         toolName: 'task',
-        output: {
-          childSessionId,
-          childSessionName: childSession.title,
-        },
+        output: { childSessionId, childSessionName: childSession.title },
       });
 
       log.info(
@@ -99,34 +88,27 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
       // Insert a user message with the task prompt
       const userMessageId = createMessageId();
       const now = Date.now();
-      const taskPart: StoredPart = {
-        type: 'text-delta',
-        id: createPartId(),
-        text: task,
-        startedAt: now,
-        endedAt: now,
-      };
+      const taskPart: StoredPart = { type: 'text-delta', id: createPartId(), text: task, startedAt: now, endedAt: now };
 
       const db = getDb();
-      await db.insert(messages).values({
-        id: userMessageId,
-        sessionId: childSessionId,
-        role: 'user',
-        parts: [taskPart],
-        modelId: deps.modelId,
-        providerId: deps.providerId,
-        costUsd: 0,
-        createdAt: now,
-        updatedAt: now,
-        startedAt: now,
-        duration: null,
-      });
+      await db
+        .insert(messages)
+        .values({
+          id: userMessageId,
+          sessionId: childSessionId,
+          role: 'user',
+          parts: [taskPart],
+          modelId: deps.modelId,
+          providerId: deps.providerId,
+          costUsd: 0,
+          createdAt: now,
+          updatedAt: now,
+          startedAt: now,
+          duration: null,
+        });
 
       // Build history (just the system prompt + user message)
-      const llmMessages = await buildSessionLlmMessages(childSessionId, {
-        useBasePrompt: true,
-        systemPrompt: null,
-      });
+      const llmMessages = await buildSessionLlmMessages(childSessionId, { useBasePrompt: true, systemPrompt: null });
       const assistantMessageId = createMessageId();
 
       // Create a child abort controller linked to the parent
@@ -156,11 +138,7 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
         });
 
         log.info(
-          {
-            event: 'task.child_session.completed',
-            parentSessionId: deps.parentSessionId,
-            childSessionId,
-          },
+          { event: 'task.child_session.completed', parentSessionId: deps.parentSessionId, childSessionId },
           'child session task completed',
         );
 
@@ -185,19 +163,10 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
           }
         }
 
-        return {
-          childSessionId,
-          childSessionName: childSession.title,
-          summary,
-        };
+        return { childSessionId, childSessionName: childSession.title, summary };
       } catch (error) {
         log.error(
-          {
-            event: 'task.child_session.failed',
-            parentSessionId: deps.parentSessionId,
-            childSessionId,
-            error,
-          },
+          { event: 'task.child_session.failed', parentSessionId: deps.parentSessionId, childSessionId, error },
           'child session task failed',
         );
 

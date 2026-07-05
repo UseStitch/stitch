@@ -12,10 +12,7 @@ export interface ShortcutEntry {
   category: ShortcutCategory;
 }
 
-const shortcutKeys = {
-  all: ['shortcuts'] as const,
-  list: () => [...shortcutKeys.all, 'list'] as const,
-};
+const shortcutKeys = { all: ['shortcuts'] as const, list: () => [...shortcutKeys.all, 'list'] as const };
 
 export const shortcutsQueryOptions = queryOptions({
   queryKey: shortcutKeys.list(),

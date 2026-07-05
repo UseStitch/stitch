@@ -7,12 +7,7 @@ export type ContextMenuParams = {
   dictionarySuggestions: string[];
   selectionText: string;
   isEditable: boolean;
-  editFlags: {
-    canCut: boolean;
-    canCopy: boolean;
-    canPaste: boolean;
-    canSelectAll: boolean;
-  };
+  editFlags: { canCut: boolean; canCopy: boolean; canPaste: boolean; canSelectAll: boolean };
 };
 
 export type DesktopUpdaterStatus =
@@ -24,20 +19,11 @@ export type DesktopUpdaterStatus =
   | 'no-update'
   | 'error';
 
-export type DesktopUpdaterState = {
-  status: DesktopUpdaterStatus;
-  version?: string;
-  progress?: number;
-  error?: string;
-};
+export type DesktopUpdaterState = { status: DesktopUpdaterStatus; version?: string; progress?: number; error?: string };
 
 export type ServerMode = 'local' | 'remote';
 
-export type ServerConnectionConfig = {
-  url: string;
-  mode: ServerMode;
-  remoteUrl: string | null;
-};
+export type ServerConnectionConfig = { url: string; mode: ServerMode; remoteUrl: string | null };
 
 declare global {
   interface Window {

@@ -4,13 +4,7 @@ import path from 'node:path';
 const homedir = os.homedir();
 const tmpdir = os.tmpdir();
 
-type BaseDirs = {
-  data: string;
-  config: string;
-  cache: string;
-  log: string;
-  temp: string;
-};
+type BaseDirs = { data: string; config: string; cache: string; log: string; temp: string };
 
 type ServerPaths = {
   appName: string;

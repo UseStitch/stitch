@@ -13,11 +13,7 @@ type VadConfig = {
   minSpeechDurationMs: number;
 };
 
-const DEFAULT_VAD_CONFIG: VadConfig = {
-  energyThreshold: 0.02,
-  silenceDurationMs: 800,
-  minSpeechDurationMs: 250,
-};
+const DEFAULT_VAD_CONFIG: VadConfig = { energyThreshold: 0.02, silenceDurationMs: 800, minSpeechDurationMs: 250 };
 
 export type VadFallback = {
   /** Feed audio and get back whether a commit should be triggered. */

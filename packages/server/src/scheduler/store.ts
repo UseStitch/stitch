@@ -12,20 +12,12 @@ export function createSchedulerStore(): SchedulerStore {
   return {
     async upsertJob(input) {
       const db = getDb();
-      const existing = db
-        .select()
-        .from(scheduledJobs)
-        .where(eq(scheduledJobs.key, input.key))
-        .get();
+      const existing = db.select().from(scheduledJobs).where(eq(scheduledJobs.key, input.key)).get();
 
       if (existing) {
         return db.transaction((tx) => {
           tx.update(scheduledJobRuns)
-            .set({
-              status: 'failed',
-              finishedAt: input.now,
-              errorMessage: 'scheduler restarted before run completed',
-            })
+            .set({ status: 'failed', finishedAt: input.now, errorMessage: 'scheduler restarted before run completed' })
             .where(and(eq(scheduledJobRuns.key, input.key), eq(scheduledJobRuns.status, 'running')))
             .run();
 

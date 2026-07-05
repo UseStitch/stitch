@@ -29,10 +29,7 @@ eventsRouter.get('/', (c) => {
       while (!stream.aborted) {
         await stream.sleep(HEARTBEAT_INTERVAL_MS);
         if (!stream.aborted) {
-          await stream.writeSSE({
-            event: 'heartbeat',
-            data: JSON.stringify({ ts: Date.now() }),
-          });
+          await stream.writeSSE({ event: 'heartbeat', data: JSON.stringify({ ts: Date.now() }) });
         }
       }
     },

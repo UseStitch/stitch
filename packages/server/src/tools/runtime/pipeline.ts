@@ -6,12 +6,7 @@ import {
   truncationMiddleware,
 } from '@/tools/runtime/middleware.js';
 import { createToolRuntime } from '@/tools/runtime/runtime.js';
-import type {
-  RuntimeToolMetadata,
-  RuntimeToolSource,
-  ToolContext,
-  ToolMiddleware,
-} from '@/tools/runtime/runtime.js';
+import type { RuntimeToolMetadata, RuntimeToolSource, ToolContext, ToolMiddleware } from '@/tools/runtime/runtime.js';
 import type { Tool } from 'ai';
 
 export type ToolDefinition = {

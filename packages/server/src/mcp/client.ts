@@ -18,12 +18,7 @@ const log = Log.create({ service: 'mcp-client' });
 
 type McpClient = Client;
 
-type McpServerRef = {
-  id: PrefixedString<'mcp'>;
-  name: string;
-  url: string;
-  authConfig: McpAuthConfig;
-};
+type McpServerRef = { id: PrefixedString<'mcp'>; name: string; url: string; authConfig: McpAuthConfig };
 
 /**
  * Module-level cache: one live MCP client per server ID.
@@ -40,16 +35,11 @@ const clientCache = new Map<string, Promise<McpClient>>();
  */
 const pendingOAuthTransports = new Map<string, StreamableHTTPClientTransport>();
 
-export function registerPendingOAuthTransport(
-  serverId: string,
-  transport: StreamableHTTPClientTransport,
-): void {
+export function registerPendingOAuthTransport(serverId: string, transport: StreamableHTTPClientTransport): void {
   pendingOAuthTransports.set(serverId, transport);
 }
 
-export function getPendingOAuthTransport(
-  serverId: string,
-): StreamableHTTPClientTransport | undefined {
+export function getPendingOAuthTransport(serverId: string): StreamableHTTPClientTransport | undefined {
   return pendingOAuthTransports.get(serverId);
 }
 
@@ -59,11 +49,7 @@ export function clearPendingOAuthTransport(serverId: string): void {
 
 function buildTransport(server: McpServerRef): StreamableHTTPClientTransport {
   if (server.authConfig.type === 'oauth') {
-    const authProvider = new McpOAuthProvider({
-      id: server.id,
-      url: server.url,
-      authConfig: server.authConfig,
-    });
+    const authProvider = new McpOAuthProvider({ id: server.id, url: server.url, authConfig: server.authConfig });
     return new StreamableHTTPClientTransport(new URL(server.url), { authProvider });
   }
 
@@ -160,10 +146,7 @@ export function evictMcpClient(serverId: string): void {
  * Call a function with a cached client, evicting the cache entry on failure
  * so the next call reconnects cleanly.
  */
-export async function withMcpClient<T>(
-  server: McpServerRef,
-  fn: (client: McpClient) => Promise<T>,
-): Promise<T> {
+export async function withMcpClient<T>(server: McpServerRef, fn: (client: McpClient) => Promise<T>): Promise<T> {
   const client = await getMcpClient(server);
   try {
     return await fn(client);

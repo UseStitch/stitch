@@ -26,9 +26,7 @@ export const modelVisibility = sqliteTable(
       .notNull()
       .$defaultFn(() => Date.now()),
   },
-  (table) => [
-    uniqueIndex('model_visibility_provider_model_idx').on(table.providerId, table.modelId),
-  ],
+  (table) => [uniqueIndex('model_visibility_provider_model_idx').on(table.providerId, table.modelId)],
 );
 
 export const ollamaModels = sqliteTable('ollama_models', {
@@ -44,14 +42,8 @@ export const ollamaModels = sqliteTable('ollama_models', {
   supportsToolCalls: integer('supports_tool_calls', { mode: 'boolean' }).notNull().default(false),
   supportsVision: integer('supports_vision', { mode: 'boolean' }).notNull().default(false),
   supportsReasoning: integer('supports_reasoning', { mode: 'boolean' }).notNull().default(false),
-  inputModalities: blob('input_modalities', { mode: 'json' })
-    .$type<OllamaModality[]>()
-    .notNull()
-    .default(['text']),
-  outputModalities: blob('output_modalities', { mode: 'json' })
-    .$type<OllamaModality[]>()
-    .notNull()
-    .default(['text']),
+  inputModalities: blob('input_modalities', { mode: 'json' }).$type<OllamaModality[]>().notNull().default(['text']),
+  outputModalities: blob('output_modalities', { mode: 'json' }).$type<OllamaModality[]>().notNull().default(['text']),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()
     .$defaultFn(() => Date.now()),

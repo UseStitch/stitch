@@ -8,11 +8,7 @@ import { PLATFORM_CONFIG } from './formatting';
 import { SimpleIcon } from '@/components/ui/simple-icon';
 import { Table } from '@/components/ui/table';
 
-export const PlatformBadge = React.memo(function PlatformBadge({
-  platform,
-}: {
-  platform: RecordingPlatform;
-}) {
+export const PlatformBadge = React.memo(function PlatformBadge({ platform }: { platform: RecordingPlatform }) {
   const config = PLATFORM_CONFIG[platform] ?? PLATFORM_CONFIG.manual;
 
   return (

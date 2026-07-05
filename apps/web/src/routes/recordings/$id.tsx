@@ -1,10 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import { RecordingAnalysisPage } from '@/components/recordings/recording-analysis-page';
-import {
-  meetingNoteTemplatesQueryOptions,
-  recordingDetailsQueryOptions,
-} from '@/lib/queries/recordings';
+import { meetingNoteTemplatesQueryOptions, recordingDetailsQueryOptions } from '@/lib/queries/recordings';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 
 export const Route = createFileRoute('/recordings/$id')({

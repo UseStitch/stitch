@@ -15,15 +15,10 @@ type CalendarEventRaw = {
   organizer?: { email: string; displayName?: string };
   created?: string;
   updated?: string;
-  conferenceData?: {
-    entryPoints?: { entryPointType: string; uri: string }[];
-  };
+  conferenceData?: { entryPoints?: { entryPointType: string; uri: string }[] };
 };
 
-type CalendarListResponse = {
-  items: CalendarEventRaw[];
-  nextPageToken?: string;
-};
+type CalendarListResponse = { items: CalendarEventRaw[]; nextPageToken?: string };
 
 type CalendarEvent = {
   id: string;
@@ -35,23 +30,14 @@ type CalendarEvent = {
   status: string | undefined;
   htmlLink: string | undefined;
   meetLink: string | undefined;
-  attendees: {
-    email: string;
-    displayName: string | undefined;
-    responseStatus: string | undefined;
-  }[];
+  attendees: { email: string; displayName: string | undefined; responseStatus: string | undefined }[];
   organizer: { email: string; displayName: string | undefined } | undefined;
 };
 
-type CalendarSearchResult = {
-  events: CalendarEvent[];
-  nextPageToken: string | undefined;
-};
+type CalendarSearchResult = { events: CalendarEvent[]; nextPageToken: string | undefined };
 
 function mapEvent(raw: CalendarEventRaw): CalendarEvent {
-  const meetLink = raw.conferenceData?.entryPoints?.find(
-    (ep) => ep.entryPointType === 'video',
-  )?.uri;
+  const meetLink = raw.conferenceData?.entryPoints?.find((ep) => ep.entryPointType === 'video')?.uri;
 
   return {
     id: raw.id,
@@ -64,14 +50,9 @@ function mapEvent(raw: CalendarEventRaw): CalendarEvent {
     htmlLink: raw.htmlLink,
     meetLink,
     attendees:
-      raw.attendees?.map((a) => ({
-        email: a.email,
-        displayName: a.displayName,
-        responseStatus: a.responseStatus,
-      })) ?? [],
-    organizer: raw.organizer
-      ? { email: raw.organizer.email, displayName: raw.organizer.displayName }
-      : undefined,
+      raw.attendees?.map((a) => ({ email: a.email, displayName: a.displayName, responseStatus: a.responseStatus })) ??
+      [],
+    organizer: raw.organizer ? { email: raw.organizer.email, displayName: raw.organizer.displayName } : undefined,
   };
 }
 
@@ -109,17 +90,10 @@ export async function listEvents(
     `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events?${params.toString()}`,
   );
 
-  return {
-    events: response.items.map(mapEvent),
-    nextPageToken: response.nextPageToken,
-  };
+  return { events: response.items.map(mapEvent), nextPageToken: response.nextPageToken };
 }
 
-export async function getEvent(
-  client: GoogleClient,
-  eventId: string,
-  calendarId = 'primary',
-): Promise<CalendarEvent> {
+export async function getEvent(client: GoogleClient, eventId: string, calendarId = 'primary'): Promise<CalendarEvent> {
   const raw = await client.request<CalendarEventRaw>(
     `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`,
   );
@@ -152,15 +126,10 @@ export async function createEvent(
   };
 
   if (event.addMeet) {
-    body['conferenceData'] = {
-      createRequest: { requestId: `meet-${Date.now()}` },
-    };
+    body['conferenceData'] = { createRequest: { requestId: `meet-${Date.now()}` } };
   }
 
-  const raw = await client.request<CalendarEventRaw>(url.toString(), {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
+  const raw = await client.request<CalendarEventRaw>(url.toString(), { method: 'POST', body: JSON.stringify(body) });
 
   return mapEvent(raw);
 }
@@ -180,9 +149,7 @@ export async function updateEvent(
   calendarId = 'primary',
   sendUpdates: 'all' | 'externalOnly' | 'none' = 'all',
 ): Promise<CalendarEvent> {
-  const url = new URL(
-    `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`,
-  );
+  const url = new URL(`${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`);
   url.searchParams.set('sendUpdates', sendUpdates);
   if (patch.addMeet) url.searchParams.set('conferenceDataVersion', '1');
 
@@ -194,15 +161,10 @@ export async function updateEvent(
   if (patch.end !== undefined) body['end'] = patch.end;
   if (patch.attendees !== undefined) body['attendees'] = patch.attendees.map((email) => ({ email }));
   if (patch.addMeet) {
-    body['conferenceData'] = {
-      createRequest: { requestId: `meet-${Date.now()}` },
-    };
+    body['conferenceData'] = { createRequest: { requestId: `meet-${Date.now()}` } };
   }
 
-  const raw = await client.request<CalendarEventRaw>(url.toString(), {
-    method: 'PATCH',
-    body: JSON.stringify(body),
-  });
+  const raw = await client.request<CalendarEventRaw>(url.toString(), { method: 'PATCH', body: JSON.stringify(body) });
 
   return mapEvent(raw);
 }
@@ -213,9 +175,7 @@ export async function deleteEvent(
   calendarId = 'primary',
   sendUpdates: 'all' | 'externalOnly' | 'none' = 'all',
 ): Promise<void> {
-  const url = new URL(
-    `${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`,
-  );
+  const url = new URL(`${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`);
   url.searchParams.set('sendUpdates', sendUpdates);
 
   await client.request<void>(url.toString(), { method: 'DELETE' });

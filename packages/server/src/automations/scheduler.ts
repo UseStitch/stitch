@@ -31,11 +31,7 @@ async function resolveUserTimezone(): Promise<string> {
 }
 
 function toSchedulerSchedule(schedule: AutomationSchedule, timezone: string): JobSchedule {
-  return {
-    type: 'cron',
-    expression: schedule.expression,
-    timezone,
-  };
+  return { type: 'cron', expression: schedule.expression, timezone };
 }
 
 async function registerAutomationJob(automation: Automation, timezone: string): Promise<void> {

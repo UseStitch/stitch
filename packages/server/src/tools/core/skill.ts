@@ -7,9 +7,7 @@ import { isSkillEnabledByApp } from '@/apps/service.js';
 import { getSkillByName } from '@/skills/service.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 
-const skillInputSchema = z.object({
-  name: z.string().min(1).describe('The name of the skill from available_skills'),
-});
+const skillInputSchema = z.object({ name: z.string().min(1).describe('The name of the skill from available_skills') });
 
 export const definition: ToolDefinition = {
   name: 'skill',
@@ -29,9 +27,7 @@ export const definition: ToolDefinition = {
       const dir = path.dirname(skill.location);
       const base = pathToFileURL(dir).href;
 
-      const fileList = skill.files
-        .map((file) => `<file>${path.resolve(dir, file)}</file>`)
-        .join('\n');
+      const fileList = skill.files.map((file) => `<file>${path.resolve(dir, file)}</file>`).join('\n');
 
       const output = [
         `<skill_content name="${skill.name}">`,
@@ -50,11 +46,7 @@ export const definition: ToolDefinition = {
         '</skill_content>',
       ].join('\n');
 
-      return {
-        name: skill.name,
-        description: skill.description,
-        content: output,
-      };
+      return { name: skill.name, description: skill.description, content: output };
     },
   }),
 };

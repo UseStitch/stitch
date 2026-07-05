@@ -12,13 +12,7 @@ const definition: ConnectorDefinition = {
   enabled: true,
   currentVersion: 3,
   versionHistory: [
-    {
-      version: 1,
-      title: 'Initial',
-      description: 'Initial release',
-      action: 'none',
-      capabilities: ['example.read'],
-    },
+    { version: 1, title: 'Initial', description: 'Initial release', action: 'none', capabilities: ['example.read'] },
     {
       version: 2,
       title: 'Write support',
@@ -40,9 +34,7 @@ const definition: ConnectorDefinition = {
     authUrl: 'https://example.com/auth',
     tokenUrl: 'https://example.com/token',
     defaultScopes: ['scope:read'],
-    scopeDescriptions: {
-      'scope:read': 'Read access',
-    },
+    scopeDescriptions: { 'scope:read': 'Read access' },
   },
   setupInstructions: [],
 };
@@ -51,11 +43,7 @@ describe('connector upgrade helpers', () => {
   it('returns capabilities accumulated through the applied version', () => {
     expect(getCapabilitiesForVersion(definition, 1)).toEqual(['example.read']);
     expect(getCapabilitiesForVersion(definition, 2)).toEqual(['example.read', 'example.write']);
-    expect(getCapabilitiesForVersion(definition, 3)).toEqual([
-      'example.read',
-      'example.write',
-      'example.admin',
-    ]);
+    expect(getCapabilitiesForVersion(definition, 3)).toEqual(['example.read', 'example.write', 'example.admin']);
   });
 
   it('returns null upgrade state when instance is up to date', () => {

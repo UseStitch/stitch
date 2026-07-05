@@ -20,32 +20,18 @@ function toResolvedModel(model: EmbeddingModel): ResolvedEmbeddingModel {
     dimensions: model.dimensions,
     context: model.context,
     cost: model.cost,
-    modalities: {
-      input: model.inputModalities ?? ['text'],
-      output: model.outputModalities ?? ['text'],
-    },
+    modalities: { input: model.inputModalities ?? ['text'], output: model.outputModalities ?? ['text'] },
   };
 }
 
 function toResolvedProvider(provider: EmbeddingProvider): ResolvedEmbeddingProvider {
-  const models = Object.fromEntries(
-    provider.models.map((model) => [model.id, toResolvedModel(model)]),
-  );
+  const models = Object.fromEntries(provider.models.map((model) => [model.id, toResolvedModel(model)]));
 
-  return {
-    id: provider.providerId,
-    name: provider.providerName,
-    api: provider.api,
-    models,
-  };
+  return { id: provider.providerId, name: provider.providerName, api: provider.api, models };
 }
 
-function toResolvedProviders(
-  providers: EmbeddingProvider[],
-): Record<string, ResolvedEmbeddingProvider> {
-  return Object.fromEntries(
-    providers.map((provider) => [provider.providerId, toResolvedProvider(provider)]),
-  );
+function toResolvedProviders(providers: EmbeddingProvider[]): Record<string, ResolvedEmbeddingProvider> {
+  return Object.fromEntries(providers.map((provider) => [provider.providerId, toResolvedProvider(provider)]));
 }
 
 function getRegistryUrl(): string {

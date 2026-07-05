@@ -21,9 +21,7 @@ function createDefinition(): ConnectorDefinition {
     icon: { type: 'simpleIcons', slug: 'google' },
     enabled: true,
     currentVersion: 1,
-    versionHistory: [
-      { version: 1, title: 'Base', description: 'Base', action: 'none', capabilities: [] },
-    ],
+    versionHistory: [{ version: 1, title: 'Base', description: 'Base', action: 'none', capabilities: [] }],
     authType: 'oauth2',
     authConfig: {
       authUrl: 'https://example.com/auth',
@@ -89,10 +87,7 @@ describe('refreshExpiringTokens', () => {
       refreshAccessToken: async () => {
         throw new OAuthRefreshError(
           400,
-          JSON.stringify({
-            error: 'invalid_grant',
-            error_description: 'Token has been expired or revoked.',
-          }),
+          JSON.stringify({ error: 'invalid_grant', error_description: 'Token has been expired or revoked.' }),
         );
       },
     });
@@ -113,11 +108,7 @@ describe('refreshExpiringTokens', () => {
       refreshAccessToken: async () => {
         attempts += 1;
         if (attempts < 2) throw new Error('socket hang up');
-        return {
-          accessToken: 'refreshed-access',
-          refreshToken: 'rotated-refresh',
-          expiresIn: 3600,
-        };
+        return { accessToken: 'refreshed-access', refreshToken: 'rotated-refresh', expiresIn: 3600 };
       },
       sleep: async () => {},
     });

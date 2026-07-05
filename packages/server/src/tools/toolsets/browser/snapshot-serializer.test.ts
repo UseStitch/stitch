@@ -28,8 +28,6 @@ describe('browser snapshot serializer', () => {
   test('produces a stable fingerprint for the same snapshot', () => {
     const snapshot = 'URL: https://example.com\n[ref=e1] button "Continue"';
 
-    expect(serializeBrowserSnapshot(snapshot).fingerprint).toBe(
-      serializeBrowserSnapshot(snapshot).fingerprint,
-    );
+    expect(serializeBrowserSnapshot(snapshot).fingerprint).toBe(serializeBrowserSnapshot(snapshot).fingerprint);
   });
 });

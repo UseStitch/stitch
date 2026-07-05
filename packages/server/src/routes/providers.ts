@@ -1,10 +1,7 @@
 import { Hono } from 'hono';
 
 import { unwrapResult } from '@/lib/route-helpers.js';
-import {
-  listProvidersWithCapabilities,
-  listEnabledSttModels,
-} from '@/provider/service.js';
+import { listProvidersWithCapabilities, listEnabledSttModels } from '@/provider/service.js';
 
 export const providersRouter = new Hono();
 

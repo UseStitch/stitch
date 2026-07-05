@@ -36,11 +36,7 @@ type SessionContextOptions = {
   excludedToolsetIds?: string[];
 };
 
-type AssembledResult = {
-  messages: ModelMessage[];
-  tools: Record<string, Tool>;
-  toolsetManager: ToolsetManager;
-};
+type AssembledResult = { messages: ModelMessage[]; tools: Record<string, Tool>; toolsetManager: ToolsetManager };
 
 async function buildAvailableToolsetsPrompt(manager: ToolsetManager): Promise<string> {
   const catalog = await manager.getCatalogWithState({ includeTools: true });
@@ -71,10 +67,7 @@ export function buildExpiredToolsetsPrompt(expired: SessionExpiredToolset[]): st
   const lines = expired.map((entry) => {
     const toolset = getToolset(entry.id);
     const name = toolset?.name ?? entry.id;
-    const tools =
-      entry.toolNames.length > 0
-        ? ` Tools no longer available: ${entry.toolNames.join(', ')}.`
-        : '';
+    const tools = entry.toolNames.length > 0 ? ` Tools no longer available: ${entry.toolNames.join(', ')}.` : '';
     return `- ${name} (${entry.id}) expired at the last turn boundary.${tools}`;
   });
 
@@ -91,11 +84,7 @@ export class SessionContext {
   private readonly toolContext: ToolContext;
 
   private constructor(private readonly opts: SessionContextOptions) {
-    this.toolContext = {
-      sessionId: opts.sessionId,
-      messageId: opts.messageId,
-      streamRunId: opts.streamRunId,
-    };
+    this.toolContext = { sessionId: opts.sessionId, messageId: opts.messageId, streamRunId: opts.streamRunId };
   }
 
   static create(opts: SessionContextOptions): SessionContext {
@@ -111,9 +100,7 @@ export class SessionContext {
       ? this.opts.activeToolsetIds.map((id) => ({ id, scope: 'until_deactivated' as const }))
       : currentSessionState.active;
     const expiredEntries = this.opts.activeToolsetIds ? [] : currentSessionState.expired;
-    const expiredPrompt = this.opts.activeToolsetIds
-      ? ''
-      : buildExpiredToolsetsPrompt(expiredEntries);
+    const expiredPrompt = this.opts.activeToolsetIds ? '' : buildExpiredToolsetsPrompt(expiredEntries);
 
     const toolsetManager = new ToolsetManager(this.toolContext, activeEntries, {
       excludedToolsetIds: this.opts.excludedToolsetIds,
@@ -151,20 +138,11 @@ export class SessionContext {
     composer.add('dynamic', instructionsBlock);
 
     const tools = {
-      ...this.mergeTools({
-        staticTools: { ...coreTools, ...metaTools },
-        taskTool,
-        inspectImageTool,
-        dynamicTools: {},
-      }),
+      ...this.mergeTools({ staticTools: { ...coreTools, ...metaTools }, taskTool, inspectImageTool, dynamicTools: {} }),
       execute_typescript: codeModeResult.tool,
     };
 
-    return {
-      messages: composer.compose(this.opts.llmMessages),
-      tools,
-      toolsetManager,
-    };
+    return { messages: composer.compose(this.opts.llmMessages), tools, toolsetManager };
   }
 
   private static getToolNames(toolsetId: string): string[] {
@@ -194,14 +172,12 @@ export class SessionContext {
   private buildToolsetMetaTools(manager: ToolsetManager): Record<string, Tool> {
     const pipeline = ToolPipeline.create(this.toolContext);
     return pipeline.registerAll(
-      Object.entries(createToolsetTools(manager, this.toolContext.sessionId)).map(
-        ([name, tool]) => ({
-          name,
-          displayName: name,
-          tool,
-          source: 'meta' as const,
-        }),
-      ),
+      Object.entries(createToolsetTools(manager, this.toolContext.sessionId)).map(([name, tool]) => ({
+        name,
+        displayName: name,
+        tool,
+        source: 'meta' as const,
+      })),
     );
   }
 

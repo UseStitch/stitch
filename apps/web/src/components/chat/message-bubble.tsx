@@ -24,7 +24,5 @@ export const MessageBubble = React.memo(function MessageBubble({
     return <UserMessageBubble parts={parts} onSplit={onSplit} />;
   }
 
-  return (
-    <AssistantMessageBubble parts={parts} finishReason={finishReason} onAbortTool={onAbortTool} />
-  );
+  return <AssistantMessageBubble parts={parts} finishReason={finishReason} onAbortTool={onAbortTool} />;
 });

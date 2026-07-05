@@ -26,9 +26,7 @@ function ensureMigrationsAreValid(migrations: LanceMigrationDefinition[]): void 
 
     if (previous) {
       if (migration.version !== previous.version + 1) {
-        throw new Error(
-          `Lance migration version gap detected between v${previous.version} and v${migration.version}`,
-        );
+        throw new Error(`Lance migration version gap detected between v${previous.version} and v${migration.version}`);
       }
 
       if (migration.prevId !== previous.id) {
@@ -101,10 +99,7 @@ function assertChecksumMatches(
   }
 }
 
-export async function runPendingMigrations(
-  db: Db,
-  deps?: { getConnection?: typeof GetConnectionFn },
-): Promise<void> {
+export async function runPendingMigrations(db: Db, deps?: { getConnection?: typeof GetConnectionFn }): Promise<void> {
   const orderedMigrations = [...MIGRATIONS].sort((a, b) => a.version - b.version);
   ensureMigrationsAreValid(orderedMigrations);
 

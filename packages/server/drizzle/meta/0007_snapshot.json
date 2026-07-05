@@ -7,13 +7,7 @@
     "automations": {
       "name": "automations",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "provider_id": {
           "name": "provider_id",
           "type": "text",
@@ -35,13 +29,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "title": { "name": "title", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -66,13 +54,7 @@
     "connector_instances": {
       "name": "connector_instances",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "connector_id": {
           "name": "connector_id",
           "type": "text",
@@ -80,13 +62,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "label": {
-          "name": "label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "label": { "name": "label", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "applied_version": {
           "name": "applied_version",
           "type": "integer",
@@ -117,13 +93,7 @@
           "notNull": false,
           "autoincrement": false
         },
-        "api_key": {
-          "name": "api_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "api_key": { "name": "api_key", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
         "access_token": {
           "name": "access_token",
           "type": "text",
@@ -145,13 +115,7 @@
           "notNull": false,
           "autoincrement": false
         },
-        "scopes": {
-          "name": "scopes",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "scopes": { "name": "scopes", "type": "blob", "primaryKey": false, "notNull": false, "autoincrement": false },
         "status": {
           "name": "status",
           "type": "text",
@@ -216,13 +180,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "hotkey": {
-          "name": "hotkey",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "hotkey": { "name": "hotkey", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
         "is_sequence": {
           "name": "is_sequence",
           "type": "integer",
@@ -271,27 +229,9 @@
     "llm_usage_events": {
       "name": "llm_usage_events",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "run_id": {
-          "name": "run_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "source": {
-          "name": "source",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "run_id": { "name": "run_id", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "source": { "name": "source", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "status": {
           "name": "status",
           "type": "text",
@@ -364,13 +304,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "usage": {
-          "name": "usage",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "usage": { "name": "usage", "type": "blob", "primaryKey": false, "notNull": false, "autoincrement": false },
         "metadata": {
           "name": "metadata",
           "type": "blob",
@@ -500,20 +434,8 @@
     "mcp_servers": {
       "name": "mcp_servers",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "name": { "name": "name", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "transport": {
           "name": "transport",
           "type": "text",
@@ -522,13 +444,7 @@
           "autoincrement": false,
           "default": "'http'"
         },
-        "url": {
-          "name": "url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "url": { "name": "url", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "auth_config": {
           "name": "auth_config",
           "type": "blob",
@@ -536,13 +452,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "tools": {
-          "name": "tools",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "tools": { "name": "tools", "type": "blob", "primaryKey": false, "notNull": false, "autoincrement": false },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -567,20 +477,8 @@
     "meetings": {
       "name": "meetings",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "app": {
-          "name": "app",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "app": { "name": "app", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "app_path": {
           "name": "app_path",
           "type": "text",
@@ -653,13 +551,7 @@
     "messages": {
       "name": "messages",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "session_id": {
           "name": "session_id",
           "type": "text",
@@ -667,20 +559,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "role": {
-          "name": "role",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "parts": {
-          "name": "parts",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "role": { "name": "role", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "parts": { "name": "parts", "type": "blob", "primaryKey": false, "notNull": true, "autoincrement": false },
         "model_id": {
           "name": "model_id",
           "type": "text",
@@ -695,13 +575,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "usage": {
-          "name": "usage",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "usage": { "name": "usage", "type": "blob", "primaryKey": false, "notNull": false, "autoincrement": false },
         "cost_usd": {
           "name": "cost_usd",
           "type": "real",
@@ -817,13 +691,7 @@
     "permission_responses": {
       "name": "permission_responses",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "session_id": {
           "name": "session_id",
           "type": "text",
@@ -881,13 +749,7 @@
           "autoincrement": false,
           "default": "'pending'"
         },
-        "entry": {
-          "name": "entry",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "entry": { "name": "entry", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -960,13 +822,7 @@
     "questions": {
       "name": "questions",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "session_id": {
           "name": "session_id",
           "type": "text",
@@ -981,13 +837,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "answers": {
-          "name": "answers",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "answers": { "name": "answers", "type": "blob", "primaryKey": false, "notNull": false, "autoincrement": false },
         "status": {
           "name": "status",
           "type": "text",
@@ -1044,13 +894,7 @@
     "queued_messages": {
       "name": "queued_messages",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "session_id": {
           "name": "session_id",
           "type": "text",
@@ -1058,13 +902,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "content": {
-          "name": "content",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "content": { "name": "content", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "attachments": {
           "name": "attachments",
           "type": "blob",
@@ -1114,13 +952,7 @@
     "recording_transcriptions": {
       "name": "recording_transcriptions",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "meeting_id": {
           "name": "meeting_id",
           "type": "text",
@@ -1189,13 +1021,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "usage": {
-          "name": "usage",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "usage": { "name": "usage", "type": "blob", "primaryKey": false, "notNull": false, "autoincrement": false },
         "cost_usd": {
           "name": "cost_usd",
           "type": "real",
@@ -1250,27 +1076,9 @@
     "scheduled_job_runs": {
       "name": "scheduled_job_runs",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "job_id": {
-          "name": "job_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "key": {
-          "name": "key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "job_id": { "name": "job_id", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "key": { "name": "key", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "status": {
           "name": "status",
           "type": "text",
@@ -1321,11 +1129,7 @@
           "columns": ["job_id"],
           "isUnique": false
         },
-        "scheduled_job_runs_key_idx": {
-          "name": "scheduled_job_runs_key_idx",
-          "columns": ["key"],
-          "isUnique": false
-        }
+        "scheduled_job_runs_key_idx": { "name": "scheduled_job_runs_key_idx", "columns": ["key"], "isUnique": false }
       },
       "foreignKeys": {
         "scheduled_job_runs_job_id_scheduled_jobs_id_fk": {
@@ -1350,20 +1154,8 @@
     "scheduled_jobs": {
       "name": "scheduled_jobs",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "key": {
-          "name": "key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "key": { "name": "key", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "schedule": {
           "name": "schedule",
           "type": "blob",
@@ -1494,11 +1286,7 @@
         }
       },
       "indexes": {
-        "scheduled_jobs_key_uidx": {
-          "name": "scheduled_jobs_key_uidx",
-          "columns": ["key"],
-          "isUnique": true
-        },
+        "scheduled_jobs_key_uidx": { "name": "scheduled_jobs_key_uidx", "columns": ["key"], "isUnique": true },
         "scheduled_jobs_next_run_at_idx": {
           "name": "scheduled_jobs_next_run_at_idx",
           "columns": ["next_run_at"],
@@ -1518,20 +1306,8 @@
     "sessions": {
       "name": "sessions",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "title": { "name": "title", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
         "parent_session_id": {
           "name": "parent_session_id",
           "type": "text",
@@ -1581,13 +1357,7 @@
     "tool_permissions": {
       "name": "tool_permissions",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "tool_name": {
           "name": "tool_name",
           "type": "text",
@@ -1595,13 +1365,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "pattern": {
-          "name": "pattern",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "pattern": { "name": "pattern", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
         "permission": {
           "name": "permission",
           "type": "text",
@@ -1639,20 +1403,8 @@
     "user_settings": {
       "name": "user_settings",
       "columns": {
-        "key": {
-          "name": "key",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "value": {
-          "name": "value",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "key": { "name": "key", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "value": { "name": "value", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "description": {
           "name": "description",
           "type": "text",
@@ -1685,12 +1437,6 @@
   },
   "views": {},
   "enums": {},
-  "_meta": {
-    "schemas": {},
-    "tables": {},
-    "columns": {}
-  },
-  "internal": {
-    "indexes": {}
-  }
+  "_meta": { "schemas": {}, "tables": {}, "columns": {} },
+  "internal": { "indexes": {} }
 }

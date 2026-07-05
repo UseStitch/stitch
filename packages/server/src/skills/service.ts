@@ -2,11 +2,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import {
-  createSkillSchema,
-  importSkillSchema,
-  updateSkillSchema,
-} from '@stitch/shared/skills/types';
+import { createSkillSchema, importSkillSchema, updateSkillSchema } from '@stitch/shared/skills/types';
 import type {
   Skill,
   SkillCreateInput,
@@ -20,12 +16,7 @@ import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import type { BuiltInSkill } from '@/skills/built-in-skills.js';
-import {
-  SkillImportError,
-  SkillInvalidError,
-  SkillNameCollisionError,
-  SkillNotFoundError,
-} from '@/skills/errors.js';
+import { SkillImportError, SkillInvalidError, SkillNameCollisionError, SkillNotFoundError } from '@/skills/errors.js';
 import {
   buildSkillMd,
   ensureSkillsDir,
@@ -42,21 +33,10 @@ import { parseSkillMarkdown } from '@/skills/parse-skill-markdown.js';
 const log = Log.create({ service: 'skills' });
 
 type SkillsSearchApiResponse = {
-  skills?: Array<{
-    id?: unknown;
-    name?: unknown;
-    installs?: unknown;
-    source?: unknown;
-  }>;
+  skills?: Array<{ id?: unknown; name?: unknown; installs?: unknown; source?: unknown }>;
 };
 
-type SkillsDownloadResponse = {
-  files?: Array<{
-    path?: unknown;
-    contents?: unknown;
-  }>;
-  hash?: unknown;
-};
+type SkillsDownloadResponse = { files?: Array<{ path?: unknown; contents?: unknown }>; hash?: unknown };
 
 const SKILLS_API_BASE = 'https://skills.sh';
 const FETCH_TIMEOUT_MS = 10_000;
@@ -142,10 +122,7 @@ export async function syncBuiltInSkills(builtInSkills: BuiltInSkill[]): Promise<
   }
 }
 
-export async function updateSkill(
-  name: string,
-  input: SkillUpdateInput,
-): Promise<ServiceResult<Skill>> {
+export async function updateSkill(name: string, input: SkillUpdateInput): Promise<ServiceResult<Skill>> {
   const parsed = updateSkillSchema.safeParse(input);
   if (!parsed.success) return err(parsed.error.issues[0]?.message ?? 'Invalid skill', 400);
 
@@ -191,9 +168,7 @@ export async function deleteSkill(name: string): Promise<ServiceResult<null>> {
   return ok(null);
 }
 
-export async function searchSkillsDirectory(
-  query: string,
-): Promise<ServiceResult<SkillSearchResult[]>> {
+export async function searchSkillsDirectory(query: string): Promise<ServiceResult<SkillSearchResult[]>> {
   const trimmedQuery = query.trim();
   if (trimmedQuery.length < 2) return ok([]);
 
@@ -209,11 +184,7 @@ export async function searchSkillsDirectory(
     const body = (await response.json()) as SkillsSearchApiResponse;
     const results = (body.skills ?? [])
       .flatMap((skill): SkillSearchResult[] => {
-        if (
-          typeof skill.id !== 'string' ||
-          typeof skill.name !== 'string' ||
-          typeof skill.source !== 'string'
-        ) {
+        if (typeof skill.id !== 'string' || typeof skill.name !== 'string' || typeof skill.source !== 'string') {
           return [];
         }
 
@@ -236,9 +207,7 @@ export async function searchSkillsDirectory(
   }
 }
 
-export async function importSkillFromDirectory(
-  input: SkillImportInput,
-): Promise<ServiceResult<Skill>> {
+export async function importSkillFromDirectory(input: SkillImportInput): Promise<ServiceResult<Skill>> {
   const parsed = importSkillSchema.safeParse(input);
   if (!parsed.success) return err(parsed.error.issues[0]?.message ?? 'Invalid skill import', 400);
 
@@ -251,10 +220,7 @@ export async function importSkillFromDirectory(
     const response = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (!response.ok) {
       const body = await response.text().catch(() => '');
-      log.error(
-        { url, status: response.status, body, source, slug },
-        'skills.sh download request failed',
-      );
+      log.error({ url, status: response.status, body, source, slug }, 'skills.sh download request failed');
       return err(new SkillImportError('Failed to download skill').message, 500);
     }
 
@@ -266,39 +232,23 @@ export async function importSkillFromDirectory(
     );
     if (!skillFile || typeof skillFile.contents !== 'string') {
       log.error(
-        {
-          source,
-          slug,
-          fileCount: downloadedFiles.length,
-          filePaths: downloadedFiles.map((f) => f.path),
-        },
+        { source, slug, fileCount: downloadedFiles.length, filePaths: downloadedFiles.map((f) => f.path) },
         'downloaded skill missing SKILL.md',
       );
-      return err(
-        new SkillImportError('Downloaded skill did not include a SKILL.md file').message,
-        422,
-      );
+      return err(new SkillImportError('Downloaded skill did not include a SKILL.md file').message, 422);
     }
 
     const skillInput = parseSkillMarkdown(skillFile.contents);
     if (!skillInput) {
-      log.error(
-        { source, slug, contents: skillFile.contents.slice(0, 500) },
-        'SKILL.md frontmatter parse failed',
-      );
+      log.error({ source, slug, contents: skillFile.contents.slice(0, 500) }, 'SKILL.md frontmatter parse failed');
       return err(new SkillInvalidError('Downloaded skill has invalid frontmatter').message, 422);
     }
 
     const createParsed = createSkillSchema.safeParse(skillInput);
     if (!createParsed.success) {
-      log.error(
-        { source, slug, issues: createParsed.error.issues },
-        'downloaded skill failed schema validation',
-      );
+      log.error({ source, slug, issues: createParsed.error.issues }, 'downloaded skill failed schema validation');
       return err(
-        new SkillInvalidError(
-          createParsed.error.issues[0]?.message ?? 'Downloaded skill is invalid',
-        ).message,
+        new SkillInvalidError(createParsed.error.issues[0]?.message ?? 'Downloaded skill is invalid').message,
         422,
       );
     }

@@ -25,11 +25,7 @@ describe('windows meeting detector parser', () => {
   });
 
   skipOffPlatform('does not classify browser window when title is not meet', () => {
-    const observations = internal.classifyRow({
-      pid: 2,
-      processName: 'msedge',
-      windowTitle: 'Inbox - Outlook',
-    });
+    const observations = internal.classifyRow({ pid: 2, processName: 'msedge', windowTitle: 'Inbox - Outlook' });
 
     expect(observations.some((observation) => observation.platform === 'google-meet')).toBe(false);
   });

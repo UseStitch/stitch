@@ -10,10 +10,7 @@ import type { Tool } from 'ai';
 
 const log = Log.create({ service: 'toolset-manager' });
 
-type ToolsetActivationEntry = {
-  state: SessionActiveToolset;
-  tools?: Record<string, Tool>;
-};
+type ToolsetActivationEntry = { state: SessionActiveToolset; tools?: Record<string, Tool> };
 
 /**
  * Per-session manager that tracks which toolsets are currently active.
@@ -35,8 +32,7 @@ export class ToolsetManager {
     this.context = context;
     this.excludedToolsetIds = new Set(options.excludedToolsetIds ?? []);
     for (const entry of activationState) {
-      const state =
-        typeof entry === 'string' ? { id: entry, scope: 'until_deactivated' as const } : entry;
+      const state = typeof entry === 'string' ? { id: entry, scope: 'until_deactivated' as const } : entry;
       this.activations.set(state.id, { state });
     }
   }
@@ -55,27 +51,17 @@ export class ToolsetManager {
   > {
     const existing = this.activations.get(toolsetId);
     if (existing?.tools) {
-      return {
-        status: 'activated',
-        toolNames: Object.keys(existing.tools),
-        collisions: [],
-      };
+      return { status: 'activated', toolNames: Object.keys(existing.tools), collisions: [] };
     }
 
     const toolset = getToolset(toolsetId);
     if (!toolset) {
-      log.warn(
-        { event: 'toolset.activate.not_found', toolsetId },
-        'attempted to activate unknown toolset',
-      );
+      log.warn({ event: 'toolset.activate.not_found', toolsetId }, 'attempted to activate unknown toolset');
       return { status: 'not_found' };
     }
 
     if (this.excludedToolsetIds.has(toolsetId)) {
-      log.info(
-        { event: 'toolset.activate.excluded', toolsetId },
-        'attempted to activate excluded toolset',
-      );
+      log.info({ event: 'toolset.activate.excluded', toolsetId }, 'attempted to activate excluded toolset');
       return { status: 'disabled' };
     }
 
@@ -84,10 +70,7 @@ export class ToolsetManager {
       isToolsetEnabledByApp(toolsetId),
     ]);
     if (!toolsetEnabled || !appEnabled) {
-      log.info(
-        { event: 'toolset.activate.disabled', toolsetId },
-        'attempted to activate disabled toolset',
-      );
+      log.info({ event: 'toolset.activate.disabled', toolsetId }, 'attempted to activate disabled toolset');
       return { status: 'disabled' };
     }
 
@@ -103,14 +86,11 @@ export class ToolsetManager {
         truncation: toolset.truncation,
       })),
     );
-    const disabledMcpTools =
-      toolset.kind === 'mcp' ? await getDisabledToolIdentifiers('mcp_tool') : new Set<string>();
+    const disabledMcpTools = toolset.kind === 'mcp' ? await getDisabledToolIdentifiers('mcp_tool') : new Set<string>();
     const tools =
       disabledMcpTools.size === 0
         ? allTools
-        : Object.fromEntries(
-            Object.entries(allTools).filter(([toolName]) => !disabledMcpTools.has(toolName)),
-          );
+        : Object.fromEntries(Object.entries(allTools).filter(([toolName]) => !disabledMcpTools.has(toolName)));
     const currentToolNames = new Set(Object.keys(this.getActiveTools()));
     const collisions = Object.keys(tools).filter((name) => currentToolNames.has(name));
 
@@ -122,20 +102,12 @@ export class ToolsetManager {
     }
 
     this.activations.set(toolsetId, {
-      state: this.buildActivationState(
-        toolsetId,
-        state ?? existing?.state ?? { scope: 'current_run' },
-      ),
+      state: this.buildActivationState(toolsetId, state ?? existing?.state ?? { scope: 'current_run' }),
       tools,
     });
 
     log.info(
-      {
-        event: 'toolset.activated',
-        toolsetId,
-        toolCount: Object.keys(tools).length,
-        toolNames: Object.keys(tools),
-      },
+      { event: 'toolset.activated', toolsetId, toolCount: Object.keys(tools).length, toolNames: Object.keys(tools) },
       'toolset activated',
     );
 
@@ -192,10 +164,7 @@ export class ToolsetManager {
 
       if (entry.state.scope !== 'ttl_turns') return null;
 
-      this.activations.set(toolsetId, {
-        ...entry,
-        state: { ...entry.state, expiresAtTurn },
-      });
+      this.activations.set(toolsetId, { ...entry, state: { ...entry.state, expiresAtTurn } });
       return toolsetId;
     }
 
@@ -228,15 +197,9 @@ export class ToolsetManager {
     return this.excludedToolsetIds.has(toolsetId);
   }
 
-  setActivationState(
-    toolsetId: string,
-    state: { scope: SessionToolsetScope; expiresAtTurn?: number },
-  ): void {
+  setActivationState(toolsetId: string, state: { scope: SessionToolsetScope; expiresAtTurn?: number }): void {
     const existing = this.activations.get(toolsetId);
-    this.activations.set(toolsetId, {
-      state: this.buildActivationState(toolsetId, state),
-      tools: existing?.tools,
-    });
+    this.activations.set(toolsetId, { state: this.buildActivationState(toolsetId, state), tools: existing?.tools });
   }
 
   /**
@@ -263,10 +226,7 @@ export class ToolsetManager {
     ]);
     return listToolsets()
       .filter(
-        (ts) =>
-          !this.excludedToolsetIds.has(ts.id) &&
-          !disabledIds.has(ts.id) &&
-          !disabledAppToolsetIds.has(ts.id),
+        (ts) => !this.excludedToolsetIds.has(ts.id) && !disabledIds.has(ts.id) && !disabledAppToolsetIds.has(ts.id),
       )
       .map((ts) =>
         toToolsetView(ts, {
@@ -284,12 +244,9 @@ export class ToolsetManager {
     return { id: toolsetId, ...state };
   }
 
-  private getActiveEntries(): Array<
-    [string, ToolsetActivationEntry & { tools: Record<string, Tool> }]
-  > {
+  private getActiveEntries(): Array<[string, ToolsetActivationEntry & { tools: Record<string, Tool> }]> {
     return [...this.activations.entries()].filter(
-      (entry): entry is [string, ToolsetActivationEntry & { tools: Record<string, Tool> }] =>
-        !!entry[1].tools,
+      (entry): entry is [string, ToolsetActivationEntry & { tools: Record<string, Tool> }] => !!entry[1].tools,
     );
   }
 }

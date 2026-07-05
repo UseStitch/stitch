@@ -18,30 +18,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  ArcElement,
-  Tooltip,
-  Legend,
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend);
 
 type RenderChildren = (children: string[]) => React.ReactNode;
-type LiquidUiRendererProps<TNode extends LiquidUiNode> = {
-  node: TNode;
-  renderChildren: RenderChildren;
-};
+type LiquidUiRendererProps<TNode extends LiquidUiNode> = { node: TNode; renderChildren: RenderChildren };
 
-const spacingClasses = {
-  none: 'gap-0',
-  xs: 'gap-1',
-  sm: 'gap-2',
-  md: 'gap-3',
-  lg: 'gap-4',
-} as const;
+const spacingClasses = { none: 'gap-0', xs: 'gap-1', sm: 'gap-2', md: 'gap-3', lg: 'gap-4' } as const;
 
 const gridClasses = {
   '1': 'grid-cols-1',
@@ -123,8 +105,7 @@ function LiquidBadge({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { com
   return (
     <Badge
       variant={node.variant === 'destructive' ? 'destructive' : 'outline'}
-      className={badgeVariantClasses[node.variant]}
-    >
+      className={badgeVariantClasses[node.variant]}>
       {node.text}
     </Badge>
   );

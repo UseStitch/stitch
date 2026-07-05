@@ -15,12 +15,7 @@ export type HeadersAuth = { type: 'headers'; headers: Record<string, string> };
  * (access/refresh tokens, DCR-registered client info, discovery state) live in
  * a separate table, never in `authConfig`, and are never returned to the FE.
  */
-export type OAuthAuth = {
-  type: 'oauth';
-  scopes?: string[];
-  clientId?: string;
-  clientSecret?: string;
-};
+export type OAuthAuth = { type: 'oauth'; scopes?: string[]; clientId?: string; clientSecret?: string };
 
 export type McpAuthConfig = NoneAuth | ApiKeyAuth | HeadersAuth | OAuthAuth;
 
@@ -54,11 +49,7 @@ export type McpRegistryServer = {
   install: McpRegistryServerInstall;
 };
 
-export type McpRegistryPayload = {
-  version: number;
-  generatedAt: string;
-  servers: McpRegistryServer[];
-};
+export type McpRegistryPayload = { version: number; generatedAt: string; servers: McpRegistryServer[] };
 
 export type McpServer = {
   id: PrefixedString<'mcp'>;
@@ -86,12 +77,7 @@ export type McpTool = {
   icons?: McpIcon[];
 };
 
-export type McpIcon = {
-  src: string;
-  mimeType?: string;
-  sizes?: string[];
-  theme?: 'light' | 'dark';
-};
+export type McpIcon = { src: string; mimeType?: string; sizes?: string[]; theme?: 'light' | 'dark' };
 
 const MCP_SERVER_ID_LENGTH = 30; // "mcp_" (4) + 26 body chars
 
@@ -101,9 +87,7 @@ export function formatMcpToolName(serverId: string, toolName: string): string {
 }
 
 /** Parses a tool name back into its components. Returns null if not an MCP tool name. */
-export function parseMcpToolName(
-  prefixedName: string,
-): { serverId: string; toolName: string } | null {
+export function parseMcpToolName(prefixedName: string): { serverId: string; toolName: string } | null {
   if (!prefixedName.startsWith('mcp_')) return null;
   if (prefixedName.length <= MCP_SERVER_ID_LENGTH + 1) return null;
   const serverId = prefixedName.slice(0, MCP_SERVER_ID_LENGTH);

@@ -32,9 +32,7 @@ export function formatCost(costUsd: number): string {
 }
 
 export function formatTokens(value: number): string {
-  return new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 0 }).format(
-    value,
-  );
+  return new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 0 }).format(value);
 }
 
 export function encodeModelFilter(providerId: string, modelId: string): string {
@@ -44,10 +42,7 @@ export function encodeModelFilter(providerId: string, modelId: string): string {
 export function decodeModelFilter(value: string): { providerId: string; modelId: string } | null {
   const separator = value.indexOf('::');
   if (separator <= 0) return null;
-  return {
-    providerId: value.slice(0, separator),
-    modelId: value.slice(separator + 2),
-  };
+  return { providerId: value.slice(0, separator), modelId: value.slice(separator + 2) };
 }
 
 export function useSourceOrder(sources: string[]): string[] {

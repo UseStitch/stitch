@@ -14,22 +14,14 @@ describe('InteractionBroker', () => {
   });
 
   test('resolves a pending interaction', async () => {
-    const promise = broker.wait<string>({
-      id: 'permres_1',
-      kind: 'permission',
-      sessionId: 'ses_1',
-    });
+    const promise = broker.wait<string>({ id: 'permres_1', kind: 'permission', sessionId: 'ses_1' });
 
     expect(broker.resolve('permres_1', 'allow')).toBe(true);
     expect(promise).resolves.toBe('allow');
   });
 
   test('rejects a pending interaction', async () => {
-    const promise = broker.wait<string>({
-      id: 'quest_1',
-      kind: 'question',
-      sessionId: 'ses_1',
-    });
+    const promise = broker.wait<string>({ id: 'quest_1', kind: 'question', sessionId: 'ses_1' });
 
     expect(broker.reject('quest_1', new Error('No'))).toBe(true);
     expect(promise).rejects.toThrow('No');
@@ -55,10 +47,7 @@ describe('InteractionBroker', () => {
     const first = broker.wait<string>({ id: 'a', kind: 'question', sessionId: 'ses_1' });
     const second = broker.wait<string>({ id: 'b', kind: 'question', sessionId: 'ses_2' });
 
-    const aborted = broker.abortSession({
-      sessionId: 'ses_1',
-      error: new Error('Session aborted'),
-    });
+    const aborted = broker.abortSession({ sessionId: 'ses_1', error: new Error('Session aborted') });
 
     expect(aborted.map((entry) => entry.id)).toEqual(['a']);
     expect(first).rejects.toThrow('Session aborted');

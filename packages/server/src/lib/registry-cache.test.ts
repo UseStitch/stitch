@@ -22,10 +22,7 @@ const parse = (raw: unknown) => raw as typeof PAYLOAD;
 
 function okFetch(payload: unknown): FetchLike {
   return async () =>
-    new Response(JSON.stringify(payload), {
-      status: 200,
-      headers: { 'content-type': 'application/json' },
-    });
+    new Response(JSON.stringify(payload), { status: 200, headers: { 'content-type': 'application/json' } });
 }
 
 function failFetch(): FetchLike {
@@ -52,20 +49,12 @@ describe('createRegistryCache', () => {
 
   test('sends configured user agent when fetching from network', async () => {
     const cacheFilePath = await createTempCacheFilePath();
-    const cache = createRegistryCache({
-      cacheFilePath,
-      url: 'https://example.com',
-      parse,
-      userAgent: 'stitch',
-    });
+    const cache = createRegistryCache({ cacheFilePath, url: 'https://example.com', parse, userAgent: 'stitch' });
 
     const captured = { userAgent: null as string | null };
     const fetchImpl: FetchLike = async (_input, init) => {
       captured.userAgent = new Headers(init?.headers).get('User-Agent');
-      return new Response(JSON.stringify(PAYLOAD), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
+      return new Response(JSON.stringify(PAYLOAD), { status: 200, headers: { 'content-type': 'application/json' } });
     };
 
     await cache.get(fetchImpl);
@@ -80,10 +69,7 @@ describe('createRegistryCache', () => {
     const captured = { userAgent: 'unexpected' as string | null };
     const fetchImpl: FetchLike = async (_input, init) => {
       captured.userAgent = new Headers(init?.headers).get('User-Agent');
-      return new Response(JSON.stringify(PAYLOAD), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
+      return new Response(JSON.stringify(PAYLOAD), { status: 200, headers: { 'content-type': 'application/json' } });
     };
 
     await cache.get(fetchImpl);
@@ -138,11 +124,7 @@ describe('createRegistryCache', () => {
       return raw as typeof PAYLOAD;
     };
 
-    const cache = createRegistryCache({
-      cacheFilePath,
-      url: 'https://example.com',
-      parse: throwingParse,
-    });
+    const cache = createRegistryCache({ cacheFilePath, url: 'https://example.com', parse: throwingParse });
 
     const result = await cache.get(okFetch(PAYLOAD));
     expect(result).toEqual(PAYLOAD);
@@ -151,12 +133,7 @@ describe('createRegistryCache', () => {
   test('returns fallback when network fails and no disk cache exists', async () => {
     const cacheFilePath = await createTempCacheFilePath();
     const fallback = { version: 0, items: ['fallback'] };
-    const cache = createRegistryCache({
-      cacheFilePath,
-      url: 'https://example.com',
-      parse,
-      fallback,
-    });
+    const cache = createRegistryCache({ cacheFilePath, url: 'https://example.com', parse, fallback });
 
     const result = await cache.get(failFetch());
     expect(result).toEqual(fallback);

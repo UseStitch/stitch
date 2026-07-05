@@ -3,13 +3,7 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 function getDetectedTimezone(): string {
   const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -17,9 +11,7 @@ function getDetectedTimezone(): string {
 }
 
 function getTimezoneOptions(initialTimezone: string): string[] {
-  const intlWithSupportedValues = Intl as typeof Intl & {
-    supportedValuesOf?: (key: string) => string[];
-  };
+  const intlWithSupportedValues = Intl as typeof Intl & { supportedValuesOf?: (key: string) => string[] };
   const listed = intlWithSupportedValues.supportedValuesOf?.('timeZone') ?? [];
   const preferred = [initialTimezone].filter((value) => value.length > 0);
 
@@ -60,10 +52,7 @@ export function ProfileStep({ initialName, initialTimezone, isSaving, onContinue
   }
 
   return (
-    <form
-      className="mx-auto flex h-full w-full max-w-md flex-col justify-center gap-6"
-      onSubmit={handleSubmit}
-    >
+    <form className="mx-auto flex h-full w-full max-w-md flex-col justify-center gap-6" onSubmit={handleSubmit}>
       <div className="space-y-2 text-center">
         <h2 className="text-2xl font-semibold tracking-tight">Tell us your name</h2>
         <p className="text-sm text-muted-foreground">
@@ -102,11 +91,7 @@ export function ProfileStep({ initialName, initialTimezone, isSaving, onContinue
         {hasTimezoneError && <p className="text-xs text-destructive">Please select a timezone.</p>}
       </div>
 
-      <Button
-        size="lg"
-        type="submit"
-        disabled={isSaving || trimmed.length === 0 || trimmedTimezone.length === 0}
-      >
+      <Button size="lg" type="submit" disabled={isSaving || trimmed.length === 0 || trimmedTimezone.length === 0}>
         {isSaving ? 'Saving...' : 'Continue'}
       </Button>
     </form>

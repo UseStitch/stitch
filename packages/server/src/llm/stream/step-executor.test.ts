@@ -40,10 +40,7 @@ const FINISH_STOP = {
 };
 
 function makeFinish(reason: 'stop' | 'tool-calls' = 'stop') {
-  return {
-    ...FINISH_STOP,
-    finishReason: { unified: reason, raw: undefined },
-  };
+  return { ...FINISH_STOP, finishReason: { unified: reason, raw: undefined } };
 }
 
 function createMockModel(doStream: MockLanguageModelV3['doStream']): MockLanguageModelV3 {
@@ -52,13 +49,7 @@ function createMockModel(doStream: MockLanguageModelV3['doStream']): MockLanguag
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function makeStreamResult(chunks: any[]) {
-  return {
-    stream: simulateReadableStream({
-      chunks,
-      initialDelayInMs: null,
-      chunkDelayInMs: null,
-    }),
-  };
+  return { stream: simulateReadableStream({ chunks, initialDelayInMs: null, chunkDelayInMs: null }) };
 }
 
 function getDefaultOpts(model: MockLanguageModelV3, overrides?: Partial<StepOptions>): StepOptions {
@@ -101,12 +92,7 @@ describe('executeStepWithRetry', () => {
     expect(result.finishReason).toBe('stop');
     expect(result.toolCalls).toEqual([]);
     expect(opts.accumulatedParts).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          type: 'text-delta',
-          text: 'Hello, world!',
-        }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ type: 'text-delta', text: 'Hello, world!' })]),
     );
   });
 
@@ -124,12 +110,7 @@ describe('executeStepWithRetry', () => {
 
     expect(result.finishReason).toBe('stop');
     expect(opts.accumulatedParts).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          type: 'text-delta',
-          text: 'Hello from tool summary',
-        }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ type: 'text-delta', text: 'Hello from tool summary' })]),
     );
   });
 
@@ -150,12 +131,7 @@ describe('executeStepWithRetry', () => {
 
     expect(result.finishReason).toBe('stop');
     expect(opts.accumulatedParts).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          type: 'text-delta',
-          text: 'Hello, world!',
-        }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ type: 'text-delta', text: 'Hello, world!' })]),
     );
   });
 
@@ -178,14 +154,8 @@ describe('executeStepWithRetry', () => {
     expect(result.finishReason).toBe('stop');
     expect(opts.accumulatedParts).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
-          type: 'reasoning-delta',
-          text: 'Let me think...',
-        }),
-        expect.objectContaining({
-          type: 'text-delta',
-          text: 'The answer is 42.',
-        }),
+        expect.objectContaining({ type: 'reasoning-delta', text: 'Let me think...' }),
+        expect.objectContaining({ type: 'text-delta', text: 'The answer is 42.' }),
       ]),
     );
   });
@@ -193,12 +163,7 @@ describe('executeStepWithRetry', () => {
   test('records tool calls and results from tool execution', async () => {
     const model = createMockModel(async () =>
       makeStreamResult([
-        {
-          type: 'tool-call',
-          toolCallId: 'call_1',
-          toolName: 'read',
-          input: '{"filePath":"README.md"}',
-        },
+        { type: 'tool-call', toolCallId: 'call_1', toolName: 'read', input: '{"filePath":"README.md"}' },
         makeFinish('tool-calls'),
       ]),
     );
@@ -217,9 +182,7 @@ describe('executeStepWithRetry', () => {
     const result = await executeStepWithRetry(opts);
 
     expect(result.finishReason).toBe('tool-calls');
-    expect(result.toolCalls).toEqual(
-      expect.arrayContaining([expect.objectContaining({ toolName: 'read' })]),
-    );
+    expect(result.toolCalls).toEqual(expect.arrayContaining([expect.objectContaining({ toolName: 'read' })]));
 
     const toolCallPart = accumulatedParts.find((p) => p.type === 'tool-call');
     expect(toolCallPart).toBeDefined();
@@ -231,12 +194,7 @@ describe('executeStepWithRetry', () => {
   test('collects tool error and propagates permission rejection', async () => {
     const model = createMockModel(async () =>
       makeStreamResult([
-        {
-          type: 'tool-call',
-          toolCallId: 'call_1',
-          toolName: 'webfetch',
-          input: '{"url":"https://example.com"}',
-        },
+        { type: 'tool-call', toolCallId: 'call_1', toolName: 'webfetch', input: '{"url":"https://example.com"}' },
         makeFinish('tool-calls'),
       ]),
     );
@@ -258,8 +216,7 @@ describe('executeStepWithRetry', () => {
     expect(executeStepWithRetry(opts)).rejects.toBeInstanceOf(PermissionRejectedError);
 
     const errorResult = accumulatedParts.find(
-      (p): p is StoredPart & { type: 'tool-result' } =>
-        p.type === 'tool-result' && p.toolName === 'webfetch',
+      (p): p is StoredPart & { type: 'tool-result' } => p.type === 'tool-result' && p.toolName === 'webfetch',
     );
     expect(errorResult).toBeDefined();
   });
@@ -269,12 +226,7 @@ describe('executeStepWithRetry', () => {
     const model = createMockModel(async () => {
       callCount++;
       return makeStreamResult([
-        {
-          type: 'tool-call',
-          toolCallId: 'call_1',
-          toolName: 'bash',
-          input: '{"command":"pwd"}',
-        },
+        { type: 'tool-call', toolCallId: 'call_1', toolName: 'bash', input: '{"command":"pwd"}' },
         { type: 'error', error: new Error('provider stream failed after tool call') },
       ]);
     });
@@ -295,9 +247,7 @@ describe('executeStepWithRetry', () => {
 
     expect(callCount).toBe(1);
     expect(result.finishReason).toBe('tool-calls');
-    expect(result.toolCalls).toEqual(
-      expect.arrayContaining([expect.objectContaining({ toolName: 'bash' })]),
-    );
+    expect(result.toolCalls).toEqual(expect.arrayContaining([expect.objectContaining({ toolName: 'bash' })]));
   });
 
   test('broadcasts SSE events during streaming', async () => {
@@ -330,9 +280,7 @@ describe('executeStepWithRetry', () => {
       ]),
     );
 
-    const opts = getDefaultOpts(model, {
-      abortSignal: abortController.signal,
-    });
+    const opts = getDefaultOpts(model, { abortSignal: abortController.signal });
 
     expect(executeStepWithRetry(opts)).rejects.toBeInstanceOf(StreamAbortedError);
   });

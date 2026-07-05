@@ -16,34 +16,21 @@ const todoItemSchema = z.object({
 
 const todoInputSchema = z.object({
   action: z.enum(['read', 'write']).describe('Read or replace the session todo list.'),
-  todos: z
-    .array(todoItemSchema)
-    .optional()
-    .describe('Full replacement todo list. Required for action="write".'),
+  todos: z.array(todoItemSchema).optional().describe('Full replacement todo list. Required for action="write".'),
 });
 
 function formatSummary(todos: TodoInput[]): string {
   if (todos.length === 0) return 'No todos.';
 
-  return todos
-    .map((todo, index) => `${index + 1}. [${todo.status}] (${todo.priority}) ${todo.content}`)
-    .join('\n');
+  return todos.map((todo, index) => `${index + 1}. [${todo.status}] (${todo.priority}) ${todo.content}`).join('\n');
 }
 
 function toAgentTodos(todos: SessionTodo[]): TodoInput[] {
-  return todos.map((todo) => ({
-    content: todo.content,
-    status: todo.status,
-    priority: todo.priority,
-  }));
+  return todos.map((todo) => ({ content: todo.content, status: todo.status, priority: todo.priority }));
 }
 
 export function createDefinition(context: ToolContext): ToolDefinition {
-  return {
-    name: 'todo',
-    displayName: 'Todo',
-    tool: createTodoTool(context),
-  };
+  return { name: 'todo', displayName: 'Todo', tool: createTodoTool(context) };
 }
 
 function createTodoTool(context: ToolContext) {
@@ -55,26 +42,17 @@ function createTodoTool(context: ToolContext) {
         const result = await listSessionTodos(context.sessionId);
         if (result.error) return { output: result.error.message };
 
-        return {
-          output: formatSummary(result.data),
-          todos: toAgentTodos(result.data),
-        };
+        return { output: formatSummary(result.data), todos: toAgentTodos(result.data) };
       }
 
       if (!input.todos) {
         return { output: 'Provide todos when action="write".' };
       }
 
-      const result = await replaceSessionTodos({
-        sessionId: context.sessionId,
-        todos: input.todos,
-      });
+      const result = await replaceSessionTodos({ sessionId: context.sessionId, todos: input.todos });
       if (result.error) return { output: result.error.message };
 
-      return {
-        output: `Updated session todos:\n${formatSummary(result.data)}`,
-        todos: toAgentTodos(result.data),
-      };
+      return { output: `Updated session todos:\n${formatSummary(result.data)}`, todos: toAgentTodos(result.data) };
     },
   });
 }

@@ -16,10 +16,7 @@ const FETCH_TIMEOUT_MS = 10_000;
 
 const noneAuthConfigSchema = z.object({ type: z.literal('none') });
 const apiKeyAuthConfigSchema = z.object({ type: z.literal('api_key'), apiKey: z.string().min(1) });
-const headersAuthConfigSchema = z.object({
-  type: z.literal('headers'),
-  headers: z.record(z.string(), z.string()),
-});
+const headersAuthConfigSchema = z.object({ type: z.literal('headers'), headers: z.record(z.string(), z.string()) });
 const oauthAuthConfigSchema = z.object({
   type: z.literal('oauth'),
   scopes: z.array(z.string()).optional(),
@@ -57,14 +54,9 @@ const mcpRegistryPayloadSchema = z.object({
   servers: z.array(mcpRegistryServerSchema),
 });
 
-type ListRegistryOptions = {
-  cacheFilePath?: string;
-  fetchImpl?: FetchLike;
-};
+type ListRegistryOptions = { cacheFilePath?: string; fetchImpl?: FetchLike };
 
-type RefreshRegistryOptions = ListRegistryOptions & {
-  force?: boolean;
-};
+type RefreshRegistryOptions = ListRegistryOptions & { force?: boolean };
 
 let inMemoryRegistry: McpRegistryPayload | null = null;
 
@@ -86,10 +78,7 @@ async function readRegistryFromDisk(cacheFilePath: string): Promise<McpRegistryP
   }
 }
 
-async function writeRegistryToDisk(
-  cacheFilePath: string,
-  payload: McpRegistryPayload,
-): Promise<void> {
+async function writeRegistryToDisk(cacheFilePath: string, payload: McpRegistryPayload): Promise<void> {
   await fs.mkdir(path.dirname(cacheFilePath), { recursive: true });
   await fs.writeFile(cacheFilePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
 }
@@ -131,18 +120,13 @@ export async function refreshMcpRegistryCache(
     return ok(payload);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    log.warn(
-      { event: 'mcp_registry.refresh_failed', error: message },
-      'failed to refresh MCP registry',
-    );
+    log.warn({ event: 'mcp_registry.refresh_failed', error: message }, 'failed to refresh MCP registry');
     return err(`Failed to refresh MCP registry: ${message}`, 500);
   }
 }
 
 export async function reloadMcpRegistryCacheFromDisk(
-  options: {
-    cacheFilePath?: string;
-  } = {},
+  options: { cacheFilePath?: string } = {},
 ): Promise<ServiceResult<McpRegistryPayload>> {
   const cacheFilePath = options.cacheFilePath ?? PATHS.filePaths.mcpRegistry;
 
@@ -170,11 +154,7 @@ export async function listMcpRegistryServers(
     return ok(normalizeServers(fromDisk));
   }
 
-  const refreshed = await refreshMcpRegistryCache({
-    cacheFilePath,
-    fetchImpl: options.fetchImpl,
-    force: true,
-  });
+  const refreshed = await refreshMcpRegistryCache({ cacheFilePath, fetchImpl: options.fetchImpl, force: true });
   if (refreshed.error) {
     return refreshed;
   }

@@ -34,15 +34,7 @@ export function normalizeUsage(usage: LanguageModelUsage | null | undefined): No
       ? providedTotalTokens
       : inputTokens + outputTokens + reasoningTokens + cacheReadTokens + cacheWriteTokens;
 
-  return {
-    inputTokens,
-    outputTokens,
-    reasoningTokens,
-    cacheReadTokens,
-    cacheWriteTokens,
-    noCacheTokens,
-    totalTokens,
-  };
+  return { inputTokens, outputTokens, reasoningTokens, cacheReadTokens, cacheWriteTokens, noCacheTokens, totalTokens };
 }
 
 export function addUsage(a: LanguageModelUsage, b: LanguageModelUsage): LanguageModelUsage {

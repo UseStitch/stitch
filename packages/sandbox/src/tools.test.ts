@@ -47,10 +47,7 @@ describe('sandbox tools', () => {
   });
 
   test('limits tool call count', async () => {
-    const context = await createDriver().createContext(
-      { external_echo: echoBinding },
-      { maxToolCalls: 1 },
-    );
+    const context = await createDriver().createContext({ external_echo: echoBinding }, { maxToolCalls: 1 });
 
     try {
       const result = await context.execute(`

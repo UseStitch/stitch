@@ -12,10 +12,7 @@
       "dimensions": 3072,
       "release_date": "2024-01-25",
       "context": 8191,
-      "cost": {
-        "input": 0.13,
-        "output": 0
-      }
+      "cost": { "input": 0.13, "output": 0 }
     },
     {
       "id": "text-embedding-3-small",
@@ -25,10 +22,7 @@
       "dimensions": 1536,
       "release_date": "2024-01-25",
       "context": 8191,
-      "cost": {
-        "input": 0.02,
-        "output": 0
-      }
+      "cost": { "input": 0.02, "output": 0 }
     },
     {
       "id": "text-embedding-ada-002",
@@ -38,10 +32,7 @@
       "dimensions": 1536,
       "release_date": "2022-12-15",
       "context": 8192,
-      "cost": {
-        "input": 0.1,
-        "output": 0
-      }
+      "cost": { "input": 0.1, "output": 0 }
     }
   ]
 }

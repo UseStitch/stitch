@@ -11,10 +11,7 @@ import { BrowserPanel } from '@/components/browser/browser-panel';
 import { SessionChatPane } from '@/components/session/session-chat-pane';
 import { SessionDeleteDialog } from '@/components/session/session-delete-dialog';
 import { SessionDetailsSheet } from '@/components/session/session-details-sheet';
-import {
-  SessionPageHeader,
-  type SessionPageHeaderProps,
-} from '@/components/session/session-page-header';
+import { SessionPageHeader, type SessionPageHeaderProps } from '@/components/session/session-page-header';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useSessionDetailsStats } from '@/hooks/session/use-session-details-stats';
 import { useSessionStreamState } from '@/hooks/use-session-stream-state';
@@ -24,9 +21,7 @@ import { useGenerateAutomationDraft, useMarkSessionRead } from '@/lib/queries/ch
 import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 
-type SessionPageProps = {
-  sessionId: string;
-};
+type SessionPageProps = { sessionId: string };
 
 export function SessionPage({ sessionId }: SessionPageProps) {
   const navigate = useNavigate();
@@ -38,23 +33,17 @@ export function SessionPage({ sessionId }: SessionPageProps) {
   const generateAutomation = useGenerateAutomationDraft();
   const details = useSessionDetailsStats(sessionId);
   const streamState = useSessionStreamState(sessionId);
-  const [rightPanel, setRightPanel] =
-    React.useState<SessionPageHeaderProps['rightPanel']>('closed');
+  const [rightPanel, setRightPanel] = React.useState<SessionPageHeaderProps['rightPanel']>('closed');
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [automationDialogOpen, setAutomationDialogOpen] = React.useState(false);
   const [generatedDraft, setGeneratedDraft] = React.useState<GeneratedAutomationDraft | null>(null);
   const lastReadCompletedMessageIdRef = React.useRef<string | null>(null);
-  const timezone =
-    settings?.['profile.timezone']?.trim() ||
-    Intl.DateTimeFormat().resolvedOptions().timeZone ||
-    'UTC';
+  const timezone = settings?.['profile.timezone']?.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
   const rightPanelOpen = rightPanel !== 'closed';
 
-  const browserAppEnabled =
-    appEnabledStates?.find((state) => state.appId === 'browser')?.enabled ?? true;
-  const hasBrowser =
-    typeof window !== 'undefined' && Boolean(window.api?.browser) && browserAppEnabled;
+  const browserAppEnabled = appEnabledStates?.find((state) => state.appId === 'browser')?.enabled ?? true;
+  const hasBrowser = typeof window !== 'undefined' && Boolean(window.api?.browser) && browserAppEnabled;
 
   const toggleDetails = React.useCallback(() => {
     setRightPanel((previous) => (previous === 'details' ? 'closed' : 'details'));
@@ -114,9 +103,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
       setAutomationDialogOpen(true);
       toast.success('Automation draft ready', { id: toastId });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to generate automation draft', {
-        id: toastId,
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to generate automation draft', { id: toastId });
     }
   }, [generateAutomation, sessionId]);
 
@@ -134,15 +121,9 @@ export function SessionPage({ sessionId }: SessionPageProps) {
           generateAutomationPending={generateAutomation.isPending}
         />
 
-        <ResizablePanelGroup
-          orientation="horizontal"
-          className="h-full min-h-0 w-full pt-0 pr-0 pb-0 pl-6"
-        >
+        <ResizablePanelGroup orientation="horizontal" className="h-full min-h-0 w-full pt-0 pr-0 pb-0 pl-6">
           <ResizablePanel defaultSize={rightPanelOpen ? '70%' : '100%'} minSize="45%">
-            <SessionChatPane
-              sessionId={sessionId}
-              onGenerateAutomation={handleGenerateAutomation}
-            />
+            <SessionChatPane sessionId={sessionId} onGenerateAutomation={handleGenerateAutomation} />
           </ResizablePanel>
 
           {rightPanelOpen ? (
@@ -153,11 +134,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
                 {rightPanel === 'browser' ? (
                   <BrowserPanel sessionId={sessionId} onClose={() => setRightPanel('closed')} />
                 ) : (
-                  <SessionDetailsSheet
-                    {...details}
-                    sessionId={sessionId}
-                    className="hidden lg:block"
-                  />
+                  <SessionDetailsSheet {...details} sessionId={sessionId} className="hidden lg:block" />
                 )}
               </ResizablePanel>
             </>
@@ -192,10 +169,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
             setGeneratedDraft(null);
             toast.success('Automation created', { id: 'session-automation-create' });
             if (action === 'create-view') {
-              void navigate({
-                to: '/automations/$automationId',
-                params: { automationId: created.id },
-              });
+              void navigate({ to: '/automations/$automationId', params: { automationId: created.id } });
             }
           } catch (error) {
             toast.error(error instanceof Error ? error.message : 'Failed to create automation', {

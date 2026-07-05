@@ -16,9 +16,7 @@ export function AgentsSettings() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const queryClient = useQueryClient();
   const saveMutation = useMutation(
-    saveSettingMutationOptions(SETTING_KEY, queryClient, {
-      successMessage: 'Custom instructions saved',
-    }),
+    saveSettingMutationOptions(SETTING_KEY, queryClient, { successMessage: 'Custom instructions saved' }),
   );
   const savedInstructions = settings[SETTING_KEY] ?? '';
   const [instructions, setInstructions] = React.useState(savedInstructions);
@@ -34,22 +32,16 @@ export function AgentsSettings() {
   };
 
   return (
-    <SettingPage
-      title={page.title}
-      description={page.description}
-      icon={<Icon className="size-5" />}
-    >
+    <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
       <SettingSection
         title="Custom instructions"
         description="Write Markdown instructions that Stitch should follow in chat and agent sessions."
-        className="flex min-h-0 flex-1 flex-col"
-      >
+        className="flex min-h-0 flex-1 flex-col">
         <div className="flex items-center justify-end">
           <Button
             size="sm"
             onClick={saveInstructions}
-            disabled={instructions === savedInstructions || saveMutation.isPending}
-          >
+            disabled={instructions === savedInstructions || saveMutation.isPending}>
             Save
           </Button>
         </div>

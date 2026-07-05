@@ -18,14 +18,11 @@ type CreateSessionInput = {
   parentSessionId?: string;
 };
 
-export async function createSession(
-  input: CreateSessionInput,
-): Promise<ServiceResult<typeof sessions.$inferSelect>> {
+export async function createSession(input: CreateSessionInput): Promise<ServiceResult<typeof sessions.$inferSelect>> {
   const db = getDb();
   const id = createSessionId();
   const now = Date.now();
-  const title =
-    input.title ?? `New Session ${new Date(now).toLocaleString('en-US', { hour12: false })}`;
+  const title = input.title ?? `New Session ${new Date(now).toLocaleString('en-US', { hour12: false })}`;
 
   const [session] = await db
     .insert(sessions)
@@ -48,9 +45,7 @@ export async function listSessions(
   options: { limit?: number; cursor?: number; search?: string } = {},
 ): Promise<ServiceResult<{ sessions: (typeof sessions.$inferSelect)[]; hasMore: boolean }>> {
   const db = getDb();
-  const pageSize = options.limit
-    ? Math.min(Math.max(options.limit, 1), 100)
-    : DEFAULT_SESSION_PAGE_SIZE;
+  const pageSize = options.limit ? Math.min(Math.max(options.limit, 1), 100) : DEFAULT_SESSION_PAGE_SIZE;
 
   const conditions = [eq(sessions.type, type)];
   if (options.cursor !== undefined) {
@@ -110,14 +105,9 @@ export async function listSessionMessages(
   return ok({ messages: page, hasMore });
 }
 
-export async function deleteSession(
-  sessionId: PrefixedString<'ses'>,
-): Promise<ServiceResult<{ id: string }>> {
+export async function deleteSession(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<{ id: string }>> {
   const db = getDb();
-  const result = await db
-    .delete(sessions)
-    .where(eq(sessions.id, sessionId))
-    .returning({ id: sessions.id });
+  const result = await db.delete(sessions).where(eq(sessions.id, sessionId)).returning({ id: sessions.id });
   if (result.length === 0) return err('Session not found', 404);
   return ok(result[0]);
 }

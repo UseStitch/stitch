@@ -15,11 +15,7 @@ import { findMcpRegistryServerForInstall, listMcpRegistryServers } from '@/mcp/r
 const log = Log.create({ service: 'mcp-registry-logos' });
 const REGISTRY_ID_REGEX = /^[a-z0-9][a-z0-9._-]*$/i;
 
-type GetRegistryLogoOptions = {
-  cacheDir?: string;
-  registryCacheFilePath?: string;
-  fetchImpl?: FetchLike;
-};
+type GetRegistryLogoOptions = { cacheDir?: string; registryCacheFilePath?: string; fetchImpl?: FetchLike };
 
 function getLogoPath(registryId: string, cacheDir: string): string {
   return path.join(cacheDir, `${registryId}.svg`);
@@ -45,11 +41,9 @@ async function fetchAndCacheLogo(
 ): Promise<string | undefined> {
   if (!server.logoUrl || !isAllowedLogoUrl(server.logoUrl)) return undefined;
 
-  const response = await fetchImpl(server.logoUrl, { signal: AbortSignal.timeout(10_000) }).catch(
-    (error) => {
-      log.warn({ error, registryId: server.id }, 'failed to fetch MCP registry logo');
-    },
-  );
+  const response = await fetchImpl(server.logoUrl, { signal: AbortSignal.timeout(10_000) }).catch((error) => {
+    log.warn({ error, registryId: server.id }, 'failed to fetch MCP registry logo');
+  });
   if (!response || !response.ok || !isSvgResponse(response)) return undefined;
 
   const svg = await response.text();
@@ -77,9 +71,7 @@ export async function getMcpRegistryLogo(
   return fetchAndCacheLogo(server, filePath, cacheDir, options.fetchImpl ?? fetch);
 }
 
-export async function getMcpInstalledServerRegistryLogo(
-  serverId: string,
-): Promise<string | undefined> {
+export async function getMcpInstalledServerRegistryLogo(serverId: string): Promise<string | undefined> {
   const db = getDb();
   const [server] = await db
     .select()
@@ -87,10 +79,7 @@ export async function getMcpInstalledServerRegistryLogo(
     .where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
   if (!server) return undefined;
 
-  const registryServer = await findMcpRegistryServerForInstall({
-    name: server.name,
-    url: server.url,
-  });
+  const registryServer = await findMcpRegistryServerForInstall({ name: server.name, url: server.url });
   if (!registryServer) return undefined;
 
   return getMcpRegistryLogo(registryServer.id);

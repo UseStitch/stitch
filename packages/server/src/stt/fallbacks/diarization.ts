@@ -19,18 +19,11 @@ export type DiarizationFallback = {
  * Each source feeds a dedicated STT connection, so the speaker is known by stream.
  */
 export function createDiarizationFallback(config: DiarizationFallbackConfig): DiarizationFallback {
-  const speakerMap: Record<AudioSource, string> = {
-    mic: config.micSpeakerName,
-    speaker: config.speakerSpeakerName,
-  };
+  const speakerMap: Record<AudioSource, string> = { mic: config.micSpeakerName, speaker: config.speakerSpeakerName };
 
   function tagTranscript(event: TranscriptEvent, source: AudioSource): TranscriptEvent {
     const speaker = speakerMap[source];
-    return {
-      ...event,
-      speaker,
-      words: event.words?.map((w) => ({ ...w, speaker })),
-    };
+    return { ...event, speaker, words: event.words?.map((w) => ({ ...w, speaker })) };
   }
 
   return { tagTranscript };

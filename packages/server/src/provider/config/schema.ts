@@ -40,10 +40,7 @@ const GoogleVertexCredentialsSchema = z.object({
   auth: z.discriminatedUnion('method', [
     z.object({ method: z.literal('api-key'), apiKey: z.string() }),
     z.object({ method: z.literal('adc') }),
-    z.object({
-      method: z.literal('service-account'),
-      googleAuthOptions: z.record(z.string(), z.unknown()),
-    }),
+    z.object({ method: z.literal('service-account'), googleAuthOptions: z.record(z.string(), z.unknown()) }),
   ]),
 });
 

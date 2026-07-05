@@ -138,12 +138,7 @@ describe('buildHistoryMessages', () => {
   const timing = { startedAt: 1, endedAt: 1 };
 
   function textPart(text: string): StoredPart {
-    return {
-      type: 'text-delta',
-      id: 'prt_text' as StoredPart['id'],
-      text,
-      ...timing,
-    } as StoredPart;
+    return { type: 'text-delta', id: 'prt_text' as StoredPart['id'], text, ...timing } as StoredPart;
   }
 
   function toolCallPart(toolCallId: string, toolName = 'bash'): StoredPart {
@@ -196,26 +191,13 @@ describe('buildHistoryMessages', () => {
 
     const nonSystem = result.filter((m) => m.role !== 'system');
     expect(nonSystem).toHaveLength(2);
-    expect(nonSystem[0]).toMatchObject({
-      role: 'assistant',
-      content: [{ type: 'tool-call', toolCallId: 'tc_1' }],
-    });
-    expect(nonSystem[1]).toMatchObject({
-      role: 'tool',
-      content: [{ type: 'tool-result', toolCallId: 'tc_1' }],
-    });
+    expect(nonSystem[0]).toMatchObject({ role: 'assistant', content: [{ type: 'tool-call', toolCallId: 'tc_1' }] });
+    expect(nonSystem[1]).toMatchObject({ role: 'tool', content: [{ type: 'tool-result', toolCallId: 'tc_1' }] });
   });
 
   test('drops unmatched tool-call parts from history', () => {
     const result = buildHistoryMessages(
-      [
-        {
-          role: 'assistant',
-          isSummary: false,
-          modelId: 'test-model',
-          parts: [toolCallPart('tc_missing')],
-        },
-      ],
+      [{ role: 'assistant', isSummary: false, modelId: 'test-model', parts: [toolCallPart('tc_missing')] }],
       {
         useBasePrompt: true,
         systemPrompt: null,
@@ -254,10 +236,7 @@ describe('buildHistoryMessages', () => {
 
     const nonSystem = result.filter((m) => m.role !== 'system');
     expect(nonSystem).toHaveLength(1);
-    expect(nonSystem[0]).toMatchObject({
-      role: 'assistant',
-      content: [{ type: 'text', text: 'hello' }],
-    });
+    expect(nonSystem[0]).toMatchObject({ role: 'assistant', content: [{ type: 'text', text: 'hello' }] });
   });
 
   test('maps error outputs to error-json tool results', () => {
@@ -267,10 +246,7 @@ describe('buildHistoryMessages', () => {
           role: 'assistant',
           isSummary: false,
           modelId: 'test-model',
-          parts: [
-            toolCallPart('tc_err'),
-            toolResultPart('tc_err', { error: 'Command was aborted' }),
-          ],
+          parts: [toolCallPart('tc_err'), toolResultPart('tc_err', { error: 'Command was aborted' })],
         },
       ],
       {
@@ -299,14 +275,7 @@ describe('buildHistoryMessages', () => {
 
   test('adds system prompt with environment', () => {
     const result = buildHistoryMessages(
-      [
-        {
-          role: 'user',
-          isSummary: false,
-          modelId: 'openai/gpt-5.3-codex',
-          parts: [textPart('hello')],
-        },
-      ],
+      [{ role: 'user', isSummary: false, modelId: 'openai/gpt-5.3-codex', parts: [textPart('hello')] }],
       {
         useBasePrompt: true,
         systemPrompt: null,
@@ -329,14 +298,7 @@ describe('buildHistoryMessages', () => {
 
   test('uses custom system prompt when base prompt is disabled', () => {
     const result = buildHistoryMessages(
-      [
-        {
-          role: 'user',
-          isSummary: false,
-          modelId: 'openai/gpt-5.3-codex',
-          parts: [textPart('hello')],
-        },
-      ],
+      [{ role: 'user', isSummary: false, modelId: 'openai/gpt-5.3-codex', parts: [textPart('hello')] }],
       {
         useBasePrompt: false,
         systemPrompt: 'Custom system prompt for testing',
@@ -358,14 +320,7 @@ describe('buildHistoryMessages', () => {
 
   test('appends custom system prompt when base prompt is enabled', () => {
     const result = buildHistoryMessages(
-      [
-        {
-          role: 'user',
-          isSummary: false,
-          modelId: 'openai/gpt-5.3-codex',
-          parts: [textPart('hello')],
-        },
-      ],
+      [{ role: 'user', isSummary: false, modelId: 'openai/gpt-5.3-codex', parts: [textPart('hello')] }],
       {
         useBasePrompt: true,
         systemPrompt: 'Extra user instruction',
@@ -387,14 +342,7 @@ describe('buildHistoryMessages', () => {
 
   test('omits user instructions block when custom system prompt is empty', () => {
     const result = buildHistoryMessages(
-      [
-        {
-          role: 'user',
-          isSummary: false,
-          modelId: 'openai/gpt-5.3-codex',
-          parts: [textPart('hello')],
-        },
-      ],
+      [{ role: 'user', isSummary: false, modelId: 'openai/gpt-5.3-codex', parts: [textPart('hello')] }],
       {
         useBasePrompt: true,
         systemPrompt: '   ',
@@ -412,14 +360,7 @@ describe('buildHistoryMessages', () => {
 
   test('includes user profile name in system prompt when provided', () => {
     const result = buildHistoryMessages(
-      [
-        {
-          role: 'user',
-          isSummary: false,
-          modelId: 'openai/gpt-5.3-codex',
-          parts: [textPart('hello')],
-        },
-      ],
+      [{ role: 'user', isSummary: false, modelId: 'openai/gpt-5.3-codex', parts: [textPart('hello')] }],
       {
         useBasePrompt: true,
         systemPrompt: null,
@@ -437,14 +378,7 @@ describe('buildHistoryMessages', () => {
 
   test('includes user timezone in system prompt environment when provided', () => {
     const result = buildHistoryMessages(
-      [
-        {
-          role: 'user',
-          isSummary: false,
-          modelId: 'openai/gpt-5.3-codex',
-          parts: [textPart('hello')],
-        },
-      ],
+      [{ role: 'user', isSummary: false, modelId: 'openai/gpt-5.3-codex', parts: [textPart('hello')] }],
       {
         useBasePrompt: true,
         systemPrompt: null,
@@ -474,13 +408,7 @@ describe('buildHistoryMessages', () => {
   });
 
   function imagePart(dataUrl = 'data:image/png;base64,AAAA', mime = 'image/png'): StoredPart {
-    return {
-      type: 'user-image',
-      id: 'prt_img' as StoredPart['id'],
-      dataUrl,
-      mime,
-      ...timing,
-    } as StoredPart;
+    return { type: 'user-image', id: 'prt_img' as StoredPart['id'], dataUrl, mime, ...timing } as StoredPart;
   }
 
   function filePart(
@@ -488,14 +416,7 @@ describe('buildHistoryMessages', () => {
     mime = 'application/pdf',
     filename = 'doc.pdf',
   ): StoredPart {
-    return {
-      type: 'user-file',
-      id: 'prt_file' as StoredPart['id'],
-      dataUrl,
-      mime,
-      filename,
-      ...timing,
-    } as StoredPart;
+    return { type: 'user-file', id: 'prt_file' as StoredPart['id'], dataUrl, mime, filename, ...timing } as StoredPart;
   }
 
   function userMsg(parts: StoredPart[]) {
@@ -503,12 +424,7 @@ describe('buildHistoryMessages', () => {
   }
 
   function assistantMsg(text: string) {
-    return {
-      role: 'assistant' as const,
-      isSummary: false,
-      modelId: 'test',
-      parts: [textPart(text)],
-    };
+    return { role: 'assistant' as const, isSummary: false, modelId: 'test', parts: [textPart(text)] };
   }
 
   test('preserves images within the last 3 assistant turns', () => {
@@ -534,9 +450,7 @@ describe('buildHistoryMessages', () => {
     for (const um of userMessages) {
       if (typeof um.content === 'string') continue;
       const parts = um.content as Array<{ type: string; text?: string }>;
-      const placeholders = parts.filter(
-        (p) => p.type === 'text' && p.text?.includes('already processed'),
-      );
+      const placeholders = parts.filter((p) => p.type === 'text' && p.text?.includes('already processed'));
       expect(placeholders).toHaveLength(0);
     }
 

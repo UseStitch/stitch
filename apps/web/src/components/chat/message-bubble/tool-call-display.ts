@@ -60,14 +60,7 @@ export function buildStoredToolCallDisplayItems(
       toolError = wasAborted ? 'Interrupted' : 'Blocked or failed before completion';
     }
 
-    return {
-      id: part.toolCallId,
-      toolName: part.toolName,
-      status,
-      args: part.input,
-      result: output,
-      error: toolError,
-    };
+    return { id: part.toolCallId, toolName: part.toolName, status, args: part.input, result: output, error: toolError };
   });
 }
 
@@ -108,12 +101,9 @@ export function getToolCallActions(call: ToolCallDisplayItem): ToolCallAction[] 
   return childSessionId ? [{ type: 'open-child-session', sessionId: childSessionId }] : [];
 }
 
-function isVisibleStoredToolCallPart(part: StoredPart): part is StoredPart & {
-  type: 'tool-call';
-  toolCallId: string;
-  toolName: string;
-  input: unknown;
-} {
+function isVisibleStoredToolCallPart(
+  part: StoredPart,
+): part is StoredPart & { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown } {
   return part.type === 'tool-call' && !isHiddenToolCall(part.toolName);
 }
 
@@ -219,8 +209,7 @@ function getSkillPreview(call: ToolCallDisplayItem): string | null {
 function getToolsetPreview(call: ToolCallDisplayItem): string | null {
   if (!isToolsetTool(call.toolName)) return null;
 
-  const toolsetName =
-    getStringArg(call.result, ['toolsetName', 'name']) ?? getStringArg(call.args, ['toolsetId']);
+  const toolsetName = getStringArg(call.result, ['toolsetName', 'name']) ?? getStringArg(call.args, ['toolsetId']);
   const normalizedName = toolsetName ?? 'toolset';
 
   if (call.toolName === 'list_toolsets') {
@@ -276,11 +265,7 @@ function getGmailPreview(call: ToolCallDisplayItem): string | null {
 }
 
 function isToolsetTool(toolName: string): boolean {
-  return (
-    toolName === 'list_toolsets' ||
-    toolName === 'activate_toolset' ||
-    toolName === 'deactivate_toolset'
-  );
+  return toolName === 'list_toolsets' || toolName === 'activate_toolset' || toolName === 'deactivate_toolset';
 }
 
 function getArrayLength(value: unknown, key: string): number | null {
@@ -299,15 +284,13 @@ function getToolMeta(call: ToolCallDisplayItem): string | undefined {
   const exitCode = (call.result as { metadata?: { exit?: unknown } } | undefined)?.metadata?.exit;
   if (typeof exitCode === 'number' && exitCode !== 0) return `exit ${exitCode}`;
 
-  const usedAccount =
-    getStringArg(call.args, ['account']) ?? getStringArg(call.result, ['usedAccount', 'account']);
+  const usedAccount = getStringArg(call.args, ['account']) ?? getStringArg(call.result, ['usedAccount', 'account']);
   return usedAccount ?? undefined;
 }
 
 function getBestGenericPreview(args: unknown, result: unknown): string | null {
   return (
-    getStringArg(args, ['description', 'query', 'title', 'name', 'id']) ??
-    getStringArg(result, ['title', 'name', 'id'])
+    getStringArg(args, ['description', 'query', 'title', 'name', 'id']) ?? getStringArg(result, ['title', 'name', 'id'])
   );
 }
 

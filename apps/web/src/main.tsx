@@ -7,23 +7,11 @@ import { RouterProvider, createHashHistory, createRouter } from '@tanstack/react
 
 import { DesktopNotificationRoot } from '@/components/desktop-notifications/desktop-notification-root';
 import { SseProvider } from '@/hooks/sse/sse-context';
-import {
-  applyAppearanceMode,
-  DEFAULT_MODE,
-  DEFAULT_THEME,
-  getTheme,
-  injectThemeCss,
-} from '@/lib/theme';
+import { applyAppearanceMode, DEFAULT_MODE, DEFAULT_THEME, getTheme, injectThemeCss } from '@/lib/theme';
 import { routeTree } from '@/routeTree.gen';
 import '@/styles/global.css';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: Infinity,
-    },
-  },
-});
+const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
 const isFileProtocol = window.location.protocol === 'file:';
 
 const router = createRouter({

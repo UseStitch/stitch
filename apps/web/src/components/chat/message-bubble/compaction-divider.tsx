@@ -6,9 +6,7 @@ import type { StoredPart } from '@stitch/shared/chat/messages';
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { extractTextFromParts } from '@/components/chat/message-bubble/extract-text.js';
 
-type CompactionDividerProps = {
-  summaryParts?: StoredPart[];
-};
+type CompactionDividerProps = { summaryParts?: StoredPart[] };
 
 function stripOuterCodeFence(text: string): string {
   const trimmed = text.trim();
@@ -31,13 +29,8 @@ export function CompactionDivider({ summaryParts }: CompactionDividerProps) {
           <button
             type="button"
             onClick={() => setOpen((o) => !o)}
-            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            {open ? (
-              <ChevronDownIcon className="size-3 shrink-0" />
-            ) : (
-              <ChevronRightIcon className="size-3 shrink-0" />
-            )}
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+            {open ? <ChevronDownIcon className="size-3 shrink-0" /> : <ChevronRightIcon className="size-3 shrink-0" />}
             <span>Session compacted</span>
           </button>
         ) : (

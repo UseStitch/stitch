@@ -7,11 +7,7 @@ const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
 type GmailHeader = { name: string; value: string };
 
-type GmailMessagePartBody = {
-  size: number;
-  data?: string;
-  attachmentId?: string;
-};
+type GmailMessagePartBody = { size: number; data?: string; attachmentId?: string };
 
 type GmailMessagePart = {
   mimeType: string;
@@ -35,10 +31,7 @@ type GmailListResponse = {
   resultSizeEstimate?: number;
 };
 
-type GmailAttachmentResponse = {
-  data?: string;
-  size: number;
-};
+type GmailAttachmentResponse = { data?: string; size: number };
 
 function decodeBase64Url(data: string): string {
   const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
@@ -85,9 +78,7 @@ function extractAttachments(payload: GmailMessagePart | undefined): GmailAttachm
   for (const part of payload.parts) {
     const filename =
       extractHeader(part.headers, 'Content-Disposition')?.match(/filename="?([^";]+)"?/i)?.[1] ??
-      part.headers
-        ?.find((h) => h.name.toLowerCase() === 'content-type')
-        ?.value.match(/name="?([^";]+)"?/i)?.[1];
+      part.headers?.find((h) => h.name.toLowerCase() === 'content-type')?.value.match(/name="?([^";]+)"?/i)?.[1];
 
     if (filename && part.body?.size) {
       attachments.push({
@@ -130,16 +121,9 @@ function extractBody(payload: GmailMessagePart | undefined): string {
   return '';
 }
 
-type GmailAttachment = {
-  attachmentId: string | undefined;
-  filename: string;
-  mimeType: string;
-  size: number;
-};
+type GmailAttachment = { attachmentId: string | undefined; filename: string; mimeType: string; size: number };
 
-type GmailDownloadedAttachment = GmailAttachment & {
-  path: string;
-};
+type GmailDownloadedAttachment = GmailAttachment & { path: string };
 
 type GmailMessage = {
   id: string;
@@ -194,22 +178,12 @@ type GmailLabel = {
   threadsUnread: number | undefined;
 };
 
-type GmailLabelListResponse = {
-  labels?: GmailLabelRaw[];
-};
+type GmailLabelListResponse = { labels?: GmailLabelRaw[] };
 
-type GmailModifyThreadRaw = {
-  id: string;
-  historyId?: string;
-};
+type GmailModifyThreadRaw = { id: string; historyId?: string };
 
 type GmailModifyLabelsInput =
-  | {
-      operation: 'create';
-      name: string;
-      messageListVisibility?: string;
-      labelListVisibility?: string;
-    }
+  | { operation: 'create'; name: string; messageListVisibility?: string; labelListVisibility?: string }
   | {
       operation: 'update';
       labelId: string;
@@ -217,21 +191,11 @@ type GmailModifyLabelsInput =
       messageListVisibility?: string;
       labelListVisibility?: string;
     }
-  | {
-      operation: 'delete';
-      labelId: string;
-    };
+  | { operation: 'delete'; labelId: string };
 
 type GmailModifyLabelsResult =
-  | {
-      operation: 'create' | 'update';
-      label: GmailLabel;
-    }
-  | {
-      operation: 'delete';
-      labelId: string;
-      deleted: true;
-    };
+  | { operation: 'create' | 'update'; label: GmailLabel }
+  | { operation: 'delete'; labelId: string; deleted: true };
 
 type GmailModifyMessagesResult = {
   modifiedTarget: 'message' | 'thread';
@@ -268,9 +232,7 @@ export async function searchMessages(
   const params = new URLSearchParams({ q: query, maxResults: String(maxResults) });
   if (pageToken) params.set('pageToken', pageToken);
 
-  const list = await client.request<GmailListResponse>(
-    `${GMAIL_API}/messages?${params.toString()}`,
-  );
+  const list = await client.request<GmailListResponse>(`${GMAIL_API}/messages?${params.toString()}`);
 
   if (!list.messages?.length) {
     return { messages: [], nextPageToken: undefined, totalEstimate: 0 };
@@ -307,17 +269,11 @@ export async function searchMessages(
     summaries.push(...results);
   }
 
-  return {
-    messages: summaries,
-    nextPageToken: list.nextPageToken,
-    totalEstimate: list.resultSizeEstimate ?? 0,
-  };
+  return { messages: summaries, nextPageToken: list.nextPageToken, totalEstimate: list.resultSizeEstimate ?? 0 };
 }
 
 export async function getMessage(client: GoogleClient, messageId: string): Promise<GmailMessage> {
-  const raw = await client.request<GmailMessageRaw>(
-    `${GMAIL_API}/messages/${messageId}?format=FULL`,
-  );
+  const raw = await client.request<GmailMessageRaw>(`${GMAIL_API}/messages/${messageId}?format=FULL`);
 
   return {
     id: raw.id,
@@ -341,9 +297,7 @@ export async function downloadAttachments(
   const raw = await client.request<GmailMessageRaw>(
     `${GMAIL_API}/messages/${encodeURIComponent(messageId)}?format=FULL`,
   );
-  const attachments = extractAttachments(raw.payload).filter(
-    (attachment) => attachment.attachmentId,
-  );
+  const attachments = extractAttachments(raw.payload).filter((attachment) => attachment.attachmentId);
 
   if (attachments.length === 0) {
     return { messageId: raw.id, attachments: [] };
@@ -406,15 +360,11 @@ export async function sendMessage(
 
 export async function listLabels(client: GoogleClient): Promise<{ labels: GmailLabel[] }> {
   const response = await client.request<GmailLabelListResponse>(`${GMAIL_API}/labels`);
-  return {
-    labels: (response.labels ?? []).map(mapLabel),
-  };
+  return { labels: (response.labels ?? []).map(mapLabel) };
 }
 
 export async function getLabels(client: GoogleClient, labelId: string): Promise<GmailLabel> {
-  const raw = await client.request<GmailLabelRaw>(
-    `${GMAIL_API}/labels/${encodeURIComponent(labelId)}`,
-  );
+  const raw = await client.request<GmailLabelRaw>(`${GMAIL_API}/labels/${encodeURIComponent(labelId)}`);
   return mapLabel(raw);
 }
 
@@ -432,40 +382,25 @@ export async function modifyLabels(
       }),
     });
 
-    return {
-      operation: 'create',
-      label: mapLabel(raw),
-    };
+    return { operation: 'create', label: mapLabel(raw) };
   }
 
   if (input.operation === 'update') {
-    const raw = await client.request<GmailLabelRaw>(
-      `${GMAIL_API}/labels/${encodeURIComponent(input.labelId)}`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify({
-          name: input.name,
-          messageListVisibility: input.messageListVisibility,
-          labelListVisibility: input.labelListVisibility,
-        }),
-      },
-    );
+    const raw = await client.request<GmailLabelRaw>(`${GMAIL_API}/labels/${encodeURIComponent(input.labelId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        name: input.name,
+        messageListVisibility: input.messageListVisibility,
+        labelListVisibility: input.labelListVisibility,
+      }),
+    });
 
-    return {
-      operation: 'update',
-      label: mapLabel(raw),
-    };
+    return { operation: 'update', label: mapLabel(raw) };
   }
 
-  await client.request(`${GMAIL_API}/labels/${encodeURIComponent(input.labelId)}`, {
-    method: 'DELETE',
-  });
+  await client.request(`${GMAIL_API}/labels/${encodeURIComponent(input.labelId)}`, { method: 'DELETE' });
 
-  return {
-    operation: 'delete',
-    labelId: input.labelId,
-    deleted: true,
-  };
+  return { operation: 'delete', labelId: input.labelId, deleted: true };
 }
 
 // ─── Filters ─────────────────────────────────────────────────────────────────
@@ -482,21 +417,11 @@ type GmailFilterCriteria = {
   sizeComparison?: 'smaller' | 'larger' | 'unspecified';
 };
 
-type GmailFilterAction = {
-  addLabelIds?: string[];
-  removeLabelIds?: string[];
-  forward?: string;
-};
+type GmailFilterAction = { addLabelIds?: string[]; removeLabelIds?: string[]; forward?: string };
 
-type GmailFilterRaw = {
-  id: string;
-  criteria?: GmailFilterCriteria;
-  action?: GmailFilterAction;
-};
+type GmailFilterRaw = { id: string; criteria?: GmailFilterCriteria; action?: GmailFilterAction };
 
-type GmailFilterListResponse = {
-  filter?: GmailFilterRaw[];
-};
+type GmailFilterListResponse = { filter?: GmailFilterRaw[] };
 
 type GmailFilter = {
   id: string;
@@ -506,10 +431,7 @@ type GmailFilter = {
   summary: string;
 };
 
-type GmailFilterInput = {
-  criteria?: GmailFilterCriteria;
-  action?: GmailFilterAction;
-};
+type GmailFilterInput = { criteria?: GmailFilterCriteria; action?: GmailFilterAction };
 
 /**
  * Build a concise human-readable summary of a filter so the LLM can reason about
@@ -526,16 +448,11 @@ function summarizeFilter(criteria: GmailFilterCriteria, action: GmailFilterActio
   if (criteria.negatedQuery) parts.push(`not matching: ${criteria.negatedQuery}`);
   if (criteria.hasAttachment) parts.push('has attachment');
   if (criteria.excludeChats) parts.push('exclude chats');
-  if (
-    criteria.size !== undefined &&
-    criteria.sizeComparison &&
-    criteria.sizeComparison !== 'unspecified'
-  ) {
+  if (criteria.size !== undefined && criteria.sizeComparison && criteria.sizeComparison !== 'unspecified') {
     const bytes = criteria.size;
     const kb = bytes / 1024;
     const mb = kb / 1024;
-    const sizeStr =
-      mb >= 1 ? `${mb.toFixed(1)} MB` : kb >= 1 ? `${kb.toFixed(0)} KB` : `${bytes} B`;
+    const sizeStr = mb >= 1 ? `${mb.toFixed(1)} MB` : kb >= 1 ? `${kb.toFixed(0)} KB` : `${bytes} B`;
     parts.push(`size ${criteria.sizeComparison} ${sizeStr}`);
   }
 
@@ -601,9 +518,7 @@ function summarizeFilter(criteria: GmailFilterCriteria, action: GmailFilterActio
     if (names.includes('unread')) effects.push('mark as read');
     if (names.includes('spam')) effects.push('never spam');
     if (names.includes('important')) effects.push('never mark important');
-    const remainder = names.filter(
-      (n) => n !== 'inbox' && n !== 'unread' && n !== 'spam' && n !== 'important',
-    );
+    const remainder = names.filter((n) => n !== 'inbox' && n !== 'unread' && n !== 'spam' && n !== 'important');
     if (remainder.length) effects.push(`remove labels: ${remainder.join(', ')}`);
 
     if (effects.length) actions.push(effects.join('; '));
@@ -619,47 +534,30 @@ function summarizeFilter(criteria: GmailFilterCriteria, action: GmailFilterActio
 function mapFilter(raw: GmailFilterRaw): GmailFilter {
   const criteria = raw.criteria ?? {};
   const action = raw.action ?? {};
-  return {
-    id: raw.id,
-    criteria,
-    action,
-    summary: summarizeFilter(criteria, action),
-  };
+  return { id: raw.id, criteria, action, summary: summarizeFilter(criteria, action) };
 }
 
 export async function listFilters(client: GoogleClient): Promise<{ filters: GmailFilter[] }> {
   const response = await client.request<GmailFilterListResponse>(`${GMAIL_API}/settings/filters`);
-  return {
-    filters: (response.filter ?? []).map(mapFilter),
-  };
+  return { filters: (response.filter ?? []).map(mapFilter) };
 }
 
 export async function getFilter(client: GoogleClient, filterId: string): Promise<GmailFilter> {
-  const raw = await client.request<GmailFilterRaw>(
-    `${GMAIL_API}/settings/filters/${encodeURIComponent(filterId)}`,
-  );
+  const raw = await client.request<GmailFilterRaw>(`${GMAIL_API}/settings/filters/${encodeURIComponent(filterId)}`);
   return mapFilter(raw);
 }
 
-export async function createFilter(
-  client: GoogleClient,
-  input: GmailFilterInput,
-): Promise<GmailFilter> {
+export async function createFilter(client: GoogleClient, input: GmailFilterInput): Promise<GmailFilter> {
   const criteria = input.criteria ?? {};
 
   const hasCriteria = Object.values(criteria).some((v) => v !== undefined);
   if (!hasCriteria) {
-    throw new Error(
-      'A filter must have at least one criteria field (e.g. from, to, subject, query, hasAttachment).',
-    );
+    throw new Error('A filter must have at least one criteria field (e.g. from, to, subject, query, hasAttachment).');
   }
 
   const raw = await client.request<GmailFilterRaw>(`${GMAIL_API}/settings/filters`, {
     method: 'POST',
-    body: JSON.stringify({
-      criteria,
-      action: input.action ?? {},
-    }),
+    body: JSON.stringify({ criteria, action: input.action ?? {} }),
   });
   return mapFilter(raw);
 }
@@ -668,51 +566,29 @@ export async function deleteFilter(
   client: GoogleClient,
   filterId: string,
 ): Promise<{ filterId: string; deleted: true }> {
-  await client.request(`${GMAIL_API}/settings/filters/${encodeURIComponent(filterId)}`, {
-    method: 'DELETE',
-  });
+  await client.request(`${GMAIL_API}/settings/filters/${encodeURIComponent(filterId)}`, { method: 'DELETE' });
   return { filterId, deleted: true };
 }
 
 export async function modifyMessages(
   client: GoogleClient,
-  input: {
-    messageIds: string[];
-    addLabelIds?: string[];
-    removeLabelIds?: string[];
-    modifyThreads?: boolean;
-  },
+  input: { messageIds: string[]; addLabelIds?: string[]; removeLabelIds?: string[]; modifyThreads?: boolean },
 ): Promise<GmailModifyMessagesResult> {
-  const payload = {
-    addLabelIds: input.addLabelIds,
-    removeLabelIds: input.removeLabelIds,
-  };
+  const payload = { addLabelIds: input.addLabelIds, removeLabelIds: input.removeLabelIds };
 
   if (input.modifyThreads) {
     const results = await Promise.all(
       input.messageIds.map(async (messageId) => {
         const raw = await client.request<GmailModifyThreadRaw>(
           `${GMAIL_API}/threads/${encodeURIComponent(messageId)}/modify`,
-          {
-            method: 'POST',
-            body: JSON.stringify(payload),
-          },
+          { method: 'POST', body: JSON.stringify(payload) },
         );
 
-        return {
-          id: raw.id,
-          threadId: raw.id,
-          historyId: raw.historyId,
-          labelIds: undefined,
-        };
+        return { id: raw.id, threadId: raw.id, historyId: raw.historyId, labelIds: undefined };
       }),
     );
 
-    return {
-      modifiedTarget: 'thread',
-      modifiedCount: results.length,
-      results,
-    };
+    return { modifiedTarget: 'thread', modifiedCount: results.length, results };
   }
 
   await client.request(`${GMAIL_API}/messages/batchModify`, {
@@ -731,9 +607,5 @@ export async function modifyMessages(
     labelIds: undefined,
   }));
 
-  return {
-    modifiedTarget: 'message',
-    modifiedCount: results.length,
-    results,
-  };
+  return { modifiedTarget: 'message', modifiedCount: results.length, results };
 }

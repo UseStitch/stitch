@@ -1,12 +1,4 @@
-import {
-  BookPlus,
-  Scissors,
-  Copy,
-  ClipboardPaste,
-  Terminal,
-  ChevronRight,
-  SpellCheck,
-} from 'lucide-react';
+import { BookPlus, Scissors, Copy, ClipboardPaste, Terminal, ChevronRight, SpellCheck } from 'lucide-react';
 import { useEffect, useLayoutEffect, useCallback, useState, useRef, forwardRef } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -43,8 +35,7 @@ const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(function MenuItem(
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    >
+      onMouseLeave={onMouseLeave}>
       {children}
       {hasSubmenu && <ChevronRight className="ml-auto" />}
     </button>
@@ -93,11 +84,8 @@ function SpellingSubmenu({
       className="fixed z-60 min-w-48 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10"
       style={style}
       onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    >
-      {suggestions.length === 0 && (
-        <div className="px-1.5 py-1 text-sm text-muted-foreground">No suggestions</div>
-      )}
+      onMouseLeave={onMouseLeave}>
+      {suggestions.length === 0 && <div className="px-1.5 py-1 text-sm text-muted-foreground">No suggestions</div>}
       {suggestions.slice(0, 5).map((s) => (
         <MenuItem key={s} onClick={() => onReplace(s)}>
           {s}
@@ -211,11 +199,7 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
 
   const isMisspelled = !!params?.misspelledWord;
   const isEditable = params?.isEditable ?? false;
-  const { canCut, canCopy, canPaste } = params?.editFlags ?? {
-    canCut: false,
-    canCopy: false,
-    canPaste: false,
-  };
+  const { canCut, canCopy, canPaste } = params?.editFlags ?? { canCut: false, canCopy: false, canPaste: false };
 
   const showEditSection = isEditable && (canCut || canCopy || canPaste);
 
@@ -227,16 +211,14 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
           <div
             ref={menuRef}
             className="fixed z-50 min-w-48 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10"
-            style={{ left: params.x, top: params.y }}
-          >
+            style={{ left: params.x, top: params.y }}>
             {isMisspelled && (
               <>
                 <MenuItem
                   ref={spellingTriggerRef}
                   hasSubmenu
                   onMouseEnter={handleSpellingMouseEnter}
-                  onMouseLeave={handleSpellingMouseLeave}
-                >
+                  onMouseLeave={handleSpellingMouseLeave}>
                   <SpellCheck />
                   Spelling
                 </MenuItem>

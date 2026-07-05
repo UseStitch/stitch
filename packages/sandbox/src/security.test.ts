@@ -29,12 +29,7 @@ describe('sandbox hardening', () => {
       };
     `);
 
-    expect(result.result).toEqual({
-      process: 'undefined',
-      Bun: 'undefined',
-      require: 'undefined',
-      fetch: 'undefined',
-    });
+    expect(result.result).toEqual({ process: 'undefined', Bun: 'undefined', require: 'undefined', fetch: 'undefined' });
   });
 
   test('does not expose callable eval or Function', async () => {
@@ -79,28 +74,20 @@ describe('sandbox hardening', () => {
   test('rejects non-fs dynamic imports', async () => {
     const result = await run('return await import("node:child_process");');
 
-    expect(result.result).toEqual({
-      error: 'dynamic import is only available for node:fs and node:fs/promises',
-    });
+    expect(result.result).toEqual({ error: 'dynamic import is only available for node:fs and node:fs/promises' });
   });
 
   test('rejects non-literal dynamic imports', async () => {
     const result = await run('const moduleName = "node:fs"; return await import(moduleName);');
 
-    expect(result.result).toEqual({
-      error: 'dynamic import is only available for node:fs and node:fs/promises',
-    });
+    expect(result.result).toEqual({ error: 'dynamic import is only available for node:fs and node:fs/promises' });
   });
 
   test('rejects unsafe library names', () => {
     expect(
       createDriver().createContext(
         {},
-        {
-          libraries: {
-            process: { specifier: new URL('./fixtures/sample-library.ts', import.meta.url).href },
-          },
-        },
+        { libraries: { process: { specifier: new URL('./fixtures/sample-library.ts', import.meta.url).href } } },
       ),
     ).rejects.toThrow('Invalid sandbox library name: process');
   });
@@ -111,10 +98,7 @@ describe('sandbox hardening', () => {
         {},
         {
           libraries: {
-            sample: {
-              specifier: new URL('./fixtures/sample-library.ts', import.meta.url).href,
-              globalName: 'process',
-            },
+            sample: { specifier: new URL('./fixtures/sample-library.ts', import.meta.url).href, globalName: 'process' },
           },
         },
       ),

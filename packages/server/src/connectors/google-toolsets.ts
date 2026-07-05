@@ -69,13 +69,9 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
           .from(connectorInstances)
           .where(eq(connectorInstances.connectorId, 'google'));
 
-        const connected = rows.filter(
-          (row) => row.status === 'connected' && Boolean(row.accessToken),
-        );
+        const connected = rows.filter((row) => row.status === 'connected' && Boolean(row.accessToken));
         if (connected.length === 0) {
-          throw new Error(
-            'No connected Google accounts found. Connect and authorize Google first.',
-          );
+          throw new Error('No connected Google accounts found. Connect and authorize Google first.');
         }
 
         const normalized = account?.trim().toLowerCase();
@@ -93,9 +89,7 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
           throw new Error(`Unknown Google account "${account}". Available accounts: ${available}`);
         }
 
-        if (
-          !canActivateToolset(def.id, (chosen.scopes as string[]) ?? [], chosen.capabilities ?? [])
-        ) {
+        if (!canActivateToolset(def.id, (chosen.scopes as string[]) ?? [], chosen.capabilities ?? [])) {
           throw new Error(
             `Google account ${chosen.accountEmail ?? chosen.label} does not have the permissions required for ${def.name}. Re-authorize this account with the required scopes.`,
           );
@@ -120,17 +114,14 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
               .where(eq(connectorInstances.id, chosen.id));
 
             if (!latest) {
-              throw new Error(
-                `Google account ${chosen.accountEmail ?? chosen.label} is not authorized.`,
-              );
+              throw new Error(`Google account ${chosen.accountEmail ?? chosen.label} is not authorized.`);
             }
 
             const shouldRefresh =
               Boolean(latest.refreshToken) &&
               (forceRefresh ||
                 latest.accessToken === null ||
-                (latest.tokenExpiresAt !== null &&
-                  latest.tokenExpiresAt <= now + REFRESH_BUFFER_MS));
+                (latest.tokenExpiresAt !== null && latest.tokenExpiresAt <= now + REFRESH_BUFFER_MS));
 
             if (shouldRefresh) {
               const definition = getConnectorDefinition(latest.connectorId);
@@ -141,12 +132,7 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
                   const refreshToken = latest.refreshToken;
                   try {
                     const refreshed = await withRefreshLock(chosen.id, () =>
-                      refreshAccessToken(
-                        config.tokenUrl,
-                        creds.clientId,
-                        creds.clientSecret,
-                        refreshToken,
-                      ),
+                      refreshAccessToken(config.tokenUrl, creds.clientId, creds.clientSecret, refreshToken),
                     );
 
                     await db
@@ -154,9 +140,7 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
                       .set({
                         accessToken: refreshed.accessToken,
                         refreshToken: refreshed.refreshToken ?? refreshToken,
-                        tokenExpiresAt: refreshed.expiresIn
-                          ? now + refreshed.expiresIn * 1000
-                          : null,
+                        tokenExpiresAt: refreshed.expiresIn ? now + refreshed.expiresIn * 1000 : null,
                         status: 'connected',
                         authIssue: null,
                         updatedAt: now,
@@ -183,11 +167,7 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
                     if (requiresReauth) {
                       await db
                         .update(connectorInstances)
-                        .set({
-                          status: 'error',
-                          authIssue: 'reauthorization_required',
-                          updatedAt: Date.now(),
-                        })
+                        .set({ status: 'error', authIssue: 'reauthorization_required', updatedAt: Date.now() })
                         .where(eq(connectorInstances.id, chosen.id));
                     }
                     throw error;
@@ -208,10 +188,7 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
           quotaAccountKey: chosen.id,
         });
 
-        const result = {
-          client,
-          usedAccount: chosen.accountEmail ?? chosen.label,
-        };
+        const result = { client, usedAccount: chosen.accountEmail ?? chosen.label };
         clientCache.set(cacheKey, result);
         return result;
       });
@@ -246,29 +223,17 @@ export async function registerGoogleToolsets(): Promise<void> {
   const connected = instances.filter((i) => i.status === 'connected' && i.accessToken);
 
   if (connected.length === 0) {
-    log.info(
-      { event: 'google-toolsets.none' },
-      'No connected Google instances, skipping toolset registration',
-    );
+    log.info({ event: 'google-toolsets.none' }, 'No connected Google instances, skipping toolset registration');
     return;
   }
 
   const scopes = [...new Set(connected.flatMap((instance) => (instance.scopes as string[]) ?? []))];
-  const capabilities = [
-    ...new Set(connected.flatMap((instance) => (instance.capabilities as string[] | null) ?? [])),
-  ];
+  const capabilities = [...new Set(connected.flatMap((instance) => (instance.capabilities as string[] | null) ?? []))];
   const appliedVersion = Math.max(
-    ...connected.map((instance) =>
-      Number.isFinite(instance.appliedVersion) ? instance.appliedVersion : 1,
-    ),
+    ...connected.map((instance) => (Number.isFinite(instance.appliedVersion) ? instance.appliedVersion : 1)),
   );
 
-  const toolsetDefs = buildGoogleToolsets({
-    scopes,
-    capabilities,
-    appliedVersion,
-    tempPath: PATHS.tempDir,
-  });
+  const toolsetDefs = buildGoogleToolsets({ scopes, capabilities, appliedVersion, tempPath: PATHS.tempDir });
 
   for (const def of toolsetDefs) {
     registerToolset(toServerToolset(def));

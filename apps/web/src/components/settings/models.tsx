@@ -8,13 +8,7 @@ import { buildDefaultVisibleSet, isModelVisible } from '@stitch/shared/providers
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage, SettingSection, SettingRows } from '@/components/settings/settings-ui';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import {
   modelVisibilityQueryOptions,
@@ -23,11 +17,7 @@ import {
 } from '@/lib/queries/model-visibility';
 import { enabledProviderModelsQueryOptions, type ProviderModels } from '@/lib/queries/providers';
 
-type ModelRowProps = {
-  modelName: string;
-  checked: boolean;
-  onToggle: (checked: boolean) => void;
-};
+type ModelRowProps = { modelName: string; checked: boolean; onToggle: (checked: boolean) => void };
 
 function ModelRow({ modelName, checked, onToggle }: ModelRowProps) {
   return (
@@ -58,11 +48,7 @@ function ModelsListContent() {
       buildDefaultVisibleSet(
         allProviderModels.map((p) => ({
           providerId: p.providerId,
-          models: p.models.map((m) => ({
-            id: m.id,
-            family: m.family,
-            release_date: m.release_date,
-          })),
+          models: p.models.map((m) => ({ id: m.id, family: m.family, release_date: m.release_date })),
         })),
       ),
     [allProviderModels],
@@ -85,8 +71,7 @@ function ModelsListContent() {
       .map((provider) => ({
         ...provider,
         models: provider.models.filter(
-          (m) =>
-            m.name.toLowerCase().includes(q) || provider.providerName.toLowerCase().includes(q),
+          (m) => m.name.toLowerCase().includes(q) || provider.providerName.toLowerCase().includes(q),
         ),
       }))
       .filter((p) => p.models.length > 0);
@@ -126,15 +111,10 @@ function ModelsListContent() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Select
-          value={selectedProviderId}
-          onValueChange={(value) => setSelectedProviderId(value ?? 'all')}
-        >
+        <Select value={selectedProviderId} onValueChange={(value) => setSelectedProviderId(value ?? 'all')}>
           <SelectTrigger className="w-full sm:w-56">
             <SelectValue>
-              {selectedProviderId === 'all'
-                ? 'All'
-                : (selectedProvider?.providerName ?? 'Select provider')}
+              {selectedProviderId === 'all' ? 'All' : (selectedProvider?.providerName ?? 'Select provider')}
             </SelectValue>
           </SelectTrigger>
           <SelectContent align="start">
@@ -157,9 +137,7 @@ function ModelsListContent() {
       </div>
 
       {filtered.length === 0 && (
-        <p className="py-4 text-center text-sm text-muted-foreground">
-          No models match your search.
-        </p>
+        <p className="py-4 text-center text-sm text-muted-foreground">No models match your search.</p>
       )}
 
       {filtered.map((provider) => (
@@ -169,12 +147,7 @@ function ModelsListContent() {
               <ModelRow
                 key={model.id}
                 modelName={model.name}
-                checked={isModelVisible(
-                  provider.providerId,
-                  model.id,
-                  overridesMap,
-                  defaultVisibleSet,
-                )}
+                checked={isModelVisible(provider.providerId, model.id, overridesMap, defaultVisibleSet)}
                 onToggle={(checked) => void handleToggle(provider, model.id, checked)}
               />
             ))}
@@ -190,11 +163,7 @@ export function ModelsSettings() {
   const Icon = page.icon;
 
   return (
-    <SettingPage
-      title={page.title}
-      description={page.description}
-      icon={<Icon className="size-5" />}
-    >
+    <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
       <ModelsListContent />
     </SettingPage>
   );

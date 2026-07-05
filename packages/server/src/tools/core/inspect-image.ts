@@ -76,11 +76,7 @@ export function createInspectImageTool(context: ToolContext, deps: InspectImageT
       try {
         stat = await fs.stat(imagePath);
       } catch {
-        return {
-          childSessionId: null,
-          childSessionName: null,
-          summary: `Image file not found: ${imagePath}`,
-        };
+        return { childSessionId: null, childSessionName: null, summary: `Image file not found: ${imagePath}` };
       }
 
       if (stat.size > MAX_FILE_SIZE) {
@@ -99,10 +95,7 @@ export function createInspectImageTool(context: ToolContext, deps: InspectImageT
       const filename = path.basename(imagePath);
       const sessionTitle = `Inspect: ${filename}`.slice(0, 50);
 
-      const sessionResult = await createSession({
-        title: sessionTitle,
-        parentSessionId: deps.parentSessionId,
-      });
+      const sessionResult = await createSession({ title: sessionTitle, parentSessionId: deps.parentSessionId });
       if (sessionResult.error) {
         return {
           childSessionId: null,
@@ -118,10 +111,7 @@ export function createInspectImageTool(context: ToolContext, deps: InspectImageT
         messageId: context.messageId,
         toolCallId,
         toolName: 'inspect_image',
-        output: {
-          childSessionId,
-          childSessionName: childSession.title,
-        },
+        output: { childSessionId, childSessionName: childSession.title },
       });
 
       log.info(
@@ -139,43 +129,28 @@ export function createInspectImageTool(context: ToolContext, deps: InspectImageT
       const userMessageId = createMessageId();
 
       const parts: StoredPart[] = [
-        {
-          type: 'text-delta',
-          id: createPartId(),
-          text: prompt,
-          startedAt: now,
-          endedAt: now,
-        },
-        {
-          type: 'user-image',
-          id: createPartId(),
-          dataUrl,
-          mime,
-          filename,
-          startedAt: now,
-          endedAt: now,
-        },
+        { type: 'text-delta', id: createPartId(), text: prompt, startedAt: now, endedAt: now },
+        { type: 'user-image', id: createPartId(), dataUrl, mime, filename, startedAt: now, endedAt: now },
       ];
 
       const db = getDb();
-      await db.insert(messages).values({
-        id: userMessageId,
-        sessionId: childSessionId,
-        role: 'user',
-        parts,
-        modelId: deps.modelId,
-        providerId: deps.providerId,
-        costUsd: 0,
-        createdAt: now,
-        updatedAt: now,
-        startedAt: now,
-        duration: null,
-      });
+      await db
+        .insert(messages)
+        .values({
+          id: userMessageId,
+          sessionId: childSessionId,
+          role: 'user',
+          parts,
+          modelId: deps.modelId,
+          providerId: deps.providerId,
+          costUsd: 0,
+          createdAt: now,
+          updatedAt: now,
+          startedAt: now,
+          duration: null,
+        });
 
-      const llmMessages = await buildSessionLlmMessages(childSessionId, {
-        useBasePrompt: true,
-        systemPrompt: null,
-      });
+      const llmMessages = await buildSessionLlmMessages(childSessionId, { useBasePrompt: true, systemPrompt: null });
       const assistantMessageId = createMessageId();
 
       const childAbortSignal = AbortRegistry.register(childSessionId);
@@ -197,11 +172,7 @@ export function createInspectImageTool(context: ToolContext, deps: InspectImageT
         });
 
         log.info(
-          {
-            event: 'inspect_image.child_session.completed',
-            parentSessionId: deps.parentSessionId,
-            childSessionId,
-          },
+          { event: 'inspect_image.child_session.completed', parentSessionId: deps.parentSessionId, childSessionId },
           'image inspection completed',
         );
 
@@ -228,12 +199,7 @@ export function createInspectImageTool(context: ToolContext, deps: InspectImageT
         return { childSessionId, childSessionName: childSession.title, summary };
       } catch (error) {
         log.error(
-          {
-            event: 'inspect_image.child_session.failed',
-            parentSessionId: deps.parentSessionId,
-            childSessionId,
-            error,
-          },
+          { event: 'inspect_image.child_session.failed', parentSessionId: deps.parentSessionId, childSessionId, error },
           'image inspection failed',
         );
 

@@ -10,8 +10,6 @@
     "name": "Apollo.io",
     "transport": "http",
     "url": "https://mcp.apollo.io/mcp",
-    "authConfig": {
-      "type": "oauth"
-    }
+    "authConfig": { "type": "oauth" }
   }
 }

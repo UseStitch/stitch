@@ -20,11 +20,7 @@ import type {
 const BRIDGE_HOST = '127.0.0.1';
 const REQUEST_TIMEOUT_MS = 30_000;
 
-type PendingRequest = {
-  resolve: (value: unknown) => void;
-  reject: (error: Error) => void;
-  timeout: NodeJS.Timeout;
-};
+type PendingRequest = { resolve: (value: unknown) => void; reject: (error: Error) => void; timeout: NodeJS.Timeout };
 
 class DesktopBrowserBridge {
   private socket: WebSocket | null = null;
@@ -39,9 +35,7 @@ class DesktopBrowserBridge {
     await this.connect();
     const socket = this.socket;
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-      throw new Error(
-        'Desktop browser bridge is not connected. Browser tools require the Stitch desktop app.',
-      );
+      throw new Error('Desktop browser bridge is not connected. Browser tools require the Stitch desktop app.');
     }
 
     const id = crypto.randomUUID();
@@ -89,9 +83,7 @@ class DesktopBrowserBridge {
 
     const port = process.env.STITCH_BROWSER_BRIDGE_PORT;
     if (!port) {
-      throw new Error(
-        'Browser tools require the Stitch desktop app. No desktop browser bridge is configured.',
-      );
+      throw new Error('Browser tools require the Stitch desktop app. No desktop browser bridge is configured.');
     }
 
     this.connectPromise = new Promise<void>((resolve, reject) => {
@@ -150,8 +142,7 @@ class BrowserManager {
   }
 
   private getSessionId(): string {
-    if (!this._sessionId)
-      throw new Error('Browser sessionId must be set before executing commands.');
+    if (!this._sessionId) throw new Error('Browser sessionId must be set before executing commands.');
     return this._sessionId;
   }
 
@@ -170,14 +161,8 @@ class BrowserManager {
     return;
   }
 
-  async handleDialog(
-    action: 'accept' | 'dismiss',
-    promptText?: string,
-    signal?: AbortSignal,
-  ): Promise<string> {
-    return String(
-      await this.send({ action: 'handleDialog', dialogAction: action, promptText }, signal),
-    );
+  async handleDialog(action: 'accept' | 'dismiss', promptText?: string, signal?: AbortSignal): Promise<string> {
+    return String(await this.send({ action: 'handleDialog', dialogAction: action, promptText }, signal));
   }
 
   async getDialogState(signal?: AbortSignal): Promise<ElectronBrowserDialogState> {
@@ -201,19 +186,13 @@ class BrowserManager {
     return this.send({ action: 'listTabs' }, signal);
   }
 
-  async newTab(
-    url?: string,
-    options: { signal?: AbortSignal; timeoutMs?: number } = {},
-  ): Promise<BrowserTab> {
+  async newTab(url?: string, options: { signal?: AbortSignal; timeoutMs?: number } = {}): Promise<BrowserTab> {
     await this.send({ action: 'newTab', url, timeoutMs: options.timeoutMs }, options.signal);
     const tabs = await this.listTabs(options.signal);
     return tabs.find((tab) => tab.type === 'page') ?? tabs[0];
   }
 
-  async focusTab(
-    tabId: string,
-    options: { signal?: AbortSignal; timeoutMs?: number } = {},
-  ): Promise<void> {
+  async focusTab(tabId: string, options: { signal?: AbortSignal; timeoutMs?: number } = {}): Promise<void> {
     await this.send({ action: 'focusTab', tabId, timeoutMs: options.timeoutMs }, options.signal);
   }
 
@@ -270,20 +249,11 @@ class BrowserManager {
     return this.send({ action: 'getDropdownOptions', ref }, signal);
   }
 
-  async selectDropdown(
-    ref: string,
-    text: string,
-    signal?: AbortSignal,
-    timeoutMs?: number,
-  ): Promise<string> {
+  async selectDropdown(ref: string, text: string, signal?: AbortSignal, timeoutMs?: number): Promise<string> {
     return String(await this.send({ action: 'selectDropdown', ref, text, timeoutMs }, signal));
   }
 
-  async scroll(
-    ref: string | undefined,
-    direction: ScrollDirection,
-    signal?: AbortSignal,
-  ): Promise<string> {
+  async scroll(ref: string | undefined, direction: ScrollDirection, signal?: AbortSignal): Promise<string> {
     return String(await this.send({ action: 'scroll', ref, direction }, signal));
   }
 
@@ -292,13 +262,7 @@ class BrowserManager {
   }
 
   async screenshot(
-    options: {
-      signal?: AbortSignal;
-      format?: 'png' | 'jpeg';
-      quality?: number;
-      fullPage?: boolean;
-      ref?: string;
-    } = {},
+    options: { signal?: AbortSignal; format?: 'png' | 'jpeg'; quality?: number; fullPage?: boolean; ref?: string } = {},
   ): Promise<ScreenshotResult> {
     return this.send({ action: 'screenshot', ...options }, options.signal);
   }
@@ -322,12 +286,7 @@ class BrowserManager {
   }
 
   async findElements(
-    options: {
-      selector: string;
-      attributes?: string[];
-      maxResults?: number;
-      includeText?: boolean;
-    },
+    options: { selector: string; attributes?: string[]; maxResults?: number; includeText?: boolean },
     signal?: AbortSignal,
   ): Promise<FindElementsResult> {
     return this.send({ action: 'findElements', ...options }, signal);
@@ -337,12 +296,7 @@ class BrowserManager {
     return String(await this.send({ action: 'wait', timeMs, selector }, signal));
   }
 
-  async search(
-    query: string,
-    engine = 'google',
-    signal?: AbortSignal,
-    timeoutMs?: number,
-  ): Promise<string> {
+  async search(query: string, engine = 'google', signal?: AbortSignal, timeoutMs?: number): Promise<string> {
     return String(await this.send({ action: 'search', query, engine, timeoutMs }, signal));
   }
 

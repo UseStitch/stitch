@@ -24,12 +24,7 @@ function Header({ className, ...props }: React.ComponentProps<typeof SidebarHead
 }
 
 function Title({ className, ...props }: React.ComponentProps<'div'>) {
-  return (
-    <div
-      className={cn('flex items-center gap-2 px-2 py-1 text-sm font-medium', className)}
-      {...props}
-    />
-  );
+  return <div className={cn('flex items-center gap-2 px-2 py-1 text-sm font-medium', className)} {...props} />;
 }
 
 function Top({ className, ...props }: React.ComponentProps<'div'>) {
@@ -37,20 +32,10 @@ function Top({ className, ...props }: React.ComponentProps<'div'>) {
 }
 
 function TopTitle({ className, ...props }: React.ComponentProps<'div'>) {
-  return (
-    <div
-      className={cn('flex min-w-0 flex-1 items-center gap-2 text-sm font-medium', className)}
-      {...props}
-    />
-  );
+  return <div className={cn('flex min-w-0 flex-1 items-center gap-2 text-sm font-medium', className)} {...props} />;
 }
 
-function TopAction({
-  className,
-  nativeButton,
-  render,
-  ...props
-}: React.ComponentProps<typeof Button>) {
+function TopAction({ className, nativeButton, render, ...props }: React.ComponentProps<typeof Button>) {
   return (
     <Button
       size="icon-sm"
@@ -88,10 +73,7 @@ function Group({
   action,
   children,
   ...props
-}: React.ComponentProps<typeof SidebarGroup> & {
-  title?: React.ReactNode;
-  action?: React.ReactNode;
-}) {
+}: React.ComponentProps<typeof SidebarGroup> & { title?: React.ReactNode; action?: React.ReactNode }) {
   return (
     <SidebarGroup {...props}>
       {title || action ? (
@@ -112,9 +94,7 @@ function List({ className, ...props }: React.ComponentProps<typeof SidebarMenu>)
 function Item({
   itemProps,
   ...props
-}: React.ComponentProps<typeof SidebarMenuButton> & {
-  itemProps?: React.ComponentProps<typeof SidebarMenuItem>;
-}) {
+}: React.ComponentProps<typeof SidebarMenuButton> & { itemProps?: React.ComponentProps<typeof SidebarMenuItem> }) {
   return (
     <SidebarMenuItem {...itemProps}>
       <SidebarMenuButton {...props} />
@@ -126,9 +106,7 @@ function Section({
   title,
   children,
   ...props
-}: React.ComponentProps<typeof SidebarGroup> & {
-  title: React.ReactNode;
-}) {
+}: React.ComponentProps<typeof SidebarGroup> & { title: React.ReactNode }) {
   return (
     <Group title={title} {...props}>
       <List>{children}</List>
@@ -152,12 +130,7 @@ function EmptyState({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        'flex flex-col items-center justify-center gap-3 px-4 py-12 text-center',
-        className,
-      )}
-    >
+    <div className={cn('flex flex-col items-center justify-center gap-3 px-4 py-12 text-center', className)}>
       <Icon className="size-8 text-muted-foreground/40" />
       <div className="space-y-1">
         <p className="text-sm font-medium text-muted-foreground">{title}</p>

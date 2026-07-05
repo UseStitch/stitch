@@ -1,10 +1,5 @@
 export type EditingTarget =
-  | {
-      type: 'tool';
-      toolName: string;
-      displayName: string;
-      enabledScope: 'tool' | 'toolset' | 'mcp_tool';
-    }
+  | { type: 'tool'; toolName: string; displayName: string; enabledScope: 'tool' | 'toolset' | 'mcp_tool' }
   | {
       type: 'toolset';
       toolsetId: string;

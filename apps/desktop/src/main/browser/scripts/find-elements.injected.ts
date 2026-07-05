@@ -1,8 +1,6 @@
 import type { ElectronBrowserCommand } from '@stitch/shared/browser/electron';
 
-export function buildFindElementsScript(
-  command: Extract<ElectronBrowserCommand, { action: 'findElements' }>,
-): string {
+export function buildFindElementsScript(command: Extract<ElectronBrowserCommand, { action: 'findElements' }>): string {
   return `(() => {
   function cssPath(el) {
     if (el.id) return '#' + CSS.escape(el.id);

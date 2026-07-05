@@ -16,30 +16,20 @@ export function questionsQueryOptions(sessionId: string) {
   });
 }
 
-type ReplyQuestionInput = {
-  sessionId: string;
-  questionId: string;
-  answers: string[][];
-};
+type ReplyQuestionInput = { sessionId: string; questionId: string; answers: string[][] };
 
-type RejectQuestionInput = {
-  sessionId: string;
-  questionId: string;
-};
+type RejectQuestionInput = { sessionId: string; questionId: string };
 
 export function useReplyQuestion() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (input: ReplyQuestionInput) =>
-      serverRequest<unknown>(
-        `/chat/sessions/${input.sessionId}/questions/${input.questionId}/reply`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ answers: input.answers }),
-        },
-      ),
+      serverRequest<unknown>(`/chat/sessions/${input.sessionId}/questions/${input.questionId}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers: input.answers }),
+      }),
     onSuccess: (_data, input) => {
       void queryClient.invalidateQueries({ queryKey: questionKeys.list(input.sessionId) });
     },
@@ -51,12 +41,9 @@ export function useRejectQuestion() {
 
   return useMutation({
     mutationFn: (input: RejectQuestionInput) =>
-      serverRequest<unknown>(
-        `/chat/sessions/${input.sessionId}/questions/${input.questionId}/reject`,
-        {
-          method: 'POST',
-        },
-      ),
+      serverRequest<unknown>(`/chat/sessions/${input.sessionId}/questions/${input.questionId}/reject`, {
+        method: 'POST',
+      }),
     onSuccess: (_data, input) => {
       void queryClient.invalidateQueries({ queryKey: questionKeys.list(input.sessionId) });
     },

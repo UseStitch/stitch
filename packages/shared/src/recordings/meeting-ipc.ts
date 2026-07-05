@@ -10,7 +10,4 @@ export type MeetingCallDetectedPayload = {
   detectedAt: number;
 };
 
-export type MeetingCallEndedPayload = {
-  key: string;
-  endedAt: number;
-};
+export type MeetingCallEndedPayload = { key: string; endedAt: number };

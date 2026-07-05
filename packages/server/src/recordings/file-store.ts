@@ -30,16 +30,10 @@ export async function writeRecordingTranscript(
   transcript: RecordingTranscriptEntry[],
 ): Promise<void> {
   await ensureRecordingDirectory(recordingId);
-  await fs.writeFile(
-    getRecordingTranscriptPath(recordingId),
-    `${JSON.stringify(transcript, null, 2)}\n`,
-    'utf8',
-  );
+  await fs.writeFile(getRecordingTranscriptPath(recordingId), `${JSON.stringify(transcript, null, 2)}\n`, 'utf8');
 }
 
-export async function readRecordingTranscript(
-  recordingId: PrefixedString<'rec'>,
-): Promise<RecordingTranscriptEntry[]> {
+export async function readRecordingTranscript(recordingId: PrefixedString<'rec'>): Promise<RecordingTranscriptEntry[]> {
   const text = await fs.readFile(getRecordingTranscriptPath(recordingId), 'utf8').catch(() => null);
   if (!text) return [];
 
@@ -47,10 +41,7 @@ export async function readRecordingTranscript(
   return Array.isArray(parsed) ? parsed : [];
 }
 
-export async function writeRecordingAnalysis(
-  recordingId: PrefixedString<'rec'>,
-  summary: string,
-): Promise<void> {
+export async function writeRecordingAnalysis(recordingId: PrefixedString<'rec'>, summary: string): Promise<void> {
   await ensureRecordingDirectory(recordingId);
   await fs.writeFile(getRecordingAnalysisPath(recordingId), `${summary.trim()}\n`, 'utf8');
 }

@@ -39,30 +39,15 @@ function useElapsed(startedAt: number | null): number {
  * unmistakable recording indicator, a live level meter, elapsed time, and
  * explicit cancel (discard) and stop (finalize) controls.
  */
-export function RecordingBar({
-  audioLevel,
-  startedAt,
-  isStopping,
-  onCancel,
-  onStop,
-}: RecordingBarProps) {
+export function RecordingBar({ audioLevel, startedAt, isStopping, onCancel, onStop }: RecordingBarProps) {
   const elapsedMs = useElapsed(startedAt);
 
   return (
     <div className="flex w-full items-center gap-2" role="status" aria-live="polite">
-      <span
-        className={cn(
-          'size-2 shrink-0 rounded-full bg-destructive',
-          !isStopping && 'animate-pulse',
-        )}
-      />
-      <span className="text-xs font-medium text-destructive">
-        {isStopping ? 'Transcribing…' : 'Recording'}
-      </span>
+      <span className={cn('size-2 shrink-0 rounded-full bg-destructive', !isStopping && 'animate-pulse')} />
+      <span className="text-xs font-medium text-destructive">{isStopping ? 'Transcribing…' : 'Recording'}</span>
       <MicLevelMeter level={isStopping ? 0 : audioLevel} />
-      <span className="ml-auto text-xs font-medium text-muted-foreground tabular-nums">
-        {formatElapsed(elapsedMs)}
-      </span>
+      <span className="ml-auto text-xs font-medium text-muted-foreground tabular-nums">{formatElapsed(elapsedMs)}</span>
       <Button
         type="button"
         size="icon-xs"
@@ -70,8 +55,7 @@ export function RecordingBar({
         onClick={onCancel}
         disabled={isStopping}
         title="Discard recording"
-        className="text-muted-foreground hover:text-foreground"
-      >
+        className="text-muted-foreground hover:text-foreground">
         <XIcon className="size-3.5" />
       </Button>
       <Button
@@ -80,8 +64,7 @@ export function RecordingBar({
         variant="default"
         onClick={onStop}
         disabled={isStopping}
-        title="Stop and insert transcript"
-      >
+        title="Stop and insert transcript">
         <CheckIcon className="size-3.5" />
       </Button>
     </div>

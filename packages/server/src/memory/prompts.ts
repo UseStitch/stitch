@@ -12,9 +12,7 @@ export const extractionSchema = z.object({
     z.object({
       content: z.string().describe('A single, self-contained statement about the user.'),
       category: z.enum(MEMORY_CATEGORIES).describe('The category of the fact.'),
-      confidence: z
-        .enum(MEMORY_CONFIDENCES)
-        .describe('"stated" if explicit, "inferred" if implied.'),
+      confidence: z.enum(MEMORY_CONFIDENCES).describe('"stated" if explicit, "inferred" if implied.'),
       importanceScore: z
         .number()
         .min(0)
@@ -41,10 +39,7 @@ export const deduplicationSchema = z.object({
     .string()
     .nullable()
     .describe('The id of the existing memory to update or delete. Null for ADD/NONE.'),
-  updatedContent: z
-    .string()
-    .nullable()
-    .describe('The merged/updated content when action is UPDATE. Null otherwise.'),
+  updatedContent: z.string().nullable().describe('The merged/updated content when action is UPDATE. Null otherwise.'),
 });
 
 export const consolidationSchema = z.object({
@@ -55,19 +50,10 @@ export const consolidationSchema = z.object({
         .describe(
           'ADD = new merged fact, UPDATE = improve one existing memory, DELETE = remove a superseded or contradicted memory, NONE = leave unchanged.',
         ),
-      memoryId: z
-        .string()
-        .nullable()
-        .describe('The existing memory id for UPDATE, DELETE, or NONE. Null for ADD.'),
-      content: z
-        .string()
-        .nullable()
-        .describe('The memory content for ADD or UPDATE. Null for DELETE/NONE.'),
+      memoryId: z.string().nullable().describe('The existing memory id for UPDATE, DELETE, or NONE. Null for ADD.'),
+      content: z.string().nullable().describe('The memory content for ADD or UPDATE. Null for DELETE/NONE.'),
       category: z.enum(MEMORY_CATEGORIES).nullable().describe('Category for ADD. Null otherwise.'),
-      confidence: z
-        .enum(MEMORY_CONFIDENCES)
-        .nullable()
-        .describe('Confidence for ADD. Null otherwise.'),
+      confidence: z.enum(MEMORY_CONFIDENCES).nullable().describe('Confidence for ADD. Null otherwise.'),
     }),
   ),
 });
@@ -132,9 +118,7 @@ export function buildDeduplicationPrompt(
   const memoriesBlock =
     existingMemories.length === 0
       ? 'No existing memories found.'
-      : existingMemories
-          .map((m, i) => `[${i}] id="${m.id}" category="${m.category}": ${m.content}`)
-          .join('\n');
+      : existingMemories.map((m, i) => `[${i}] id="${m.id}" category="${m.category}": ${m.content}`).join('\n');
 
   return `You are a memory deduplication system. Given a newly extracted fact and a list of existing memories, decide what action to take.
 
@@ -163,13 +147,7 @@ ${memoriesBlock}
 }
 
 export function buildConsolidationPrompt(
-  memories: {
-    id: string;
-    content: string;
-    category: string;
-    confidence: string;
-    pinned: boolean;
-  }[],
+  memories: { id: string; content: string; category: string; confidence: string; pinned: boolean }[],
 ): string {
   const memoriesBlock = memories
     .map(

@@ -7,10 +7,7 @@ import type { BrowserWindow } from 'electron';
 
 type Updater = ReturnType<typeof createUpdater>;
 
-export function registerUpdaterHandlers(
-  updater: Updater,
-  getWindow: () => BrowserWindow | null,
-): void {
+export function registerUpdaterHandlers(updater: Updater, getWindow: () => BrowserWindow | null): void {
   registerIpcHandler('updater:check', () => updater.checkForUpdates());
   registerIpcHandler('updater:getState', (): UpdaterStatePayload => updater.getState());
   registerIpcHandler('updater:install', () => updater.installUpdate());

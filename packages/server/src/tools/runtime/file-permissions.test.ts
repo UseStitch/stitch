@@ -1,10 +1,7 @@
-import path from 'node:path';
 import { describe, expect, test } from 'bun:test';
+import path from 'node:path';
 
-import {
-  getFilePathPatternTargets,
-  getParentDirPermissionSuggestion,
-} from '@/tools/runtime/file-permissions.js';
+import { getFilePathPatternTargets, getParentDirPermissionSuggestion } from '@/tools/runtime/file-permissions.js';
 
 describe('file permission helpers', () => {
   test('derives pattern targets from absolute filePath', () => {
@@ -27,10 +24,7 @@ describe('file permission helpers', () => {
     const suggestion = getParentDirPermissionSuggestion({ filePath: absolutePath });
 
     const parentDir = path.dirname(path.resolve(absolutePath));
-    expect(suggestion).toEqual({
-      message: `Always allow in ${parentDir}`,
-      pattern: path.join(parentDir, '*'),
-    });
+    expect(suggestion).toEqual({ message: `Always allow in ${parentDir}`, pattern: path.join(parentDir, '*') });
   });
 
   test('returns no suggestion when filePath is invalid', () => {

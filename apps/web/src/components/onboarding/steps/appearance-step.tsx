@@ -1,9 +1,7 @@
 import { AppearanceSelector } from '@/components/settings/appearance';
 import { Button } from '@/components/ui/button';
 
-type Props = {
-  onContinue: () => void;
-};
+type Props = { onContinue: () => void };
 
 export function AppearanceStep({ onContinue }: Props) {
   return (

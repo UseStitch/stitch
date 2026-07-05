@@ -34,8 +34,7 @@ async function close(server: Server): Promise<void> {
  * endpoint is oauth2.googleapis.com).
  */
 function idToken(iss: string): string {
-  const encode = (value: object): string =>
-    Buffer.from(JSON.stringify(value)).toString('base64url');
+  const encode = (value: object): string => Buffer.from(JSON.stringify(value)).toString('base64url');
   const header = encode({ alg: 'RS256', typ: 'JWT' });
   const payload = encode({
     iss,
@@ -50,10 +49,7 @@ function idToken(iss: string): string {
 function invalidGrant(clockSkewMs?: number): OAuthRefreshError {
   return new OAuthRefreshError(
     400,
-    JSON.stringify({
-      error: 'invalid_grant',
-      error_description: 'Token has been expired or revoked.',
-    }),
+    JSON.stringify({ error: 'invalid_grant', error_description: 'Token has been expired or revoked.' }),
     clockSkewMs,
   );
 }
@@ -74,9 +70,7 @@ describe('requiresOAuthReauth', () => {
 
   test('does not flag non-invalid_grant errors', () => {
     expect(requiresOAuthReauth(new OAuthRefreshError(500, 'server error'))).toBe(false);
-    expect(
-      requiresOAuthReauth(new OAuthRefreshError(400, JSON.stringify({ error: 'invalid_client' }))),
-    ).toBe(false);
+    expect(requiresOAuthReauth(new OAuthRefreshError(400, JSON.stringify({ error: 'invalid_client' })))).toBe(false);
   });
 
   test('does not flag arbitrary errors', () => {
@@ -130,24 +124,14 @@ describe('startOAuthFlow', () => {
       `${redirectUri}?code=auth-code&state=${state}&iss=${encodeURIComponent('https://accounts.example.test')}`,
     );
 
-    expect(tokensPromise).resolves.toEqual({
-      accessToken: 'access',
-      refreshToken: 'refresh',
-      expiresIn: 3600,
-    });
+    expect(tokensPromise).resolves.toEqual({ accessToken: 'access', refreshToken: 'refresh', expiresIn: 3600 });
     await close(tokenServer);
   });
 
   test('accepts an explicit issuer that differs from the authorization endpoint', async () => {
     const tokenServer = createServer((_req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          access_token: 'access',
-          token_type: 'Bearer',
-          expires_in: 3600,
-        }),
-      );
+      res.end(JSON.stringify({ access_token: 'access', token_type: 'Bearer', expires_in: 3600 }));
     });
     const tokenPort = await listen(tokenServer);
 
@@ -174,11 +158,7 @@ describe('startOAuthFlow', () => {
       `${redirectUri}?code=auth-code&state=${state}&iss=${encodeURIComponent('https://issuer.example.test')}`,
     );
 
-    expect(tokensPromise).resolves.toEqual({
-      accessToken: 'access',
-      refreshToken: null,
-      expiresIn: 3600,
-    });
+    expect(tokensPromise).resolves.toEqual({ accessToken: 'access', refreshToken: null, expiresIn: 3600 });
     await close(tokenServer);
   });
 });
@@ -199,17 +179,8 @@ describe('refreshAccessToken', () => {
     const port = await listen(server);
 
     expect(
-      refreshAccessToken(
-        `http://127.0.0.1:${port}/token`,
-        'client-id',
-        'client-secret',
-        'old-refresh',
-      ),
-    ).resolves.toEqual({
-      accessToken: 'new-access',
-      refreshToken: 'new-refresh',
-      expiresIn: 1800,
-    });
+      refreshAccessToken(`http://127.0.0.1:${port}/token`, 'client-id', 'client-secret', 'old-refresh'),
+    ).resolves.toEqual({ accessToken: 'new-access', refreshToken: 'new-refresh', expiresIn: 1800 });
 
     await close(server);
   });
@@ -230,17 +201,8 @@ describe('refreshAccessToken', () => {
     const port = await listen(server);
 
     expect(
-      refreshAccessToken(
-        `http://127.0.0.1:${port}/token`,
-        'client-id',
-        'client-secret',
-        'old-refresh',
-      ),
-    ).resolves.toEqual({
-      accessToken: 'new-access',
-      refreshToken: 'new-refresh',
-      expiresIn: 1800,
-    });
+      refreshAccessToken(`http://127.0.0.1:${port}/token`, 'client-id', 'client-secret', 'old-refresh'),
+    ).resolves.toEqual({ accessToken: 'new-access', refreshToken: 'new-refresh', expiresIn: 1800 });
 
     await close(server);
   });
@@ -254,12 +216,7 @@ describe('refreshAccessToken', () => {
     const port = await listen(server);
 
     try {
-      await refreshAccessToken(
-        `http://127.0.0.1:${port}/token`,
-        'client-id',
-        'client-secret',
-        'old-refresh',
-      );
+      await refreshAccessToken(`http://127.0.0.1:${port}/token`, 'client-id', 'client-secret', 'old-refresh');
       throw new Error('expected refresh to fail');
     } catch (error) {
       expect(error).toBeInstanceOf(OAuthRefreshError);

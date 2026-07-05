@@ -10,9 +10,7 @@ export const Route = createFileRoute('/agenda')({
     const appStates = await context.queryClient.ensureQueryData(appEnabledStatesQueryOptions);
     const agendaEnabled = appStates.find((state) => state.appId === 'agenda')?.enabled ?? true;
     if (!agendaEnabled) {
-      toast.warning('Agenda is disabled. Enable it in Settings > Agenda.', {
-        id: 'agenda-disabled',
-      });
+      toast.warning('Agenda is disabled. Enable it in Settings > Agenda.', { id: 'agenda-disabled' });
       throw redirect({ to: '/' });
     }
 

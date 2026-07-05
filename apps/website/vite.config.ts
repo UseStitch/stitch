@@ -10,23 +10,14 @@ function cssDevLink(): Plugin {
     name: 'css-dev-link',
     apply: 'serve',
     transformIndexHtml() {
-      return [
-        {
-          tag: 'link',
-          attrs: { rel: 'stylesheet', href: '/src/styles.css' },
-          injectTo: 'head',
-        },
-      ];
+      return [{ tag: 'link', attrs: { rel: 'stylesheet', href: '/src/styles.css' }, injectTo: 'head' }];
     },
   };
 }
 
 export default defineConfig({
   plugins: [cssDevLink()],
-  build: {
-    outDir: 'dist',
-    emptyOutDir: true,
-  },
+  build: { outDir: 'dist', emptyOutDir: true },
   server: {
     proxy: {
       '/ingest': {

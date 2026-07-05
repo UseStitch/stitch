@@ -25,13 +25,7 @@ export const AWS_BEDROCK_REGIONS = [
   { value: 'af-south-1', label: 'Africa (Cape Town)' },
 ] as const;
 
-type BaseFieldDef = {
-  key: string;
-  label: string;
-  placeholder?: string;
-  required: boolean;
-  secret: boolean;
-};
+type BaseFieldDef = { key: string; label: string; placeholder?: string; required: boolean; secret: boolean };
 
 type SelectOption = { value: string; label: string };
 
@@ -39,12 +33,7 @@ export type FieldDef =
   | (BaseFieldDef & { type?: 'text' })
   | (BaseFieldDef & { type: 'select'; options: SelectOption[] });
 
-export type AuthMethodDef = {
-  method: string;
-  label: string;
-  enabled: boolean;
-  fields: FieldDef[];
-};
+export type AuthMethodDef = { method: string; label: string; enabled: boolean; fields: FieldDef[] };
 
 export type ProviderCapability = 'llm' | 'stt' | 'embedding';
 

@@ -20,9 +20,7 @@ function isNetworkError(error: Error): boolean {
   return NETWORK_ERROR_CODES.some((code) => error.message.includes(code));
 }
 
-type UpdaterOptions = {
-  prepareForInstall: () => void | Promise<void>;
-};
+type UpdaterOptions = { prepareForInstall: () => void | Promise<void> };
 
 export function createUpdater(options: UpdaterOptions) {
   let initialized = false;
@@ -34,10 +32,7 @@ export function createUpdater(options: UpdaterOptions) {
     eventListener?.(state);
   }
 
-  function toVersionState(
-    status: UpdaterStatePayload['status'],
-    info: UpdateInfo,
-  ): UpdaterStatePayload {
+  function toVersionState(status: UpdaterStatePayload['status'], info: UpdateInfo): UpdaterStatePayload {
     return { status, version: info.version };
   }
 

@@ -14,9 +14,7 @@ import {
 
 export const ollamaModelsRouter = new Hono();
 
-const discoverQuerySchema = z.object({
-  baseURL: z.string().optional(),
-});
+const discoverQuerySchema = z.object({ baseURL: z.string().optional() });
 
 ollamaModelsRouter.get('/', async (c) => {
   const models = await listOllamaModels();

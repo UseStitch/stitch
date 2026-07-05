@@ -9,9 +9,7 @@
     "skipLibCheck": true,
     "noEmit": true,
     "outDir": "dist",
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "paths": { "@/*": ["./src/*"] }
   },
   "include": ["src/**/*", "__test__/**/*"]
 }

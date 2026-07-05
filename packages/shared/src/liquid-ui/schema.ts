@@ -15,11 +15,7 @@ const childrenSchema = z.array(idSchema);
 const baseNodeSchema = z.object({ id: idSchema });
 
 const stackNodeSchema = baseNodeSchema
-  .extend({
-    component: z.literal('Stack'),
-    children: childrenSchema,
-    spacing: z.enum(LIQUID_UI_SPACING),
-  })
+  .extend({ component: z.literal('Stack'), children: childrenSchema, spacing: z.enum(LIQUID_UI_SPACING) })
   .strict();
 
 const gridNodeSchema = baseNodeSchema
@@ -50,11 +46,7 @@ const cardNodeSchema = baseNodeSchema
   .strict();
 
 const badgeNodeSchema = baseNodeSchema
-  .extend({
-    component: z.literal('Badge'),
-    variant: z.enum(BADGE_VARIANTS),
-    text: z.string().trim().min(1),
-  })
+  .extend({ component: z.literal('Badge'), variant: z.enum(BADGE_VARIANTS), text: z.string().trim().min(1) })
   .strict();
 
 const statNodeSchema = baseNodeSchema
@@ -68,31 +60,16 @@ const statNodeSchema = baseNodeSchema
   .strict();
 
 const keyValueNodeSchema = baseNodeSchema
-  .extend({
-    component: z.literal('KeyValue'),
-    label: z.string().trim().min(1),
-    value: z.string().trim().min(1),
-  })
+  .extend({ component: z.literal('KeyValue'), label: z.string().trim().min(1), value: z.string().trim().min(1) })
   .strict();
 
 const textNodeSchema = baseNodeSchema
-  .extend({
-    component: z.literal('Text'),
-    text: z.string().trim().min(1),
-    variant: z.enum(TEXT_VARIANTS),
-  })
+  .extend({ component: z.literal('Text'), text: z.string().trim().min(1), variant: z.enum(TEXT_VARIANTS) })
   .strict();
 
-const dividerNodeSchema = baseNodeSchema
-  .extend({ component: z.literal('Divider') })
-  .strict();
+const dividerNodeSchema = baseNodeSchema.extend({ component: z.literal('Divider') }).strict();
 
-const chartDatasetSchema = z
-  .object({
-    label: z.string().trim().min(1),
-    data: z.array(z.number()),
-  })
-  .strict();
+const chartDatasetSchema = z.object({ label: z.string().trim().min(1), data: z.array(z.number()) }).strict();
 
 const chartNodeSchema = baseNodeSchema
   .extend({
@@ -182,9 +159,6 @@ function validateGraph(spec: { root: string; nodes: LiquidUiNode[] }, ctx: z.Ref
 }
 
 export const liquidUiSpecSchema = z
-  .object({
-    root: idSchema,
-    nodes: z.array(liquidUiNodeSchema).min(1),
-  })
+  .object({ root: idSchema, nodes: z.array(liquidUiNodeSchema).min(1) })
   .strict()
   .superRefine(validateGraph);

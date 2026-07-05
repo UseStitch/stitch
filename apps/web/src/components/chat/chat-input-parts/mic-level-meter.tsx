@@ -29,9 +29,7 @@ export function MicLevelMeter({ level, className }: MicLevelMeterProps) {
           );
         })}
       </div>
-      <span className="hidden text-xs font-medium text-destructive motion-reduce:inline">
-        Listening
-      </span>
+      <span className="hidden text-xs font-medium text-destructive motion-reduce:inline">Listening</span>
     </div>
   );
 }

@@ -9,11 +9,7 @@ import { meetingNoteTemplates, recordingAnalyses, recordings } from '@/db/schema
 import { setupTestDb } from '@/db/test-helpers.js';
 import { ok } from '@/lib/service-result.js';
 import { cancelRecordingAnalysis, startRecordingAnalysis } from '@/recordings/analysis-service.js';
-import {
-  readRecordingAnalysis,
-  writeRecordingAnalysis,
-  writeRecordingTranscript,
-} from '@/recordings/file-store.js';
+import { readRecordingAnalysis, writeRecordingAnalysis, writeRecordingTranscript } from '@/recordings/file-store.js';
 import { ZERO_USAGE } from '@/utils/usage.js';
 
 let generateTextCalls = 0;
@@ -24,9 +20,7 @@ function createHangingAnalysisModel(): MockLanguageModelV3 {
       generateTextCalls++;
 
       return new Promise((_, reject) => {
-        abortSignal?.addEventListener('abort', () => reject(new Error('Aborted')), {
-          once: true,
-        });
+        abortSignal?.addEventListener('abort', () => reject(new Error('Aborted')), { once: true });
       });
     },
   });
@@ -42,41 +36,47 @@ async function seedCompletedAnalysis(): Promise<void> {
   const db = getDb();
   const now = Date.now();
 
-  await db.insert(recordings).values({
-    id: recordingId,
-    title: 'Recording',
-    source: 'manual',
-    status: 'completed',
-    platform: 'manual',
-    startedAt: now - 1_000,
-    endedAt: now,
-  });
+  await db
+    .insert(recordings)
+    .values({
+      id: recordingId,
+      title: 'Recording',
+      source: 'manual',
+      status: 'completed',
+      platform: 'manual',
+      startedAt: now - 1_000,
+      endedAt: now,
+    });
 
-  await db.insert(meetingNoteTemplates).values({
-    id: templateId,
-    name: 'Test Template',
-    content: '# Notes\n\n## Summary\n- ',
-    createdAt: now,
-    updatedAt: now,
-  });
+  await db
+    .insert(meetingNoteTemplates)
+    .values({
+      id: templateId,
+      name: 'Test Template',
+      content: '# Notes\n\n## Summary\n- ',
+      createdAt: now,
+      updatedAt: now,
+    });
 
-  await db.insert(recordingAnalyses).values({
-    id: analysisId,
-    recordingId,
-    status: 'completed',
-    title: 'Existing title',
-    templateId,
-    error: null,
-    transcriptionProviderId: 'transcription-provider',
-    transcriptionModelId: 'transcription-model',
-    analysisProviderId: 'old-provider',
-    analysisModelId: 'old-model',
-    usage: ZERO_USAGE,
-    costUsd: 1,
-    startedAt: now - 500,
-    endedAt: now - 100,
-    durationMs: 400,
-  });
+  await db
+    .insert(recordingAnalyses)
+    .values({
+      id: analysisId,
+      recordingId,
+      status: 'completed',
+      title: 'Existing title',
+      templateId,
+      error: null,
+      transcriptionProviderId: 'transcription-provider',
+      transcriptionModelId: 'transcription-model',
+      analysisProviderId: 'old-provider',
+      analysisModelId: 'old-model',
+      usage: ZERO_USAGE,
+      costUsd: 1,
+      startedAt: now - 500,
+      endedAt: now - 100,
+      durationMs: 400,
+    });
 
   await writeRecordingTranscript(recordingId, [
     { speaker: 'Speaker', content: 'Existing transcript', startMs: 0, endMs: 5000 },
@@ -85,10 +85,7 @@ async function seedCompletedAnalysis(): Promise<void> {
 }
 
 async function readAnalysis() {
-  const [analysis] = await getDb()
-    .select()
-    .from(recordingAnalyses)
-    .where(eq(recordingAnalyses.id, analysisId));
+  const [analysis] = await getDb().select().from(recordingAnalyses).where(eq(recordingAnalyses.id, analysisId));
 
   return analysis;
 }
@@ -116,10 +113,7 @@ describe('recording analysis reruns', () => {
           ok({
             providerId: 'test-provider',
             modelId: 'test-model',
-            credentials: {
-              providerId: 'openai',
-              auth: { method: 'api-key', apiKey: 'test-key' },
-            },
+            credentials: { providerId: 'openai', auth: { method: 'api-key', apiKey: 'test-key' } },
           }),
         createProvider: () => () => createHangingAnalysisModel(),
       },

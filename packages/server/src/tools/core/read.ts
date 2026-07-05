@@ -2,10 +2,7 @@ import { tool } from 'ai';
 import fs from 'node:fs/promises';
 import { z } from 'zod';
 
-import {
-  getFilePathPatternTargets,
-  getParentDirPermissionSuggestion,
-} from '@/tools/runtime/file-permissions.js';
+import { getFilePathPatternTargets, getParentDirPermissionSuggestion } from '@/tools/runtime/file-permissions.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import {
   decodeTextFileBuffer,
@@ -38,20 +35,11 @@ Example:
 
 const readInputSchema = z.object({
   filePath: z.string().describe('The absolute path to the file or directory to read'),
-  offset: z.coerce
-    .number()
-    .describe('The line number to start reading from (1-indexed)')
-    .optional(),
-  limit: z.coerce
-    .number()
-    .describe('The maximum number of lines to read (defaults to 2000)')
-    .optional(),
+  offset: z.coerce.number().describe('The line number to start reading from (1-indexed)').optional(),
+  limit: z.coerce.number().describe('The maximum number of lines to read (defaults to 2000)').optional(),
 });
 
-type ReadResult = {
-  output: string;
-  filePath: string;
-};
+type ReadResult = { output: string; filePath: string };
 
 function normalizePositiveInteger(value: number | undefined, fallback: number): number {
   if (value === undefined || Number.isNaN(value) || !Number.isFinite(value)) {
@@ -85,10 +73,7 @@ export async function readPathContent(input: z.infer<typeof readInputSchema>): P
       .sort((a, b) => a.localeCompare(b))
       .join('\n');
 
-    return {
-      output,
-      filePath: targetPath,
-    };
+    return { output, filePath: targetPath };
   }
 
   if (!stats.isFile()) {
@@ -104,10 +89,7 @@ export async function readPathContent(input: z.infer<typeof readInputSchema>): P
   const limit = normalizePositiveInteger(parsed.limit, DEFAULT_LIMIT);
   const content = decodeTextFileBuffer(buffer);
 
-  return {
-    output: formatNumberedContent(content, offset, limit),
-    filePath: targetPath,
-  };
+  return { output: formatNumberedContent(content, offset, limit), filePath: targetPath };
 }
 
 function createReadTool() {

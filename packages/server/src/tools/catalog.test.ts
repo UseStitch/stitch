@@ -106,13 +106,7 @@ describe('listKnownTools', () => {
         name: 'Mail Server',
         description: 'Mail MCP server',
         tools: () => [{ name: formattedName, description: 'Send an email' }],
-        presentation: {
-          serverId,
-          name: 'Mail Server',
-          tools: {
-            [rawToolName]: { title: 'Send Email Message' },
-          },
-        },
+        presentation: { serverId, name: 'Mail Server', tools: { [rawToolName]: { title: 'Send Email Message' } } },
       }),
     );
 

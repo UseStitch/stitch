@@ -27,10 +27,7 @@ const startMessageSchema = z.object({
     .default({}),
   language: z.string().optional(),
   keyterms: z.array(z.string()).optional(),
-  audioChunkConfig: z.object({
-    encoding: z.enum(['f32le', 'pcm_s16le']),
-    sampleRateHz: z.number().int().positive(),
-  }),
+  audioChunkConfig: z.object({ encoding: z.enum(['f32le', 'pcm_s16le']), sampleRateHz: z.number().int().positive() }),
 });
 
 const chunkMessageSchema = z.object({
@@ -42,15 +39,9 @@ const chunkMessageSchema = z.object({
   numSamples: z.number().int().nonnegative(),
 });
 
-const commitMessageSchema = z.object({
-  type: z.literal('commit'),
-  sttSessionId: z.string().min(1),
-});
+const commitMessageSchema = z.object({ type: z.literal('commit'), sttSessionId: z.string().min(1) });
 
-const stopMessageSchema = z.object({
-  type: z.literal('stop'),
-  sttSessionId: z.string().min(1),
-});
+const stopMessageSchema = z.object({ type: z.literal('stop'), sttSessionId: z.string().min(1) });
 
 const inboundMessageSchema = z.discriminatedUnion('type', [
   startMessageSchema,
@@ -83,9 +74,7 @@ function toBuffer(data: ArrayBuffer | Buffer | Uint8Array): Buffer {
   return Buffer.from(data as ArrayBuffer);
 }
 
-function parseAudioFrame(
-  data: ArrayBuffer | Buffer | Uint8Array,
-): z.infer<typeof chunkMessageSchema> | null {
+function parseAudioFrame(data: ArrayBuffer | Buffer | Uint8Array): z.infer<typeof chunkMessageSchema> | null {
   const buf = toBuffer(data);
   if (buf.byteLength < 4) return null;
 
@@ -110,20 +99,13 @@ function parseAudioFrame(
   };
 }
 
-type WsSender = {
-  send(data: string | ArrayBuffer): void;
-  close(code: number, reason: string): void;
-};
+type WsSender = { send(data: string | ArrayBuffer): void; close(code: number, reason: string): void };
 
 function send(ws: WsSender, msg: SttOutboundMessage): void {
   ws.send(JSON.stringify(msg));
 }
 
-type SessionState = {
-  session: STTSession | null;
-  inputEncoding: 'f32le' | 'pcm_s16le';
-  recordingId: string | null;
-};
+type SessionState = { session: STTSession | null; inputEncoding: 'f32le' | 'pcm_s16le'; recordingId: string | null };
 
 async function handleStart(
   message: z.infer<typeof startMessageSchema>,
@@ -202,12 +184,7 @@ async function handleStart(
 
     session.onError((err) => {
       log.error({ error: err, sttSessionId: message.sttSessionId }, 'session adapter error');
-      send(ws, {
-        type: 'error',
-        sttSessionId: message.sttSessionId,
-        message: err.message,
-        code: 'adapter_error',
-      });
+      send(ws, { type: 'error', sttSessionId: message.sttSessionId, message: err.message, code: 'adapter_error' });
     });
 
     session.onUnrecoverable((reason) => {
@@ -222,11 +199,7 @@ async function handleStart(
       }
     });
 
-    send(ws, {
-      type: 'ready',
-      sttSessionId: message.sttSessionId,
-      capabilityResolution: session.capabilityResolution,
-    });
+    send(ws, { type: 'ready', sttSessionId: message.sttSessionId, capabilityResolution: session.capabilityResolution });
   } catch (err) {
     const code = err instanceof STTSessionError ? err.code : 'session_start_failed';
     const msg = err instanceof Error ? err.message : 'Unknown error';
@@ -265,12 +238,7 @@ async function handleStop(
   try {
     const result = await currentSession.stop();
     log.info({ sttSessionId: sessionId, costUsd: result.costUsd }, 'session done');
-    send(ws, {
-      type: 'done',
-      sttSessionId: sessionId,
-      costUsd: result.costUsd,
-      usage: result.usage,
-    });
+    send(ws, { type: 'done', sttSessionId: sessionId, costUsd: result.costUsd, usage: result.usage });
   } catch (err) {
     log.error({ error: err, sttSessionId: sessionId }, 'error stopping STT session');
     send(ws, {
@@ -304,12 +272,7 @@ export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
 
           const message = parseMessage(event.data);
           if (!message) {
-            send(ws, {
-              type: 'error',
-              sttSessionId: '',
-              message: 'Invalid message format',
-              code: 'invalid_message',
-            });
+            send(ws, { type: 'error', sttSessionId: '', message: 'Invalid message format', code: 'invalid_message' });
             return;
           }
 

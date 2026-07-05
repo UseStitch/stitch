@@ -93,13 +93,7 @@ export const StreamingMessageBubble = React.memo(function StreamingMessageBubble
         );
         break;
       case 'reasoning':
-        nodes.push(
-          <ReasoningBlock
-            key={partId}
-            text={part.text}
-            isStreaming={part.status === 'streaming'}
-          />,
-        );
+        nodes.push(<ReasoningBlock key={partId} text={part.text} isStreaming={part.status === 'streaming'} />);
         break;
       case 'source': {
         const source = part.source;

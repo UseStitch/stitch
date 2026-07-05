@@ -21,16 +21,10 @@ function toolResult(toolName: string): StoredPart {
 describe('browserPrunePolicy', () => {
   test('marks previous snapshots stale when a newer snapshot appears', () => {
     const overrides = browserPrunePolicy.findProtectOverrides([
-      {
-        id: 'msg_browser' as never,
-        parts: [toolResult('browser_snapshot'), toolResult('browser_snapshot')],
-      },
+      { id: 'msg_browser' as never, parts: [toolResult('browser_snapshot'), toolResult('browser_snapshot')] },
     ]);
 
-    expect(overrides.get('msg_browser:0')).toMatchObject({
-      protectTokens: 10_000,
-      reason: 'stale-browser-snapshot',
-    });
+    expect(overrides.get('msg_browser:0')).toMatchObject({ protectTokens: 10_000, reason: 'stale-browser-snapshot' });
     expect(overrides.has('msg_browser:1')).toBe(false);
   });
 
@@ -38,11 +32,7 @@ describe('browserPrunePolicy', () => {
     const overrides = browserPrunePolicy.findProtectOverrides([
       {
         id: 'msg_browser' as never,
-        parts: [
-          toolResult('browser_snapshot'),
-          toolResult('browser_navigate'),
-          toolResult('browser_snapshot'),
-        ],
+        parts: [toolResult('browser_snapshot'), toolResult('browser_navigate'), toolResult('browser_snapshot')],
       },
     ]);
 

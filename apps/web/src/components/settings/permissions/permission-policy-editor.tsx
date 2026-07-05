@@ -15,11 +15,7 @@ import { SettingSubPage, SettingsIconButtonTooltip } from '@/components/settings
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import {
-  toolPermissionsQueryOptions,
-  useDeleteToolPermission,
-  useUpsertToolPermission,
-} from '@/lib/queries/tools';
+import { toolPermissionsQueryOptions, useDeleteToolPermission, useUpsertToolPermission } from '@/lib/queries/tools';
 
 const FILE_PATTERN_TOOLS = new Set(['read', 'edit', 'write', 'glob', 'grep']);
 const COMMAND_PATTERN_TOOLS = new Set(['bash']);
@@ -29,22 +25,10 @@ type PermissionPolicyEditorProps = {
   target: EditingTarget;
   onBack: () => void;
   getEnabled: (scope: 'tool' | 'toolset' | 'mcp_tool', identifier: string) => boolean;
-  onToggleEnabled: (
-    scope: 'tool' | 'toolset' | 'mcp_tool',
-    identifier: string,
-    enabled: boolean,
-  ) => void;
+  onToggleEnabled: (scope: 'tool' | 'toolset' | 'mcp_tool', identifier: string, enabled: boolean) => void;
 };
 
-function Section({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
+function Section({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
   return (
     <section className="space-y-2">
       <div>
@@ -69,11 +53,7 @@ function ToolPermissionEditor({
   onBack: () => void;
   enabledScope: 'tool' | 'toolset' | 'mcp_tool';
   getEnabled: (scope: 'tool' | 'toolset' | 'mcp_tool', identifier: string) => boolean;
-  onToggleEnabled: (
-    scope: 'tool' | 'toolset' | 'mcp_tool',
-    identifier: string,
-    enabled: boolean,
-  ) => void;
+  onToggleEnabled: (scope: 'tool' | 'toolset' | 'mcp_tool', identifier: string, enabled: boolean) => void;
 }) {
   const { data: permissions } = useSuspenseQuery(toolPermissionsQueryOptions);
   const upsertPermission = useUpsertToolPermission();
@@ -92,30 +72,20 @@ function ToolPermissionEditor({
   const isMutating = upsertPermission.isPending || deletePermission.isPending;
 
   const handleGlobalChange = (permission: ToolPermissionValue) => {
-    void upsertPermission
-      .mutateAsync({ toolName, pattern: null, permission })
-      .catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : 'Failed to update permission', {
-          id: 'permission-update',
-        });
-      });
+    void upsertPermission.mutateAsync({ toolName, pattern: null, permission }).catch((error: unknown) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to update permission', { id: 'permission-update' });
+    });
   };
 
   const handlePatternPermissionChange = (rule: ToolPermission, permission: ToolPermissionValue) => {
-    void upsertPermission
-      .mutateAsync({ toolName, pattern: rule.pattern, permission })
-      .catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : 'Failed to update permission', {
-          id: 'permission-update',
-        });
-      });
+    void upsertPermission.mutateAsync({ toolName, pattern: rule.pattern, permission }).catch((error: unknown) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to update permission', { id: 'permission-update' });
+    });
   };
 
   const handleDeleteRule = (rule: ToolPermission) => {
     void deletePermission.mutateAsync(rule.id).catch((error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete rule', {
-        id: 'permission-delete',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to delete rule', { id: 'permission-delete' });
     });
   };
 
@@ -130,9 +100,7 @@ function ToolPermissionEditor({
         setNewPermission('ask');
       })
       .catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : 'Failed to add rule', {
-          id: 'permission-add-rule',
-        });
+        toast.error(error instanceof Error ? error.message : 'Failed to add rule', { id: 'permission-add-rule' });
       });
   };
 
@@ -161,20 +129,14 @@ function ToolPermissionEditor({
             onCheckedChange={(checked) => onToggleEnabled(enabledScope, toolName, checked)}
           />
         </div>
-      }
-    >
+      }>
       <div className="space-y-6">
-        <Section
-          title="Default behavior"
-          description="This permission is used when no path or command rule matches."
-        >
+        <Section title="Default behavior" description="This permission is used when no path or command rule matches.">
           <div className="rounded-lg border border-border/60 bg-card/30 px-3 py-2.5">
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
               <div>
                 <p className="text-sm font-medium">All uses</p>
-                <p className="text-xs text-muted-foreground">
-                  Choose allow, ask, or deny by default.
-                </p>
+                <p className="text-xs text-muted-foreground">Choose allow, ask, or deny by default.</p>
               </div>
               <PermissionSelect
                 value={globalPermission}
@@ -187,20 +149,14 @@ function ToolPermissionEditor({
         </Section>
 
         {isPatternTool && patternRules.length > 0 && (
-          <Section
-            title="Specific rules"
-            description="More specific patterns override the default behavior."
-          >
+          <Section title="Specific rules" description="More specific patterns override the default behavior.">
             <div className="overflow-hidden rounded-lg border border-border/60">
               <div className="divide-y divide-border/40">
                 {patternRules.map((rule) => (
                   <div
                     key={rule.id}
-                    className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-2.5"
-                  >
-                    <p className="truncate font-mono text-xs text-muted-foreground">
-                      {rule.pattern}
-                    </p>
+                    className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-2.5">
+                    <p className="truncate font-mono text-xs text-muted-foreground">{rule.pattern}</p>
                     <PermissionSelect
                       value={rule.permission}
                       onChange={(value) => handlePatternPermissionChange(rule, value)}
@@ -214,8 +170,7 @@ function ToolPermissionEditor({
                         onClick={() => handleDeleteRule(rule)}
                         disabled={isMutating}
                         aria-label="Delete rule"
-                        className="text-muted-foreground/70 hover:text-destructive"
-                      >
+                        className="text-muted-foreground/70 hover:text-destructive">
                         <Trash2Icon className="size-3.5" />
                       </Button>
                     </SettingsIconButtonTooltip>
@@ -227,10 +182,7 @@ function ToolPermissionEditor({
         )}
 
         {isPatternTool && toolName === 'bash' && (
-          <Section
-            title="Common command presets"
-            description="Quickly allow common safe command patterns."
-          >
+          <Section title="Common command presets" description="Quickly allow common safe command patterns.">
             <div className="flex flex-wrap gap-1.5">
               {BASH_COMMON_PRESETS.map((preset: BashPreset) => {
                 const existing = patternRules.find((rule) => rule.pattern === preset.pattern);
@@ -244,16 +196,11 @@ function ToolPermissionEditor({
                         handleDeleteRule(existing);
                       } else {
                         void upsertPermission
-                          .mutateAsync({
-                            toolName,
-                            pattern: preset.pattern,
-                            permission: 'allow',
-                          })
+                          .mutateAsync({ toolName, pattern: preset.pattern, permission: 'allow' })
                           .catch((error: unknown) => {
-                            toast.error(
-                              error instanceof Error ? error.message : 'Failed to add rule',
-                              { id: 'permission-add-preset' },
-                            );
+                            toast.error(error instanceof Error ? error.message : 'Failed to add rule', {
+                              id: 'permission-add-preset',
+                            });
                           });
                       }
                     }}
@@ -263,8 +210,7 @@ function ToolPermissionEditor({
                       existing
                         ? 'border-primary/40 bg-primary/10 text-primary'
                         : 'border-border/50 bg-transparent text-muted-foreground hover:border-border hover:text-foreground',
-                    ].join(' ')}
-                  >
+                    ].join(' ')}>
                     {preset.label}
                   </button>
                 );
@@ -280,8 +226,7 @@ function ToolPermissionEditor({
               isFileTool
                 ? 'Add file and directory patterns that should use a specific permission.'
                 : 'Add command patterns that should use a specific permission.'
-            }
-          >
+            }>
             <div className="rounded-lg border border-border/60 bg-card/30 p-3">
               <div className="flex flex-col gap-2 sm:flex-row">
                 <div className="relative min-w-0 flex-1">
@@ -303,8 +248,7 @@ function ToolPermissionEditor({
                         className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
                         onClick={handleBrowse}
                         aria-label="Browse for path"
-                        tabIndex={-1}
-                      >
+                        tabIndex={-1}>
                         <FolderOpenIcon className="size-3.5" />
                       </Button>
                     </SettingsIconButtonTooltip>
@@ -317,11 +261,7 @@ function ToolPermissionEditor({
                     includeDeny
                     disabled={isMutating}
                   />
-                  <Button
-                    size="sm"
-                    onClick={handleAddRule}
-                    disabled={!newPattern.trim() || isMutating}
-                  >
+                  <Button size="sm" onClick={handleAddRule} disabled={!newPattern.trim() || isMutating}>
                     Add rule
                   </Button>
                 </div>
@@ -334,16 +274,8 @@ function ToolPermissionEditor({
   );
 }
 
-export function PermissionPolicyEditor({
-  target,
-  onBack,
-  getEnabled,
-  onToggleEnabled,
-}: PermissionPolicyEditorProps) {
-  const [editingMcpTool, setEditingMcpTool] = React.useState<{
-    toolName: string;
-    displayName: string;
-  } | null>(null);
+export function PermissionPolicyEditor({ target, onBack, getEnabled, onToggleEnabled }: PermissionPolicyEditorProps) {
+  const [editingMcpTool, setEditingMcpTool] = React.useState<{ toolName: string; displayName: string } | null>(null);
 
   if (editingMcpTool) {
     return (
@@ -387,8 +319,7 @@ export function PermissionPolicyEditor({
             onCheckedChange={(checked) => onToggleEnabled('toolset', target.toolsetId, checked)}
           />
         </div>
-      }
-    >
+      }>
       <Section title="Toolset tools" description="Open settings for per-tool permission behavior.">
         <div className="overflow-hidden rounded-lg border border-border/60">
           <div className="divide-y divide-border/40">
@@ -399,8 +330,7 @@ export function PermissionPolicyEditor({
                   hasPerToolToggle
                     ? 'grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 px-3 py-2.5'
                     : 'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2.5'
-                }
-              >
+                }>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{tool.displayName}</p>
                 </div>
@@ -408,8 +338,7 @@ export function PermissionPolicyEditor({
                   size="sm"
                   variant="ghost"
                   onClick={() => setEditingMcpTool(tool)}
-                  className="h-7 w-20 justify-center text-muted-foreground hover:text-foreground"
-                >
+                  className="h-7 w-20 justify-center text-muted-foreground hover:text-foreground">
                   <Settings2Icon className="size-3.5" />
                   Settings
                 </Button>
@@ -419,9 +348,7 @@ export function PermissionPolicyEditor({
                       return (
                         <Switch
                           checked={getEnabled(perToolEnabledScope, tool.toolName)}
-                          onCheckedChange={(checked) =>
-                            onToggleEnabled(perToolEnabledScope, tool.toolName, checked)
-                          }
+                          onCheckedChange={(checked) => onToggleEnabled(perToolEnabledScope, tool.toolName, checked)}
                         />
                       );
                     })()

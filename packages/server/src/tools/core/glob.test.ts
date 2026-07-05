@@ -28,10 +28,7 @@ describe('glob tool helpers', () => {
     await fs.utimes(older, new Date(1000), new Date(1000));
     await fs.utimes(newer, new Date(2000), new Date(2000));
 
-    const result = await globPaths({
-      pattern: '*.txt',
-      path: dir,
-    });
+    const result = await globPaths({ pattern: '*.txt', path: dir });
 
     expect(result.output.split('\n').slice(0, 2)).toEqual([newer, older]);
   });
@@ -39,21 +36,15 @@ describe('glob tool helpers', () => {
   test('returns no files message when there are no matches', async () => {
     const dir = await createTempDir();
 
-    const result = await globPaths({
-      pattern: '*.tsx',
-      path: dir,
-    });
+    const result = await globPaths({ pattern: '*.tsx', path: dir });
 
     expect(result.output).toBe('No files found');
   });
 
   test('rejects non-absolute path', async () => {
-    expect(
-      globPaths({
-        pattern: '*.ts',
-        path: 'relative/path',
-      }),
-    ).rejects.toThrow('path must be an absolute directory path');
+    expect(globPaths({ pattern: '*.ts', path: 'relative/path' })).rejects.toThrow(
+      'path must be an absolute directory path',
+    );
   });
 
   test('truncates output after 100 matches', async () => {
@@ -65,10 +56,7 @@ describe('glob tool helpers', () => {
       ),
     );
 
-    const result = await globPaths({
-      pattern: '*.txt',
-      path: dir,
-    });
+    const result = await globPaths({ pattern: '*.txt', path: dir });
 
     expect(result.output).toContain('Results are truncated');
   });

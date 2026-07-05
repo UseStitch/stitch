@@ -12,46 +12,22 @@ import {
   ComboboxList,
   ComboboxSeparator,
 } from '@/components/ui/combobox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import type {
-  ModelOption,
-  ProviderOption,
-} from '@/components/usage/hooks/use-usage-dashboard-data';
-import {
-  ALL_FILTER,
-  encodeModelFilter,
-  RANGE_LABELS,
-} from '@/components/usage/utils/usage-dashboard-utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { ModelOption, ProviderOption } from '@/components/usage/hooks/use-usage-dashboard-data';
+import { ALL_FILTER, encodeModelFilter, RANGE_LABELS } from '@/components/usage/utils/usage-dashboard-utils';
 
 type UsageDashboardFiltersProps = {
   availableModels: ModelOption[];
   availableProviders: ProviderOption[];
-  filters: {
-    provider: string;
-    model: string;
-    range: UsageDateRange;
-  };
-  labels: {
-    provider: string;
-    model: string;
-    range: string;
-  };
+  filters: { provider: string; model: string; range: UsageDateRange };
+  labels: { provider: string; model: string; range: string };
   isFetching: boolean;
   onModelChange: (value: string) => void;
   onProviderChange: (value: string) => void;
   onRangeChange: (value: UsageDateRange) => void;
 };
 
-type ModelGroup = {
-  value: string;
-  items: ModelOption[];
-};
+type ModelGroup = { value: string; items: ModelOption[] };
 
 const ALL_MODELS_OPTION: ModelOption = {
   label: 'All models',
@@ -71,10 +47,7 @@ function groupModelsByProvider(models: ModelOption[]): ModelGroup[] {
       continue;
     }
 
-    groups.set(model.providerId, {
-      value: model.providerName,
-      items: [model],
-    });
+    groups.set(model.providerId, { value: model.providerName, items: [model] });
   }
 
   return [...groups.values()];
@@ -82,9 +55,7 @@ function groupModelsByProvider(models: ModelOption[]): ModelGroup[] {
 
 function getSelectedModel(models: ModelOption[], value: string): ModelOption | null {
   if (value === ALL_FILTER) return null;
-  return (
-    models.find((model) => encodeModelFilter(model.providerId, model.modelId) === value) ?? null
-  );
+  return models.find((model) => encodeModelFilter(model.providerId, model.modelId) === value) ?? null;
 }
 
 export function UsageDashboardFilters({
@@ -112,10 +83,7 @@ export function UsageDashboardFilters({
   return (
     <div className="rounded-xl bg-muted/40 p-3">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <Select
-          value={filters.provider}
-          onValueChange={(value) => onProviderChange(value ?? ALL_FILTER)}
-        >
+        <Select value={filters.provider} onValueChange={(value) => onProviderChange(value ?? ALL_FILTER)}>
           <SelectTrigger className="w-full bg-background">
             <SelectValue placeholder="Filter by provider">{labels.provider}</SelectValue>
           </SelectTrigger>
@@ -133,8 +101,7 @@ export function UsageDashboardFilters({
           value={selectedModel}
           onValueChange={handleModelChange}
           isItemEqualToValue={(a, b) => a.providerId === b.providerId && a.modelId === b.modelId}
-          items={modelGroups}
-        >
+          items={modelGroups}>
           <ComboboxInput
             className="w-full bg-background"
             placeholder={labels.model}

@@ -59,13 +59,8 @@ const docsEditSchema = z
       .describe('Optional account email or label when multiple Google accounts are connected'),
     documentId: z.string().describe('The Google Docs document ID'),
     oldString: z.string().min(1).describe('The text to replace'),
-    newString: z
-      .string()
-      .describe('The text to replace it with (must be different from oldString)'),
-    replaceAll: z
-      .boolean()
-      .optional()
-      .describe('Replace all occurrences of oldString (default false)'),
+    newString: z.string().describe('The text to replace it with (must be different from oldString)'),
+    replaceAll: z.boolean().optional().describe('Replace all occurrences of oldString (default false)'),
   })
   .refine((value) => value.newString !== value.oldString, {
     message: 'newString must be different from oldString',
@@ -90,9 +85,7 @@ function countOccurrences(content: string, oldString: string): number {
 }
 
 export function createDocsTools(
-  resolveClient: (
-    account?: string,
-  ) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
+  resolveClient: (account?: string) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
   hasWrite: boolean,
 ): Record<string, Tool> {
   const tools: Record<string, Tool> = {
@@ -102,12 +95,7 @@ export function createDocsTools(
       inputSchema: docsSearchSchema,
       execute: async (input: z.infer<typeof docsSearchSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);
-        const result = await DocsApi.searchDocuments(
-          client,
-          input.query,
-          input.maxResults,
-          input.pageToken,
-        );
+        const result = await DocsApi.searchDocuments(client, input.query, input.maxResults, input.pageToken);
         return { ...result, usedAccount };
       },
     }),
@@ -134,17 +122,11 @@ export function createDocsTools(
     });
 
     tools['docs_update'] = tool({
-      description:
-        'Update a Google Docs document with plain text. Supports replace (overwrite) or append mode.',
+      description: 'Update a Google Docs document with plain text. Supports replace (overwrite) or append mode.',
       inputSchema: docsUpdateSchema,
       execute: async (input: z.infer<typeof docsUpdateSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);
-        const result = await DocsApi.updateDocument(
-          client,
-          input.documentId,
-          input.content,
-          input.mode,
-        );
+        const result = await DocsApi.updateDocument(client, input.documentId, input.content, input.mode);
         return { ...result, usedAccount };
       },
     });
@@ -170,12 +152,7 @@ export function createDocsTools(
           ? document.text.replaceAll(input.oldString, input.newString)
           : document.text.replace(input.oldString, input.newString);
 
-        const result = await DocsApi.updateDocument(
-          client,
-          input.documentId,
-          nextContent,
-          'replace',
-        );
+        const result = await DocsApi.updateDocument(client, input.documentId, nextContent, 'replace');
         return { ...result, usedAccount };
       },
     });

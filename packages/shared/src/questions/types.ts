@@ -1,9 +1,6 @@
 import type { PrefixedString } from '../id/index.js';
 
-export type QuestionOption = {
-  label: string;
-  description: string;
-};
+export type QuestionOption = { label: string; description: string };
 
 export type QuestionInfo = {
   question: string;

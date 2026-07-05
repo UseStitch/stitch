@@ -48,9 +48,7 @@ export function RecordingsPage() {
   const deleteRecording = useDeleteRecording();
   const navigate = useNavigate();
 
-  const activeRecording = data.recordings.find(
-    (recording) => recording.id === data.activeRecordingId,
-  );
+  const activeRecording = data.recordings.find((recording) => recording.id === data.activeRecordingId);
 
   const deleteById = React.useCallback(
     (recordingId: string, onSuccess?: () => void) => {
@@ -60,9 +58,7 @@ export function RecordingsPage() {
           toast.success('Recording deleted', { id: 'recording-delete' });
         },
         (error: unknown) =>
-          toast.error(getErrorMessage(error, 'Failed to delete recording'), {
-            id: 'recording-delete',
-          }),
+          toast.error(getErrorMessage(error, 'Failed to delete recording'), { id: 'recording-delete' }),
       );
     },
     [deleteRecording],
@@ -116,18 +112,14 @@ export function RecordingsPage() {
                   toast.success('Recording started', { id: 'recording-start' });
                 },
                 (error: unknown) =>
-                  toast.error(getErrorMessage(error, 'Failed to start recording'), {
-                    id: 'recording-start',
-                  }),
+                  toast.error(getErrorMessage(error, 'Failed to start recording'), { id: 'recording-start' }),
               );
           }}
           onStop={() => {
             void stopRecording.mutateAsync().then(
               () => toast.success('Recording stopped', { id: 'recording-stop' }),
               (error: unknown) =>
-                toast.error(getErrorMessage(error, 'Failed to stop recording'), {
-                  id: 'recording-stop',
-                }),
+                toast.error(getErrorMessage(error, 'Failed to stop recording'), { id: 'recording-stop' }),
             );
           }}
         />

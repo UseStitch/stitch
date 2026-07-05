@@ -50,11 +50,7 @@ function resetActiveDisplay(): void {
   candidateDisplaySince = 0;
 }
 
-function getBounds(
-  display: Electron.Display,
-  stackIndex: number,
-  height: number,
-): Electron.Rectangle {
+function getBounds(display: Electron.Display, stackIndex: number, height: number): Electron.Rectangle {
   const previousHeight = orderedIds.slice(0, stackIndex).reduce((total, id) => {
     const entry = entries.get(id);
     return total + (entry?.height ?? NOTIFICATION_DEFAULT_HEIGHT) + NOTIFICATION_GAP;
@@ -226,10 +222,7 @@ function createNotificationWindow(event: DesktopNotificationEvent): BrowserWindo
 
   win.setAlwaysOnTop(true, 'screen-saver');
   if (process.platform === 'darwin') {
-    win.setVisibleOnAllWorkspaces(true, {
-      visibleOnFullScreen: true,
-      skipTransformProcessType: true,
-    });
+    win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
   }
 
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -261,9 +254,7 @@ function createNotificationWindow(event: DesktopNotificationEvent): BrowserWindo
   return win;
 }
 
-export function registerNotificationHandlers(
-  onDismiss?: (event: DesktopNotificationEvent) => void,
-): void {
+export function registerNotificationHandlers(onDismiss?: (event: DesktopNotificationEvent) => void): void {
   registerScreenListeners();
 
   registerIpcHandler('notifications:dismiss', (_event, id) => {
@@ -290,12 +281,7 @@ export async function showDesktopNotification(event: DesktopNotificationEvent): 
   if (entries.has(event.id)) return;
 
   const win = createNotificationWindow(event);
-  entries.set(event.id, {
-    event,
-    win,
-    height: NOTIFICATION_DEFAULT_HEIGHT,
-    destroyTimer: null,
-  });
+  entries.set(event.id, { event, win, height: NOTIFICATION_DEFAULT_HEIGHT, destroyTimer: null });
   orderedIds.push(event.id);
   startFollowCursorPolling();
 

@@ -8,16 +8,9 @@ import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'oauth2' });
 
-type OAuthTokens = {
-  accessToken: string;
-  refreshToken: string | null;
-  expiresIn: number | null;
-};
+type OAuthTokens = { accessToken: string; refreshToken: string | null; expiresIn: number | null };
 
-type OAuthErrorPayload = {
-  error?: string;
-  error_description?: string;
-};
+type OAuthErrorPayload = { error?: string; error_description?: string };
 
 export class OAuthRefreshError extends Error {
   readonly status: number;
@@ -56,11 +49,7 @@ const CLOCK_SKEW_THRESHOLD_MS = 5 * 60_000;
  * reconnect loop. Such failures should resolve once the clock is corrected.
  */
 export function requiresOAuthReauth(error: unknown): boolean {
-  if (
-    !(error instanceof OAuthRefreshError) ||
-    error.status !== 400 ||
-    error.errorCode !== 'invalid_grant'
-  ) {
+  if (!(error instanceof OAuthRefreshError) || error.status !== 400 || error.errorCode !== 'invalid_grant') {
     return false;
   }
 
@@ -147,10 +136,7 @@ async function stripIdTokenFromResponse(response: Response): Promise<Response> {
   });
 }
 
-async function stripIdTokenFetch(
-  url: string,
-  options: oauth.CustomFetchOptions,
-): Promise<Response> {
+async function stripIdTokenFetch(url: string, options: oauth.CustomFetchOptions): Promise<Response> {
   const response = await fetch(url, options);
   if (!response.ok) return response;
   return stripIdTokenFromResponse(response);
@@ -164,19 +150,13 @@ function toOAuthTokens(response: oauth.TokenEndpointResponse): OAuthTokens {
   };
 }
 
-async function fetchWithRefreshError(
-  url: string,
-  options: oauth.CustomFetchOptions,
-): Promise<Response> {
+async function fetchWithRefreshError(url: string, options: oauth.CustomFetchOptions): Promise<Response> {
   const response = await fetch(url, options);
   if (response.ok) return stripIdTokenFromResponse(response);
 
   const errorBody = await response.clone().text();
   const clockSkewMs = computeClockSkewMs(response.headers.get('date'));
-  log.error(
-    { event: 'oauth.refresh.failed', status: response.status, errorBody, clockSkewMs },
-    'Token refresh failed',
-  );
+  log.error({ event: 'oauth.refresh.failed', status: response.status, errorBody, clockSkewMs }, 'Token refresh failed');
   throw new OAuthRefreshError(response.status, errorBody, clockSkewMs);
 }
 
@@ -288,21 +268,13 @@ export async function startOAuthFlow(
         );
 
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(
-          buildHtmlResponse(
-            'Authorization Successful',
-            'You can close this window and return to Stitch.',
-            true,
-          ),
-        );
+        res.end(buildHtmlResponse('Authorization Successful', 'You can close this window and return to Stitch.', true));
 
         resolveOnce(tokens);
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(
-          buildHtmlResponse('Authorization Failed', `Token exchange failed: ${message}`, false),
-        );
+        res.end(buildHtmlResponse('Authorization Failed', `Token exchange failed: ${message}`, false));
         rejectOnce(e);
       }
     });

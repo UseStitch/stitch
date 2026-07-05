@@ -44,18 +44,14 @@ import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { useAutomationStore } from '@/stores/automation-store';
 
-type AutomationsPageProps = {
-  automationId?: string;
-};
+type AutomationsPageProps = { automationId?: string };
 
 export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const navigate = useNavigate();
   const { data: sidebarAutomations } = useSuspenseQuery(automationsSidebarListQueryOptions);
   const [page, setPage] = useState(1);
   const pageSize = 15;
-  const { data: automationsPage } = useSuspenseQuery(
-    automationsPageQueryOptions({ page, pageSize }),
-  );
+  const { data: automationsPage } = useSuspenseQuery(automationsPageQueryOptions({ page, pageSize }));
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
   const { data: settings } = useQuery(settingsQueryOptions);
   const { data: automationDetail = null } = useQuery({
@@ -115,9 +111,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
       toast.success('Automation deleted', { id: 'automation-delete' });
       setAutomationToDelete(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete automation', {
-        id: 'automation-delete',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to delete automation', { id: 'automation-delete' });
     }
   };
 
@@ -125,25 +119,16 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
     try {
       const result = await runAutomation.mutateAsync(automation.id);
       toast.success(`Started ${automation.title}`, { id: 'automation-run' });
-      void navigate({
-        to: '/automations/sessions/$id',
-        params: { id: result.sessionId },
-        viewTransition: true,
-      });
+      void navigate({ to: '/automations/sessions/$id', params: { id: result.sessionId }, viewTransition: true });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to run automation', {
-        id: 'automation-run',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to run automation', { id: 'automation-run' });
     }
   };
 
   const modelLabelByKey = new Map<string, string>();
   for (const provider of providerModels) {
     for (const model of provider.models) {
-      modelLabelByKey.set(
-        `${provider.providerId}:${model.id}`,
-        `${provider.providerName} / ${model.name}`,
-      );
+      modelLabelByKey.set(`${provider.providerId}:${model.id}`, `${provider.providerName} / ${model.name}`);
     }
   }
 
@@ -151,16 +136,9 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const pageDescription = selectedAutomation
     ? 'Automation details and run history.'
     : 'Manage reusable prompts and model presets for recurring tasks.';
-  const timezone =
-    settings?.['profile.timezone']?.trim() ||
-    Intl.DateTimeFormat().resolvedOptions().timeZone ||
-    'UTC';
-  const selectedScheduleLabel = selectedAutomation
-    ? getAutomationScheduleLabel(selectedAutomation.schedule)
-    : 'Manual';
-  const upcomingRuns = selectedAutomation
-    ? getUpcomingRuns(selectedAutomation.schedule, 3, timezone)
-    : [];
+  const timezone = settings?.['profile.timezone']?.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const selectedScheduleLabel = selectedAutomation ? getAutomationScheduleLabel(selectedAutomation.schedule) : 'Manual';
+  const upcomingRuns = selectedAutomation ? getUpcomingRuns(selectedAutomation.schedule, 3, timezone) : [];
 
   return (
     <Page>
@@ -201,25 +179,17 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
                 <div className="space-y-1">
                   <p className="text-base font-semibold">{selectedAutomation.title}</p>
                   <p className="text-sm text-muted-foreground">
-                    {modelLabelByKey.get(
-                      `${selectedAutomation.providerId}:${selectedAutomation.modelId}`,
-                    ) ?? selectedAutomation.modelId}
+                    {modelLabelByKey.get(`${selectedAutomation.providerId}:${selectedAutomation.modelId}`) ??
+                      selectedAutomation.modelId}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {selectedAutomation.runCount} total runs
-                  </p>
+                  <p className="text-xs text-muted-foreground">{selectedAutomation.runCount} total runs</p>
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground">
-                      Schedule: {selectedScheduleLabel}
-                    </span>
-                    {upcomingRuns.length > 0 && (
-                      <span className="text-xs text-muted-foreground">· Next runs:</span>
-                    )}
+                    <span className="text-xs text-muted-foreground">Schedule: {selectedScheduleLabel}</span>
+                    {upcomingRuns.length > 0 && <span className="text-xs text-muted-foreground">· Next runs:</span>}
                     {upcomingRuns.map((run) => (
                       <span
                         key={run}
-                        className="rounded-md bg-muted/60 px-1.5 py-0.5 text-[11px] text-muted-foreground"
-                      >
+                        className="rounded-md bg-muted/60 px-1.5 py-0.5 text-[11px] text-muted-foreground">
                         {run}
                       </span>
                     ))}
@@ -230,16 +200,11 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
                   <Button
                     size="sm"
                     onClick={() => void handleRun(selectedAutomation)}
-                    disabled={runAutomation.isPending}
-                  >
+                    disabled={runAutomation.isPending}>
                     <PlayIcon data-icon="inline-start" className="size-4" />
                     Run
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => openEditDialog(selectedAutomation.id)}
-                  >
+                  <Button size="sm" variant="outline" onClick={() => openEditDialog(selectedAutomation.id)}>
                     <PencilIcon data-icon="inline-start" className="size-4" />
                     Edit
                   </Button>
@@ -247,8 +212,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
                     size="sm"
                     variant="outline"
                     onClick={() => handleDelete(selectedAutomation)}
-                    disabled={deleteAutomation.isPending}
-                  >
+                    disabled={deleteAutomation.isPending}>
                     <Trash2Icon data-icon="inline-start" className="size-4 text-destructive" />
                     Delete
                   </Button>
@@ -259,19 +223,13 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
             {automationSessions.length === 0 ? (
               <Empty>
                 <EmptyTitle>No runs yet</EmptyTitle>
-                <EmptyDescription>
-                  Trigger this automation to create the first run session.
-                </EmptyDescription>
+                <EmptyDescription>Trigger this automation to create the first run session.</EmptyDescription>
               </Empty>
             ) : (
               <AutomationRunsTable
                 sessions={automationSessions}
                 onOpen={(sessionId) =>
-                  void navigate({
-                    to: '/automations/sessions/$id',
-                    params: { id: sessionId },
-                    viewTransition: true,
-                  })
+                  void navigate({ to: '/automations/sessions/$id', params: { id: sessionId }, viewTransition: true })
                 }
               />
             )}
@@ -307,10 +265,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
             closeCreateDialog();
             toast.success('Automation created', { id: 'automation-create' });
             if (action === 'create-view') {
-              void navigate({
-                to: '/automations/$automationId',
-                params: { automationId: created.id },
-              });
+              void navigate({ to: '/automations/$automationId', params: { automationId: created.id } });
             }
           } catch (error) {
             toast.error(error instanceof Error ? error.message : 'Failed to create automation', {
@@ -344,27 +299,20 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
         }}
       />
 
-      <Dialog
-        open={automationToDelete !== null}
-        onOpenChange={(open) => !open && setAutomationToDelete(null)}
-      >
+      <Dialog open={automationToDelete !== null} onOpenChange={(open) => !open && setAutomationToDelete(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Automation</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete the automation "{automationToDelete?.title}"? This
-              action cannot be undone.
+              Are you sure you want to delete the automation "{automationToDelete?.title}"? This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAutomationToDelete(null)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={() => void confirmDelete()}
-              disabled={deleteAutomation.isPending}
-            >
+            <Button variant="destructive" onClick={() => void confirmDelete()} disabled={deleteAutomation.isPending}>
               Delete
             </Button>
           </DialogFooter>

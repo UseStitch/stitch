@@ -18,8 +18,7 @@ export function LoadMoreRow({ isFetchingMore, onLoadMore, sentinelRef }: LoadMor
         <button
           type="button"
           onClick={onLoadMore}
-          className="text-xs text-muted-foreground transition-colors hover:text-foreground"
-        >
+          className="text-xs text-muted-foreground transition-colors hover:text-foreground">
           Load older messages
         </button>
       )}

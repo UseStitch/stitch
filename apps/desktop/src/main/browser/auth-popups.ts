@@ -17,10 +17,7 @@ export function isAuthPopupUrl(url: string): boolean {
     const parsed = new URL(url);
     const fullHost = parsed.hostname + parsed.pathname;
     return AUTH_POPUP_DOMAINS.some(
-      (domain) =>
-        parsed.hostname === domain ||
-        parsed.hostname.endsWith('.' + domain) ||
-        fullHost.startsWith(domain),
+      (domain) => parsed.hostname === domain || parsed.hostname.endsWith('.' + domain) || fullHost.startsWith(domain),
     );
   } catch {
     return false;

@@ -3,16 +3,9 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 
 import { unwrapResult } from '@/lib/route-helpers.js';
-import {
-  deleteShortcut,
-  listShortcuts,
-  resetShortcuts,
-  saveShortcut,
-} from '@/shortcuts/service.js';
+import { deleteShortcut, listShortcuts, resetShortcuts, saveShortcut } from '@/shortcuts/service.js';
 
-const shortcutSchema = z.object({
-  hotkey: z.string().optional(),
-});
+const shortcutSchema = z.object({ hotkey: z.string().optional() });
 
 export const shortcutsRouter = new Hono();
 

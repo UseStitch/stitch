@@ -25,13 +25,7 @@ After`);
         spec: {
           root: 'main',
           nodes: [
-            {
-              id: 'main',
-              component: 'Row',
-              gap: 'sm',
-              align: 'between',
-              children: ['title'],
-            },
+            { id: 'main', component: 'Row', gap: 'sm', align: 'between', children: ['title'] },
             { id: 'title', component: 'Text', text: 'Recovered', variant: 'heading' },
           ],
         },

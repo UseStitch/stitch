@@ -32,9 +32,7 @@ function loadProviderConfigs(modelsDir) {
 
 function loadServerConfigs() {
   const serversDir = join(rootDir, 'registries', 'mcp', 'servers');
-  const entries = readdirSync(serversDir, { withFileTypes: true }).filter((entry) =>
-    entry.isDirectory(),
-  );
+  const entries = readdirSync(serversDir, { withFileTypes: true }).filter((entry) => entry.isDirectory());
 
   const servers = entries.map((entry) => {
     const serverDir = join(serversDir, entry.name);
@@ -45,10 +43,7 @@ function loadServerConfigs() {
 
     if (!existsSync(logoPath)) return parsed;
 
-    return {
-      ...parsed,
-      logoUrl: `${WEBSITE_BASE_URL}/mcp/servers/${parsed.id}/logo.svg`,
-    };
+    return { ...parsed, logoUrl: `${WEBSITE_BASE_URL}/mcp/servers/${parsed.id}/logo.svg` };
   });
 
   return servers.toSorted((a, b) => a.name.localeCompare(b.name));
@@ -61,9 +56,7 @@ function writeRegistryJson(filePath, payload) {
 }
 
 function writeHeaders() {
-  const rules = REGISTRY_FILES.map(
-    (path) => `${path}\n  Cache-Control: public, max-age=300, s-maxage=300`,
-  );
+  const rules = REGISTRY_FILES.map((path) => `${path}\n  Cache-Control: public, max-age=300, s-maxage=300`);
   writeFileSync(join(outputDir, '_headers'), `${rules.join('\n\n')}\n`, 'utf8');
 }
 
@@ -72,18 +65,12 @@ function copySchemas() {
   mkdirSync(schemasOutputDir, { recursive: true });
 
   const schemaCopies = [
-    {
-      src: join(rootDir, 'registries', 'mcp', 'schema', 'mcp-server.schema.json'),
-      dest: 'mcp-server.schema.json',
-    },
+    { src: join(rootDir, 'registries', 'mcp', 'schema', 'mcp-server.schema.json'), dest: 'mcp-server.schema.json' },
     {
       src: join(rootDir, 'registries', 'embeddings', 'schema', 'embedding-provider.schema.json'),
       dest: 'embedding-provider.schema.json',
     },
-    {
-      src: join(rootDir, 'registries', 'stt', 'schema', 'stt-provider.schema.json'),
-      dest: 'stt-provider.schema.json',
-    },
+    { src: join(rootDir, 'registries', 'stt', 'schema', 'stt-provider.schema.json'), dest: 'stt-provider.schema.json' },
   ];
 
   for (const { src, dest } of schemaCopies) {
@@ -133,22 +120,16 @@ function writeOutput(servers, embeddingProviders, sttProviders) {
 
 function main() {
   const servers = loadServerConfigs();
-  const embeddingProviders = loadProviderConfigs(
-    join(rootDir, 'registries', 'embeddings', 'models'),
-  );
+  const embeddingProviders = loadProviderConfigs(join(rootDir, 'registries', 'embeddings', 'models'));
   const sttProviders = loadProviderConfigs(join(rootDir, 'registries', 'stt', 'models'));
 
   writeOutput(servers, embeddingProviders, sttProviders);
 
-  console.log(
-    `Built MCP registry with ${servers.length} server(s): ${join(outputDir, 'mcp-registry.json')}`,
-  );
+  console.log(`Built MCP registry with ${servers.length} server(s): ${join(outputDir, 'mcp-registry.json')}`);
   console.log(
     `Built embedding registry with ${embeddingProviders.length} provider(s): ${join(outputDir, 'embedding-models.json')}`,
   );
-  console.log(
-    `Built STT registry with ${sttProviders.length} provider(s): ${join(outputDir, 'stt-models.json')}`,
-  );
+  console.log(`Built STT registry with ${sttProviders.length} provider(s): ${join(outputDir, 'stt-models.json')}`);
 }
 
 main();

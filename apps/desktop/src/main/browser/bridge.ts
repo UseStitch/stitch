@@ -1,9 +1,6 @@
 import { WebSocketServer, type WebSocket } from 'ws';
 
-import type {
-  ElectronBrowserCommand,
-  ElectronBrowserCommandMessage,
-} from '@stitch/shared/browser/electron';
+import type { ElectronBrowserCommand, ElectronBrowserCommandMessage } from '@stitch/shared/browser/electron';
 
 import { rawSocketDataToString } from './url.js';
 
@@ -19,10 +16,7 @@ export class BrowserBridge {
   start(port: number): void {
     this.wss = new WebSocketServer({ host: HOST, port });
     this.wss.on('connection', (socket) => {
-      socket.on(
-        'message',
-        (data) => void this.handleSocketMessage(socket, rawSocketDataToString(data)),
-      );
+      socket.on('message', (data) => void this.handleSocketMessage(socket, rawSocketDataToString(data)));
     });
   }
 

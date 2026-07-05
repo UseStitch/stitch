@@ -105,13 +105,7 @@ export function ToolNameIcon({ toolName, className }: { toolName: string; classN
   return <ToolKindIcon kind={getToolIconKind(toolName)} className={className} />;
 }
 
-export function NativeToolsetIcon({
-  toolsetId,
-  className,
-}: {
-  toolsetId: string;
-  className?: string;
-}) {
+export function NativeToolsetIcon({ toolsetId, className }: { toolsetId: string; className?: string }) {
   if (toolsetId === 'agenda') return <CalendarCheckIcon className={className} />;
   if (toolsetId === 'browser') return <GlobeIcon className={className} />;
   if (toolsetId === 'recordings') return <MicIcon className={className} />;

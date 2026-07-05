@@ -1,10 +1,4 @@
-export type ElectronBrowserTab = {
-  id: string;
-  title: string;
-  url: string;
-  type: 'page';
-  active: boolean;
-};
+export type ElectronBrowserTab = { id: string; title: string; url: string; type: 'page'; active: boolean };
 
 export type ElectronBrowserDownload = {
   id: string;
@@ -59,35 +53,15 @@ export type ElectronBrowserCommand =
   | { action: 'listTabs' }
   | { action: 'focusTab'; tabId: string; timeoutMs?: number }
   | { action: 'closeTab'; tabId?: string }
-  | {
-      action: 'click';
-      ref: string;
-      doubleClick?: boolean;
-      button?: string;
-      modifiers?: string[];
-      timeoutMs?: number;
-    }
+  | { action: 'click'; ref: string; doubleClick?: boolean; button?: string; modifiers?: string[]; timeoutMs?: number }
   | { action: 'hover'; ref: string }
-  | {
-      action: 'type';
-      ref: string;
-      text: string;
-      slowly?: boolean;
-      submit?: boolean;
-      clear?: boolean;
-    }
+  | { action: 'type'; ref: string; text: string; slowly?: boolean; submit?: boolean; clear?: boolean }
   | { action: 'press'; key: string; timeoutMs?: number }
   | { action: 'select'; ref: string; values: string[] }
   | { action: 'getDropdownOptions'; ref: string }
   | { action: 'selectDropdown'; ref: string; text: string; timeoutMs?: number }
   | { action: 'scroll'; ref?: string; direction: 'up' | 'down' | 'left' | 'right' }
-  | {
-      action: 'screenshot';
-      ref?: string;
-      format?: 'png' | 'jpeg';
-      quality?: number;
-      fullPage?: boolean;
-    }
+  | { action: 'screenshot'; ref?: string; format?: 'png' | 'jpeg'; quality?: number; fullPage?: boolean }
   | { action: 'evaluate'; expression: string }
   | { action: 'wait'; timeMs?: number; selector?: string; timeoutMs?: number }
   | {
@@ -107,42 +81,19 @@ export type ElectronBrowserCommand =
       cssScope?: string;
       maxResults?: number;
     }
-  | {
-      action: 'findElements';
-      selector: string;
-      attributes?: string[];
-      includeText?: boolean;
-      maxResults?: number;
-    }
+  | { action: 'findElements'; selector: string; attributes?: string[]; includeText?: boolean; maxResults?: number }
   | { action: 'dialogState' }
   | { action: 'handleDialog'; dialogAction: 'accept' | 'dismiss'; promptText?: string };
 
-export type ElectronBrowserScreenshotResult = {
-  data: string;
-  format: 'png' | 'jpeg';
-};
+export type ElectronBrowserScreenshotResult = { data: string; format: 'png' | 'jpeg' };
 
-export type ElectronBrowserSearchPageMatch = {
-  match: string;
-  context: string;
-  index: number;
-};
+export type ElectronBrowserSearchPageMatch = { match: string; context: string; index: number };
 
-export type ElectronBrowserSearchPageResult = {
-  matches: ElectronBrowserSearchPageMatch[];
-  total: number;
-};
+export type ElectronBrowserSearchPageResult = { matches: ElectronBrowserSearchPageMatch[]; total: number };
 
-export type ElectronBrowserFindElementEntry = {
-  tag: string;
-  text?: string;
-  attributes?: Record<string, string>;
-};
+export type ElectronBrowserFindElementEntry = { tag: string; text?: string; attributes?: Record<string, string> };
 
-export type ElectronBrowserFindElementsResult = {
-  elements: ElectronBrowserFindElementEntry[];
-  total: number;
-};
+export type ElectronBrowserFindElementsResult = { elements: ElectronBrowserFindElementEntry[]; total: number };
 
 export type ElectronBrowserDropdownOption = {
   index: number;
@@ -152,10 +103,7 @@ export type ElectronBrowserDropdownOption = {
   disabled: boolean;
 };
 
-export type ElectronBrowserDropdownOptionsResult = {
-  type: string;
-  options: ElectronBrowserDropdownOption[];
-};
+export type ElectronBrowserDropdownOptionsResult = { type: string; options: ElectronBrowserDropdownOption[] };
 
 export type ElectronBrowserExtractContentResult = {
   text: string;
@@ -205,15 +153,11 @@ export type ElectronBrowserCommandResult<A extends ElectronBrowserCommand['actio
   ElectronBrowserCommandResultMap[A];
 
 /** Union of every possible command result; the return shape of the desktop command handler. */
-export type ElectronBrowserCommandResultValue =
-  ElectronBrowserCommandResultMap[keyof ElectronBrowserCommandResultMap];
+export type ElectronBrowserCommandResultValue = ElectronBrowserCommandResultMap[keyof ElectronBrowserCommandResultMap];
 
 type AssertExtends<A extends B, B> = A;
 // Compile-time guard: the result map must cover exactly the command union's actions.
-type _ResultMapCoversActions = AssertExtends<
-  keyof ElectronBrowserCommandResultMap,
-  ElectronBrowserCommand['action']
->;
+type _ResultMapCoversActions = AssertExtends<keyof ElectronBrowserCommandResultMap, ElectronBrowserCommand['action']>;
 type _ActionsCoveredByResultMap = AssertExtends<
   ElectronBrowserCommand['action'],
   keyof ElectronBrowserCommandResultMap
@@ -226,16 +170,6 @@ export type ElectronBrowserCommandMessage = {
   command: ElectronBrowserCommand;
 };
 
-export type ElectronBrowserResultMessage = {
-  id: string;
-  type: 'browser:result';
-  ok: true;
-  result: unknown;
-};
+export type ElectronBrowserResultMessage = { id: string; type: 'browser:result'; ok: true; result: unknown };
 
-export type ElectronBrowserErrorMessage = {
-  id: string;
-  type: 'browser:result';
-  ok: false;
-  error: string;
-};
+export type ElectronBrowserErrorMessage = { id: string; type: 'browser:result'; ok: false; error: string };

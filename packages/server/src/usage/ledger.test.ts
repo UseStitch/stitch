@@ -1,9 +1,9 @@
 import { describe, expect, spyOn, test } from 'bun:test';
+import { eq } from 'drizzle-orm';
 
-import { setupTestDb } from '@/db/test-helpers.js';
 import { getDb } from '@/db/client.js';
 import { llmUsageEvents } from '@/db/schema/usage.js';
-import { eq } from 'drizzle-orm';
+import { setupTestDb } from '@/db/test-helpers.js';
 import { recordLlmUsage, recordUsageEvent } from '@/usage/ledger.js';
 import type { LanguageModelUsage } from 'ai';
 
@@ -62,10 +62,7 @@ describe('recordLlmUsage', () => {
     expect(typeof costUsd).toBe('number');
 
     const db = getDb();
-    const events = await db
-      .select()
-      .from(llmUsageEvents)
-      .where(eq(llmUsageEvents.runId, runId));
+    const events = await db.select().from(llmUsageEvents).where(eq(llmUsageEvents.runId, runId));
 
     expect(events.length).toBe(1);
     expect(events[0]?.source).toBe('compaction');
@@ -118,10 +115,7 @@ describe('recordLlmUsage', () => {
     });
 
     const db = getDb();
-    const events = await db
-      .select()
-      .from(llmUsageEvents)
-      .where(eq(llmUsageEvents.runId, runId));
+    const events = await db.select().from(llmUsageEvents).where(eq(llmUsageEvents.runId, runId));
 
     expect(events.length).toBe(1);
     expect(events[0]?.status).toBe('failed');

@@ -14,11 +14,7 @@ type MeetingDetectedNotificationProps = {
   onDismiss: (id: string) => void;
 };
 
-export function MeetingDetectedNotification({
-  event,
-  exiting,
-  onDismiss,
-}: MeetingDetectedNotificationProps) {
+export function MeetingDetectedNotification({ event, exiting, onDismiss }: MeetingDetectedNotificationProps) {
   const [error, setError] = React.useState<string | null>(null);
   const startRecording = useStartRecording();
   const platformLabel = PLATFORM_CONFIG[event.payload.platform].label;
@@ -31,12 +27,9 @@ export function MeetingDetectedNotification({
       <DesktopNotification.Content>
         <DesktopNotification.Title>Meeting detected</DesktopNotification.Title>
         <DesktopNotification.Description>
-          Active call detected in{' '}
-          <span className="font-medium text-foreground">{platformLabel}</span>.
+          Active call detected in <span className="font-medium text-foreground">{platformLabel}</span>.
         </DesktopNotification.Description>
-        {error ? (
-          <p className="mt-1.5 text-xs leading-4 wrap-break-word text-destructive">{error}</p>
-        ) : null}
+        {error ? <p className="mt-1.5 text-xs leading-4 wrap-break-word text-destructive">{error}</p> : null}
         <DesktopNotification.Actions>
           <DesktopNotification.Action
             onClick={() => {
@@ -44,13 +37,10 @@ export function MeetingDetectedNotification({
               void startRecording.mutateAsync({ platform: event.payload.platform }).then(
                 () => onDismiss(event.id),
                 (nextError: unknown) => {
-                  setError(
-                    nextError instanceof Error ? nextError.message : 'Failed to start recording',
-                  );
+                  setError(nextError instanceof Error ? nextError.message : 'Failed to start recording');
                 },
               );
-            }}
-          >
+            }}>
             {startRecording.isPending ? 'Starting...' : 'Start recording'}
           </DesktopNotification.Action>
           <DesktopNotification.Action variant="ghost" onClick={() => onDismiss(event.id)}>

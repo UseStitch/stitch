@@ -10,11 +10,9 @@ import { createWsTransport, type WsMessageResult } from '@/stt/ws-transport.js';
 const log = Log.create({ service: 'stt.openai' });
 
 const OPENAI_REALTIME_BASE_URL = 'wss://api.openai.com/v1/realtime';
-const CREDENTIALS_ERROR_REASON =
-  'Invalid transcription API credentials. Please check your settings.';
+const CREDENTIALS_ERROR_REASON = 'Invalid transcription API credentials. Please check your settings.';
 const QUOTA_ERROR_REASON = 'Transcription quota exceeded. Please check your billing.';
-const MODEL_ERROR_REASON =
-  'Selected transcription model is unavailable. Please check your settings.';
+const MODEL_ERROR_REASON = 'Selected transcription model is unavailable. Please check your settings.';
 
 type OpenAIRealtimeMessage =
   | { type: 'session.created' }
@@ -44,10 +42,7 @@ type OpenAIRealtimeMessage =
   | { type: 'error'; error: { type: string; message: string; code?: string } };
 
 function parseUsage(
-  usage: Extract<
-    OpenAIRealtimeMessage,
-    { type: 'conversation.item.input_audio_transcription.completed' }
-  >['usage'],
+  usage: Extract<OpenAIRealtimeMessage, { type: 'conversation.item.input_audio_transcription.completed' }>['usage'],
   durationMs: number,
 ): STTUsage {
   if (!usage) return { durationMs };
@@ -119,32 +114,18 @@ export function createOpenAIMessageParser(sessionStartMs: number) {
 function buildSessionConfig(config: STTConnectionConfig): string {
   const audioInput: Record<string, unknown> = {
     format: { type: 'audio/pcm', rate: 24000 },
-    transcription: {
-      model: config.modelId,
-      ...(config.language ? { language: config.language } : {}),
-    },
+    transcription: { model: config.modelId, ...(config.language ? { language: config.language } : {}) },
     turn_detection: null,
   };
 
-  return JSON.stringify({
-    type: 'session.update',
-    session: {
-      type: 'transcription',
-      audio: { input: audioInput },
-    },
-  });
+  return JSON.stringify({ type: 'session.update', session: { type: 'transcription', audio: { input: audioInput } } });
 }
 
 function classifyOpenAIError(err: Error): STTErrorClassification {
   const msg = err.message.toLowerCase();
   const code = (err as Error & { code?: string }).code ?? '';
 
-  if (
-    code === 'invalid_api_key' ||
-    code === 'auth_error' ||
-    msg.includes('401') ||
-    msg.includes('403')
-  ) {
+  if (code === 'invalid_api_key' || code === 'auth_error' || msg.includes('401') || msg.includes('403')) {
     return { fatal: true, reason: CREDENTIALS_ERROR_REASON };
   }
 
@@ -168,9 +149,7 @@ function createOpenAITransport(config: STTConnectionConfig) {
   return createWsTransport(
     {
       url: `${OPENAI_REALTIME_BASE_URL}?intent=transcription`,
-      headers: {
-        Authorization: `Bearer ${config.auth.kind === 'apiKey' ? config.auth.key : ''}`,
-      },
+      headers: { Authorization: `Bearer ${config.auth.kind === 'apiKey' ? config.auth.key : ''}` },
       onReady: () => [buildSessionConfig(config)],
       parseMessage: createOpenAIMessageParser(config.captureStartMs),
       label: 'OpenAI',
@@ -178,11 +157,7 @@ function createOpenAITransport(config: STTConnectionConfig) {
       pongTimeoutMs: config.reconnect.pongTimeoutMs,
       keepAliveMessage: config.reconnect.keepAliveMessage,
     },
-    (chunk) =>
-      JSON.stringify({
-        type: 'input_audio_buffer.append',
-        audio: chunk.samplesB64,
-      }),
+    (chunk) => JSON.stringify({ type: 'input_audio_buffer.append', audio: chunk.samplesB64 }),
     () => JSON.stringify({ type: 'input_audio_buffer.commit' }),
   );
 }

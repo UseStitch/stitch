@@ -2,13 +2,7 @@ import { afterEach, beforeEach, describe, expect, jest, mock, test } from 'bun:t
 
 import { createScheduler } from './scheduler.js';
 
-import type {
-  JobSchedule,
-  PersistedJob,
-  PersistedJobRun,
-  SchedulerLogger,
-  SchedulerStore,
-} from './types.js';
+import type { JobSchedule, PersistedJob, PersistedJobRun, SchedulerLogger, SchedulerStore } from './types.js';
 
 const BASE_TIME = new Date('2026-01-01T00:00:00.000Z').getTime();
 let mockNow = BASE_TIME;
@@ -295,11 +289,7 @@ describe('scheduler', () => {
     const store = new MemoryStore();
     const scheduler = createScheduler({ store, logger: makeLogger(), pollIntervalMs: 100 });
 
-    await scheduler.registerJob({
-      key: 'remove-me',
-      schedule: { type: 'interval', everyMs: 100 },
-      callback: () => {},
-    });
+    await scheduler.registerJob({ key: 'remove-me', schedule: { type: 'interval', everyMs: 100 }, callback: () => {} });
 
     const removed = await scheduler.unregisterJob('remove-me');
     const status = await store.getJob('remove-me');

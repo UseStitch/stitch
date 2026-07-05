@@ -17,11 +17,7 @@ export type PromptConfig = {
  * System prompt split into layers for optimal prompt caching.
  * Static content stays cached regardless of memory/todo changes.
  */
-type SystemPromptLayers = {
-  static: string;
-  semiStatic: string;
-  dynamic: string;
-};
+type SystemPromptLayers = { static: string; semiStatic: string; dynamic: string };
 
 function buildUserInstructionsPrompt(userPrompt: string): string {
   return `<user-instructions>
@@ -31,15 +27,9 @@ ${userPrompt}
 </user-instructions>`;
 }
 
-export async function getPromptUserContext(): Promise<{
-  userName: string;
-  userTimezone: string;
-}> {
+export async function getPromptUserContext(): Promise<{ userName: string; userTimezone: string }> {
   const s = await getSettings(['profile.name', 'profile.timezone'] as const);
-  return {
-    userName: s['profile.name'],
-    userTimezone: s['profile.timezone'],
-  };
+  return { userName: s['profile.name'], userTimezone: s['profile.timezone'] };
 }
 
 const identity = (userName: string) =>
@@ -48,10 +38,7 @@ const identity = (userName: string) =>
     : 'You are Stitch, a local machine assistant that helps users with day-to-day tasks on their computer.';
 
 const BASE_SYSTEM_PROMPT = readFileSync(
-  resolveRuntimeAssetPath(
-    new URL('./base-system-prompt.txt', import.meta.url),
-    'llm/prompt/base-system-prompt.txt',
-  ),
+  resolveRuntimeAssetPath(new URL('./base-system-prompt.txt', import.meta.url), 'llm/prompt/base-system-prompt.txt'),
   'utf8',
 ).trim();
 
@@ -97,9 +84,5 @@ export function buildSystemPromptLayers(input: PromptConfig): SystemPromptLayers
   }
   const dynamicContent = dynamicParts.join('\n\n');
 
-  return {
-    static: staticContent,
-    semiStatic: semiStaticContent,
-    dynamic: dynamicContent,
-  };
+  return { static: staticContent, semiStatic: semiStaticContent, dynamic: dynamicContent };
 }

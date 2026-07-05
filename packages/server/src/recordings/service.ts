@@ -1,10 +1,6 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 
-import {
-  createRecordingAnalysisId,
-  createRecordingId,
-  type PrefixedString,
-} from '@stitch/shared/id';
+import { createRecordingAnalysisId, createRecordingId, type PrefixedString } from '@stitch/shared/id';
 import type {
   ActiveRecordingResponse,
   ListRecordingsResponse,
@@ -31,17 +27,12 @@ import { finalFlushAndCleanup } from '@/recordings/transcript-store.js';
 import { getSettings } from '@/settings/service.js';
 
 type RecordingRow = typeof recordings.$inferSelect;
-type ActiveRecording = {
-  id: Recording['id'];
-};
+type ActiveRecording = { id: Recording['id'] };
 
 let activeRecording: ActiveRecording | null = null;
 const log = Log.create({ service: 'recordings' });
 
-type RecordingCaptureSettings = {
-  inputDeviceId: string | null;
-  outputDeviceId: string | null;
-};
+type RecordingCaptureSettings = { inputDeviceId: string | null; outputDeviceId: string | null };
 
 async function readCaptureSettings(): Promise<RecordingCaptureSettings> {
   const s = await getSettings(['recordings.inputDeviceId', 'recordings.outputDeviceId'] as const);
@@ -51,17 +42,9 @@ async function readCaptureSettings(): Promise<RecordingCaptureSettings> {
   };
 }
 
-type ResolvedSttConfig = {
-  providerId: string;
-  modelId: string;
-  encoding: 'f32le' | 'pcm_s16le';
-  sampleRateHz: number;
-};
+type ResolvedSttConfig = { providerId: string; modelId: string; encoding: 'f32le' | 'pcm_s16le'; sampleRateHz: number };
 
-async function resolveSttConfig(override?: {
-  providerId: string;
-  modelId: string;
-}): Promise<ResolvedSttConfig | null> {
+async function resolveSttConfig(override?: { providerId: string; modelId: string }): Promise<ResolvedSttConfig | null> {
   let providerId: string;
   let modelId: string;
 
@@ -69,10 +52,7 @@ async function resolveSttConfig(override?: {
     providerId = override.providerId;
     modelId = override.modelId;
   } else {
-    const s = await getSettings([
-      'recordings.transcription.providerId',
-      'recordings.transcription.modelId',
-    ] as const);
+    const s = await getSettings(['recordings.transcription.providerId', 'recordings.transcription.modelId'] as const);
     providerId = s['recordings.transcription.providerId'].trim();
     modelId = s['recordings.transcription.modelId'].trim();
   }
@@ -83,10 +63,7 @@ async function resolveSttConfig(override?: {
   }
 
   const db = getDb();
-  const [config] = await db
-    .select()
-    .from(providerConfig)
-    .where(eq(providerConfig.providerId, providerId));
+  const [config] = await db.select().from(providerConfig).where(eq(providerConfig.providerId, providerId));
 
   if (!config) {
     log.warn({ providerId }, 'no provider config found for transcription provider');
@@ -99,12 +76,7 @@ async function resolveSttConfig(override?: {
     return null;
   }
 
-  return {
-    providerId,
-    modelId,
-    encoding: model.inputFormat.encoding,
-    sampleRateHz: model.inputFormat.sampleRateHz,
-  };
+  return { providerId, modelId, encoding: model.inputFormat.encoding, sampleRateHz: model.inputFormat.sampleRateHz };
 }
 
 function defaultTitle(): string {
@@ -112,11 +84,7 @@ function defaultTitle(): string {
   const month = now.toLocaleDateString(undefined, { month: 'short' });
   const day = now.getDate();
   const year = now.getFullYear();
-  const timePart = now.toLocaleTimeString(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZoneName: 'short',
-  });
+  const timePart = now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
   return `${month} ${day} ${year} ${timePart}`;
 }
 
@@ -166,9 +134,7 @@ export async function listRecordings(input: {
   const totalPages = computeTotalPages(total, input.pageSize);
 
   return ok({
-    recordings: rows.map((row) =>
-      toRecording(row.recording, row.analysisTitle || null, row.analysisCostUsd ?? null),
-    ),
+    recordings: rows.map((row) => toRecording(row.recording, row.analysisTitle || null, row.analysisCostUsd ?? null)),
     activeRecordingId: activeRecording?.id ?? null,
     page: input.page,
     pageSize: input.pageSize,
@@ -207,9 +173,7 @@ export function getActiveRecording(): ServiceResult<ActiveRecordingResponse> {
   return ok({ activeRecordingId: activeRecording?.id ?? null });
 }
 
-export async function startRecording(
-  input: StartRecordingInput,
-): Promise<ServiceResult<StartRecordingResponse>> {
+export async function startRecording(input: StartRecordingInput): Promise<ServiceResult<StartRecordingResponse>> {
   if (activeRecording !== null) {
     return err('Recording already in progress', 400);
   }
@@ -238,35 +202,39 @@ export async function startRecording(
     settings = resolvedSettings;
     sttConfig = resolvedSttConfig;
 
-    await db.insert(recordings).values({
-      id,
-      title,
-      source: 'manual',
-      status: 'recording',
-      platform: input.platform ?? 'manual',
-      startedAt: now,
-    });
+    await db
+      .insert(recordings)
+      .values({
+        id,
+        title,
+        source: 'manual',
+        status: 'recording',
+        platform: input.platform ?? 'manual',
+        startedAt: now,
+      });
 
     // Create recording_analyses row upfront for later use by analysis
     const analysisId = createRecordingAnalysisId();
-    await db.insert(recordingAnalyses).values({
-      id: analysisId,
-      recordingId: id,
-      status: 'pending',
-      title: '',
-      error: null,
-      transcriptionProviderId: sttConfig.providerId,
-      transcriptionModelId: sttConfig.modelId,
-      analysisProviderId: null,
-      analysisModelId: null,
-      usage: null,
-      costUsd: 0,
-      startedAt: Date.now(),
-      endedAt: null,
-      durationMs: null,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
+    await db
+      .insert(recordingAnalyses)
+      .values({
+        id: analysisId,
+        recordingId: id,
+        status: 'pending',
+        title: '',
+        error: null,
+        transcriptionProviderId: sttConfig.providerId,
+        transcriptionModelId: sttConfig.modelId,
+        analysisProviderId: null,
+        analysisModelId: null,
+        usage: null,
+        costUsd: 0,
+        startedAt: Date.now(),
+        endedAt: null,
+        durationMs: null,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
 
     activeRecording = { id };
     log.info(
@@ -300,9 +268,7 @@ export async function startRecording(
   });
 }
 
-export async function stopRecording(
-  input: StopRecordingInput,
-): Promise<ServiceResult<StopRecordingResponse>> {
+export async function stopRecording(input: StopRecordingInput): Promise<ServiceResult<StopRecordingResponse>> {
   const current = activeRecording;
   if (!current) {
     return err('No active recording', 400);
@@ -317,63 +283,36 @@ export async function stopRecording(
 
     await db
       .update(recordings)
-      .set({
-        status: 'completed',
-        endedAt,
-        durationMs,
-        updatedAt: Date.now(),
-      })
+      .set({ status: 'completed', endedAt, durationMs, updatedAt: Date.now() })
       .where(and(eq(recordings.id, current.id), eq(recordings.status, 'recording')));
 
     await db
       .update(recordingAnalyses)
-      .set({
-        endedAt: Date.now(),
-        durationMs: durationMs ?? undefined,
-        updatedAt: Date.now(),
-      })
+      .set({ endedAt: Date.now(), durationMs: durationMs ?? undefined, updatedAt: Date.now() })
       .where(eq(recordingAnalyses.recordingId, current.id));
 
     // Final flush of in-memory transcript to the recordings directory
     await finalFlushAndCleanup(current.id);
 
-    log.info(
-      {
-        recordingId: current.id,
-      },
-      'recording stopped',
-    );
+    log.info({ recordingId: current.id }, 'recording stopped');
 
-    const {
-      'recordings.autoAnalyze': autoAnalyze,
-      'recordings.analysis.defaultTemplateId': defaultTemplateId,
-    } = await getSettings([
-      'recordings.autoAnalyze',
-      'recordings.analysis.defaultTemplateId',
-    ] as const);
+    const { 'recordings.autoAnalyze': autoAnalyze, 'recordings.analysis.defaultTemplateId': defaultTemplateId } =
+      await getSettings(['recordings.autoAnalyze', 'recordings.analysis.defaultTemplateId'] as const);
 
     if (autoAnalyze) {
-      void startRecordingAnalysis(current.id, {
-        templateId: defaultTemplateId as PrefixedString<'mnt'>,
-      }).then((result) => {
-        if (result.error) {
-          log.warn(
-            { recordingId: current.id, error: result.error.message },
-            'auto analysis skipped',
-          );
-        }
-      });
+      void startRecordingAnalysis(current.id, { templateId: defaultTemplateId as PrefixedString<'mnt'> }).then(
+        (result) => {
+          if (result.error) {
+            log.warn({ recordingId: current.id, error: result.error.message }, 'auto analysis skipped');
+          }
+        },
+      );
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to stop recording';
     await db
       .update(recordings)
-      .set({
-        status: 'failed',
-        error: message,
-        endedAt: Date.now(),
-        updatedAt: Date.now(),
-      })
+      .set({ status: 'failed', error: message, endedAt: Date.now(), updatedAt: Date.now() })
       .where(eq(recordings.id, current.id));
 
     return err(message, 400);

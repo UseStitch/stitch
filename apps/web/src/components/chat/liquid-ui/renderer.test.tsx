@@ -10,21 +10,8 @@ describe('LiquidUi', () => {
         spec={{
           root: 'n1',
           nodes: [
-            {
-              id: 'n1',
-              component: 'Card',
-              title: 'Summary',
-              description: null,
-              children: ['n2', 'n3'],
-            },
-            {
-              id: 'n2',
-              component: 'Stat',
-              label: 'Revenue',
-              value: '$4.2k',
-              caption: null,
-              trend: 'up',
-            },
+            { id: 'n1', component: 'Card', title: 'Summary', description: null, children: ['n2', 'n3'] },
+            { id: 'n2', component: 'Stat', label: 'Revenue', value: '$4.2k', caption: null, trend: 'up' },
             { id: 'n3', component: 'Badge', variant: 'success', text: 'On track' },
           ],
         }}
@@ -57,10 +44,7 @@ describe('LiquidUi', () => {
   test('renders skeletons for unresolved streaming child refs', () => {
     const html = renderToStaticMarkup(
       <LiquidUi
-        spec={{
-          root: 'n1',
-          nodes: [{ id: 'n1', component: 'Stack', spacing: 'md', children: ['pending'] }],
-        }}
+        spec={{ root: 'n1', nodes: [{ id: 'n1', component: 'Stack', spacing: 'md', children: ['pending'] }] }}
       />,
     );
 

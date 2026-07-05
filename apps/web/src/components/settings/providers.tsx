@@ -29,28 +29,17 @@ function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => v
         <SettingSection title="Connected providers" className="mt-0">
           <div className="flex flex-col">
             {connected.map((provider) => (
-              <ProviderRow
-                key={provider.id}
-                provider={provider}
-                onSelect={() => onSelect(provider)}
-              />
+              <ProviderRow key={provider.id} provider={provider} onSelect={() => onSelect(provider)} />
             ))}
           </div>
         </SettingSection>
       )}
 
       {unconnected.length > 0 && (
-        <SettingSection
-          title="Popular providers"
-          className={connected.length > 0 ? 'mt-6' : 'mt-0'}
-        >
+        <SettingSection title="Popular providers" className={connected.length > 0 ? 'mt-6' : 'mt-0'}>
           <div className="flex flex-col">
             {unconnected.map((provider) => (
-              <ProviderRow
-                key={provider.id}
-                provider={provider}
-                onSelect={() => onSelect(provider)}
-              />
+              <ProviderRow key={provider.id} provider={provider} onSelect={() => onSelect(provider)} />
             ))}
           </div>
         </SettingSection>
@@ -67,11 +56,7 @@ export function ProvidersSettings() {
   return (
     <div className="flex h-full flex-col">
       {!selected && (
-        <SettingPage
-          title={page.title}
-          description={page.description}
-          icon={<Icon className="size-5" />}
-        >
+        <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
           <ProviderList onSelect={setSelected} />
         </SettingPage>
       )}

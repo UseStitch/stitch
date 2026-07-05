@@ -29,42 +29,28 @@ const startRecordingSchema = z.object({
   sttModelId: z.string().min(1).optional(),
 });
 
-const stopRecordingSchema = z.object({
-  durationMs: z.number().int().nonnegative().nullable(),
-});
+const stopRecordingSchema = z.object({ durationMs: z.number().int().nonnegative().nullable() });
 
-const recordingIdParamSchema = z.object({
-  id: z.templateLiteral([z.literal('rec'), z.string()]),
-});
+const recordingIdParamSchema = z.object({ id: z.templateLiteral([z.literal('rec'), z.string()]) });
 
-const meetingNoteTemplateIdParamSchema = z.object({
-  id: z.templateLiteral([z.literal('mnt'), z.string()]),
-});
+const meetingNoteTemplateIdParamSchema = z.object({ id: z.templateLiteral([z.literal('mnt'), z.string()]) });
 
 const meetingNoteTemplateSchema = z.object({
   name: z.string().trim().min(1).max(120),
   content: z.string().max(50_000),
 });
 
-const analyzeQuerySchema = z.object({
-  force: z.enum(['1', 'true']).optional(),
-});
+const analyzeQuerySchema = z.object({ force: z.enum(['1', 'true']).optional() });
 
-const analyzeBodySchema = z.object({
-  templateId: z.templateLiteral([z.literal('mnt'), z.string()]),
-});
+const analyzeBodySchema = z.object({ templateId: z.templateLiteral([z.literal('mnt'), z.string()]) });
 
 export const recordingsRouter = new Hono();
 
-recordingsRouter.get(
-  '/',
-  zValidator('query', paginationQuerySchema({ pageSize: 10 })),
-  async (c) => {
-    const { page, pageSize } = c.req.valid('query');
-    const result = await listRecordings({ page, pageSize });
-    return unwrapResult(c, result);
-  },
-);
+recordingsRouter.get('/', zValidator('query', paginationQuerySchema({ pageSize: 10 })), async (c) => {
+  const { page, pageSize } = c.req.valid('query');
+  const result = await listRecordings({ page, pageSize });
+  return unwrapResult(c, result);
+});
 
 recordingsRouter.post('/start', zValidator('json', startRecordingSchema), async (c) => {
   const body = c.req.valid('json') as StartRecordingInput;
@@ -101,15 +87,11 @@ recordingsRouter.put(
   },
 );
 
-recordingsRouter.delete(
-  '/templates/:id',
-  zValidator('param', meetingNoteTemplateIdParamSchema),
-  async (c) => {
-    const { id } = c.req.valid('param');
-    const result = await deleteMeetingNoteTemplate(id);
-    return unwrapResult(c, result, 204);
-  },
-);
+recordingsRouter.delete('/templates/:id', zValidator('param', meetingNoteTemplateIdParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
+  const result = await deleteMeetingNoteTemplate(id);
+  return unwrapResult(c, result, 204);
+});
 
 recordingsRouter.delete('/:id', zValidator('param', recordingIdParamSchema), async (c) => {
   const { id } = c.req.valid('param');
@@ -139,12 +121,8 @@ recordingsRouter.post(
   },
 );
 
-recordingsRouter.post(
-  '/:id/analysis/cancel',
-  zValidator('param', recordingIdParamSchema),
-  async (c) => {
-    const { id } = c.req.valid('param');
-    const result = await cancelRecordingAnalysis(id);
-    return unwrapResult(c, result, 204);
-  },
-);
+recordingsRouter.post('/:id/analysis/cancel', zValidator('param', recordingIdParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
+  const result = await cancelRecordingAnalysis(id);
+  return unwrapResult(c, result, 204);
+});

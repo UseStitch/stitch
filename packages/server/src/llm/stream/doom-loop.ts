@@ -21,10 +21,7 @@ const DECISION_TIMEOUT_MS = 5 * 60 * 1000;
 
 export type DoomLoopResponse = 'continue' | 'stop';
 
-export type ToolCallRecord = {
-  toolName: string;
-  inputJson: string;
-};
+export type ToolCallRecord = { toolName: string; inputJson: string };
 
 /**
  * Returns `true` when the last `DOOM_LOOP_THRESHOLD` entries in `history` are
@@ -60,10 +57,7 @@ export function waitForUserDecision(sessionId: PrefixedString<'ses'>): Promise<D
  * Called from the API route when the user picks "Continue" or "Stop".
  * Returns `false` if there was no pending prompt for the session.
  */
-export function resolveDecision(
-  sessionId: PrefixedString<'ses'>,
-  response: DoomLoopResponse,
-): boolean {
+export function resolveDecision(sessionId: PrefixedString<'ses'>, response: DoomLoopResponse): boolean {
   return interactionBroker.resolve(sessionId, response);
 }
 
@@ -91,15 +85,8 @@ export async function checkAndHandleDoomLoop(opts: {
   currentState: DoomLoopState;
   onDoomLoopAttemptFailure?: StepOptions['onAttemptFailure'];
 }): Promise<DoomLoopState> {
-  const {
-    sessionId,
-    messageId,
-    toolCallHistory,
-    conversation,
-    stepOptions,
-    currentState,
-    onDoomLoopAttemptFailure,
-  } = opts;
+  const { sessionId, messageId, toolCallHistory, conversation, stepOptions, currentState, onDoomLoopAttemptFailure } =
+    opts;
 
   if (!isDoomLoop(toolCallHistory)) {
     return currentState;
@@ -108,12 +95,7 @@ export async function checkAndHandleDoomLoop(opts: {
   const repeatedTool = toolCallHistory[toolCallHistory.length - 1].toolName;
 
   log.warn(
-    {
-      sessionId,
-      messageId,
-      toolName: repeatedTool,
-      consecutiveCount: DOOM_LOOP_THRESHOLD,
-    },
+    { sessionId, messageId, toolName: repeatedTool, consecutiveCount: DOOM_LOOP_THRESHOLD },
     'doom loop detected',
   );
 
@@ -129,10 +111,7 @@ export async function checkAndHandleDoomLoop(opts: {
   if (decision === 'stop') {
     log.info({ sessionId }, 'user stopped doom loop');
 
-    conversation.push({
-      role: 'user',
-      content: DOOM_LOOP_MESSAGE,
-    });
+    conversation.push({ role: 'user', content: DOOM_LOOP_MESSAGE });
 
     // Use empty tools for the summary step
     const summaryResult = await executeStepWithRetry({

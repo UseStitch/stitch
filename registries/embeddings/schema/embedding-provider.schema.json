@@ -6,24 +6,11 @@
   "additionalProperties": false,
   "required": ["providerId", "providerName", "models"],
   "properties": {
-    "$schema": {
-      "type": "string",
-      "description": "Optional JSON Schema reference for editor tooling"
-    },
-    "providerId": {
-      "type": "string",
-      "minLength": 1
-    },
-    "providerName": {
-      "type": "string",
-      "minLength": 1
-    },
-    "api": {
-      "type": "string"
-    },
-    "npm": {
-      "type": "string"
-    },
+    "$schema": { "type": "string", "description": "Optional JSON Schema reference for editor tooling" },
+    "providerId": { "type": "string", "minLength": 1 },
+    "providerName": { "type": "string", "minLength": 1 },
+    "api": { "type": "string" },
+    "npm": { "type": "string" },
     "models": {
       "type": "array",
       "minItems": 1,
@@ -32,74 +19,38 @@
         "additionalProperties": false,
         "required": ["id", "name", "deprecated", "dimensions", "release_date", "context", "cost"],
         "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "name": {
-            "type": "string",
-            "minLength": 1
-          },
+          "id": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
           "deprecated": {
             "type": "boolean",
             "description": "Whether this model is deprecated and should not be used for new workloads"
           },
-          "family": {
-            "type": "string"
-          },
-          "dimensions": {
-            "type": "integer",
-            "minimum": 1
-          },
-          "release_date": {
-            "type": "string",
-            "minLength": 1
-          },
-          "context": {
-            "type": "integer",
-            "minimum": 1
-          },
+          "family": { "type": "string" },
+          "dimensions": { "type": "integer", "minimum": 1 },
+          "release_date": { "type": "string", "minLength": 1 },
+          "context": { "type": "integer", "minimum": 1 },
           "inputModalities": {
             "type": "array",
             "minItems": 1,
             "uniqueItems": true,
-            "items": {
-              "type": "string",
-              "enum": ["text", "image", "video", "audio", "pdf"]
-            }
+            "items": { "type": "string", "enum": ["text", "image", "video", "audio", "pdf"] }
           },
           "outputModalities": {
             "type": "array",
             "minItems": 1,
             "uniqueItems": true,
-            "items": {
-              "type": "string",
-              "enum": ["text"]
-            }
+            "items": { "type": "string", "enum": ["text"] }
           },
           "cost": {
             "type": "object",
             "additionalProperties": false,
             "required": ["input", "output"],
             "properties": {
-              "input": {
-                "type": "number"
-              },
-              "inputImage": {
-                "type": "number",
-                "description": "Image input price in USD per image."
-              },
-              "inputAudio": {
-                "type": "number",
-                "description": "Audio input price in USD per second."
-              },
-              "inputVideo": {
-                "type": "number",
-                "description": "Video input price in USD per frame."
-              },
-              "output": {
-                "type": "number"
-              }
+              "input": { "type": "number" },
+              "inputImage": { "type": "number", "description": "Image input price in USD per image." },
+              "inputAudio": { "type": "number", "description": "Audio input price in USD per second." },
+              "inputVideo": { "type": "number", "description": "Video input price in USD per frame." },
+              "output": { "type": "number" }
             }
           }
         }

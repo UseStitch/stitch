@@ -16,28 +16,11 @@
         "language_detection": true,
         "keyterm_biasing": false
       },
-      "inputFormat": {
-        "encoding": "pcm_s16le",
-        "sampleRateHz": 24000,
-        "channels": 1
-      },
+      "inputFormat": { "encoding": "pcm_s16le", "sampleRateHz": 24000, "channels": 1 },
       "partialStrategy": "incremental",
-      "buffer": {
-        "maxChunkBytes": 65536,
-        "flushIntervalMs": 100,
-        "maxBufferedMs": 30000,
-        "paceRealtime": false
-      },
-      "reconnect": {
-        "enabled": true,
-        "maxRetries": 5,
-        "backoffMs": 500,
-        "rotateBeforeMs": 3540000
-      },
-      "pricing": {
-        "type": "duration",
-        "perMinuteUsd": 0.017
-      }
+      "buffer": { "maxChunkBytes": 65536, "flushIntervalMs": 100, "maxBufferedMs": 30000, "paceRealtime": false },
+      "reconnect": { "enabled": true, "maxRetries": 5, "backoffMs": 500, "rotateBeforeMs": 3540000 },
+      "pricing": { "type": "duration", "perMinuteUsd": 0.017 }
     }
   ]
 }

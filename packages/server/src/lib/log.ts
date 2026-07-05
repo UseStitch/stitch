@@ -7,30 +7,17 @@ import { type StitchLogger } from '@stitch/shared/logger';
 
 import { PATHS } from '@/lib/paths.js';
 
-const Level = z
-  .enum(['DEBUG', 'INFO', 'WARN', 'ERROR'])
-  .meta({ ref: 'LogLevel', description: 'Log level' });
+const Level = z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR']).meta({ ref: 'LogLevel', description: 'Log level' });
 type Level = z.infer<typeof Level>;
 
-const levelPriority: Record<Level, number> = {
-  DEBUG: 0,
-  INFO: 1,
-  WARN: 2,
-  ERROR: 3,
-};
+const levelPriority: Record<Level, number> = { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 };
 
 let level: Level = 'INFO';
 
 type Logger = StitchLogger & {
   tag(key: string, value: string): Logger;
   clone(): Logger;
-  time(
-    message: string,
-    extra?: Record<string, unknown>,
-  ): {
-    stop(): void;
-    [Symbol.dispose](): void;
-  };
+  time(message: string, extra?: Record<string, unknown>): { stop(): void; [Symbol.dispose](): void };
 };
 
 interface Options {
@@ -147,9 +134,7 @@ export function create(tags?: Record<string, unknown>, { skipCache = false } = {
     const diff = next.getTime() - last;
     last = next.getTime();
 
-    return [next.toISOString().split('.')[0], `+${diff}ms`, prefix, message]
-      .filter(Boolean)
-      .join(' ');
+    return [next.toISOString().split('.')[0], `+${diff}ms`, prefix, message].filter(Boolean).join(' ');
   }
 
   function emit(lvl: Level, extraOrMessage: Record<string, unknown> | string, message?: string) {

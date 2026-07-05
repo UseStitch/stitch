@@ -1,10 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import { ConnectorsPage } from '@/components/connectors/connectors-page';
-import {
-  connectorDefinitionsQueryOptions,
-  connectorInstancesQueryOptions,
-} from '@/lib/queries/connectors';
+import { connectorDefinitionsQueryOptions, connectorInstancesQueryOptions } from '@/lib/queries/connectors';
 
 export const Route = createFileRoute('/connectors')({
   loader: ({ context }) =>

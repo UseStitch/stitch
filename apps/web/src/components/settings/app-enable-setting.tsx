@@ -16,9 +16,7 @@ export function AppEnableSetting({ appId, label }: { appId: AppId; label: string
 
   function handleToggle(checked: boolean) {
     void setAppEnabledState.mutateAsync({ appId, enabled: checked }).catch((error: unknown) => {
-      toast.error(error instanceof Error ? error.message : `Failed to update ${label}`, {
-        id: 'app-enable',
-      });
+      toast.error(error instanceof Error ? error.message : `Failed to update ${label}`, { id: 'app-enable' });
     });
   }
 
@@ -26,14 +24,8 @@ export function AppEnableSetting({ appId, label }: { appId: AppId; label: string
     <SettingRow
       label={`Enable ${label}`}
       description={`${label} is ${enabled ? 'visible and available to the agent' : 'hidden and unavailable to the agent'}.`}
-      htmlFor={toggleId}
-    >
-      <Switch
-        id={toggleId}
-        checked={enabled}
-        onCheckedChange={handleToggle}
-        disabled={setAppEnabledState.isPending}
-      />
+      htmlFor={toggleId}>
+      <Switch id={toggleId} checked={enabled} onCheckedChange={handleToggle} disabled={setAppEnabledState.isPending} />
     </SettingRow>
   );
 }

@@ -1,7 +1,7 @@
+import { afterEach, describe, expect, test } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, test } from 'bun:test';
 
 import { cacheMcpIcon, getMcpIconByKey } from '@/mcp/icons.js';
 
@@ -44,9 +44,7 @@ describe('mcp icon cache', () => {
       serverUrl: 'https://trusted.example.com/mcp',
       scope: 'server:test',
       cacheDir,
-      icon: {
-        src: 'https://evil.example.com/icon.png',
-      },
+      icon: { src: 'https://evil.example.com/icon.png' },
     });
 
     expect(cached).toBeNull();

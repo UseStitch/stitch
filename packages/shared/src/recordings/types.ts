@@ -34,18 +34,11 @@ export type MeetingNoteTemplate = {
   updatedAt: number;
 };
 
-export type MeetingNoteTemplateInput = {
-  name: string;
-  content: string;
-};
+export type MeetingNoteTemplateInput = { name: string; content: string };
 
-export type ListMeetingNoteTemplatesResponse = {
-  templates: MeetingNoteTemplate[];
-};
+export type ListMeetingNoteTemplatesResponse = { templates: MeetingNoteTemplate[] };
 
-export type MeetingNoteTemplateResponse = {
-  template: MeetingNoteTemplate;
-};
+export type MeetingNoteTemplateResponse = { template: MeetingNoteTemplate };
 
 export type StartRecordingInput = {
   title?: string;
@@ -59,23 +52,13 @@ export type StartRecordingResponse = {
   recordingId: PrefixedString<'rec'>;
   micDeviceId: string | null;
   speakerDeviceId: string | null;
-  audioChunkConfig: {
-    encoding: 'f32le' | 'pcm_s16le';
-    sampleRateHz: number;
-  };
-  stt: {
-    providerId: string;
-    modelId: string;
-  };
+  audioChunkConfig: { encoding: 'f32le' | 'pcm_s16le'; sampleRateHz: number };
+  stt: { providerId: string; modelId: string };
 };
 
-export type StopRecordingInput = {
-  durationMs: number | null;
-};
+export type StopRecordingInput = { durationMs: number | null };
 
-export type StopRecordingResponse = {
-  recording: Recording;
-};
+export type StopRecordingResponse = { recording: Recording };
 
 export type ListRecordingsResponse = {
   recordings: Recording[];
@@ -114,9 +97,7 @@ export type RecordingAnalysis = {
   durationMs: number | null;
 };
 
-export type RecordingAnalysisResponse = {
-  analysis: RecordingAnalysis | null;
-};
+export type RecordingAnalysisResponse = { analysis: RecordingAnalysis | null };
 
 export type RecordingDetailsResponse = {
   recording: Recording;
@@ -124,10 +105,6 @@ export type RecordingDetailsResponse = {
   activeRecordingId: PrefixedString<'rec'> | null;
 };
 
-export type ActiveRecordingResponse = {
-  activeRecordingId: PrefixedString<'rec'> | null;
-};
+export type ActiveRecordingResponse = { activeRecordingId: PrefixedString<'rec'> | null };
 
-export type StartRecordingAnalysisResponse = {
-  analysis: RecordingAnalysis;
-};
+export type StartRecordingAnalysisResponse = { analysis: RecordingAnalysis };

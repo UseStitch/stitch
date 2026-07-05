@@ -86,9 +86,6 @@ export const sttUsageEvents = sqliteTable(
     index('stt_usage_events_service_idx').on(table.service),
     index('stt_usage_events_created_at_idx').on(table.createdAt),
     index('stt_usage_events_provider_model_idx').on(table.providerId, table.modelId),
-    check(
-      'stt_usage_events_service_check',
-      sql`${table.service} in ('chat-input', 'meeting-recording')`,
-    ),
+    check('stt_usage_events_service_check', sql`${table.service} in ('chat-input', 'meeting-recording')`),
   ],
 );

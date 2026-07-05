@@ -1,10 +1,6 @@
 import * as React from 'react';
 
-import type {
-  Automation,
-  AutomationSchedule,
-  GeneratedAutomationDraft,
-} from '@stitch/shared/automations/types';
+import type { Automation, AutomationSchedule, GeneratedAutomationDraft } from '@stitch/shared/automations/types';
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { CronExpressionBuilder } from '@/components/cron-expression-builder';
@@ -12,13 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { getAutomationScheduleLabel } from '@/lib/automations/schedule-label';
 import type { ProviderModels } from '@/lib/queries/providers';
@@ -44,9 +34,7 @@ type AutomationDialogProps = {
   timezone: string;
 };
 
-function getInitialSelection(
-  providerModels: ProviderModels[],
-): { providerId: string; modelId: string } | null {
+function getInitialSelection(providerModels: ProviderModels[]): { providerId: string; modelId: string } | null {
   const provider = providerModels[0];
   const model = provider?.models[0];
   if (!provider || !model) return null;
@@ -103,14 +91,12 @@ export function AutomationDialog({
     setCronExpression('0 9 * * *');
   }, [open, mode, automation, providerModels, prefill]);
 
-  const selectedProvider =
-    providerModels.find((provider) => provider.providerId === providerId) ?? null;
+  const selectedProvider = providerModels.find((provider) => provider.providerId === providerId) ?? null;
   const availableModels = React.useMemo(() => selectedProvider?.models ?? [], [selectedProvider]);
   const selectedProviderLabel = selectedProvider?.providerName ?? null;
   const selectedModelLabel =
     availableModels.find((model) => model.id === modelId)?.name ??
-    providerModels.flatMap((provider) => provider.models).find((model) => model.id === modelId)
-      ?.name ??
+    providerModels.flatMap((provider) => provider.models).find((model) => model.id === modelId)?.name ??
     null;
 
   React.useEffect(() => {
@@ -143,13 +129,7 @@ export function AutomationDialog({
       : { type: 'cron', expression: cronExpression.trim() };
 
     await onSubmit(
-      {
-        title: title.trim(),
-        initialMessage: initialMessage.trim(),
-        providerId,
-        modelId,
-        schedule,
-      },
+      { title: title.trim(), initialMessage: initialMessage.trim(), providerId, modelId, schedule },
       action,
     );
   };
@@ -164,9 +144,7 @@ export function AutomationDialog({
           <h2 className="text-xl font-semibold tracking-tight">
             {mode === 'create' ? 'Create automation' : 'Edit automation'}
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Save a reusable model + prompt pair for recurring tasks.
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">Save a reusable model + prompt pair for recurring tasks.</p>
         </div>
 
         <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(280px,1fr)_minmax(0,2fr)]">
@@ -226,8 +204,7 @@ export function AutomationDialog({
                   } else {
                     setEditorView('prompt');
                   }
-                }}
-              >
+                }}>
                 <SelectTrigger className="w-full">
                   <SelectValue>{triggerLabel}</SelectValue>
                 </SelectTrigger>
@@ -254,11 +231,8 @@ export function AutomationDialog({
                 variant={editorView === 'prompt' ? 'default' : 'ghost'}
                 onClick={() => setEditorView('prompt')}
                 className={
-                  editorView === 'prompt'
-                    ? 'bg-background text-foreground shadow-sm hover:bg-background'
-                    : ''
-                }
-              >
+                  editorView === 'prompt' ? 'bg-background text-foreground shadow-sm hover:bg-background' : ''
+                }>
                 Prompt
               </Button>
               <Button
@@ -267,11 +241,8 @@ export function AutomationDialog({
                 variant={editorView === 'preview' ? 'default' : 'ghost'}
                 onClick={() => setEditorView('preview')}
                 className={
-                  editorView === 'preview'
-                    ? 'bg-background text-foreground shadow-sm hover:bg-background'
-                    : ''
-                }
-              >
+                  editorView === 'preview' ? 'bg-background text-foreground shadow-sm hover:bg-background' : ''
+                }>
                 Preview
               </Button>
               {isScheduled && (
@@ -284,11 +255,8 @@ export function AutomationDialog({
                     setEditorView('schedule');
                   }}
                   className={
-                    editorView === 'schedule'
-                      ? 'bg-background text-foreground shadow-sm hover:bg-background'
-                      : ''
-                  }
-                >
+                    editorView === 'schedule' ? 'bg-background text-foreground shadow-sm hover:bg-background' : ''
+                  }>
                   Schedule
                 </Button>
               )}
@@ -312,9 +280,7 @@ export function AutomationDialog({
               <div className="flex min-h-0 flex-1 flex-col space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="automation-message">Initial prompt</Label>
-                  <span className="text-xs text-muted-foreground">
-                    {initialMessage.length} chars
-                  </span>
+                  <span className="text-xs text-muted-foreground">{initialMessage.length} chars</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   This message is used to kick off the session when the automation runs.
@@ -332,11 +298,7 @@ export function AutomationDialog({
             ) : (
               <div className="flex min-h-0 flex-1 flex-col space-y-2">
                 <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border/60 bg-muted/15 p-3">
-                  <CronExpressionBuilder
-                    value={cronExpression}
-                    onChange={setCronExpression}
-                    timezone={timezone}
-                  />
+                  <CronExpressionBuilder value={cronExpression} onChange={setCronExpression} timezone={timezone} />
                 </div>
               </div>
             )}
@@ -349,11 +311,7 @@ export function AutomationDialog({
           </Button>
           {mode === 'create' ? (
             <>
-              <Button
-                variant="outline"
-                onClick={() => void handleSubmit('create')}
-                disabled={!canSubmit}
-              >
+              <Button variant="outline" onClick={() => void handleSubmit('create')} disabled={!canSubmit}>
                 {isPending ? 'Creating...' : 'Create'}
               </Button>
               <Button onClick={() => void handleSubmit('create-view')} disabled={!canSubmit}>

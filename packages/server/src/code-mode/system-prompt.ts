@@ -2,10 +2,7 @@ import type { ToolTypeInfo } from '@/code-mode/bindings/tool-binding.js';
 import { generateTypeStubs } from '@/code-mode/bindings/type-generator.js';
 import { buildLibrariesSection } from '@/code-mode/library-instructions.js';
 
-export function buildCodeModeSystemPrompt(
-  bindings: Record<string, ToolTypeInfo>,
-  libraries: string[] = [],
-): string {
+export function buildCodeModeSystemPrompt(bindings: Record<string, ToolTypeInfo>, libraries: string[] = []): string {
   const sections = [
     buildFunctionsSection(bindings),
     buildLibrariesSection(libraries),

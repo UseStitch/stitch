@@ -28,12 +28,7 @@ interface TranscriptSidebarProps {
   isRecording: boolean;
 }
 
-export function TranscriptSidebar({
-  analysis,
-  isRunning,
-  recordingId,
-  isRecording,
-}: TranscriptSidebarProps) {
+export function TranscriptSidebar({ analysis, isRunning, recordingId, isRecording }: TranscriptSidebarProps) {
   const liveEntries = useLiveTranscript(recordingId, isRecording);
   const scrollParentRef = React.useRef<HTMLDivElement>(null);
 
@@ -83,18 +78,13 @@ export function TranscriptSidebar({
         <h2 className="flex items-center text-sm font-semibold tracking-wide text-foreground">
           <MessageSquareIcon className="mr-2 size-4 text-muted-foreground" />
           {isRecording ? 'Live Transcript' : 'Full Transcript'}
-          {showLive ? (
-            <span className="ml-2 inline-flex size-2 animate-pulse rounded-full bg-destructive" />
-          ) : null}
+          {showLive ? <span className="ml-2 inline-flex size-2 animate-pulse rounded-full bg-destructive" /> : null}
         </h2>
       </div>
 
       <div ref={scrollParentRef} className="thin-scrollbar h-0 flex-1 overflow-y-auto">
         {hasTranscript ? (
-          <div
-            className="relative px-5"
-            style={{ height: `${rowVirtualizer.getTotalSize() + 40}px` }}
-          >
+          <div className="relative px-5" style={{ height: `${rowVirtualizer.getTotalSize() + 40}px` }}>
             {rowVirtualizer.getVirtualItems().map((virtualRow) => {
               const entry = entries[virtualRow.index];
 
@@ -110,21 +100,16 @@ export function TranscriptSidebar({
                     left: '1.25rem',
                     right: '1.25rem',
                     transform: `translateY(${virtualRow.start + 20}px)`,
-                  }}
-                >
+                  }}>
                   <div
                     className={`group rounded-xl border border-border/40 bg-background px-4 py-3.5 shadow-sm transition-colors hover:border-border/80 ${
                       entry.source === 'mic' ? 'ml-2' : entry.source === 'speaker' ? 'mr-2' : ''
-                    }`}
-                  >
+                    }`}>
                     <div className="mb-1.5 flex items-center justify-between">
-                      <p className="text-xs font-bold tracking-wide text-primary/80 uppercase">
-                        {entry.speaker}
-                      </p>
+                      <p className="text-xs font-bold tracking-wide text-primary/80 uppercase">{entry.speaker}</p>
                     </div>
                     <p
-                      className={`text-sm leading-relaxed ${entry.isPartial ? 'text-foreground/60 italic' : 'text-foreground/90'}`}
-                    >
+                      className={`text-sm leading-relaxed ${entry.isPartial ? 'text-foreground/60 italic' : 'text-foreground/90'}`}>
                       {entry.content}
                     </p>
                   </div>

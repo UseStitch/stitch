@@ -7,17 +7,9 @@ import { sessions } from '@/db/schema/sessions.js';
 
 export type SessionToolsetScope = 'current_run' | 'ttl_turns' | 'until_deactivated';
 
-export type SessionActiveToolset = {
-  id: string;
-  scope: SessionToolsetScope;
-  expiresAtTurn?: number;
-};
+export type SessionActiveToolset = { id: string; scope: SessionToolsetScope; expiresAtTurn?: number };
 
-export type SessionExpiredToolset = {
-  id: string;
-  expiredAtTurn: number;
-  toolNames: string[];
-};
+export type SessionExpiredToolset = { id: string; expiredAtTurn: number; toolNames: string[] };
 
 export type SessionToolsetState = {
   turnCounter: number;
@@ -25,16 +17,9 @@ export type SessionToolsetState = {
   expired: SessionExpiredToolset[];
 };
 
-const EMPTY_SESSION_TOOLSET_STATE: SessionToolsetState = {
-  turnCounter: 0,
-  active: [],
-  expired: [],
-};
+const EMPTY_SESSION_TOOLSET_STATE: SessionToolsetState = { turnCounter: 0, active: [], expired: [] };
 
-type ExpiredToolsetInput = {
-  id: string;
-  toolNames: string[];
-};
+type ExpiredToolsetInput = { id: string; toolNames: string[] };
 
 function cloneState(state: SessionToolsetState): SessionToolsetState {
   return {
@@ -96,10 +81,7 @@ export function buildNextSessionToolsetState(input: {
     {
       turnCounter: nextTurnCounter,
       active: input.active,
-      expired: input.expiredRunToolsets.map((entry) => ({
-        ...entry,
-        expiredAtTurn: nextTurnCounter,
-      })),
+      expired: input.expiredRunToolsets.map((entry) => ({ ...entry, expiredAtTurn: nextTurnCounter })),
     },
     input.getToolNames,
   );
@@ -115,10 +97,7 @@ export function getSessionToolsetState(sessionId: PrefixedString<'ses'>): Sessio
   return cloneState(row?.toolsetState ?? EMPTY_SESSION_TOOLSET_STATE);
 }
 
-export function setSessionToolsetState(
-  sessionId: PrefixedString<'ses'>,
-  state: SessionToolsetState,
-): void {
+export function setSessionToolsetState(sessionId: PrefixedString<'ses'>, state: SessionToolsetState): void {
   getDb()
     .update(sessions)
     .set({ toolsetState: cloneState(state), updatedAt: Date.now() })

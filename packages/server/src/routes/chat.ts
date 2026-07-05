@@ -26,10 +26,7 @@ import { listSessionTodos } from '@/todos/service.js';
 
 const sessionIdParamSchema = z.object({ id: routeSchemas.sessionId });
 
-const splitParamSchema = z.object({
-  id: routeSchemas.sessionId,
-  msgId: routeSchemas.messageId,
-});
+const splitParamSchema = z.object({ id: routeSchemas.sessionId, msgId: routeSchemas.messageId });
 
 const createSessionSchema = z.object({
   title: z.string().trim().min(1).optional(),
@@ -48,9 +45,7 @@ const listMessagesQuerySchema = z.object({
   cursor: z.coerce.number().int().optional(),
 });
 
-const renameSessionSchema = z.object({
-  title: z.string().trim().min(1),
-});
+const renameSessionSchema = z.object({ title: z.string().trim().min(1) });
 
 const sendMessageSchema = z.object({
   content: z.string().min(1),
@@ -58,19 +53,11 @@ const sendMessageSchema = z.object({
   modelId: z.string().min(1),
   assistantMessageId: routeSchemas.messageId,
   attachments: z
-    .array(
-      z.object({
-        path: z.string().min(1),
-        mime: z.string().min(1),
-        filename: z.string().min(1),
-      }),
-    )
+    .array(z.object({ path: z.string().min(1), mime: z.string().min(1), filename: z.string().min(1) }))
     .optional(),
 });
 
-const doomLoopResponseSchema = z.object({
-  response: z.enum(['continue', 'stop']),
-});
+const doomLoopResponseSchema = z.object({ response: z.enum(['continue', 'stop']) });
 
 export const chatRouter = new Hono();
 
@@ -190,12 +177,8 @@ chatRouter.post('/sessions/:id/compact', zValidator('param', sessionIdParamSchem
   return unwrapResult(c, result, 202);
 });
 
-chatRouter.post(
-  '/sessions/:id/generate-automation',
-  zValidator('param', sessionIdParamSchema),
-  async (c) => {
-    const { id } = c.req.valid('param');
-    const result = await generateAutomationDraft(id);
-    return unwrapResult(c, result, 201);
-  },
-);
+chatRouter.post('/sessions/:id/generate-automation', zValidator('param', sessionIdParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
+  const result = await generateAutomationDraft(id);
+  return unwrapResult(c, result, 201);
+});

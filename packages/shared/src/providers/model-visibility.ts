@@ -1,13 +1,6 @@
-type ModelVisibilityInput = {
-  id: string;
-  family?: string;
-  release_date?: string;
-};
+type ModelVisibilityInput = { id: string; family?: string; release_date?: string };
 
-type ProviderModelGroup = {
-  providerId: string;
-  models: ModelVisibilityInput[];
-};
+type ProviderModelGroup = { providerId: string; models: ModelVisibilityInput[] };
 
 /**
  * Builds a set of "providerId:modelId" keys for models that should be visible by default.

@@ -1,5 +1,5 @@
-import * as Log from '@/lib/log.js';
 import { internalBus } from '@/lib/internal-bus.js';
+import * as Log from '@/lib/log.js';
 import { processMemories } from '@/memory/processor.js';
 
 const log = Log.create({ service: 'memory-adapter' });

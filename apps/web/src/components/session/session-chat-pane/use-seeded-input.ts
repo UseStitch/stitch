@@ -1,9 +1,6 @@
 import * as React from 'react';
 
-import {
-  consumeNextSessionInputSeed,
-  getTransitionSeedClearDelayMs,
-} from '@/lib/chat-input-transition-seed';
+import { consumeNextSessionInputSeed, getTransitionSeedClearDelayMs } from '@/lib/chat-input-transition-seed';
 
 export function useSeededInput() {
   const seedTextRef = React.useRef(consumeNextSessionInputSeed());
@@ -22,8 +19,5 @@ export function useSeededInput() {
     };
   }, []);
 
-  return {
-    value,
-    setValue,
-  };
+  return { value, setValue };
 }

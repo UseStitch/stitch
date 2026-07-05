@@ -7,10 +7,7 @@ import { generateTitle } from '@/llm/title-generator.js';
 const RESOLVED_MODEL = {
   providerId: 'openai',
   modelId: 'gpt-5-nano',
-  credentials: {
-    providerId: 'openai' as const,
-    auth: { method: 'api-key' as const, apiKey: 'test-key' },
-  },
+  credentials: { providerId: 'openai' as const, auth: { method: 'api-key' as const, apiKey: 'test-key' } },
 };
 
 function makeMockModel(text: string): MockLanguageModelV3 {
@@ -79,9 +76,7 @@ describe('generateTitle', () => {
   });
 
   test('returns null when no cheap model can be resolved', async () => {
-    const result = await generateTitle('Hello', 'openai', 'gpt-5', undefined, {
-      resolveModel: async () => null,
-    });
+    const result = await generateTitle('Hello', 'openai', 'gpt-5', undefined, { resolveModel: async () => null });
 
     expect(result).toBeNull();
   });
@@ -148,34 +143,24 @@ describe('generateTitle', () => {
     const userMessage = messages.find((m) => m.role === 'user');
     expect(userMessage).toBeDefined();
 
-    const textContent = userMessage!.content.find(
-      (c): c is { type: 'text'; text: string } => c.type === 'text',
-    );
+    const textContent = userMessage!.content.find((c): c is { type: 'text'; text: string } => c.type === 'text');
     expect(textContent?.text).toContain('My specific first message');
   });
 
   test('includes attachment filenames in the title prompt when provided', async () => {
     const model = makeMockModel('Test Title');
 
-    await generateTitle(
-      'Please review this code',
-      'openai',
-      'gpt-5',
-      ['auth-service.ts', 'README.md'],
-      {
-        resolveModel: async () => RESOLVED_MODEL,
-        getModel: () => model,
-      },
-    );
+    await generateTitle('Please review this code', 'openai', 'gpt-5', ['auth-service.ts', 'README.md'], {
+      resolveModel: async () => RESOLVED_MODEL,
+      getModel: () => model,
+    });
 
     expect(model.doGenerateCalls).toHaveLength(1);
     const messages = model.doGenerateCalls[0].prompt;
     const userMessage = messages.find((m) => m.role === 'user');
     expect(userMessage).toBeDefined();
 
-    const textContent = userMessage!.content.find(
-      (c): c is { type: 'text'; text: string } => c.type === 'text',
-    );
+    const textContent = userMessage!.content.find((c): c is { type: 'text'; text: string } => c.type === 'text');
     expect(textContent?.text).toContain('Attached filenames:');
     expect(textContent?.text).toContain('auth-service.ts');
     expect(textContent?.text).toContain('README.md');

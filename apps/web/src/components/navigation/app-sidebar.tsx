@@ -23,9 +23,7 @@ export function AppSidebar() {
     return null;
   }
 
-  const content = SIDEBAR_CONTENT.find((item) => path.startsWith(item.path))?.content ?? (
-    <ChatSidebarContent />
-  );
+  const content = SIDEBAR_CONTENT.find((item) => path.startsWith(item.path))?.content ?? <ChatSidebarContent />;
 
   return (
     <Sidebar collapsible="offcanvas" className="border-r-0!">

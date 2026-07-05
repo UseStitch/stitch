@@ -26,10 +26,7 @@ export function RenameSessionDialog() {
 
   const handleRename = async () => {
     if (!title.trim() || !sessionId) return;
-    await renameMutation.mutateAsync({
-      sessionId: sessionId as PrefixedString<'ses'>,
-      title: title.trim(),
-    });
+    await renameMutation.mutateAsync({ sessionId: sessionId as PrefixedString<'ses'>, title: title.trim() });
     setRenameSessionOpen(false);
   };
 

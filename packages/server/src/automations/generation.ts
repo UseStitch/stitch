@@ -25,22 +25,15 @@ const draftSchema = z.object({
   prompt: z.string().trim().min(1),
 });
 
-type GenerationMessageContext = Pick<Message, 'providerId' | 'modelId' | 'isSummary'> & {
-  parts: StoredPart[];
-};
+type GenerationMessageContext = Pick<Message, 'providerId' | 'modelId' | 'isSummary'> & { parts: StoredPart[] };
 
 function isHiddenFromHistory(message: GenerationMessageContext): boolean {
   return message.parts.some(
-    (part) =>
-      part.type === 'session-title' ||
-      part.type === 'compaction' ||
-      part.type === 'automation-generation',
+    (part) => part.type === 'session-title' || part.type === 'compaction' || part.type === 'automation-generation',
   );
 }
 
-function findLastUsedModel(
-  messageList: GenerationMessageContext[],
-): { providerId: string; modelId: string } | null {
+function findLastUsedModel(messageList: GenerationMessageContext[]): { providerId: string; modelId: string } | null {
   for (let index = messageList.length - 1; index >= 0; index--) {
     const message = messageList[index];
     if (!message || message.isSummary || isHiddenFromHistory(message)) continue;
@@ -92,11 +85,7 @@ function collectToolsetContext(messageList: GenerationMessageContext[]): {
     }
   }
 
-  return {
-    usedToolNames: dedupeStrings(toolNames),
-    inferredToolsets: [...inferredToolsets].sort(),
-    availableToolsets,
-  };
+  return { usedToolNames: dedupeStrings(toolNames), inferredToolsets: [...inferredToolsets].sort(), availableToolsets };
 }
 
 function buildAutomationPrompt(input: {
@@ -107,8 +96,7 @@ function buildAutomationPrompt(input: {
   const availableToolsets =
     input.availableToolsets.length > 0 ? input.availableToolsets.join(', ') : '(none registered)';
   const usedToolNames = input.usedToolNames.length > 0 ? input.usedToolNames.join(', ') : '(none)';
-  const inferredToolsets =
-    input.inferredToolsets.length > 0 ? input.inferredToolsets.join(', ') : '(none)';
+  const inferredToolsets = input.inferredToolsets.length > 0 ? input.inferredToolsets.join(', ') : '(none)';
 
   return [
     'Review the conversation and create an automation draft.',
@@ -155,9 +143,7 @@ function normalizeDraft(
   };
 }
 
-export async function generateAutomationDraft(
-  sessionId: string,
-): Promise<ServiceResult<GeneratedAutomationDraft>> {
+export async function generateAutomationDraft(sessionId: string): Promise<ServiceResult<GeneratedAutomationDraft>> {
   const db = getDb();
   const [session] = await db
     .select()
@@ -210,13 +196,7 @@ export async function generateAutomationDraft(
 
   const result = await generateText({
     model,
-    messages: [
-      ...llmMessages,
-      {
-        role: 'user',
-        content: buildAutomationPrompt(toolsetContext),
-      },
-    ],
+    messages: [...llmMessages, { role: 'user', content: buildAutomationPrompt(toolsetContext) }],
     maxOutputTokens: 1800,
     output: Output.object({ schema: draftSchema }),
   });
@@ -239,9 +219,7 @@ export async function generateAutomationDraft(
     providerId: resolved.providerId,
     modelId: resolved.modelId,
     usage,
-    metadata: {
-      phase: 'automation-generation',
-    },
+    metadata: { phase: 'automation-generation' },
     startedAt: start,
     endedAt: Date.now(),
     durationMs: Date.now() - start,
@@ -260,22 +238,24 @@ export async function generateAutomationDraft(
     endedAt: Date.now(),
   };
 
-  await db.insert(messages).values({
-    id: generationMessageId,
-    sessionId: session.id,
-    role: 'assistant',
-    parts: [generationPart],
-    modelId: resolved.modelId,
-    providerId: resolved.providerId,
-    usage: usage ?? undefined,
-    costUsd,
-    finishReason: 'stop',
-    isSummary: false,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    startedAt: start,
-    duration: Date.now() - start,
-  });
+  await db
+    .insert(messages)
+    .values({
+      id: generationMessageId,
+      sessionId: session.id,
+      role: 'assistant',
+      parts: [generationPart],
+      modelId: resolved.modelId,
+      providerId: resolved.providerId,
+      usage: usage ?? undefined,
+      costUsd,
+      finishReason: 'stop',
+      isSummary: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      startedAt: start,
+      duration: Date.now() - start,
+    });
 
   return ok(draft);
 }

@@ -25,9 +25,7 @@ describe('validateAbsoluteFilePath', () => {
   });
 
   test('rejects non-absolute paths', () => {
-    expect(() => validateAbsoluteFilePath('relative/file.txt')).toThrow(
-      'filePath must be an absolute path',
-    );
+    expect(() => validateAbsoluteFilePath('relative/file.txt')).toThrow('filePath must be an absolute path');
   });
 });
 
@@ -111,8 +109,6 @@ describe('writeFileContent', () => {
   });
 
   test('rejects relative path via validation', async () => {
-    expect(writeFileContent('relative/path.txt', 'content')).rejects.toThrow(
-      'filePath must be an absolute path',
-    );
+    expect(writeFileContent('relative/path.txt', 'content')).rejects.toThrow('filePath must be an absolute path');
   });
 });

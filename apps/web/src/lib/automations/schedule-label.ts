@@ -3,24 +3,13 @@ import { format } from 'date-fns';
 import { getUpcomingCronRuns } from '@stitch/scheduler';
 import type { AutomationSchedule } from '@stitch/shared/automations/types';
 
-const WEEKDAY_LABELS: Record<number, string> = {
-  0: 'Sun',
-  1: 'Mon',
-  2: 'Tue',
-  3: 'Wed',
-  4: 'Thu',
-  5: 'Fri',
-  6: 'Sat',
-};
+const WEEKDAY_LABELS: Record<number, string> = { 0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat' };
 
 function formatTime(hourRaw: string, minuteRaw: string): string {
   const hour = Number.parseInt(hourRaw, 10);
   const minute = Number.parseInt(minuteRaw, 10);
   if (!Number.isInteger(hour) || !Number.isInteger(minute)) return `${hourRaw}:${minuteRaw}`;
-  return new Date(2000, 0, 1, hour, minute).toLocaleTimeString([], {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  return new Date(2000, 0, 1, hour, minute).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
 function toNumberList(raw: string): number[] | null {
@@ -47,10 +36,7 @@ function formatCron(expression: string): string {
   if (dayOfMonth === '*' && month === '*') {
     const days = toNumberList(dayOfWeek);
     if (days) {
-      const labels =
-        days.length === 0
-          ? 'every day'
-          : days.map((day) => WEEKDAY_LABELS[day] ?? `${day}`).join(', ');
+      const labels = days.length === 0 ? 'every day' : days.map((day) => WEEKDAY_LABELS[day] ?? `${day}`).join(', ');
       return `Weekly on ${labels} at ${formatTime(hour, minute)}`;
     }
   }
@@ -68,17 +54,11 @@ export function getAutomationScheduleLabel(schedule: AutomationSchedule | null):
   return formatCron(schedule.expression);
 }
 
-export function getUpcomingRuns(
-  schedule: AutomationSchedule | null,
-  count: number,
-  timezone?: string,
-): string[] {
+export function getUpcomingRuns(schedule: AutomationSchedule | null, count: number, timezone?: string): string[] {
   if (!schedule) return [];
 
   try {
-    return getUpcomingCronRuns(schedule.expression, count, timezone).map((date) =>
-      format(date, 'MMM d, h:mm a'),
-    );
+    return getUpcomingCronRuns(schedule.expression, count, timezone).map((date) => format(date, 'MMM d, h:mm a'));
   } catch {
     return [];
   }

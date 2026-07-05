@@ -16,17 +16,8 @@ function createSessionHistoryTools(context: ToolContext): Record<string, Tool> {
 
 Use this when the user asks what happened earlier, references past decisions, or needs prior context. Keep results focused: start with limit 3-5, then use session_history_get for deeper inspection.`,
     inputSchema: z.object({
-      query: z
-        .string()
-        .optional()
-        .describe('Natural language search query. Leave empty to list recent sessions.'),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(100)
-        .optional()
-        .describe('Maximum sessions to return (default 3, max 5).'),
+      query: z.string().optional().describe('Natural language search query. Leave empty to list recent sessions.'),
+      limit: z.number().int().min(1).max(100).optional().describe('Maximum sessions to return (default 3, max 5).'),
       roleFilter: z
         .enum(['all', 'user', 'assistant'])
         .optional()
@@ -69,17 +60,8 @@ Use this when the user asks what happened earlier, references past decisions, or
 Use this after session_history_search to inspect a specific session without dumping excessive history.`,
     inputSchema: z.object({
       sessionId: z.string().describe('Session ID to inspect (e.g. ses_abc123).'),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(50)
-        .optional()
-        .describe('Number of recent messages to return (default 20).'),
-      includeToolResults: z
-        .boolean()
-        .optional()
-        .describe('Include compact previews of tool outputs (default false).'),
+      limit: z.number().int().min(1).max(50).optional().describe('Number of recent messages to return (default 20).'),
+      includeToolResults: z.boolean().optional().describe('Include compact previews of tool outputs (default false).'),
     }),
     execute: async (input) => {
       const result = await getSessionHistoryMessages({
@@ -89,11 +71,7 @@ Use this after session_history_search to inspect a specific session without dump
       });
 
       if (!result) {
-        return {
-          sessionId: input.sessionId,
-          found: false,
-          message: 'Session not found.',
-        };
+        return { sessionId: input.sessionId, found: false, message: 'Session not found.' };
       }
 
       return {
@@ -106,10 +84,7 @@ Use this after session_history_search to inspect a specific session without dump
     },
   });
 
-  return {
-    session_history_search,
-    session_history_get,
-  };
+  return { session_history_search, session_history_get };
 }
 
 export function createSessionHistoryToolset(): Toolset {

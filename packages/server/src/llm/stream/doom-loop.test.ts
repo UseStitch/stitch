@@ -1,11 +1,6 @@
 import { describe, test, expect, jest, beforeEach, afterEach } from 'bun:test';
 
-import {
-  isDoomLoop,
-  waitForUserDecision,
-  resolveDecision,
-  type ToolCallRecord,
-} from '@/llm/stream/doom-loop.js';
+import { isDoomLoop, waitForUserDecision, resolveDecision, type ToolCallRecord } from '@/llm/stream/doom-loop.js';
 
 describe('isDoomLoop', () => {
   test('returns false when history is empty', () => {

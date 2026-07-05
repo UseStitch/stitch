@@ -17,12 +17,7 @@ type ManagedConnectionConfig = {
   openConnection: () => Promise<STTTransport>;
 };
 
-type BufferedChunk = {
-  chunk: AudioChunk;
-  durationMs: number;
-  startMs: number;
-  endMs: number;
-};
+type BufferedChunk = { chunk: AudioChunk; durationMs: number; startMs: number; endMs: number };
 
 function chunkByteSize(chunk: AudioChunk): number {
   return Math.ceil((chunk.samplesB64.length * 3) / 4);
@@ -38,25 +33,15 @@ function mergeChunks(chunks: AudioChunk[]): AudioChunk | null {
 
   const [first] = chunks;
   return {
-    samplesB64: Buffer.concat(
-      chunks.map((chunk) => Buffer.from(chunk.samplesB64, 'base64')),
-    ).toString('base64'),
+    samplesB64: Buffer.concat(chunks.map((chunk) => Buffer.from(chunk.samplesB64, 'base64'))).toString('base64'),
     sampleRateHz: first.sampleRateHz,
     numSamples: chunks.reduce((total, chunk) => total + chunk.numSamples, 0),
     encoding: first.encoding,
   };
 }
 
-export async function createManagedConnection(
-  config: ManagedConnectionConfig,
-): Promise<STTConnection> {
-  const {
-    buffer: bufferConfig,
-    reconnect: reconnectConfig,
-    partialStrategy,
-    classifyError,
-    openConnection,
-  } = config;
+export async function createManagedConnection(config: ManagedConnectionConfig): Promise<STTConnection> {
+  const { buffer: bufferConfig, reconnect: reconnectConfig, partialStrategy, classifyError, openConnection } = config;
 
   const maxBackoffMs = reconnectConfig.maxBackoffMs ?? 30_000;
 
@@ -155,8 +140,7 @@ export async function createManagedConnection(
 
       if (
         batch.length > 0 &&
-        (batchBytes + bytes > bufferConfig.maxChunkBytes ||
-          batchMs + durationMs > MAX_SEND_BATCH_MS)
+        (batchBytes + bytes > bufferConfig.maxChunkBytes || batchMs + durationMs > MAX_SEND_BATCH_MS)
       ) {
         flushBatch();
       }

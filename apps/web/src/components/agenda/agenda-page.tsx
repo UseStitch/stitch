@@ -18,34 +18,16 @@ import type { AgendaItem, AgendaItemPriority, AgendaItemStatus } from '@stitch/s
 import { AGENDA_ITEM_PRIORITIES, AGENDA_ITEM_STATUSES } from '@stitch/shared/agenda/types';
 
 import { AgendaItemDetailSheet } from '@/components/agenda/agenda-item-detail';
-import {
-  PRIORITY_LABELS,
-  PRIORITY_VARIANTS,
-  STATUS_LABELS,
-  STATUS_VARIANTS,
-} from '@/components/agenda/constants';
+import { PRIORITY_LABELS, PRIORITY_VARIANTS, STATUS_LABELS, STATUS_VARIANTS } from '@/components/agenda/constants';
 import { formatDateInTz, useUserTimezone } from '@/components/agenda/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
-import {
-  Page,
-  PageContent,
-  PageDescription,
-  PageHeader,
-  PageHeaderContent,
-  PageIcon,
-} from '@/components/ui/page';
+import { Page, PageContent, PageDescription, PageHeader, PageHeaderContent, PageIcon } from '@/components/ui/page';
 import {
   Pagination,
   PaginationContent,
@@ -212,11 +194,11 @@ export function AgendaPage({ listId }: { listId?: string }) {
 
   function handleBulkMarkDone() {
     const ids = Array.from(selectedIds);
-    void Promise.allSettled(
-      ids.map((id) => updateMutation.mutateAsync({ id, updates: { status: 'done' } })),
-    ).then(() => {
-      setSelectedIds(new Set());
-    });
+    void Promise.allSettled(ids.map((id) => updateMutation.mutateAsync({ id, updates: { status: 'done' } }))).then(
+      () => {
+        setSelectedIds(new Set());
+      },
+    );
   }
 
   function handleDateChange(itemId: string, dueAt: number | null) {
@@ -226,10 +208,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
   function handleCreate() {
     if (!newTitle.trim()) return;
     createMutation.mutate(
-      {
-        title: newTitle.trim(),
-        listId,
-      },
+      { title: newTitle.trim(), listId },
       {
         onSuccess: () => {
           setNewTitle('');
@@ -311,17 +290,14 @@ export function AgendaPage({ listId }: { listId?: string }) {
                 <button
                   type="button"
                   className="group/title -ml-1 flex items-center gap-1.5 rounded px-1 transition-colors hover:bg-muted"
-                  onClick={startRenaming}
-                >
+                  onClick={startRenaming}>
                   <h1 className="text-xl font-semibold">{currentList.name}</h1>
                   <PencilIcon className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/title:opacity-100" />
                 </button>
               ) : (
                 <h1 className="text-xl font-semibold">Agenda</h1>
               )}
-              <PageDescription>
-                {isLoading ? 'Loading...' : `${total} item${total === 1 ? '' : 's'}`}
-              </PageDescription>
+              <PageDescription>{isLoading ? 'Loading...' : `${total} item${total === 1 ? '' : 's'}`}</PageDescription>
             </div>
           </PageHeaderContent>
           <div className="flex items-center gap-2">
@@ -330,8 +306,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
                 variant="outline"
                 size="sm"
                 className="text-destructive hover:text-destructive"
-                onClick={() => setDeleteListOpen(true)}
-              >
+                onClick={() => setDeleteListOpen(true)}>
                 <Trash2Icon className="size-3.5" />
                 Delete List
               </Button>
@@ -389,10 +364,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
             </SelectContent>
           </Select>
 
-          <Select
-            value={filterPriority}
-            onValueChange={(v) => setFilterPriority(v as FilterPriority)}
-          >
+          <Select value={filterPriority} onValueChange={(v) => setFilterPriority(v as FilterPriority)}>
             <SelectTrigger className="w-40 bg-background">
               <span className="truncate">
                 <span className="text-muted-foreground">Priority: </span>
@@ -411,12 +383,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
 
           {selectedIds.size > 0 && (
             <div className="ml-auto flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleBulkMarkDone}
-                disabled={updateMutation.isPending}
-              >
+              <Button variant="outline" size="sm" onClick={handleBulkMarkDone} disabled={updateMutation.isPending}>
                 <CheckCircleIcon />
                 Mark Done {selectedIds.size}
               </Button>
@@ -466,9 +433,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
                 <ListTodoIcon className="size-10 text-muted-foreground/30" />
               </EmptyMedia>
               <EmptyTitle>No agenda items</EmptyTitle>
-              <EmptyDescription>
-                Create items from chat or click "New Item" to get started.
-              </EmptyDescription>
+              <EmptyDescription>Create items from chat or click "New Item" to get started.</EmptyDescription>
             </Empty>
           ) : (
             <div
@@ -477,17 +442,13 @@ export function AgendaPage({ listId }: { listId?: string }) {
                 if (!e.dataTransfer.types.includes('application/x-agenda-item')) return;
                 e.preventDefault();
               }}
-              onDrop={handleRowDrop}
-            >
+              onDrop={handleRowDrop}>
               {items.map((item, index) => (
                 <React.Fragment key={item.id}>
-                  {dropIndex === index && dragItemId && dragItemId !== item.id && (
-                    <div className="h-0.5 bg-primary" />
-                  )}
+                  {dropIndex === index && dragItemId && dragItemId !== item.id && <div className="h-0.5 bg-primary" />}
                   <div
                     className="border-b border-border last:border-b-0"
-                    onDragOver={(e) => handleRowDragOver(e, index)}
-                  >
+                    onDragOver={(e) => handleRowDragOver(e, index)}>
                     <AgendaItemRow
                       item={item}
                       selected={selectedIds.has(item.id)}
@@ -537,8 +498,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
                             onClick={(event) => {
                               event.preventDefault();
                               setPage(pageNumber + 1);
-                            }}
-                          >
+                            }}>
                             {pageNumber + 1}
                           </PaginationLink>
                         </PaginationItem>
@@ -604,11 +564,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
             <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleBulkDelete}
-              disabled={deleteMutation.isPending}
-            >
+            <Button variant="destructive" onClick={handleBulkDelete} disabled={deleteMutation.isPending}>
               {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
             </Button>
           </DialogFooter>
@@ -622,18 +578,13 @@ export function AgendaPage({ listId }: { listId?: string }) {
             <DialogTitle>Delete list "{currentList?.name}"?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            This will permanently delete the list and all {total} item{total === 1 ? '' : 's'} in
-            it.
+            This will permanently delete the list and all {total} item{total === 1 ? '' : 's'} in it.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteListOpen(false)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteList}
-              disabled={deleteListMutation.isPending}
-            >
+            <Button variant="destructive" onClick={handleDeleteList} disabled={deleteListMutation.isPending}>
               {deleteListMutation.isPending ? 'Deleting...' : 'Delete List'}
             </Button>
           </DialogFooter>
@@ -669,8 +620,7 @@ function AgendaItemRow({
   const rowRef = React.useRef<HTMLDivElement>(null);
   const [dateOpen, setDateOpen] = React.useState(false);
   const isDone = item.status === 'done' || item.status === 'cancelled';
-  const isOverdue =
-    item.dueAt && item.dueAt < Date.now() && item.status !== 'done' && item.status !== 'cancelled';
+  const isOverdue = item.dueAt && item.dueAt < Date.now() && item.status !== 'done' && item.status !== 'cancelled';
 
   function handleDragStart(e: React.DragEvent) {
     e.stopPropagation();
@@ -696,14 +646,12 @@ function AgendaItemRow({
     <div
       ref={rowRef}
       className={`group flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 ${isDragging ? 'opacity-40' : ''} ${isDone ? 'opacity-50' : ''}`}
-      onClick={onClick}
-    >
+      onClick={onClick}>
       <div
         draggable
         onDragStart={handleDragStart}
         className="flex w-4 cursor-grab items-center justify-center opacity-0 transition-opacity group-hover:opacity-60 active:cursor-grabbing"
-        onClick={(e) => e.stopPropagation()}
-      >
+        onClick={(e) => e.stopPropagation()}>
         <GripVerticalIcon className="size-3.5 text-muted-foreground" />
       </div>
 
@@ -712,23 +660,14 @@ function AgendaItemRow({
         onClick={(e) => {
           e.stopPropagation();
           onToggleSelect();
-        }}
-      >
-        <Checkbox
-          checked={selected || isDone}
-          onCheckedChange={onToggleSelect}
-          aria-label="Select item"
-        />
+        }}>
+        <Checkbox checked={selected || isDone} onCheckedChange={onToggleSelect} aria-label="Select item" />
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className={`truncate text-sm ${isDone ? 'text-muted-foreground line-through' : ''}`}>
-          {item.title}
-        </p>
+        <p className={`truncate text-sm ${isDone ? 'text-muted-foreground line-through' : ''}`}>{item.title}</p>
         {item.description && (
-          <p className={`truncate text-xs text-muted-foreground ${isDone ? 'line-through' : ''}`}>
-            {item.description}
-          </p>
+          <p className={`truncate text-xs text-muted-foreground ${isDone ? 'line-through' : ''}`}>{item.description}</p>
         )}
       </div>
 
@@ -745,16 +684,13 @@ function AgendaItemRow({
       </div>
 
       {showListColumn && (
-        <span className="w-24 truncate text-center text-xs text-muted-foreground">
-          {item.listName ?? '—'}
-        </span>
+        <span className="w-24 truncate text-center text-xs text-muted-foreground">{item.listName ?? '—'}</span>
       )}
 
       <div className="w-24 text-right" onClick={(e) => e.stopPropagation()}>
         <Popover open={dateOpen} onOpenChange={setDateOpen}>
           <PopoverTrigger
-            className={`inline-flex cursor-pointer rounded px-1 py-0.5 text-xs transition-colors hover:bg-muted ${isOverdue ? 'font-medium text-destructive' : 'text-muted-foreground'}`}
-          >
+            className={`inline-flex cursor-pointer rounded px-1 py-0.5 text-xs transition-colors hover:bg-muted ${isOverdue ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
             {item.dueAt ? formatDateInTz(item.dueAt, timeZone) : '—'}
           </PopoverTrigger>
           <PopoverContent align="end" className="w-auto p-0">

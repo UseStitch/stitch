@@ -27,25 +27,13 @@ import {
   useUpdateSkill,
 } from '@/lib/queries/skills';
 
-type SkillDraft = {
-  name: string;
-  description: string;
-  content: string;
-};
+type SkillDraft = { name: string; description: string; content: string };
 
-const EMPTY_DRAFT: SkillDraft = {
-  name: '',
-  description: '',
-  content: '',
-};
+const EMPTY_DRAFT: SkillDraft = { name: '', description: '', content: '' };
 
 function toDraft(skill: Skill | null): SkillDraft {
   if (!skill) return EMPTY_DRAFT;
-  return {
-    name: skill.name,
-    description: skill.description,
-    content: skill.content,
-  };
+  return { name: skill.name, description: skill.description, content: skill.content };
 }
 
 type SkillView = { type: 'list' } | { type: 'editor'; skill: Skill | null } | { type: 'import' };
@@ -70,8 +58,7 @@ function ImportSkillView({ onBack }: { onBack: () => void }) {
       title="Import Skill"
       description="Search the public agent skills directory and import into Stitch."
       onBack={onBack}
-      backLabel="Back to skills"
-    >
+      backLabel="Back to skills">
       <div className="flex min-h-0 flex-1 flex-col gap-4">
         <Input
           autoFocus
@@ -92,8 +79,7 @@ function ImportSkillView({ onBack }: { onBack: () => void }) {
             searchResults.map((skill) => (
               <div
                 key={`${skill.source}/${skill.slug}`}
-                className="flex items-center justify-between gap-4 border-b border-border/50 px-4 py-3 last:border-b-0"
-              >
+                className="flex items-center justify-between gap-4 border-b border-border/50 px-4 py-3 last:border-b-0">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{skill.name}</p>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">
@@ -104,8 +90,7 @@ function ImportSkillView({ onBack }: { onBack: () => void }) {
                   variant={skill.isImported ? 'secondary' : 'outline'}
                   size="sm"
                   disabled={skill.isImported || importSkill.isPending}
-                  onClick={() => handleImport(skill)}
-                >
+                  onClick={() => handleImport(skill)}>
                   {skill.isImported ? 'Imported' : 'Import'}
                 </Button>
               </div>
@@ -129,16 +114,10 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
   const isEditing = !!skill;
   const isSaving = createSkill.isPending || updateSkill.isPending;
   const canSave =
-    draft.name.trim().length > 0 &&
-    draft.description.trim().length > 0 &&
-    draft.content.trim().length > 0;
+    draft.name.trim().length > 0 && draft.description.trim().length > 0 && draft.content.trim().length > 0;
 
   async function handleSave() {
-    const input = {
-      name: draft.name.trim(),
-      description: draft.description.trim(),
-      content: draft.content.trim(),
-    };
+    const input = { name: draft.name.trim(), description: draft.description.trim(), content: draft.content.trim() };
 
     if (skill) {
       await updateSkill.mutateAsync({ name: skill.name, input });
@@ -154,8 +133,7 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
       title={isEditing ? 'Edit Skill' : 'Add Skill'}
       description="Markdown instructions the agent can load when a task matches the description."
       onBack={onBack}
-      backLabel="Back to skills"
-    >
+      backLabel="Back to skills">
       <div className="flex min-h-0 flex-1 flex-col gap-5">
         <div className="grid gap-2">
           <Label htmlFor="skill-name">Name</Label>
@@ -250,8 +228,7 @@ export function SkillsSettings() {
             Add Skill
           </Button>
         </ButtonGroup>
-      }
-    >
+      }>
       {skills.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/10 px-6 py-12 text-center">
           <p className="text-sm font-medium">No skills yet</p>
@@ -266,18 +243,11 @@ export function SkillsSettings() {
               <div key={skill.name} className="flex items-center justify-between gap-4 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{skill.name}</p>
-                  <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                    {skill.description}
-                  </p>
+                  <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{skill.description}</p>
                 </div>
                 <ButtonGroup>
                   <SettingsIconButtonTooltip label={`View Skill`}>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleEdit(skill)}
-                      aria-label={`View Skill`}
-                    >
+                    <Button variant="outline" size="icon" onClick={() => handleEdit(skill)} aria-label={`View Skill`}>
                       <EyeIcon className="size-4" />
                     </Button>
                   </SettingsIconButtonTooltip>
@@ -287,8 +257,7 @@ export function SkillsSettings() {
                       size="icon"
                       onClick={() => handleDelete(skill)}
                       disabled={deleteSkill.isPending}
-                      aria-label={`Delete Skill`}
-                    >
+                      aria-label={`Delete Skill`}>
                       <Trash2Icon className="size-4" />
                     </Button>
                   </SettingsIconButtonTooltip>

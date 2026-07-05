@@ -16,10 +16,7 @@ export function useShortcuts(): Map<string, ShortcutInfo> {
   return useMemo(() => {
     const resolved = new Map<string, ShortcutInfo>();
     for (const entry of shortcuts) {
-      resolved.set(entry.actionId, {
-        hotkey: entry.hotkey as Hotkey | null,
-        isSequence: entry.isSequence,
-      });
+      resolved.set(entry.actionId, { hotkey: entry.hotkey as Hotkey | null, isSequence: entry.isSequence });
     }
     return resolved;
   }, [shortcuts]);

@@ -4,9 +4,7 @@ import type { AudioSource, TranscriptEvent } from '@stitch/shared/stt/types';
  * A tagged transcript event that includes which audio source it originated from.
  * Used internally by the ordering buffer to interleave dual-stream events.
  */
-export type SourcedTranscriptEvent = TranscriptEvent & {
-  source: AudioSource;
-};
+export type SourcedTranscriptEvent = TranscriptEvent & { source: AudioSource };
 
 /**
  * TranscriptOrderingBuffer acts as a thin pass-through that tags events with

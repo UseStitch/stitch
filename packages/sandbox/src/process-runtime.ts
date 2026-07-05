@@ -11,16 +11,9 @@ const CODE_ERROR_KEY = '__codeError';
 const HIDDEN_GLOBAL_NAMES: readonly string[] = [...DANGEROUS_GLOBALS, 'Function'];
 const HIDDEN_GLOBAL_VALUES: readonly undefined[] = HIDDEN_GLOBAL_NAMES.map(() => undefined);
 
-type PendingCall = {
-  resolve: (value: unknown) => void;
-  reject: (reason: Error) => void;
-};
+type PendingCall = { resolve: (value: unknown) => void; reject: (reason: Error) => void };
 
-type InitData = {
-  toolNames?: string[];
-  libraries?: Record<string, SandboxLibrary>;
-  memoryReportIntervalMs?: number;
-};
+type InitData = { toolNames?: string[]; libraries?: Record<string, SandboxLibrary>; memoryReportIntervalMs?: number };
 
 /**
  * Starts the sandbox process runtime. Call this from a process entry file.
@@ -30,19 +23,14 @@ type InitData = {
  *   When running inside a compiled binary, libraries are statically imported by the entry
  *   and passed here so no dynamic import is needed at runtime.
  */
-export function startProcessRuntime(
-  preloadedModules: Record<string, Record<string, unknown>> = {},
-): void {
+export function startProcessRuntime(preloadedModules: Record<string, Record<string, unknown>> = {}): void {
   if (typeof process.send !== 'function') {
     throw new SandboxError('sandbox process requires IPC channel (process.send)');
   }
 
   // Capture IPC primitives before harden() removes `process` from globalThis.
   const ipcSend = process.send.bind(process) as (message: unknown) => void;
-  const ipcOn = process.on.bind(process) as (
-    event: string,
-    listener: (message: unknown) => void,
-  ) => void;
+  const ipcOn = process.on.bind(process) as (event: string, listener: (message: unknown) => void) => void;
   const getMemoryUsage = process.memoryUsage.bind(process) as () => NodeJS.MemoryUsage;
 
   const pendingCalls = new Map<string, PendingCall>();
@@ -95,11 +83,7 @@ export function startProcessRuntime(
 
   function registerToolProxies(): void {
     for (const name of toolNames) {
-      Object.defineProperty(globalThis, name, {
-        value: createToolProxy(name),
-        writable: false,
-        configurable: false,
-      });
+      Object.defineProperty(globalThis, name, { value: createToolProxy(name), writable: false, configurable: false });
     }
   }
 
@@ -150,9 +134,7 @@ export function startProcessRuntime(
 
       let result = await execute(sandboxConsole, ...HIDDEN_GLOBAL_VALUES, ...libraryValues);
       if (result !== null && typeof result === 'object' && CODE_ERROR_KEY in result) {
-        result = {
-          error: (result as Record<string, unknown>)[CODE_ERROR_KEY],
-        };
+        result = { error: (result as Record<string, unknown>)[CODE_ERROR_KEY] };
       }
       post({ type: 'complete', result, logs });
     } catch (err) {

@@ -1,27 +1,12 @@
 import { formatForDisplay } from '@tanstack/react-hotkeys';
 
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useDialogContext } from '@/context/dialog-context';
 import type { Action } from '@/lib/actions';
 import { useShortcuts } from '@/lib/shortcuts';
 
-type CommandPaletteProps = {
-  actions: Action[];
-};
+type CommandPaletteProps = { actions: Action[] };
 
 export function CommandPalette({ actions }: CommandPaletteProps) {
   const { commandPaletteOpen, setCommandPaletteOpen } = useDialogContext();
@@ -40,8 +25,7 @@ export function CommandPalette({ actions }: CommandPaletteProps) {
       </DialogHeader>
       <DialogContent
         className="top-1/3! translate-y-0! overflow-hidden rounded-xl! p-0 sm:max-w-lg!"
-        showCloseButton={false}
-      >
+        showCloseButton={false}>
         <Command>
           <CommandInput placeholder="Type a command or search..." />
           <CommandList>
@@ -52,8 +36,7 @@ export function CommandPalette({ actions }: CommandPaletteProps) {
                 .map((action) => {
                   const info = shortcuts.get(action.id);
                   const hotkey = info?.hotkey ?? null;
-                  const isLeaderShortcut =
-                    typeof hotkey === 'string' && hotkey.startsWith('LEADER+');
+                  const isLeaderShortcut = typeof hotkey === 'string' && hotkey.startsWith('LEADER+');
                   const leaderSuffix = isLeaderShortcut ? hotkey.slice('LEADER+'.length) : null;
                   return (
                     <CommandItem key={action.id} onSelect={() => handleSelect(action)}>
@@ -69,30 +52,26 @@ export function CommandPalette({ actions }: CommandPaletteProps) {
                               ].map((key, i) => (
                                 <kbd
                                   key={i}
-                                  className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] leading-none font-medium"
-                                >
+                                  className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] leading-none font-medium">
                                   {key}
                                 </kbd>
                               ))
                             : info?.isSequence
-                              ? [
-                                  ...formatForDisplay(hotkey).split('+'),
-                                  ...formatForDisplay(hotkey).split('+'),
-                                ].map((key, i) => (
-                                  <kbd
-                                    key={i}
-                                    className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] leading-none font-medium"
-                                  >
-                                    {key}
-                                  </kbd>
-                                ))
+                              ? [...formatForDisplay(hotkey).split('+'), ...formatForDisplay(hotkey).split('+')].map(
+                                  (key, i) => (
+                                    <kbd
+                                      key={i}
+                                      className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] leading-none font-medium">
+                                      {key}
+                                    </kbd>
+                                  ),
+                                )
                               : formatForDisplay(hotkey)
                                   .split('+')
                                   .map((key, i) => (
                                     <kbd
                                       key={i}
-                                      className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] leading-none font-medium"
-                                    >
+                                      className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] leading-none font-medium">
                                       {key}
                                     </kbd>
                                   ))}

@@ -6,11 +6,7 @@ import type { ToolEnabledScope, ToolEnabledState, ToolType } from '@stitch/share
 
 import { serverRequest } from '@/lib/api';
 
-type KnownTool = {
-  toolType: ToolType;
-  toolName: string;
-  displayName: string;
-};
+type KnownTool = { toolType: ToolType; toolName: string; displayName: string };
 
 type KnownMcpTool = {
   name: string;
@@ -82,11 +78,7 @@ export const toolEnabledStatesQueryOptions = queryOptions({
 export function useUpsertToolPermission() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: {
-      toolName: string;
-      pattern: string | null;
-      permission: ToolPermissionValue;
-    }) =>
+    mutationFn: (input: { toolName: string; pattern: string | null; permission: ToolPermissionValue }) =>
       serverRequest<void>('/config/permissions', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -102,9 +94,7 @@ export function useDeleteToolPermission() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (permissionId: string) =>
-      serverRequest<void>(`/config/permissions/${permissionId}`, {
-        method: 'DELETE',
-      }),
+      serverRequest<void>(`/config/permissions/${permissionId}`, { method: 'DELETE' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: toolKeys.permissions() });
     },

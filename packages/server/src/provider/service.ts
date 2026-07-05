@@ -19,9 +19,7 @@ export type ProviderWithCapabilities = {
   capabilities: ProviderCapability[];
 };
 
-export async function listProvidersWithCapabilities(): Promise<
-  ServiceResult<ProviderWithCapabilities[]>
-> {
+export async function listProvidersWithCapabilities(): Promise<ServiceResult<ProviderWithCapabilities[]>> {
   const db = getDb();
   const [llmProviders, embeddingProviders, sttCatalog, configs] = await Promise.all([
     Models.get(),
@@ -53,11 +51,7 @@ export async function listProvidersWithCapabilities(): Promise<
 
   ensureEntry('ollama_local').add('llm');
 
-  const allIds = new Set([
-    ...Object.keys(llmProviders),
-    ...Object.keys(embeddingProviders),
-    ...capabilitiesMap.keys(),
-  ]);
+  const allIds = new Set([...Object.keys(llmProviders), ...Object.keys(embeddingProviders), ...capabilitiesMap.keys()]);
 
   const results: ProviderWithCapabilities[] = [];
   for (const id of allIds) {

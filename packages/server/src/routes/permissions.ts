@@ -11,9 +11,7 @@ import {
   rejectPermissionResponse,
 } from '@/permission/service.js';
 
-const sessionParamSchema = z.object({
-  id: z.templateLiteral(['ses_', z.string()]),
-});
+const sessionParamSchema = z.object({ id: z.templateLiteral(['ses_', z.string()]) });
 
 const permissionResponseParamSchema = z.object({
   sessionId: z.templateLiteral(['ses_', z.string()]),
@@ -25,25 +23,19 @@ const setPermissionRuleSchema = z.object({
   pattern: z.string().nullable().optional(),
 });
 
-const alternativeBodySchema = z.object({
-  entry: z.string().min(1).trim(),
-});
+const alternativeBodySchema = z.object({ entry: z.string().min(1).trim() });
 
 export const permissionsRouter = new Hono();
 
-permissionsRouter.get(
-  '/sessions/:id/permission-responses',
-  zValidator('param', sessionParamSchema),
-  async (c) => {
-    const { id: sessionId } = c.req.valid('param');
+permissionsRouter.get('/sessions/:id/permission-responses', zValidator('param', sessionParamSchema), async (c) => {
+  const { id: sessionId } = c.req.valid('param');
 
-    const sessionResult = await getSessionById(sessionId);
-    if (sessionResult.error) return unwrapResult(c, sessionResult);
+  const sessionResult = await getSessionById(sessionId);
+  if (sessionResult.error) return unwrapResult(c, sessionResult);
 
-    const result = await getPendingPermissionResponses(sessionId);
-    return unwrapResult(c, result);
-  },
-);
+  const result = await getPendingPermissionResponses(sessionId);
+  return unwrapResult(c, result);
+});
 
 permissionsRouter.post(
   '/sessions/:sessionId/permission-responses/:permissionResponseId/allow',

@@ -23,11 +23,7 @@ describe('edit tool helpers', () => {
     const filePath = path.join(dir, 'example.txt');
 
     await fs.writeFile(filePath, 'alpha beta gamma', 'utf8');
-    await editFileContent({
-      filePath,
-      oldString: 'beta',
-      newString: 'delta',
-    });
+    await editFileContent({ filePath, oldString: 'beta', newString: 'delta' });
 
     const updated = await fs.readFile(filePath, 'utf8');
     expect(updated).toBe('alpha delta gamma');
@@ -38,12 +34,7 @@ describe('edit tool helpers', () => {
     const filePath = path.join(dir, 'example.txt');
 
     await fs.writeFile(filePath, 'foo foo foo', 'utf8');
-    await editFileContent({
-      filePath,
-      oldString: 'foo',
-      newString: 'bar',
-      replaceAll: true,
-    });
+    await editFileContent({ filePath, oldString: 'foo', newString: 'bar', replaceAll: true });
 
     const updated = await fs.readFile(filePath, 'utf8');
     expect(updated).toBe('bar bar bar');
@@ -55,13 +46,9 @@ describe('edit tool helpers', () => {
 
     await fs.writeFile(filePath, 'alpha beta gamma', 'utf8');
 
-    expect(
-      editFileContent({
-        filePath,
-        oldString: 'not-here',
-        newString: 'delta',
-      }),
-    ).rejects.toThrow('oldString not found in content');
+    expect(editFileContent({ filePath, oldString: 'not-here', newString: 'delta' })).rejects.toThrow(
+      'oldString not found in content',
+    );
   });
 
   test('throws when oldString appears multiple times without replaceAll', async () => {
@@ -70,23 +57,13 @@ describe('edit tool helpers', () => {
 
     await fs.writeFile(filePath, 'foo foo foo', 'utf8');
 
-    expect(
-      editFileContent({
-        filePath,
-        oldString: 'foo',
-        newString: 'bar',
-      }),
-    ).rejects.toThrow(MULTIPLE_MATCHES_ERROR);
+    expect(editFileContent({ filePath, oldString: 'foo', newString: 'bar' })).rejects.toThrow(MULTIPLE_MATCHES_ERROR);
   });
 
   test('rejects non-absolute paths', async () => {
-    expect(
-      editFileContent({
-        filePath: 'relative/file.txt',
-        oldString: 'x',
-        newString: 'y',
-      }),
-    ).rejects.toThrow('filePath must be an absolute path');
+    expect(editFileContent({ filePath: 'relative/file.txt', oldString: 'x', newString: 'y' })).rejects.toThrow(
+      'filePath must be an absolute path',
+    );
   });
 
   test('rejects when newString equals oldString', async () => {
@@ -95,13 +72,9 @@ describe('edit tool helpers', () => {
 
     await fs.writeFile(filePath, 'alpha', 'utf8');
 
-    expect(
-      editFileContent({
-        filePath,
-        oldString: 'alpha',
-        newString: 'alpha',
-      }),
-    ).rejects.toThrow('newString must be different from oldString');
+    expect(editFileContent({ filePath, oldString: 'alpha', newString: 'alpha' })).rejects.toThrow(
+      'newString must be different from oldString',
+    );
   });
 
   test('rejects non-text files', async () => {
@@ -110,12 +83,8 @@ describe('edit tool helpers', () => {
 
     await fs.writeFile(filePath, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0x01, 0x02]));
 
-    expect(
-      editFileContent({
-        filePath,
-        oldString: 'x',
-        newString: 'y',
-      }),
-    ).rejects.toThrow('Only text files are supported');
+    expect(editFileContent({ filePath, oldString: 'x', newString: 'y' })).rejects.toThrow(
+      'Only text files are supported',
+    );
   });
 });

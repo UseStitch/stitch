@@ -2,9 +2,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 export type ConnectorAuthType = 'oauth2' | 'api_key';
 
-export type ConnectorIconSource =
-  | { type: 'svgString'; svgString: string }
-  | { type: 'simpleIcons'; slug: string };
+export type ConnectorIconSource = { type: 'svgString'; svgString: string } | { type: 'simpleIcons'; slug: string };
 
 export type ConnectorUpgradeAction = 'none' | 'reauthorize' | 'rotate_api_key';
 
@@ -12,11 +10,7 @@ export type ConnectorStatus = 'pending_setup' | 'awaiting_auth' | 'connected' | 
 
 export type ConnectorAuthIssue = 'reauthorization_required' | 'temporary_failure';
 
-export type ConnectorSetupInstruction = {
-  text: string;
-  href?: string;
-  hrefLabel?: string;
-};
+export type ConnectorSetupInstruction = { text: string; href?: string; hrefLabel?: string };
 
 export type OAuthServiceAccessOption = {
   id: string;
@@ -36,19 +30,12 @@ export type OAuthConfig = {
   serviceAccessOptions?: OAuthServiceAccessOption[];
 
   additionalParams?: Record<string, string>;
-  incrementalAuth?: {
-    enabled: boolean;
-    params?: Record<string, string>;
-  };
+  incrementalAuth?: { enabled: boolean; params?: Record<string, string> };
   /** Maps scopes to the API IDs they require (for generating "Enable APIs" links) */
   scopeApiMap?: Record<string, string>;
 };
 
-export type ApiKeyConfig = {
-  keyLabel: string;
-  placeholder?: string;
-  helpUrl?: string;
-};
+export type ApiKeyConfig = { keyLabel: string; placeholder?: string; helpUrl?: string };
 
 export type ConnectorDefinition = {
   id: string;

@@ -71,10 +71,7 @@ export function useSlashCommands({
     ],
   );
 
-  const completionGroups = React.useMemo(
-    () => [buildSlashCompletionGroup(buildContext())],
-    [buildContext],
-  );
+  const completionGroups = React.useMemo(() => [buildSlashCompletionGroup(buildContext())], [buildContext]);
 
   const tryRun = React.useCallback(
     (input: string): boolean => {

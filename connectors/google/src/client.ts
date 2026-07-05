@@ -35,13 +35,7 @@ export class GoogleApiError extends Error {
   constructor(
     status: number,
     message: string,
-    options?: {
-      code?: string;
-      reason?: string;
-      reasons?: string[];
-      authChallenge?: string;
-      retryAfterMs?: number;
-    },
+    options?: { code?: string; reason?: string; reasons?: string[]; authChallenge?: string; retryAfterMs?: number },
   ) {
     super(message);
     this.name = 'GoogleApiError';
@@ -93,10 +87,7 @@ export class GoogleClient {
   async request<T>(url: string, options?: RequestOptions): Promise<T> {
     const response = await this.executeWithRetries(url, {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
     });
     return (await response.json()) as T;
   }
@@ -115,14 +106,10 @@ export class GoogleClient {
       try {
         const queuedMs = await this.rateLimitCoordinator.acquire(url, method, options?.signal);
         if (queuedMs > 0) {
-          this.log.debug(
-            { url, method, queuedMs },
-            'Delayed Google API request due to local quota queue',
-          );
+          this.log.debug({ url, method, queuedMs }, 'Delayed Google API request due to local quota queue');
         }
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : 'Local Google quota queue wait exceeded';
+        const message = error instanceof Error ? error.message : 'Local Google quota queue wait exceeded';
         throw new GoogleApiError(429, message, { reason: 'localRateLimitExceeded' });
       }
 
@@ -135,10 +122,7 @@ export class GoogleClient {
         method,
         body: options?.body,
         signal: options?.signal,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          ...options?.headers,
-        },
+        headers: { Authorization: `Bearer ${token}`, ...options?.headers },
       });
 
       if (response.ok) {
@@ -191,9 +175,7 @@ export class GoogleClient {
         throw apiError;
       }
 
-      const backoffMs =
-        parsedError.retryAfterMs ??
-        computeExponentialBackoffMs(attempt, GoogleClient.MAX_BACKOFF_MS);
+      const backoffMs = parsedError.retryAfterMs ?? computeExponentialBackoffMs(attempt, GoogleClient.MAX_BACKOFF_MS);
 
       this.log.warn(
         {
@@ -211,9 +193,7 @@ export class GoogleClient {
       await sleep(backoffMs, options?.signal);
     }
 
-    throw new GoogleApiError(503, 'Google API request failed after retries', {
-      reason: 'maxRetriesExceeded',
-    });
+    throw new GoogleApiError(503, 'Google API request failed after retries', { reason: 'maxRetriesExceeded' });
   }
 }
 
@@ -226,9 +206,7 @@ type ParsedApiError = {
   retryAfterMs: number | undefined;
 };
 
-function mergeRateLimitConfig(
-  overrides: Partial<GoogleRateLimitConfig> | undefined,
-): GoogleRateLimitConfig {
+function mergeRateLimitConfig(overrides: Partial<GoogleRateLimitConfig> | undefined): GoogleRateLimitConfig {
   if (!overrides) return DEFAULT_GOOGLE_RATE_LIMIT_CONFIG;
 
   const services = { ...DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services };
@@ -243,10 +221,7 @@ function mergeRateLimitConfig(
     }
   }
 
-  return {
-    maxQueueWaitMs: overrides.maxQueueWaitMs ?? DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.maxQueueWaitMs,
-    services,
-  };
+  return { maxQueueWaitMs: overrides.maxQueueWaitMs ?? DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.maxQueueWaitMs, services };
 }
 
 async function parseGoogleApiError(response: Response): Promise<ParsedApiError> {
@@ -258,25 +233,11 @@ async function parseGoogleApiError(response: Response): Promise<ParsedApiError> 
   try {
     bodyText = await response.text();
   } catch {
-    return {
-      message: fallbackMessage,
-      code: undefined,
-      reason: undefined,
-      reasons: [],
-      authChallenge,
-      retryAfterMs,
-    };
+    return { message: fallbackMessage, code: undefined, reason: undefined, reasons: [], authChallenge, retryAfterMs };
   }
 
   if (!bodyText) {
-    return {
-      message: fallbackMessage,
-      code: undefined,
-      reason: undefined,
-      reasons: [],
-      authChallenge,
-      retryAfterMs,
-    };
+    return { message: fallbackMessage, code: undefined, reason: undefined, reasons: [], authChallenge, retryAfterMs };
   }
 
   try {
@@ -288,23 +249,9 @@ async function parseGoogleApiError(response: Response): Promise<ParsedApiError> 
       ...(parsed.error?.details?.flatMap((item) => (item.reason ? [item.reason] : [])) ?? []),
     ];
     const reason = reasons[0];
-    return {
-      message,
-      code,
-      reason,
-      reasons,
-      authChallenge,
-      retryAfterMs,
-    };
+    return { message, code, reason, reasons, authChallenge, retryAfterMs };
   } catch {
-    return {
-      message: fallbackMessage,
-      code: undefined,
-      reason: undefined,
-      reasons: [],
-      authChallenge,
-      retryAfterMs,
-    };
+    return { message: fallbackMessage, code: undefined, reason: undefined, reasons: [], authChallenge, retryAfterMs };
   }
 }
 
@@ -331,11 +278,7 @@ function computeExponentialBackoffMs(attempt: number, maxDelayMs: number): numbe
   return Math.min(maxDelayMs, baseMs + Math.floor(Math.random() * 1000));
 }
 
-function isRetryableRateLimit(
-  status: number,
-  reason: string | undefined,
-  message: string,
-): boolean {
+function isRetryableRateLimit(status: number, reason: string | undefined, message: string): boolean {
   if (status === 429 || status === 503) {
     return true;
   }

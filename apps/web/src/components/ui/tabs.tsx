@@ -17,15 +17,8 @@ function Tabs({ className, orientation = 'horizontal', ...props }: TabsPrimitive
 const tabsListVariants = cva(
   'rounded-lg p-[3px] group-data-horizontal/tabs:h-8 data-[variant=line]:rounded-none group/tabs-list inline-flex w-fit items-center justify-center text-muted-foreground group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col',
   {
-    variants: {
-      variant: {
-        default: 'bg-muted',
-        line: 'gap-1 bg-transparent',
-      },
-    },
-    defaultVariants: {
-      variant: 'default',
-    },
+    variants: { variant: { default: 'bg-muted', line: 'gap-1 bg-transparent' } },
+    defaultVariants: { variant: 'default' },
   },
 );
 
@@ -62,11 +55,7 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
 
 function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
   return (
-    <TabsPrimitive.Panel
-      data-slot="tabs-content"
-      className={cn('text-sm flex-1 outline-none', className)}
-      {...props}
-    />
+    <TabsPrimitive.Panel data-slot="tabs-content" className={cn('text-sm flex-1 outline-none', className)} {...props} />
   );
 }
 

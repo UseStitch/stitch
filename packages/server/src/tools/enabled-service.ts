@@ -28,26 +28,14 @@ export async function setToolEnabledState(opts: {
 
   await db
     .insert(toolEnabled)
-    .values({
-      scope: opts.scope,
-      identifier: opts.identifier,
-      enabled: opts.enabled,
-      createdAt: now,
-      updatedAt: now,
-    })
+    .values({ scope: opts.scope, identifier: opts.identifier, enabled: opts.enabled, createdAt: now, updatedAt: now })
     .onConflictDoUpdate({
       target: [toolEnabled.scope, toolEnabled.identifier],
-      set: {
-        enabled: opts.enabled,
-        updatedAt: now,
-      },
+      set: { enabled: opts.enabled, updatedAt: now },
     });
 }
 
-export async function isToolEnabled(opts: {
-  scope: ToolEnabledScope;
-  identifier: string;
-}): Promise<boolean> {
+export async function isToolEnabled(opts: { scope: ToolEnabledScope; identifier: string }): Promise<boolean> {
   if (!isDbInitialized()) {
     return true;
   }

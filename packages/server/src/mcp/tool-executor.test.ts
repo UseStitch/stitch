@@ -3,12 +3,7 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { ok } from '@/lib/service-result.js';
 import type { McpServerWithTools } from '@/mcp/service.js';
 import { getMcpServerPresentation, refreshMcpToolsets } from '@/mcp/tool-executor.js';
-import {
-  getToolset,
-  listToolsetIds,
-  registerToolset,
-  unregisterToolset,
-} from '@/tools/toolsets/registry.js';
+import { getToolset, listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 
 function clearToolsets(): void {
   for (const id of listToolsetIds()) {
@@ -34,16 +29,11 @@ describe('refreshMcpToolsets', () => {
       { refreshTools: true },
       {
         getMcpServersWithCachedTools: async () => [TEST_SERVER],
-        fetchMcpTools: async () =>
-          ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
+        fetchMcpTools: async () => ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
         fetchServerInfo: async () => null,
         fetchServerPrompts: async () => [],
         findRegistryServer: async () => null,
-        buildServerPresentation: async () => ({
-          serverId: TEST_SERVER.id,
-          name: TEST_SERVER.name,
-          tools: {},
-        }),
+        buildServerPresentation: async () => ({ serverId: TEST_SERVER.id, name: TEST_SERVER.name, tools: {} }),
       },
     );
 
@@ -64,16 +54,11 @@ describe('refreshMcpToolsets', () => {
       { refreshTools: true },
       {
         getMcpServersWithCachedTools: async () => [TEST_SERVER],
-        fetchMcpTools: async () =>
-          ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
+        fetchMcpTools: async () => ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
         fetchServerInfo: async () => null,
         fetchServerPrompts: async () => [],
         findRegistryServer: async () => null,
-        buildServerPresentation: async () => ({
-          serverId: TEST_SERVER.id,
-          name: TEST_SERVER.name,
-          tools: {},
-        }),
+        buildServerPresentation: async () => ({ serverId: TEST_SERVER.id, name: TEST_SERVER.name, tools: {} }),
       },
     );
 
@@ -85,8 +70,7 @@ describe('refreshMcpToolsets', () => {
       { refreshTools: true },
       {
         getMcpServersWithCachedTools: async () => [TEST_SERVER],
-        fetchMcpTools: async () =>
-          ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
+        fetchMcpTools: async () => ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
         fetchServerInfo: async () => null,
         fetchServerPrompts: async () => [],
         findRegistryServer: async () => ({
@@ -95,12 +79,7 @@ describe('refreshMcpToolsets', () => {
           description: 'Curated registry description for model discovery.',
           docsUrl: 'https://example.com/docs',
           tags: ['search'],
-          install: {
-            name: TEST_SERVER.name,
-            transport: 'http',
-            url: TEST_SERVER.url,
-            authConfig: { type: 'none' },
-          },
+          install: { name: TEST_SERVER.name, transport: 'http', url: TEST_SERVER.url, authConfig: { type: 'none' } },
         }),
         buildServerPresentation: async () => ({
           serverId: TEST_SERVER.id,
@@ -122,8 +101,7 @@ describe('refreshMcpToolsets', () => {
       { refreshTools: true },
       {
         getMcpServersWithCachedTools: async () => [TEST_SERVER],
-        fetchMcpTools: async () =>
-          ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
+        fetchMcpTools: async () => ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
         fetchServerInfo: async () => ({
           name: 'mcp-typescript server on vercel',
           title: 'mcp-typescript server on vercel',
@@ -135,19 +113,9 @@ describe('refreshMcpToolsets', () => {
           description: 'Web and code search tools from Exa.',
           docsUrl: 'https://example.com/docs',
           tags: ['search'],
-          install: {
-            name: TEST_SERVER.name,
-            transport: 'http',
-            url: TEST_SERVER.url,
-            authConfig: { type: 'none' },
-          },
+          install: { name: TEST_SERVER.name, transport: 'http', url: TEST_SERVER.url, authConfig: { type: 'none' } },
         }),
-        buildServerPresentation: async () => ({
-          serverId: TEST_SERVER.id,
-          name: 'Exa',
-          title: 'Exa',
-          tools: {},
-        }),
+        buildServerPresentation: async () => ({ serverId: TEST_SERVER.id, name: 'Exa', title: 'Exa', tools: {} }),
       },
     );
 
@@ -159,8 +127,7 @@ describe('refreshMcpToolsets', () => {
       { refreshTools: true },
       {
         getMcpServersWithCachedTools: async () => [TEST_SERVER],
-        fetchMcpTools: async () =>
-          ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
+        fetchMcpTools: async () => ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
         fetchServerInfo: async () => null,
         fetchServerPrompts: async () => [],
         findRegistryServer: async () => null,
@@ -185,16 +152,11 @@ describe('refreshMcpToolsets', () => {
 
   test('removing a stale server also drops its presentation', async () => {
     const deps = {
-      fetchMcpTools: async () =>
-        ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
+      fetchMcpTools: async () => ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
       fetchServerInfo: async () => null,
       fetchServerPrompts: async () => [],
       findRegistryServer: async () => null,
-      buildServerPresentation: async () => ({
-        serverId: TEST_SERVER.id,
-        name: TEST_SERVER.name,
-        tools: {},
-      }),
+      buildServerPresentation: async () => ({ serverId: TEST_SERVER.id, name: TEST_SERVER.name, tools: {} }),
     } as const;
 
     await refreshMcpToolsets(
@@ -203,10 +165,7 @@ describe('refreshMcpToolsets', () => {
     );
     expect(getMcpServerPresentation(TEST_SERVER.id)).toBeDefined();
 
-    await refreshMcpToolsets(
-      { refreshTools: true },
-      { ...deps, getMcpServersWithCachedTools: async () => [] },
-    );
+    await refreshMcpToolsets({ refreshTools: true }, { ...deps, getMcpServersWithCachedTools: async () => [] });
     expect(getMcpServerPresentation(TEST_SERVER.id)).toBeUndefined();
   });
 });

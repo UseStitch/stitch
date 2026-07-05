@@ -34,11 +34,7 @@ export type AgendaItem = {
   updatedAt: number;
 };
 
-export type CreateAgendaListInput = {
-  name: string;
-  description?: string;
-  color?: string;
-};
+export type CreateAgendaListInput = { name: string; description?: string; color?: string };
 
 export type UpdateAgendaListInput = {
   name?: string;

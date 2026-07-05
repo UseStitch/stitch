@@ -3,11 +3,7 @@ import * as React from 'react';
 import type { SttUsageDashboardResponse } from '@stitch/shared/usage/types';
 
 import { StackedBarChart } from '@/components/usage/charts/stacked-bar-chart';
-import {
-  getStackSegmentRadius,
-  hashString,
-  resolveCssVar,
-} from '@/components/usage/charts/usage-chart-utils';
+import { getStackSegmentRadius, hashString, resolveCssVar } from '@/components/usage/charts/usage-chart-utils';
 
 const FALLBACK_COLORS = ['#f97316', '#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#14b8a6'];
 
@@ -16,10 +12,7 @@ const SERVICE_COLOR_CONFIG: Record<string, { cssVar: string; fallback: string }>
   'meeting-recording': { cssVar: '--chart-2', fallback: '#10b981' },
 };
 
-const SERVICE_LABELS: Record<string, string> = {
-  'chat-input': 'Chat Input',
-  'meeting-recording': 'Meeting Recording',
-};
+const SERVICE_LABELS: Record<string, string> = { 'chat-input': 'Chat Input', 'meeting-recording': 'Meeting Recording' };
 
 function getServiceColor(service: string): string {
   const configured = SERVICE_COLOR_CONFIG[service];
@@ -31,9 +24,7 @@ function getServiceLabel(service: string): string {
   return SERVICE_LABELS[service] ?? service.replaceAll('-', ' ');
 }
 
-type SttUsageCostChartProps = {
-  usageData: SttUsageDashboardResponse | undefined;
-};
+type SttUsageCostChartProps = { usageData: SttUsageDashboardResponse | undefined };
 
 export function SttUsageCostChart({ usageData }: SttUsageCostChartProps) {
   const services = React.useMemo(
@@ -48,8 +39,7 @@ export function SttUsageCostChart({ usageData }: SttUsageCostChartProps) {
         label: getServiceLabel(service),
         data: usageData?.buckets.map((b) => b.costUsdByService[service] ?? 0) ?? [],
         backgroundColor: getServiceColor(service),
-        borderRadius: (ctx: import('chart.js').ScriptableContext<'bar'>) =>
-          getStackSegmentRadius(ctx),
+        borderRadius: (ctx: import('chart.js').ScriptableContext<'bar'>) => getStackSegmentRadius(ctx),
         borderSkipped: false as const,
         inflateAmount: 0,
       })),

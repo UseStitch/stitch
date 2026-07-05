@@ -24,13 +24,7 @@ function PopoverContent({
 }: PopoverPrimitive.Popup.Props &
   Pick<
     PopoverPrimitive.Positioner.Props,
-    | 'align'
-    | 'alignOffset'
-    | 'anchor'
-    | 'collisionBoundary'
-    | 'collisionPadding'
-    | 'side'
-    | 'sideOffset'
+    'align' | 'alignOffset' | 'anchor' | 'collisionBoundary' | 'collisionPadding' | 'side' | 'sideOffset'
   >) {
   return (
     <PopoverPrimitive.Portal>
@@ -42,8 +36,7 @@ function PopoverContent({
         collisionPadding={collisionPadding}
         side={side}
         sideOffset={sideOffset}
-        className="isolate z-50"
-      >
+        className="isolate z-50">
         <PopoverPrimitive.Popup
           data-slot="popover-content"
           className={cn(
@@ -58,23 +51,11 @@ function PopoverContent({
 }
 
 function PopoverHeader({ className, ...props }: React.ComponentProps<'div'>) {
-  return (
-    <div
-      data-slot="popover-header"
-      className={cn('flex flex-col gap-0.5 text-sm', className)}
-      {...props}
-    />
-  );
+  return <div data-slot="popover-header" className={cn('flex flex-col gap-0.5 text-sm', className)} {...props} />;
 }
 
 function PopoverTitle({ className, ...props }: PopoverPrimitive.Title.Props) {
-  return (
-    <PopoverPrimitive.Title
-      data-slot="popover-title"
-      className={cn('font-medium', className)}
-      {...props}
-    />
-  );
+  return <PopoverPrimitive.Title data-slot="popover-title" className={cn('font-medium', className)} {...props} />;
 }
 
 function PopoverDescription({ className, ...props }: PopoverPrimitive.Description.Props) {

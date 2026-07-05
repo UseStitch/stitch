@@ -10,9 +10,7 @@ const COMMANDS: SlashCommand[] = [compactCommand, generateAutomationCommand, ski
 export function findCommand(name: string): SlashCommand | null {
   const lowered = name.toLowerCase();
   return (
-    COMMANDS.find(
-      (command) => command.name === lowered || command.aliases?.some((alias) => alias === lowered),
-    ) ?? null
+    COMMANDS.find((command) => command.name === lowered || command.aliases?.some((alias) => alias === lowered)) ?? null
   );
 }
 

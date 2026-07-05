@@ -1,38 +1,22 @@
-import {
-  FileIcon,
-  FileTextIcon,
-  GitForkIcon,
-  ChevronsDownUpIcon,
-  ChevronsUpDownIcon,
-} from 'lucide-react';
+import { FileIcon, FileTextIcon, GitForkIcon, ChevronsDownUpIcon, ChevronsUpDownIcon } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 
 import ChatMarkdown from '@/components/chat/chat-markdown.js';
 import { extractTextFromParts } from '@/components/chat/message-bubble/extract-text.js';
-import {
-  MESSAGE_ACTION_BUTTON_CLASS,
-  MessageCopyButton,
-} from '@/components/chat/message-bubble/shared-components.js';
+import { MESSAGE_ACTION_BUTTON_CLASS, MessageCopyButton } from '@/components/chat/message-bubble/shared-components.js';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const COLLAPSED_MAX_HEIGHT = 150;
 
-type UserMessageBubbleProps = {
-  parts: StoredPart[];
-  onSplit?: () => void;
-};
+type UserMessageBubbleProps = { parts: StoredPart[]; onSplit?: () => void };
 
 export function UserMessageBubble({ parts, onSplit }: UserMessageBubbleProps) {
   const text = extractTextFromParts(parts);
-  const imageParts = parts.filter(
-    (part): part is StoredPart & { type: 'user-image' } => part.type === 'user-image',
-  );
-  const fileParts = parts.filter(
-    (part): part is StoredPart & { type: 'user-file' } => part.type === 'user-file',
-  );
+  const imageParts = parts.filter((part): part is StoredPart & { type: 'user-image' } => part.type === 'user-image');
+  const fileParts = parts.filter((part): part is StoredPart & { type: 'user-file' } => part.type === 'user-file');
   const textFileParts = parts.filter(
     (part): part is StoredPart & { type: 'user-text-file' } => part.type === 'user-text-file',
   );
@@ -56,10 +40,7 @@ export function UserMessageBubble({ parts, onSplit }: UserMessageBubbleProps) {
         {hasAttachments && (
           <div className="flex flex-wrap justify-end gap-2">
             {imageParts.map((part) => (
-              <div
-                key={part.id}
-                className="size-20 overflow-hidden rounded-lg border border-border/50 bg-muted/50"
-              >
+              <div key={part.id} className="size-20 overflow-hidden rounded-lg border border-border/50 bg-muted/50">
                 {part.dataUrl ? (
                   <img src={part.dataUrl} alt={part.filename} className="size-full object-cover" />
                 ) : (
@@ -72,8 +53,7 @@ export function UserMessageBubble({ parts, onSplit }: UserMessageBubbleProps) {
             {fileParts.map((part) => (
               <div
                 key={part.id}
-                className="flex h-8 max-w-48 items-center gap-1.5 rounded-lg border border-border/50 bg-muted/50 px-2.5"
-              >
+                className="flex h-8 max-w-48 items-center gap-1.5 rounded-lg border border-border/50 bg-muted/50 px-2.5">
                 <FileIcon className="size-3.5 shrink-0 text-muted-foreground" />
                 <span className="truncate text-xs text-foreground/80">{part.filename}</span>
               </div>
@@ -81,8 +61,7 @@ export function UserMessageBubble({ parts, onSplit }: UserMessageBubbleProps) {
             {textFileParts.map((part) => (
               <div
                 key={part.id}
-                className="flex h-8 max-w-48 items-center gap-1.5 rounded-lg border border-border/50 bg-muted/50 px-2.5"
-              >
+                className="flex h-8 max-w-48 items-center gap-1.5 rounded-lg border border-border/50 bg-muted/50 px-2.5">
                 <FileTextIcon className="size-3.5 shrink-0 text-muted-foreground" />
                 <span className="truncate text-xs text-foreground/80">{part.filename}</span>
               </div>
@@ -97,8 +76,7 @@ export function UserMessageBubble({ parts, onSplit }: UserMessageBubbleProps) {
               className={cn(
                 'transition-[max-height] duration-200',
                 !isExpanded && isOverflowing && 'max-h-37.5 overflow-y-auto thin-scrollbar',
-              )}
-            >
+              )}>
               <ChatMarkdown text={text} className="text-sm" />
             </div>
 
@@ -108,8 +86,7 @@ export function UserMessageBubble({ parts, onSplit }: UserMessageBubbleProps) {
                 variant="ghost"
                 size="xs"
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="mt-1 h-auto gap-1 px-0 py-0.5 text-xs text-muted-foreground hover:text-foreground"
-              >
+                className="mt-1 h-auto gap-1 px-0 py-0.5 text-xs text-muted-foreground hover:text-foreground">
                 {isExpanded ? (
                   <>
                     <ChevronsDownUpIcon className="size-3" />
@@ -138,8 +115,7 @@ export function UserMessageBubble({ parts, onSplit }: UserMessageBubbleProps) {
               size="xs"
               onClick={onSplit}
               aria-label="Split from here"
-              className={MESSAGE_ACTION_BUTTON_CLASS}
-            >
+              className={MESSAGE_ACTION_BUTTON_CLASS}>
               <GitForkIcon className="size-3.5" />
               Split
             </Button>

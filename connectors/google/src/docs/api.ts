@@ -4,70 +4,31 @@ const DRIVE_API = 'https://www.googleapis.com/drive/v3';
 const DOCS_API = 'https://docs.googleapis.com/v1';
 const GOOGLE_DOC_MIME_TYPE = 'application/vnd.google-apps.document';
 
-type DriveDocumentRaw = {
-  id: string;
-  name: string;
-  mimeType: string;
-  modifiedTime?: string;
-  webViewLink?: string;
-};
+type DriveDocumentRaw = { id: string; name: string; mimeType: string; modifiedTime?: string; webViewLink?: string };
 
-type DriveListResponse = {
-  files: DriveDocumentRaw[];
-  nextPageToken?: string;
-};
+type DriveListResponse = { files: DriveDocumentRaw[]; nextPageToken?: string };
 
-type DocsTextRun = {
-  content?: string;
-};
+type DocsTextRun = { content?: string };
 
-type DocsParagraphElement = {
-  textRun?: DocsTextRun;
-};
+type DocsParagraphElement = { textRun?: DocsTextRun };
 
-type DocsParagraph = {
-  elements?: DocsParagraphElement[];
-};
+type DocsParagraph = { elements?: DocsParagraphElement[] };
 
 type DocsStructuralElement = {
   endIndex?: number;
   paragraph?: DocsParagraph;
-  table?: {
-    tableRows?: {
-      tableCells?: {
-        content?: DocsStructuralElement[];
-      }[];
-    }[];
-  };
-  tableOfContents?: {
-    content?: DocsStructuralElement[];
-  };
+  table?: { tableRows?: { tableCells?: { content?: DocsStructuralElement[] }[] }[] };
+  tableOfContents?: { content?: DocsStructuralElement[] };
 };
 
-type DocsDocumentRaw = {
-  documentId: string;
-  title: string;
-  body?: {
-    content?: DocsStructuralElement[];
-  };
-};
+type DocsDocumentRaw = { documentId: string; title: string; body?: { content?: DocsStructuralElement[] } };
 
 type DocsSearchResult = {
-  documents: {
-    id: string;
-    name: string;
-    modifiedTime: string | undefined;
-    webViewLink: string | undefined;
-  }[];
+  documents: { id: string; name: string; modifiedTime: string | undefined; webViewLink: string | undefined }[];
   nextPageToken: string | undefined;
 };
 
-type DocsReadResult = {
-  id: string;
-  title: string;
-  text: string;
-  webViewLink: string;
-};
+type DocsReadResult = { id: string; title: string; text: string; webViewLink: string };
 
 function collectText(elements: DocsStructuralElement[] | undefined): string {
   if (!elements?.length) {
@@ -140,9 +101,7 @@ export async function searchDocuments(
     params.set('pageToken', pageToken);
   }
 
-  const response = await client.request<DriveListResponse>(
-    `${DRIVE_API}/files?${params.toString()}`,
-  );
+  const response = await client.request<DriveListResponse>(`${DRIVE_API}/files?${params.toString()}`);
 
   return {
     documents: response.files.map((file) => ({
@@ -155,10 +114,7 @@ export async function searchDocuments(
   };
 }
 
-export async function readDocument(
-  client: GoogleClient,
-  documentId: string,
-): Promise<DocsReadResult> {
+export async function readDocument(client: GoogleClient, documentId: string): Promise<DocsReadResult> {
   const doc = await client.request<DocsDocumentRaw>(`${DOCS_API}/documents/${documentId}`);
   const text = normalizeText(collectText(doc.body?.content));
 
@@ -175,28 +131,16 @@ export async function createDocument(
   title: string,
   content?: string,
 ): Promise<{ id: string; title: string; webViewLink: string }> {
-  const created = await client.request<{ documentId: string; title: string }>(
-    `${DOCS_API}/documents`,
-    {
-      method: 'POST',
-      body: JSON.stringify({ title }),
-    },
-  );
+  const created = await client.request<{ documentId: string; title: string }>(`${DOCS_API}/documents`, {
+    method: 'POST',
+    body: JSON.stringify({ title }),
+  });
 
   const initialContent = content?.trim();
   if (initialContent) {
     await client.request(`${DOCS_API}/documents/${created.documentId}:batchUpdate`, {
       method: 'POST',
-      body: JSON.stringify({
-        requests: [
-          {
-            insertText: {
-              location: { index: 1 },
-              text: initialContent,
-            },
-          },
-        ],
-      }),
+      body: JSON.stringify({ requests: [{ insertText: { location: { index: 1 }, text: initialContent } }] }),
     });
   }
 
@@ -218,21 +162,11 @@ export async function updateDocument(
   const requests: Array<Record<string, unknown>> = [];
 
   if (mode === 'replace' && bodyEndIndex > 2) {
-    requests.push({
-      deleteContentRange: {
-        range: {
-          startIndex: 1,
-          endIndex: bodyEndIndex - 1,
-        },
-      },
-    });
+    requests.push({ deleteContentRange: { range: { startIndex: 1, endIndex: bodyEndIndex - 1 } } });
   }
 
   requests.push({
-    insertText: {
-      location: { index: mode === 'append' ? Math.max(1, bodyEndIndex - 1) : 1 },
-      text: content,
-    },
+    insertText: { location: { index: mode === 'append' ? Math.max(1, bodyEndIndex - 1) : 1 }, text: content },
   });
 
   await client.request(`${DOCS_API}/documents/${documentId}:batchUpdate`, {

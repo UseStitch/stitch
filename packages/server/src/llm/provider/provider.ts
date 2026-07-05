@@ -28,10 +28,7 @@ export const createProvider = (credentials: ProviderCredentials) => {
             sessionToken: credentials.auth.sessionToken,
           });
         case 'credential-provider':
-          return createAmazonBedrock({
-            ...base,
-            credentialProvider: fromNodeProviderChain(),
-          });
+          return createAmazonBedrock({ ...base, credentialProvider: fromNodeProviderChain() });
       }
     }
 

@@ -27,10 +27,7 @@ function getMigrationsDir(): string {
   if (process.env.NODE_ENV === 'development') {
     const sourceMigrationsDir = fileURLToPath(new URL('../../drizzle', import.meta.url));
     if (fs.existsSync(sourceMigrationsDir)) {
-      log.info(
-        { migrationsDir: sourceMigrationsDir, execPath: process.execPath },
-        'migrations dir resolved (dev)',
-      );
+      log.info({ migrationsDir: sourceMigrationsDir, execPath: process.execPath }, 'migrations dir resolved (dev)');
       return sourceMigrationsDir;
     }
   }
@@ -58,15 +55,8 @@ function seedShortcuts(db: Db): void {
 function seedSettings(db: Db): void {
   for (const def of SETTINGS_DEFAULTS) {
     db.insert(userSettings)
-      .values({
-        key: def.key,
-        value: def.value,
-        description: def.description,
-      })
-      .onConflictDoUpdate({
-        target: userSettings.key,
-        set: { description: def.description },
-      })
+      .values({ key: def.key, value: def.value, description: def.description })
+      .onConflictDoUpdate({ target: userSettings.key, set: { description: def.description } })
       .run();
   }
 }

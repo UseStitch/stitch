@@ -35,9 +35,7 @@ function normalizeText(value: string): string {
   return value.trim();
 }
 
-function validateAutomationSchedule(
-  schedule: AutomationSchedule | null,
-): ServiceResult<AutomationSchedule | null> {
+function validateAutomationSchedule(schedule: AutomationSchedule | null): ServiceResult<AutomationSchedule | null> {
   if (schedule === null) return ok(null);
 
   const expression = normalizeText(schedule.expression);
@@ -47,30 +45,20 @@ function validateAutomationSchedule(
   return ok({ type: 'cron', expression });
 }
 
-function serializeAutomationSchedule(
-  schedule: AutomationSchedule | null,
-): AutomationScheduleBlob | null {
+function serializeAutomationSchedule(schedule: AutomationSchedule | null): AutomationScheduleBlob | null {
   if (schedule === null) return null;
 
-  return {
-    version: 1,
-    schedule,
-  };
+  return { version: 1, schedule };
 }
 
-function deserializeAutomationSchedule(
-  blob: AutomationScheduleBlob | null,
-): AutomationSchedule | null {
+function deserializeAutomationSchedule(blob: AutomationScheduleBlob | null): AutomationSchedule | null {
   if (blob === null) return null;
   if (blob.version !== 1) return null;
   return blob.schedule;
 }
 
 function toAutomationRow(row: AutomationDbRow): AutomationRow {
-  return {
-    ...row,
-    schedule: deserializeAutomationSchedule(row.schedule),
-  };
+  return { ...row, schedule: deserializeAutomationSchedule(row.schedule) };
 }
 
 export async function listAutomations(input: {
@@ -104,9 +92,7 @@ export async function getAutomation(automationId: string): Promise<ServiceResult
   return ok(toAutomationRow(automation));
 }
 
-async function createAutomation(
-  input: CreateAutomationInput,
-): Promise<ServiceResult<AutomationRow>> {
+async function createAutomation(input: CreateAutomationInput): Promise<ServiceResult<AutomationRow>> {
   const providerId = normalizeText(input.providerId);
   const modelId = normalizeText(input.modelId);
   const title = normalizeText(input.title);
@@ -173,18 +159,13 @@ async function updateAutomation(
     return err('Automation not found', 404);
   }
 
-  const providerId =
-    input.providerId !== undefined ? normalizeText(input.providerId) : existing.providerId;
+  const providerId = input.providerId !== undefined ? normalizeText(input.providerId) : existing.providerId;
   const modelId = input.modelId !== undefined ? normalizeText(input.modelId) : existing.modelId;
   const title = input.title !== undefined ? normalizeText(input.title) : existing.title;
   const initialMessage =
-    input.initialMessage !== undefined
-      ? normalizeText(input.initialMessage)
-      : existing.initialMessage;
+    input.initialMessage !== undefined ? normalizeText(input.initialMessage) : existing.initialMessage;
   const scheduleInput =
-    input.schedule !== undefined
-      ? input.schedule
-      : deserializeAutomationSchedule(existing.schedule);
+    input.schedule !== undefined ? input.schedule : deserializeAutomationSchedule(existing.schedule);
 
   if (!providerId || !modelId || !title || !initialMessage) {
     return err('providerId, modelId, title, and initialMessage are required', 400);
@@ -270,10 +251,7 @@ export async function deleteAutomation(automationId: string): Promise<ServiceRes
   const deleted = await db.transaction(async (tx) => {
     await tx.update(sessions).set({ automationId: null }).where(eq(sessions.automationId, typedId));
 
-    return tx
-      .delete(automations)
-      .where(eq(automations.id, typedId))
-      .returning({ id: automations.id });
+    return tx.delete(automations).where(eq(automations.id, typedId)).returning({ id: automations.id });
   });
 
   if (deleted.length === 0) {
@@ -283,9 +261,7 @@ export async function deleteAutomation(automationId: string): Promise<ServiceRes
   return ok(null);
 }
 
-export async function listAutomationSessions(
-  automationId: string,
-): Promise<ServiceResult<Session[]>> {
+export async function listAutomationSessions(automationId: string): Promise<ServiceResult<Session[]>> {
   const db = getDb();
   const [existing] = await db
     .select({ id: automations.id })
@@ -298,20 +274,13 @@ export async function listAutomationSessions(
   const rows = await db
     .select()
     .from(sessions)
-    .where(
-      and(
-        eq(sessions.type, 'automation'),
-        eq(sessions.automationId, automationId as PrefixedString<'auto'>),
-      ),
-    )
+    .where(and(eq(sessions.type, 'automation'), eq(sessions.automationId, automationId as PrefixedString<'auto'>)))
     .orderBy(desc(sessions.updatedAt));
 
   return ok(rows);
 }
 
-export async function runAutomation(
-  automationId: string,
-): Promise<ServiceResult<RunAutomationResponse>> {
+export async function runAutomation(automationId: string): Promise<ServiceResult<RunAutomationResponse>> {
   const db = getDb();
 
   const [automation] = await db
@@ -328,11 +297,7 @@ export async function runAutomation(
   }
 
   const title = `${automation.title} #${automation.runCount + 1}`;
-  const sessionResult = await createSession({
-    title,
-    type: 'automation',
-    automationId: automation.id,
-  });
+  const sessionResult = await createSession({ title, type: 'automation', automationId: automation.id });
   if (sessionResult.error) return sessionResult;
   const session = sessionResult.data;
 
@@ -349,10 +314,7 @@ export async function runAutomation(
   const [updatedAutomation] = await db.transaction(async (tx) => {
     const [updated] = await tx
       .update(automations)
-      .set({
-        runCount: sql`${automations.runCount} + 1`,
-        updatedAt: Date.now(),
-      })
+      .set({ runCount: sql`${automations.runCount} + 1`, updatedAt: Date.now() })
       .where(eq(automations.id, automation.id))
       .returning({ runCount: automations.runCount });
 

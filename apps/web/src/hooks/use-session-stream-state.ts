@@ -14,8 +14,7 @@ import type { SessionStreamState } from '@/stores/stream-store';
 export function useSessionStreamState(sessionId: string): SessionStreamState {
   return useStreamStore(
     useCallback(
-      (state: { sessions: Record<string, SessionStreamState> }) =>
-        state.sessions[sessionId] ?? INITIAL_SESSION_STATE,
+      (state: { sessions: Record<string, SessionStreamState> }) => state.sessions[sessionId] ?? INITIAL_SESSION_STATE,
       [sessionId],
     ),
   );

@@ -30,17 +30,8 @@ const config: Configuration = {
   appId: 'com.stitch.desktop',
   productName: 'Stitch',
   electronLanguages: ['en-US'],
-  publish: [
-    {
-      provider: 'github',
-      owner: 'UseStitch',
-      repo: 'stitch',
-    },
-  ],
-  directories: {
-    output: 'dist',
-    buildResources: 'resources',
-  },
+  publish: [{ provider: 'github', owner: 'UseStitch', repo: 'stitch' }],
+  directories: { output: 'dist', buildResources: 'resources' },
   files: [
     'out/**/*',
     // Addon ships via extraResources; keep its Rust build tree out of the asar.
@@ -50,26 +41,10 @@ const config: Configuration = {
     '!node_modules/@stitch/audio-capture/{Cargo.toml,Cargo.lock,build.rs,rustfmt.toml}',
   ],
   extraResources: [
-    {
-      from: 'resources/',
-      to: '',
-      filter: ['icon.png', 'icon.ico'],
-    },
-    {
-      from: '../../packages/server/dist',
-      to: '',
-      filter: ['stitch-server*', 'stitch-sandbox*'],
-    },
-    {
-      from: '../../packages/server/drizzle',
-      to: 'drizzle',
-      filter: ['**/*'],
-    },
-    {
-      from: '../web/dist',
-      to: 'web/dist',
-      filter: ['**/*'],
-    },
+    { from: 'resources/', to: '', filter: ['icon.png', 'icon.ico'] },
+    { from: '../../packages/server/dist', to: '', filter: ['stitch-server*', 'stitch-sandbox*'] },
+    { from: '../../packages/server/drizzle', to: 'drizzle', filter: ['**/*'] },
+    { from: '../web/dist', to: 'web/dist', filter: ['**/*'] },
     {
       from: '../../packages/server/src',
       to: 'server-assets',
@@ -84,15 +59,8 @@ const config: Configuration = {
     ...(hasMeetingDetectionResource ? [meetingDetectionResource] : []),
   ],
   icon: 'resources/icon.png',
-  nsis: {
-    artifactName: '${productName}-windows-setup.${ext}',
-    include: 'installer/installer.nsh',
-  },
-  win: {
-    icon: 'resources/icon.png',
-    signAndEditExecutable: true,
-    target: ['nsis'],
-  },
+  nsis: { artifactName: '${productName}-windows-setup.${ext}', include: 'installer/installer.nsh' },
+  win: { icon: 'resources/icon.png', signAndEditExecutable: true, target: ['nsis'] },
   mac: {
     artifactName: '${productName}-macos-${arch}.${ext}',
     icon: 'resources/icon.icns',
@@ -103,12 +71,10 @@ const config: Configuration = {
     entitlements: 'resources/entitlements.mac.plist',
     entitlementsInherit: 'resources/entitlements.mac.inherit.plist',
     extendInfo: {
-      NSMicrophoneUsageDescription:
-        'Stitch needs microphone access to record audio during meetings and voice notes.',
+      NSMicrophoneUsageDescription: 'Stitch needs microphone access to record audio during meetings and voice notes.',
       NSAudioCaptureUsageDescription:
         'Stitch needs system audio access to capture meeting audio from other applications.',
-      NSAppleEventsUsageDescription:
-        'Stitch reads browser window titles to detect when you join a meeting.',
+      NSAppleEventsUsageDescription: 'Stitch reads browser window titles to detect when you join a meeting.',
     },
     binaries: [
       'Contents/Resources/stitch-server',
@@ -118,11 +84,7 @@ const config: Configuration = {
     ],
     target: ['dmg', 'zip'],
   },
-  linux: {
-    icon: 'resources/icon.png',
-    category: 'Development',
-    target: ['AppImage', 'deb'],
-  },
+  linux: { icon: 'resources/icon.png', category: 'Development', target: ['AppImage', 'deb'] },
 };
 
 export default config;

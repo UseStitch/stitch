@@ -1,23 +1,14 @@
 import { ArrowLeftIcon, ArrowRightIcon, PlusIcon, RotateCwIcon, XIcon } from 'lucide-react';
 import * as React from 'react';
 
-import type {
-  ElectronBrowserDownload,
-  ElectronBrowserState,
-} from '@stitch/shared/browser/electron';
+import type { ElectronBrowserDownload, ElectronBrowserState } from '@stitch/shared/browser/electron';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-type BrowserPanelProps = {
-  sessionId: string;
-  onClose: () => void;
-};
+type BrowserPanelProps = { sessionId: string; onClose: () => void };
 
-type WebviewElement = HTMLElement & {
-  getWebContentsId: () => number;
-  getURL: () => string;
-};
+type WebviewElement = HTMLElement & { getWebContentsId: () => number; getURL: () => string };
 
 const DEFAULT_STATE: ElectronBrowserState = {
   tabs: [],
@@ -98,8 +89,7 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
         ? 'bg-success/20 text-success'
         : 'bg-muted text-muted-foreground';
 
-  const controllerLabel =
-    state.controller === 'agent' ? 'Agent' : state.controller === 'human' ? 'You' : 'Ready';
+  const controllerLabel = state.controller === 'agent' ? 'Agent' : state.controller === 'human' ? 'You' : 'Ready';
 
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden border-l border-border bg-background">
@@ -113,25 +103,20 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
               key={tab.id}
               className={cn(
                 'group flex h-6 max-w-40 shrink-0 items-center rounded text-xs',
-                tab.active
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:bg-muted/60',
-              )}
-            >
+                tab.active ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted/60',
+              )}>
               <button
                 className="min-w-0 flex-1 truncate px-2 py-0.5 text-left"
                 onClick={() => void window.api?.browser.focusTab(tab.id)}
                 type="button"
-                title={tab.url}
-              >
+                title={tab.url}>
                 {tab.title || tab.url || 'New tab'}
               </button>
               <button
                 className="mr-0.5 flex size-4 shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-60 hover:bg-muted hover:opacity-100!"
                 onClick={() => void window.api?.browser.closeTab(tab.id)}
                 type="button"
-                aria-label="Close tab"
-              >
+                aria-label="Close tab">
                 <XIcon className="size-2.5" />
               </button>
             </div>
@@ -142,36 +127,24 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
           size="icon-sm"
           className="ml-0.5 shrink-0"
           onClick={() => void window.api?.browser.newTab()}
-          aria-label="New tab"
-        >
+          aria-label="New tab">
           <PlusIcon className="size-3.5" />
         </Button>
       </div>
 
       {/* Nav bar */}
       <div className="flex h-9 shrink-0 items-center gap-1 border-b border-border px-2">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => void window.api?.browser.goBack()}
-          aria-label="Back"
-        >
+        <Button variant="ghost" size="icon-sm" onClick={() => void window.api?.browser.goBack()} aria-label="Back">
           <ArrowLeftIcon className="size-4" />
         </Button>
         <Button
           variant="ghost"
           size="icon-sm"
           onClick={() => void window.api?.browser.goForward()}
-          aria-label="Forward"
-        >
+          aria-label="Forward">
           <ArrowRightIcon className="size-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => void window.api?.browser.reload()}
-          aria-label="Reload"
-        >
+        <Button variant="ghost" size="icon-sm" onClick={() => void window.api?.browser.reload()} aria-label="Reload">
           <RotateCwIcon className="size-4" />
         </Button>
 
@@ -183,12 +156,7 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
           />
         </form>
 
-        <span
-          className={cn(
-            'shrink-0 rounded px-2 py-0.5 text-[10px] font-medium',
-            controllerBadgeClass,
-          )}
-        >
+        <span className={cn('shrink-0 rounded px-2 py-0.5 text-[10px] font-medium', controllerBadgeClass)}>
           {controllerLabel}
         </span>
 

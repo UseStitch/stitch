@@ -5,12 +5,7 @@ import { z } from 'zod';
 
 type JsonSchema = Parameters<typeof z.fromJSONSchema>[0];
 
-type EmbeddingProvider = {
-  providerId: string;
-  models: Array<{
-    id: string;
-  }>;
-};
+type EmbeddingProvider = { providerId: string; models: Array<{ id: string }> };
 
 const registryDir = import.meta.dir;
 const modelsDir = join(registryDir, 'models');
@@ -51,10 +46,7 @@ describe('embedding registry', () => {
       const provider = expectValidProvider(filePath);
       const modelIds = new Set<string>();
 
-      expect(
-        providerIds.has(provider.providerId),
-        `Duplicate provider id: ${provider.providerId}`,
-      ).toBe(false);
+      expect(providerIds.has(provider.providerId), `Duplicate provider id: ${provider.providerId}`).toBe(false);
       providerIds.add(provider.providerId);
 
       for (const model of provider.models) {

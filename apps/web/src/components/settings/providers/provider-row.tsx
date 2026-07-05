@@ -12,10 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useDeleteProviderConfigMutation } from '@/lib/mutations/provider-config';
 import { type ProviderSummary } from '@/lib/queries/providers';
 
-type Props = {
-  provider: ProviderSummary;
-  onSelect: () => void;
-};
+type Props = { provider: ProviderSummary; onSelect: () => void };
 
 export function ProviderRow({ provider, onSelect }: Props) {
   const meta = (PROVIDER_IDS as readonly string[]).includes(provider.id)
@@ -65,8 +62,7 @@ export function ProviderRow({ provider, onSelect }: Props) {
                   onClick={(e) => {
                     e.stopPropagation();
                     onSelect();
-                  }}
-                >
+                  }}>
                   <Settings2Icon className="size-3.5" />
                 </Button>
               </SettingsIconButtonTooltip>
@@ -76,8 +72,7 @@ export function ProviderRow({ provider, onSelect }: Props) {
               size="sm"
               className="h-7 px-3 text-[13px] font-semibold"
               onClick={handleDisconnect}
-              disabled={deleteMutation.isPending}
-            >
+              disabled={deleteMutation.isPending}>
               {deleteMutation.isPending ? 'Disconnecting...' : 'Disconnect'}
             </Button>
           </>
@@ -89,8 +84,7 @@ export function ProviderRow({ provider, onSelect }: Props) {
             onClick={(e) => {
               e.stopPropagation();
               onSelect();
-            }}
-          >
+            }}>
             <PlusIcon className="mr-0.75 size-3.5 text-muted-foreground" />
             Connect
           </Button>

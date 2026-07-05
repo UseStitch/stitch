@@ -9,11 +9,7 @@ describe('createMeetingDetectionEngine', () => {
     const now = 1_000_000;
     const events: MeetingDetectionEvent[] = [];
 
-    const engine = createMeetingDetectionEngine({
-      activationThresholdMs: 300,
-      cooldownMs: 1_000,
-      endGraceMs: 0,
-    });
+    const engine = createMeetingDetectionEngine({ activationThresholdMs: 300, cooldownMs: 1_000, endGraceMs: 0 });
 
     engine.subscribe((event) => events.push(event));
 
@@ -82,11 +78,7 @@ describe('createMeetingDetectionEngine', () => {
     const now = 3_000_000;
     const events: MeetingDetectionEvent[] = [];
 
-    const engine = createMeetingDetectionEngine({
-      activationThresholdMs: 300,
-      cooldownMs: 1_000,
-      endGraceMs: 0,
-    });
+    const engine = createMeetingDetectionEngine({ activationThresholdMs: 300, cooldownMs: 1_000, endGraceMs: 0 });
 
     engine.subscribe((event) => events.push(event));
 
@@ -106,12 +98,9 @@ describe('createMeetingDetectionEngine', () => {
   });
 
   test('throws when staleCandidateThresholdMs < activationThresholdMs', () => {
-    expect(() =>
-      createMeetingDetectionEngine({
-        activationThresholdMs: 500,
-        staleCandidateThresholdMs: 100,
-      }),
-    ).toThrow('staleCandidateThresholdMs');
+    expect(() => createMeetingDetectionEngine({ activationThresholdMs: 500, staleCandidateThresholdMs: 100 })).toThrow(
+      'staleCandidateThresholdMs',
+    );
   });
 
   test('does not emit ended for transient signal drops within the end grace period', () => {

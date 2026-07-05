@@ -1,14 +1,8 @@
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-type SummaryCard = {
-  label: string;
-  value: string;
-  description: string;
-};
+type SummaryCard = { label: string; value: string; description: string };
 
-type UsageSummaryCardsProps = {
-  cards: [SummaryCard, SummaryCard];
-};
+type UsageSummaryCardsProps = { cards: [SummaryCard, SummaryCard] };
 
 export function UsageSummaryCards({ cards }: UsageSummaryCardsProps) {
   return (

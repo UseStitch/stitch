@@ -31,17 +31,10 @@ type ConsolidationAction = z.infer<typeof consolidationSchema>['actions'][number
 type ConsolidationMemory = Pick<
   SemanticMemory,
   'id' | 'content' | 'category' | 'confidence' | 'source' | 'sourceId' | 'pinned' | 'updatedAt'
-> & {
-  score?: number;
-};
+> & { score?: number };
 
 type ValidatedAction =
-  | {
-      action: 'ADD';
-      content: string;
-      category: SemanticMemory['category'];
-      confidence: SemanticMemory['confidence'];
-    }
+  | { action: 'ADD'; content: string; category: SemanticMemory['category']; confidence: SemanticMemory['confidence'] }
   | { action: 'UPDATE'; memoryId: string; content: string }
   | { action: 'DELETE'; memoryId: string };
 
@@ -58,9 +51,7 @@ function emptyResult(): ConsolidationResult {
 }
 
 function isUsableContent(content: string | null): content is string {
-  return (
-    content !== null && content.trim().length > 0 && content.trim().length <= MAX_CONTENT_LENGTH
-  );
+  return content !== null && content.trim().length > 0 && content.trim().length <= MAX_CONTENT_LENGTH;
 }
 
 export function validateConsolidationActions(
@@ -159,9 +150,7 @@ async function findCandidateGroups(): Promise<ConsolidationMemory[][]> {
   const allResult = await getAllSemanticMemories({ page: 1, pageSize: 1000 });
   if (allResult.error || allResult.data.memories.length < MIN_GROUP_SIZE) return [];
 
-  const memories = [...allResult.data.memories].sort((a, b) =>
-    a.updatedAt.localeCompare(b.updatedAt),
-  );
+  const memories = [...allResult.data.memories].sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
   const used = new Set<string>();
   const groups: ConsolidationMemory[][] = [];
 

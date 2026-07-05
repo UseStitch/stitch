@@ -3,10 +3,7 @@ import type { KnipConfig } from 'knip';
 const config: KnipConfig = {
   includeEntryExports: true,
   workspaces: {
-    '.': {
-      entry: [],
-      project: [],
-    },
+    '.': { entry: [], project: [] },
     'apps/web': {
       entry: ['src/routes/**/*.{ts,tsx}', 'src/main.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
@@ -21,14 +18,8 @@ const config: KnipConfig = {
       entry: ['src/main/index.ts', 'src/preload/index.ts', 'src/**/*.test.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
     },
-    'packages/shared': {
-      entry: ['src/**/*.ts', 'src/**/*.test.{ts,tsx}'],
-      project: ['src/**/*.ts'],
-    },
-    'packages/*': {
-      entry: ['src/index.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
-      project: ['src/**/*.{ts,tsx}'],
-    },
+    'packages/shared': { entry: ['src/**/*.ts', 'src/**/*.test.{ts,tsx}'], project: ['src/**/*.ts'] },
+    'packages/*': { entry: ['src/index.{ts,tsx}', 'src/**/*.test.{ts,tsx}'], project: ['src/**/*.{ts,tsx}'] },
     'packages/server': {
       entry: ['src/index.{ts,tsx}', 'src/code-mode/sandbox-process.ts', 'src/**/*.test.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
@@ -37,14 +28,8 @@ const config: KnipConfig = {
       entry: ['src/index.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
     },
-    'connectors/*': {
-      entry: ['src/index.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
-      project: ['src/**/*.{ts,tsx}'],
-    },
-    'connectors/sdk': {
-      entry: ['src/index.{ts,tsx}'],
-      project: ['src/**/*.{ts,tsx}'],
-    },
+    'connectors/*': { entry: ['src/index.{ts,tsx}', 'src/**/*.test.{ts,tsx}'], project: ['src/**/*.{ts,tsx}'] },
+    'connectors/sdk': { entry: ['src/index.{ts,tsx}'], project: ['src/**/*.{ts,tsx}'] },
   },
   ignoreDependencies: [
     'oxfmt',

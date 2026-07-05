@@ -5,11 +5,7 @@ import { z } from 'zod';
 import { PROVIDER_IDS } from '@stitch/shared/providers/types';
 
 import { unwrapResult } from '@/lib/route-helpers.js';
-import {
-  deleteVisibility,
-  listVisibilityOverrides,
-  upsertVisibility,
-} from '@/models/llm/visibility.js';
+import { deleteVisibility, listVisibilityOverrides, upsertVisibility } from '@/models/llm/visibility.js';
 
 export const modelsRouter = new Hono();
 
@@ -18,9 +14,7 @@ const visibilityRouter = new Hono();
 const providerIdSchema = z.enum(PROVIDER_IDS);
 const modelIdSchema = z.string().min(1);
 
-const upsertVisibilitySchema = z.object({
-  visibility: z.enum(['show', 'hide']),
-});
+const upsertVisibilitySchema = z.object({ visibility: z.enum(['show', 'hide']) });
 
 visibilityRouter.get('/', async (c) => {
   const result = await listVisibilityOverrides();

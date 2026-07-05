@@ -2,18 +2,13 @@ import { tool } from 'ai';
 import fs from 'node:fs/promises';
 import { z } from 'zod';
 
-import {
-  getFilePathPatternTargets,
-  getParentDirPermissionSuggestion,
-} from '@/tools/runtime/file-permissions.js';
+import { getFilePathPatternTargets, getParentDirPermissionSuggestion } from '@/tools/runtime/file-permissions.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import { validateAbsoluteFilePath } from '@/tools/runtime/shared.js';
 
 const writeInputSchema = z.object({
   content: z.string().describe('The content to write to the file'),
-  filePath: z
-    .string()
-    .describe('The absolute path to the file to write (must be absolute, not relative)'),
+  filePath: z.string().describe('The absolute path to the file to write (must be absolute, not relative)'),
 });
 
 export async function writeFileContent(filePath: string, content: string): Promise<string> {
@@ -38,10 +33,7 @@ Usage:
     execute: async (input) => {
       const targetPath = await writeFileContent(input.filePath, input.content);
 
-      return {
-        output: `Wrote file: ${targetPath}`,
-        filePath: targetPath,
-      };
+      return { output: `Wrote file: ${targetPath}`, filePath: targetPath };
     },
   });
 }

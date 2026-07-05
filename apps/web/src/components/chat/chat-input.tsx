@@ -33,8 +33,7 @@ export function ChatInput({ className, hasDockAbove, embedded, ...props }: ChatI
               'relative flex flex-col rounded-2xl border border-border/60 bg-card shadow-sm',
               embedded && 'rounded-none border-0 bg-transparent shadow-none',
               hasDockAbove && !embedded && 'rounded-t-none border-t-0',
-            )}
-          >
+            )}>
             <div className="px-4 pt-4 pb-2">
               <div className="h-5 w-32 animate-pulse rounded bg-muted" />
             </div>
@@ -43,8 +42,7 @@ export function ChatInput({ className, hasDockAbove, embedded, ...props }: ChatI
               <div className="size-6 animate-pulse rounded bg-muted" />
             </div>
           </div>
-        }
-      >
+        }>
         <ChatInputInner hasDockAbove={hasDockAbove} embedded={embedded} {...props} />
       </React.Suspense>
     </div>

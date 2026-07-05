@@ -39,9 +39,7 @@ function DialogContent({
   children,
   showCloseButton = true,
   ...props
-}: DialogPrimitive.Popup.Props & {
-  showCloseButton?: boolean;
-}) {
+}: DialogPrimitive.Popup.Props & { showCloseButton?: boolean }) {
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -51,8 +49,7 @@ function DialogContent({
           'bg-popover text-popover-foreground data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 ring-border grid max-w-[calc(100%-2rem)] gap-4 rounded-xl p-4 text-sm ring-1 shadow-lg duration-100 sm:max-w-sm fixed top-1/2 left-1/2 z-50 w-full -translate-x-1/2 -translate-y-1/2 outline-none',
           className,
         )}
-        {...props}
-      >
+        {...props}>
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close
@@ -71,9 +68,7 @@ function DialogContent({
 }
 
 function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
-  return (
-    <div data-slot="dialog-header" className={cn('gap-2 flex flex-col', className)} {...props} />
-  );
+  return <div data-slot="dialog-header" className={cn('gap-2 flex flex-col', className)} {...props} />;
 }
 
 function DialogFooter({
@@ -81,9 +76,7 @@ function DialogFooter({
   showCloseButton = false,
   children,
   ...props
-}: React.ComponentProps<'div'> & {
-  showCloseButton?: boolean;
-}) {
+}: React.ComponentProps<'div'> & { showCloseButton?: boolean }) {
   return (
     <div
       data-slot="dialog-footer"
@@ -91,12 +84,9 @@ function DialogFooter({
         'bg-muted/50 -mx-4 -mb-4 rounded-b-xl border-t p-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end',
         className,
       )}
-      {...props}
-    >
+      {...props}>
       {children}
-      {showCloseButton && (
-        <DialogPrimitive.Close render={<Button variant="outline">Close</Button>} />
-      )}
+      {showCloseButton && <DialogPrimitive.Close render={<Button variant="outline">Close</Button>} />}
     </div>
   );
 }

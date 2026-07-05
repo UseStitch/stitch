@@ -11,10 +11,7 @@ export type McpServerLiveInfo = {
   icons?: McpIcon[];
 };
 
-type McpToolPresentation = {
-  title?: string;
-  iconPath?: string;
-};
+type McpToolPresentation = { title?: string; iconPath?: string };
 
 export type McpServerPresentation = {
   serverId: string;
@@ -38,11 +35,7 @@ async function resolveIconPath(input: {
 }): Promise<string | undefined> {
   const icon = pickDisplayIcon(input.icons);
   if (!icon) return undefined;
-  const cached = await cacheMcpIcon({
-    serverUrl: input.server.url,
-    scope: input.scope,
-    icon,
-  });
+  const cached = await cacheMcpIcon({ serverUrl: input.server.url, scope: input.scope, icon });
   if (!cached) return undefined;
   return `/mcp/icons/${cached.key}`;
 }
@@ -55,27 +48,13 @@ export async function buildServerPresentation(
   const tools = server.tools ?? [];
   const toolPresentations = await Promise.all(
     tools.map(async (tool) => {
-      const iconPath = await resolveIconPath({
-        server,
-        scope: `tool:${server.id}:${tool.name}`,
-        icons: tool.icons,
-      });
+      const iconPath = await resolveIconPath({ server, scope: `tool:${server.id}:${tool.name}`, icons: tool.icons });
 
-      return [
-        tool.name,
-        {
-          title: tool.title ?? tool.annotations?.title,
-          iconPath,
-        },
-      ] as const;
+      return [tool.name, { title: tool.title ?? tool.annotations?.title, iconPath }] as const;
     }),
   );
 
-  const iconPath = await resolveIconPath({
-    server,
-    scope: `server:${server.id}`,
-    icons: liveInfo?.icons,
-  });
+  const iconPath = await resolveIconPath({ server, scope: `server:${server.id}`, icons: liveInfo?.icons });
   const registryIconPath = registryServer?.logoUrl ? `/mcp/${server.id}/logo` : undefined;
 
   return {

@@ -1,12 +1,6 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import type {
-  McpAuthConfig,
-  McpRegistryServer,
-  McpServer,
-  McpTool,
-  McpTransport,
-} from '@stitch/shared/mcp/types';
+import type { McpAuthConfig, McpRegistryServer, McpServer, McpTool, McpTransport } from '@stitch/shared/mcp/types';
 
 import { serverRequest } from '@/lib/api';
 import { toolKeys } from '@/lib/queries/tools';
@@ -40,12 +34,7 @@ export const mcpRegistryQueryOptions = queryOptions({
 export function useAddMcpServer() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: {
-      name: string;
-      transport: McpTransport;
-      url: string;
-      authConfig: McpAuthConfig;
-    }) =>
+    mutationFn: (input: { name: string; transport: McpTransport; url: string; authConfig: McpAuthConfig }) =>
       serverRequest<{ id: string }>('/mcp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -98,8 +87,7 @@ function openAuthUrl(authUrl: string): void {
 export function useStartMcpAuth() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) =>
-      serverRequest<{ authUrl: string }>(`/mcp/${id}/auth`, { method: 'POST' }),
+    mutationFn: (id: string) => serverRequest<{ authUrl: string }>(`/mcp/${id}/auth`, { method: 'POST' }),
     onSuccess: (data) => {
       openAuthUrl(data.authUrl);
       void queryClient.invalidateQueries({ queryKey: mcpKeys.all });

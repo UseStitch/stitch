@@ -59,20 +59,12 @@ export function formatDropdownOptionsSummary(ref: string, result: DropdownOption
   return `Dropdown options for ${ref} (${result.type}):\n${lines.join('\n')}\nUse browser_interact action="select_dropdown" with text to choose one.`;
 }
 
-export function formatExtractContent(
-  query: string | undefined,
-  result: string | ExtractContentResult,
-): string {
+export function formatExtractContent(query: string | undefined, result: string | ExtractContentResult): string {
   if (typeof result === 'string') {
     return `### Extracted Content\n**Query:** ${query ?? 'page content'}\n\n${result}`;
   }
 
-  const sections = [
-    `### Extracted Content`,
-    `**Query:** ${query ?? 'page content'}`,
-    '',
-    result.text,
-  ];
+  const sections = [`### Extracted Content`, `**Query:** ${query ?? 'page content'}`, '', result.text];
   if (result.links) {
     sections.push('', `### Links`, JSON.stringify(result.links, null, 2));
   }
@@ -105,8 +97,7 @@ export async function withFreshSnapshot(
   const browser = getBrowserManager();
   const snapshot = await browser.snapshot(signal);
   const compactSnapshot = serializeBrowserSnapshot(snapshot);
-  const output =
-    typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2);
+  const output = typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2);
   return {
     ...result,
     output: `${output}\n\n### Updated Snapshot\n${compactSnapshot.text}`,

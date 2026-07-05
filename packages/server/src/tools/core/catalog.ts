@@ -46,18 +46,8 @@ export const CORE_TOOL_CATALOG: CatalogEntry[] = [
   { kind: 'static', definition: renderUi },
   { kind: 'static', definition: skill },
   { kind: 'static', definition: createSkill },
-  {
-    kind: 'contextual',
-    name: 'question',
-    displayName: 'Question',
-    create: createQuestionDefinition,
-  },
-  {
-    kind: 'contextual',
-    name: 'todo',
-    displayName: 'Todo',
-    create: createTodoDefinition,
-  },
+  { kind: 'contextual', name: 'question', displayName: 'Question', create: createQuestionDefinition },
+  { kind: 'contextual', name: 'todo', displayName: 'Todo', create: createTodoDefinition },
   {
     kind: 'contextual',
     name: 'memory',

@@ -14,11 +14,7 @@ describe('Drive API uploadFile', () => {
     await fs.writeFile(filePath, 'hello drive');
 
     let requestUrl = '';
-    let requestOptions: {
-      method?: string;
-      headers?: Record<string, string>;
-      body?: string | ArrayBuffer;
-    } = {};
+    let requestOptions: { method?: string; headers?: Record<string, string>; body?: string | ArrayBuffer } = {};
     const client = {
       request: async (url: string, options?: typeof requestOptions) => {
         requestUrl = url;
@@ -42,9 +38,7 @@ describe('Drive API uploadFile', () => {
       'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,webViewLink',
     );
     expect(requestOptions.method).toBe('POST');
-    expect(requestOptions.headers?.['Content-Type']).toBe(
-      'multipart/related; boundary=drive_upload_boundary',
-    );
+    expect(requestOptions.headers?.['Content-Type']).toBe('multipart/related; boundary=drive_upload_boundary');
     const requestBody =
       typeof requestOptions.body === 'string'
         ? requestOptions.body

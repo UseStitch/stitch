@@ -14,17 +14,9 @@ export type ToolEnabledState = {
   updatedAt: number;
 };
 
-type ToolDataResult<T = unknown> = {
-  data: T;
-  error?: never;
-  details?: never;
-};
+type ToolDataResult<T = unknown> = { data: T; error?: never; details?: never };
 
-type ToolErrorResult = {
-  error: string;
-  details?: unknown;
-  data?: never;
-};
+type ToolErrorResult = { error: string; details?: unknown; data?: never };
 
 export function isToolErrorResult(value: unknown): value is ToolErrorResult {
   if (!value || typeof value !== 'object') {

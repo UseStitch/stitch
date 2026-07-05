@@ -13,18 +13,13 @@ import { useShortcuts } from '@/lib/shortcuts';
 const LEADER_PREFIX = 'LEADER+';
 
 const defaultLeaderKey = SETTINGS_DEFAULTS.find((s) => s.key === 'shortcuts.leaderKey')!.value;
-const defaultShortcutHotkeys = new Map(
-  SHORTCUT_DEFAULTS.map((shortcut) => [shortcut.actionId, shortcut.hotkey]),
-);
+const defaultShortcutHotkeys = new Map(SHORTCUT_DEFAULTS.map((shortcut) => [shortcut.actionId, shortcut.hotkey]));
 
 function getDefaultShortcutHotkey(actionId: ShortcutActionId): string | null {
   return defaultShortcutHotkeys.get(actionId) ?? null;
 }
 
-function resolveLeaderHotkey(
-  hotkey: string,
-  leaderKey: string,
-): { leader: Hotkey; suffix: Hotkey } | null {
+function resolveLeaderHotkey(hotkey: string, leaderKey: string): { leader: Hotkey; suffix: Hotkey } | null {
   if (!hotkey.startsWith(LEADER_PREFIX)) return null;
   const suffix = hotkey.slice(LEADER_PREFIX.length);
   return { leader: leaderKey as Hotkey, suffix: suffix as Hotkey };

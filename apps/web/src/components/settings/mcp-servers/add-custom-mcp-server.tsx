@@ -11,13 +11,7 @@ import { SettingSubPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAddMcpServer, useStartMcpAuth } from '@/lib/queries/mcp';
 
 export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
@@ -56,17 +50,13 @@ export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
       });
       if (form.authType === 'oauth') {
         await startAuth.mutateAsync(id);
-        toast.success('Authorization started — complete it in your browser', {
-          id: 'mcp-add-auth',
-        });
+        toast.success('Authorization started — complete it in your browser', { id: 'mcp-add-auth' });
       } else {
         toast.success('MCP server added', { id: 'mcp-add-success' });
       }
       onBack();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to add MCP server', {
-        id: 'mcp-add-error',
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to add MCP server', { id: 'mcp-add-error' });
     }
   };
 
@@ -77,25 +67,17 @@ export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
       title="Add Custom MCP Server"
       description="Connect a remote MCP server manually."
       onBack={onBack}
-      backLabel="Back to MCP servers"
-    >
+      backLabel="Back to MCP servers">
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Name</Label>
-            <Input
-              value={form.name}
-              onChange={(e) => set('name', e.target.value)}
-              placeholder="e.g. GitHub MCP"
-            />
+            <Input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="e.g. GitHub MCP" />
           </div>
 
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Authentication</Label>
-            <Select
-              value={form.authType}
-              onValueChange={(v) => set('authType', v as AddFormState['authType'])}
-            >
+            <Select value={form.authType} onValueChange={(v) => set('authType', v as AddFormState['authType'])}>
               <SelectTrigger className="w-full">
                 <SelectValue>{AUTH_TYPE_LABELS[form.authType].label}</SelectValue>
               </SelectTrigger>
