@@ -197,6 +197,8 @@ export function addCacheControlToTools(
  * - Vercel (AI Gateway): `caching: 'auto'` lets the gateway
  *   automatically apply the correct caching strategy for the
  *   underlying provider the model routes to.
+ * - NVIDIA: `stream_options.include_usage` requests token usage in
+ *   OpenAI-compatible streaming responses.
  */
 export function getProviderOptions(
   providerId: ProviderId,
@@ -209,14 +211,15 @@ export function getProviderOptions(
     case 'openrouter':
       return { openrouter: { prompt_cache_key: sessionId } };
 
+    case 'nvidia':
+      return { nvidia: { stream_options: { include_usage: true } } };
+
     // Anthropic, Bedrock: caching is handled by message-level markers only
     case 'anthropic':
     case 'amazon-bedrock':
     // Google, Google Vertex: implicit caching, no session key mechanism
     case 'google':
     case 'google-vertex':
-    // NVIDIA: caching handled by API provider
-    case 'nvidia':
     // ElevenLabs, AssemblyAI: STT-only, no LLM cache control
     case 'elevenlabs':
     case 'assemblyai':

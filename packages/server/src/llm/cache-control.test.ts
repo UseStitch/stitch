@@ -395,6 +395,12 @@ describe('getProviderOptions', () => {
     expect(getProviderOptions('google-vertex', sessionId)).toBeUndefined();
   });
 
+  test('returns stream usage options for nvidia provider', () => {
+    expect(getProviderOptions('nvidia', sessionId)).toEqual({
+      nvidia: { stream_options: { include_usage: true } },
+    });
+  });
+
   test('returns gateway caching auto for vercel provider', () => {
     expect(getProviderOptions('vercel', sessionId)).toEqual({
       gateway: { caching: 'auto' },
