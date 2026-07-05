@@ -25,8 +25,15 @@ export class ToolsetManager {
 
   private readonly context: ToolContext;
 
-  constructor(context: ToolContext, activationState: Iterable<string | SessionActiveToolset> = []) {
+  private readonly excludedToolsetIds: Set<string>;
+
+  constructor(
+    context: ToolContext,
+    activationState: Iterable<string | SessionActiveToolset> = [],
+    options: { excludedToolsetIds?: Iterable<string> } = {},
+  ) {
     this.context = context;
+    this.excludedToolsetIds = new Set(options.excludedToolsetIds ?? []);
     for (const entry of activationState) {
       const state =
         typeof entry === 'string' ? { id: entry, scope: 'until_deactivated' as const } : entry;
@@ -62,6 +69,14 @@ export class ToolsetManager {
         'attempted to activate unknown toolset',
       );
       return { status: 'not_found' };
+    }
+
+    if (this.excludedToolsetIds.has(toolsetId)) {
+      log.info(
+        { event: 'toolset.activate.excluded', toolsetId },
+        'attempted to activate excluded toolset',
+      );
+      return { status: 'disabled' };
     }
 
     const [toolsetEnabled, appEnabled] = await Promise.all([
@@ -209,6 +224,10 @@ export class ToolsetManager {
     return this.activations.get(toolsetId)?.state.scope === 'until_deactivated';
   }
 
+  isExcluded(toolsetId: string): boolean {
+    return this.excludedToolsetIds.has(toolsetId);
+  }
+
   setActivationState(
     toolsetId: string,
     state: { scope: SessionToolsetScope; expiresAtTurn?: number },
@@ -243,7 +262,12 @@ export class ToolsetManager {
       getDisabledAppToolsetIds(),
     ]);
     return listToolsets()
-      .filter((ts) => !disabledIds.has(ts.id) && !disabledAppToolsetIds.has(ts.id))
+      .filter(
+        (ts) =>
+          !this.excludedToolsetIds.has(ts.id) &&
+          !disabledIds.has(ts.id) &&
+          !disabledAppToolsetIds.has(ts.id),
+      )
       .map((ts) =>
         toToolsetView(ts, {
           active: this.isActive(ts.id),

@@ -33,6 +33,7 @@ type SessionContextOptions = {
   llmMessages: ModelMessage[];
   activeToolsetIds?: string[];
   allowTaskTool?: boolean;
+  excludedToolsetIds?: string[];
 };
 
 type AssembledResult = {
@@ -114,7 +115,9 @@ export class SessionContext {
       ? ''
       : buildExpiredToolsetsPrompt(expiredEntries);
 
-    const toolsetManager = new ToolsetManager(this.toolContext, activeEntries);
+    const toolsetManager = new ToolsetManager(this.toolContext, activeEntries, {
+      excludedToolsetIds: this.opts.excludedToolsetIds,
+    });
     await this.restoreToolsets(
       toolsetManager,
       activeEntries.map((entry) => entry.id),

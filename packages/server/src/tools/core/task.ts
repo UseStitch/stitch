@@ -19,6 +19,7 @@ import type { ToolContext } from '@/tools/runtime/runtime.js';
 import type { ToolsetManager } from '@/tools/toolsets/manager.js';
 
 const log = Log.create({ service: 'task-tool' });
+const CHILD_SESSION_EXCLUDED_TOOLSETS = ['browser'];
 
 const TASK_DESCRIPTION = `Spawn a child session to handle a task independently with its own context window.
 
@@ -151,6 +152,7 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
           abortSignal: childAbortSignal,
           activeToolsetIds: allToolsetIds,
           allowTaskTool: false,
+          excludedToolsetIds: CHILD_SESSION_EXCLUDED_TOOLSETS,
         });
 
         log.info(

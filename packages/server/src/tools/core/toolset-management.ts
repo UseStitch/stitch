@@ -100,6 +100,12 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
         return { toolsets: filtered, totalAvailable: fullCatalog.length };
       }
 
+      if (manager.isExcluded(toolsetId)) {
+        throw new Error(
+          `Toolset "${toolsetId}" is not in the catalog. Use list_toolsets with no arguments to see available IDs.`,
+        );
+      }
+
       const toolset = getToolset(toolsetId);
       if (!toolset) {
         throw new Error(
