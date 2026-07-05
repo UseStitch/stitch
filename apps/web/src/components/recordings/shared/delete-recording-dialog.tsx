@@ -1,14 +1,6 @@
 import type { Recording } from '@stitch/shared/recordings/types';
 
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface DeleteRecordingDialogProps {
   recording: Recording | null | undefined;
@@ -19,23 +11,13 @@ interface DeleteRecordingDialogProps {
 
 export function DeleteRecordingDialog({ recording, isDeleting, onOpenChange, onConfirm }: DeleteRecordingDialogProps) {
   return (
-    <Dialog open={Boolean(recording)} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Delete recording?</DialogTitle>
-          <DialogDescription>
-            This permanently deletes &quot;{recording?.title}&quot; and its local audio file.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button variant="destructive" onClick={onConfirm} disabled={isDeleting}>
-            {isDeleting ? 'Deleting...' : 'Delete'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <ConfirmDialog
+      open={Boolean(recording)}
+      onOpenChange={onOpenChange}
+      title="Delete recording?"
+      description={`This permanently deletes "${recording?.title}" and its local audio file.`}
+      onConfirm={onConfirm}
+      isPending={isDeleting}
+    />
   );
 }

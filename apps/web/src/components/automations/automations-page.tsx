@@ -11,14 +11,7 @@ import { AutomationDialog } from '@/components/automations/automation-dialog';
 import { AutomationRunsTable } from '@/components/automations/automation-runs-table';
 import { AutomationsTable } from '@/components/automations/automations-table';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Empty, EmptyDescription, EmptyTitle } from '@/components/ui/empty';
 import {
   Page,
@@ -299,25 +292,16 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
         }}
       />
 
-      <Dialog open={automationToDelete !== null} onOpenChange={(open) => !open && setAutomationToDelete(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Automation</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete the automation "{automationToDelete?.title}"? This action cannot be
-              undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAutomationToDelete(null)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={() => void confirmDelete()} disabled={deleteAutomation.isPending}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={automationToDelete !== null}
+        onOpenChange={(open) => !open && setAutomationToDelete(null)}
+        title="Delete Automation"
+        description={`Are you sure you want to delete the automation "${automationToDelete?.title}"? This action cannot be undone.`}
+        onConfirm={() => void confirmDelete()}
+        confirmLabel="Delete"
+        pendingLabel="Delete"
+        isPending={deleteAutomation.isPending}
+      />
     </Page>
   );
 }

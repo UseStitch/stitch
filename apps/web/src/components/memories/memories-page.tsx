@@ -8,7 +8,7 @@ import { CATEGORY_LABELS, CATEGORY_VARIANTS, CONFIDENCE_LABELS } from '@/compone
 import { MemoryDetailSheet } from '@/components/memories/memory-detail-sheet';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import {
@@ -400,26 +400,15 @@ export function MemoriesPage() {
       <MemoryDetailSheet memory={sheetMemory} open={sheetOpen} onOpenChange={setSheetOpen} />
 
       {/* Bulk delete confirmation */}
-      <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>
-              Delete {selectedIds.size} {selectedIds.size === 1 ? 'memory' : 'memories'}?
-            </DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            These memories will be permanently removed and cannot be recovered.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleBulkDelete} disabled={bulkDeleteMutation.isPending}>
-              {bulkDeleteMutation.isPending ? 'Deleting…' : 'Delete'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+        title={`Delete ${selectedIds.size} ${selectedIds.size === 1 ? 'memory' : 'memories'}?`}
+        description="These memories will be permanently removed and cannot be recovered."
+        onConfirm={handleBulkDelete}
+        pendingLabel="Deleting…"
+        isPending={bulkDeleteMutation.isPending}
+      />
     </Page>
   );
 }

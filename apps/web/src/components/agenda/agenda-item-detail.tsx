@@ -8,7 +8,7 @@ import { PRIORITY_LABELS, STATUS_LABELS } from '@/components/agenda/constants';
 import { formatDateInTz, useUserTimezone } from '@/components/agenda/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -270,22 +270,14 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
         </SheetContent>
       </Sheet>
 
-      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Delete item?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">This agenda item will be permanently removed.</p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending}>
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        onOpenChange={setConfirmDeleteOpen}
+        title="Delete item?"
+        description="This agenda item will be permanently removed."
+        onConfirm={handleDelete}
+        isPending={deleteMutation.isPending}
+      />
     </>
   );
 }

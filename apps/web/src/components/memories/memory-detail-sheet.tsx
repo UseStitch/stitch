@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { CATEGORY_LABELS, CONFIDENCE_LABELS } from '@/components/memories/constants';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -193,24 +193,15 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
         </SheetContent>
       </Sheet>
 
-      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Delete memory?</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            This memory will be permanently removed and cannot be recovered.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending}>
-              {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        onOpenChange={setConfirmDeleteOpen}
+        title="Delete memory?"
+        description="This memory will be permanently removed and cannot be recovered."
+        onConfirm={handleDelete}
+        pendingLabel="Deleting…"
+        isPending={deleteMutation.isPending}
+      />
     </>
   );
 }

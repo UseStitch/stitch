@@ -15,20 +15,9 @@ import {
   SettingSection,
   SettingsIconButtonTooltip,
 } from '@/components/settings/settings-ui';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogMedia,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Dialog,
   DialogContent,
@@ -432,46 +421,32 @@ function MeetingNoteTemplatesSettings() {
             New Template
           </Button>
           <MarkdownHelpDialog />
-          <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-            <Tooltip>
-              <AlertDialogTrigger
-                render={
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        variant="destructive"
-                        size="icon-sm"
-                        aria-label="Delete template"
-                        disabled={!selectedTemplate || deleteMutation.isPending}>
-                        <TrashIcon />
-                      </Button>
-                    }
-                  />
-                }
-              />
-              <TooltipContent>Delete template</TooltipContent>
-            </Tooltip>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogMedia>
-                  <TrashIcon />
-                </AlertDialogMedia>
-                <AlertDialogTitle>Delete template?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete “{selectedTemplate?.name ?? 'this template'}”. This cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
-                <AlertDialogAction
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
                   variant="destructive"
-                  disabled={deleteMutation.isPending}
-                  onClick={handleDeleteTemplate}>
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                  size="icon-sm"
+                  aria-label="Delete template"
+                  disabled={!selectedTemplate || deleteMutation.isPending}
+                  onClick={() => setDeleteOpen(true)}>
+                  <TrashIcon />
+                </Button>
+              }
+            />
+            <TooltipContent>Delete template</TooltipContent>
+          </Tooltip>
+          <ConfirmDialog
+            open={deleteOpen}
+            onOpenChange={setDeleteOpen}
+            icon={<TrashIcon />}
+            title="Delete template?"
+            description={`This will permanently delete “${selectedTemplate?.name ?? 'this template'}”. This cannot be undone.`}
+            onConfirm={handleDeleteTemplate}
+            confirmLabel="Delete"
+            pendingLabel="Delete"
+            isPending={deleteMutation.isPending}
+          />
           <SettingsIconButtonTooltip label="Save template">
             <Button
               size="icon-sm"

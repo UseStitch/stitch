@@ -16,15 +16,7 @@ import {
   SliderSettingRow,
   SwitchSettingRow,
 } from '@/components/settings/settings-ui';
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -101,24 +93,16 @@ function EmbeddingModelSelect({
         showClear={false}
       />
 
-      <Dialog open={pendingValue !== undefined} onOpenChange={(open) => !open && handleCancel()}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Change embedding model?</DialogTitle>
-            <DialogDescription>
-              Switching the embedding model will permanently delete all stored memories. This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCancel} disabled={isConfirming}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={() => void handleConfirm()} disabled={isConfirming}>
-              {isConfirming ? 'Deleting...' : 'Delete memories & switch'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={pendingValue !== undefined}
+        onOpenChange={(open) => !open && handleCancel()}
+        title="Change embedding model?"
+        description="Switching the embedding model will permanently delete all stored memories. This action cannot be undone."
+        onConfirm={() => void handleConfirm()}
+        confirmLabel="Delete memories & switch"
+        isPending={isConfirming}
+        contentClassName="max-w-sm"
+      />
     </>
   );
 }
