@@ -6,7 +6,7 @@ import { useNavigate } from '@tanstack/react-router';
 
 import { AnalysisHeader } from './analysis/analysis-header';
 import { TranscriptSidebar } from './analysis/transcript-sidebar';
-import { getErrorMessage, shouldConfirmRecordingDelete } from './shared/actions';
+import { getErrorMessage } from './shared/actions';
 import { DeleteRecordingDialog } from './shared/delete-recording-dialog';
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
@@ -104,12 +104,8 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
             );
           }}
           onDelete={() => {
-            if (!recording || shouldConfirmRecordingDelete(recording)) {
-              setShowDeleteConfirm(true);
-              return;
-            }
-
-            deleteRecordingById();
+            if (!recording) return;
+            setShowDeleteConfirm(true);
           }}
         />
 
