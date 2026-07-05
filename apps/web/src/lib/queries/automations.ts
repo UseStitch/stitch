@@ -22,18 +22,17 @@ const automationKeys = {
 export function automationsPageQueryOptions(input: { page: number; pageSize: number }) {
   return queryOptions({
     queryKey: automationKeys.page(input.page, input.pageSize),
-    queryFn: () => {
-      const params = new URLSearchParams({ page: String(input.page), pageSize: String(input.pageSize) });
-      return serverRequest<ListAutomationsResponse>(`/automations?${params.toString()}`);
-    },
+    queryFn: () =>
+      serverRequest<ListAutomationsResponse>('/automations', {
+        params: { page: input.page, pageSize: input.pageSize },
+      }),
   });
 }
 
 export const automationsSidebarListQueryOptions = queryOptions({
   queryKey: automationKeys.sidebarList(),
   queryFn: async (): Promise<Automation[]> => {
-    const params = new URLSearchParams({ page: '1', pageSize: '100' });
-    const data = await serverRequest<ListAutomationsResponse>(`/automations?${params.toString()}`);
+    const data = await serverRequest<ListAutomationsResponse>('/automations', { params: { page: 1, pageSize: 100 } });
     return data.automations;
   },
 });

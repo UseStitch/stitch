@@ -66,8 +66,20 @@ export async function serverFetch(path: string, init?: RequestInit): Promise<Res
   return fetch(`${baseUrl}${path}`, init);
 }
 
-export async function serverRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await serverFetch(path, init);
+type QueryParams = Record<string, string | number | undefined>;
+
+export function toQueryString(params: QueryParams): string {
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined) searchParams.set(key, String(value));
+  }
+  const query = searchParams.toString();
+  return query ? `?${query}` : '';
+}
+
+export async function serverRequest<T>(path: string, init?: RequestInit & { params?: QueryParams }): Promise<T> {
+  const { params, ...requestInit } = init ?? {};
+  const res = await serverFetch(params ? `${path}${toQueryString(params)}` : path, requestInit);
   if (!res.ok) {
     let errorMsg = `Request failed with status ${res.status}`;
     try {
