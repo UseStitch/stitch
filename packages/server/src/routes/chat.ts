@@ -13,6 +13,7 @@ import {
   splitSession,
 } from '@/chat/service.js';
 import {
+  archiveSession,
   createSession,
   deleteSession,
   getSessionById,
@@ -109,6 +110,12 @@ chatRouter.delete('/sessions/:id', zValidator('param', sessionIdParamSchema), as
   const { id } = c.req.valid('param');
   const result = await deleteSession(id);
   return unwrapResult(c, result, 204);
+});
+
+chatRouter.patch('/sessions/:id/archive', zValidator('param', sessionIdParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
+  const result = await archiveSession(id);
+  return unwrapResult(c, result);
 });
 
 chatRouter.patch(

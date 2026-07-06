@@ -23,6 +23,7 @@ export const sessions = sqliteTable('sessions', {
   isUnread: integer('is_unread', { mode: 'boolean' }).notNull().default(false),
   toolsetState: blob('toolset_state', { mode: 'json' }).$type<SessionToolsetState | null>(),
   archivedAt: integer('archived_at', { mode: 'number' }),
+  archivedReason: text('archived_reason'),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()
     .$defaultFn(() => Date.now()),

@@ -1,5 +1,6 @@
 import { and, desc, eq, isNull, like, lt } from 'drizzle-orm';
 
+import { SESSION_ARCHIVE_REASON_ARCHIVE_SESSION } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 import { createSessionId } from '@stitch/shared/id';
 
@@ -111,6 +112,20 @@ export async function deleteSession(sessionId: PrefixedString<'ses'>): Promise<S
   const result = await db.delete(sessions).where(eq(sessions.id, sessionId)).returning({ id: sessions.id });
   if (result.length === 0) return err('Session not found', 404);
   return ok(result[0]);
+}
+
+export async function archiveSession(
+  sessionId: PrefixedString<'ses'>,
+): Promise<ServiceResult<typeof sessions.$inferSelect>> {
+  const db = getDb();
+  const now = Date.now();
+  const [updated] = await db
+    .update(sessions)
+    .set({ archivedAt: now, archivedReason: SESSION_ARCHIVE_REASON_ARCHIVE_SESSION, updatedAt: now })
+    .where(eq(sessions.id, sessionId))
+    .returning();
+  if (!updated) return err('Session not found', 404);
+  return ok(updated);
 }
 
 export async function renameSession(

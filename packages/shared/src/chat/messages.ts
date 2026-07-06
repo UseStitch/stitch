@@ -7,6 +7,8 @@ export type { LanguageModelV3Source, LanguageModelUsage };
 
 export const MESSAGE_ROLES = ['user', 'assistant', 'system', 'tool'] as const;
 
+export const SESSION_ARCHIVE_REASON_ARCHIVE_SESSION = 'archive_session' as const;
+
 export type UserImagePart = { type: 'user-image'; dataUrl: string; mime: string; filename: string };
 
 export type UserFilePart = { type: 'user-file'; dataUrl: string; mime: string; filename: string };
@@ -96,6 +98,7 @@ export type Session = {
   parentSessionId: PrefixedString<'ses'> | null;
   isUnread: boolean;
   archivedAt: number | null;
+  archivedReason: string | null;
   createdAt: number;
   updatedAt: number;
 };

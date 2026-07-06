@@ -1,5 +1,3 @@
-import type * as React from 'react';
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,6 +10,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import type * as React from 'react';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -19,11 +18,16 @@ interface ConfirmDialogProps {
   title: React.ReactNode;
   description: React.ReactNode;
   onConfirm: () => void;
+  onSecondaryAction?: () => void;
   confirmLabel?: string;
+  secondaryActionLabel?: string;
   pendingLabel?: string;
+  secondaryPendingLabel?: string;
   cancelLabel?: string;
   isPending?: boolean;
+  isSecondaryPending?: boolean;
   variant?: 'destructive' | 'default';
+  secondaryVariant?: 'destructive' | 'default';
   icon?: React.ReactNode;
   contentClassName?: string;
 }
@@ -34,11 +38,16 @@ export function ConfirmDialog({
   title,
   description,
   onConfirm,
+  onSecondaryAction,
   confirmLabel = 'Delete',
+  secondaryActionLabel,
   pendingLabel = 'Deleting...',
+  secondaryPendingLabel = 'Archiving...',
   cancelLabel = 'Cancel',
   isPending = false,
+  isSecondaryPending = false,
   variant = 'destructive',
+  secondaryVariant = 'default',
   icon,
   contentClassName,
 }: ConfirmDialogProps) {
@@ -51,8 +60,16 @@ export function ConfirmDialog({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>{cancelLabel}</AlertDialogCancel>
-          <AlertDialogAction variant={variant} onClick={onConfirm} disabled={isPending}>
+          <AlertDialogCancel disabled={isPending || isSecondaryPending}>{cancelLabel}</AlertDialogCancel>
+          {onSecondaryAction && secondaryActionLabel ? (
+            <AlertDialogAction
+              variant={secondaryVariant}
+              onClick={onSecondaryAction}
+              disabled={isPending || isSecondaryPending}>
+              {isSecondaryPending ? secondaryPendingLabel : secondaryActionLabel}
+            </AlertDialogAction>
+          ) : null}
+          <AlertDialogAction variant={variant} onClick={onConfirm} disabled={isPending || isSecondaryPending}>
             {isPending ? pendingLabel : confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>

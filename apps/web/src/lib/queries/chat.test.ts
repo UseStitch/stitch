@@ -16,6 +16,7 @@ function createSession(id: string): Session {
     parentSessionId: null,
     isUnread: false,
     archivedAt: null,
+    archivedReason: null,
     createdAt: 1,
     updatedAt: 1,
   };

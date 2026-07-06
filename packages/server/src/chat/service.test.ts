@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 import type { StoredPart } from '@stitch/shared/chat/messages';
 
 import { splitSession } from '@/chat/service.js';
-import { listSessionMessages } from '@/chat/session-crud.js';
+import { archiveSession, listSessionMessages, listSessions } from '@/chat/session-crud.js';
 import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
 import { setupTestDb } from '@/db/test-helpers.js';
@@ -226,5 +226,44 @@ describe('listSessionMessages', () => {
 
     expect(result.error).toBeNull();
     expect(result.data?.messages.map((message) => message.id)).toEqual([liveMessageId]);
+  });
+});
+
+describe('listSessions', () => {
+  test('excludes archived chat sessions', async () => {
+    const visibleSessionId = 'ses_list_visible_session' as never;
+    const archivedSessionId = 'ses_list_archived_session' as never;
+    const now = Date.now();
+
+    await getDb()
+      .insert(sessions)
+      .values([
+        {
+          id: visibleSessionId,
+          title: 'Archive Filter Visible',
+          type: 'chat',
+          automationId: null,
+          parentSessionId: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: archivedSessionId,
+          title: 'Archive Filter Archived',
+          type: 'chat',
+          automationId: null,
+          parentSessionId: null,
+          createdAt: now - 1,
+          updatedAt: now - 1,
+        },
+      ]);
+
+    const archiveResult = await archiveSession(archivedSessionId);
+    const result = await listSessions('chat', { search: 'Archive Filter' });
+
+    expect(archiveResult.error).toBeNull();
+    expect(archiveResult.data?.archivedReason).toBe('archive_session');
+    expect(result.error).toBeNull();
+    expect(result.data?.sessions.map((session) => session.id)).toEqual([visibleSessionId]);
   });
 });

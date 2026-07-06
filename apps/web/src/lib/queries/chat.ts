@@ -168,6 +168,8 @@ type RenameSessionInput = { sessionId: PrefixedString<'ses'>; title: string };
 
 type DeleteSessionInput = { sessionId: PrefixedString<'ses'> };
 
+type ArchiveSessionInput = { sessionId: PrefixedString<'ses'> };
+
 type DoomLoopResponseInput = { sessionId: string; response: 'continue' | 'stop' };
 
 export function useRenameSession() {
@@ -211,6 +213,18 @@ export function useDeleteSession() {
       void queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
       queryClient.removeQueries({ queryKey: sessionKeys.detail(input.sessionId) });
       queryClient.removeQueries({ queryKey: sessionKeys.messages(input.sessionId) });
+    },
+  });
+}
+
+export function useArchiveSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ArchiveSessionInput) =>
+      serverRequest<Session>(`/chat/sessions/${input.sessionId}/archive`, { method: 'PATCH' }),
+    onSuccess: (_data, input) => {
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.list() });
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.detail(input.sessionId) });
     },
   });
 }
