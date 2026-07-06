@@ -6,7 +6,7 @@
   "models": [
     {
       "id": "text-embedding-3-large",
-      "name": "text-embedding-3-large",
+      "name": "Text Embedding 3 Large",
       "family": "text-embedding",
       "deprecated": false,
       "dimensions": 3072,
@@ -16,7 +16,7 @@
     },
     {
       "id": "text-embedding-3-small",
-      "name": "text-embedding-3-small",
+      "name": "Text Embedding 3 Small",
       "family": "text-embedding",
       "deprecated": false,
       "dimensions": 1536,
@@ -26,7 +26,7 @@
     },
     {
       "id": "text-embedding-ada-002",
-      "name": "text-embedding-ada-002",
+      "name": "Text Embedding Ada 002",
       "family": "text-embedding",
       "deprecated": false,
       "dimensions": 1536,
