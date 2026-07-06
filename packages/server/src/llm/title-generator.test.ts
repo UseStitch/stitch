@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, test, mock } from 'bun:test';
 import { generateTitle } from '@/llm/title-generator.js';
 
 const RESOLVED_MODEL = {
-  providerId: 'openai',
+  providerId: 'openai' as const,
   modelId: 'gpt-5-nano',
   credentials: { providerId: 'openai' as const, auth: { method: 'api-key' as const, apiKey: 'test-key' } },
 };

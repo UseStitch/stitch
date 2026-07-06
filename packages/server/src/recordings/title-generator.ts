@@ -2,8 +2,8 @@ import { generateText } from 'ai';
 
 import * as Log from '@/lib/log.js';
 import { createProvider } from '@/llm/provider/provider.js';
-import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
+import type { ResolvedModel } from '@/llm/resolve-model.js';
 import { mapAIError } from '@/llm/stream/ai-error-mapper.js';
 import type { LanguageModelUsage } from 'ai';
 
@@ -13,11 +13,7 @@ type GeneratedRecordingTitle = { title: string; usage: LanguageModelUsage | null
 
 type RecordingTitleGeneratorDeps = {
   resolveModel?: typeof resolveCheapModel;
-  getModel?: (resolved: {
-    providerId: string;
-    modelId: string;
-    credentials: ProviderCredentials;
-  }) => ReturnType<ReturnType<typeof createProvider>>;
+  getModel?: (resolved: ResolvedModel) => ReturnType<ReturnType<typeof createProvider>>;
 };
 
 function buildRecordingTitlePrompt(analysis: string): string {

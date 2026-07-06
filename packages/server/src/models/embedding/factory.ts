@@ -7,6 +7,7 @@ import { getEmbeddingModelDimensions } from '@/llm/provider/service.js';
 import { getMemoryConfig, hasConfiguredEmbeddingModel, invalidateMemoryConfig } from '@/memory/config.js';
 import type { Embedder } from '@/models/embedding/embedder.js';
 import { ProviderEmbedder } from '@/models/embedding/provider-embedder.js';
+import { isEmbeddingProviderCredentials } from '@/provider/config/schema.js';
 
 const log = Log.create({ service: 'embedder' });
 
@@ -48,9 +49,12 @@ export async function createEmbedder(): Promise<Embedder> {
   if (!config_) {
     throw new Error(`Configured embedding provider is unavailable: ${providerId}`);
   }
+  if (config_.credentials.providerId !== providerId || !isEmbeddingProviderCredentials(config_.credentials)) {
+    throw new Error(`Configured provider is not available for embeddings: ${providerId}`);
+  }
 
   const dimensions = (await getEmbeddingModelDimensions(providerId, modelId)) ?? DEFAULT_DIMENSIONS;
   log.info({ providerId, modelId, dimensions }, 'using provider embedder');
-  cachedEmbedder = new ProviderEmbedder(config_.credentials, providerId, modelId, dimensions);
+  cachedEmbedder = new ProviderEmbedder(config_.credentials, config_.credentials.providerId, modelId, dimensions);
   return cachedEmbedder;
 }

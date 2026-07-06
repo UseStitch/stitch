@@ -18,8 +18,8 @@ import { resolveRuntimeAssetPath } from '@/lib/runtime-assets.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { createProvider } from '@/llm/provider/provider.js';
-import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { resolveModel } from '@/llm/resolve-model.js';
+import type { LlmProviderCredentials } from '@/provider/config/schema.js';
 import { readRecordingAnalysis, readRecordingTranscript, writeRecordingAnalysis } from '@/recordings/file-store.js';
 import { getMeetingNoteTemplate } from '@/recordings/meeting-note-templates.js';
 import { generateRecordingTitle } from '@/recordings/title-generator.js';
@@ -39,7 +39,7 @@ const ANALYSIS_PROMPT_TEMPLATE = readFileSync(
 
 type AnalysisDeps = {
   resolveModel: typeof resolveModel;
-  createProvider: (credentials: ProviderCredentials) => (modelId: string) => LanguageModel;
+  createProvider: (credentials: LlmProviderCredentials) => (modelId: string) => LanguageModel;
 };
 
 const defaultDeps: AnalysisDeps = { resolveModel, createProvider };
@@ -279,7 +279,7 @@ async function runRecordingAnalysis(
     templateContent: string;
     analysisProviderId: string;
     analysisModelId: string;
-    analysisCredentials: ProviderCredentials;
+    analysisCredentials: LlmProviderCredentials;
     preserveExistingUntilComplete: boolean;
   },
   deps: AnalysisDeps,

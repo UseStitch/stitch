@@ -1,6 +1,6 @@
 import { jsonSchema as toJsonSchema } from 'ai';
 
-import type { ProviderId } from '@stitch/shared/providers/types';
+import type { LlmProviderId } from '@stitch/shared/providers/types';
 
 import type { JSONSchema7, Schema, Tool } from 'ai';
 
@@ -179,7 +179,7 @@ function modelIsGemini(modelId: string): boolean {
  * (nvidia, ollama, gateways) can proxy to Gemini, so the Gemini pass is also
  * selected whenever the model id looks like a Gemini model.
  */
-function selectSanitizer(providerId: ProviderId, modelId: string): SchemaSanitizer | null {
+function selectSanitizer(providerId: LlmProviderId, modelId: string): SchemaSanitizer | null {
   if (providerId === 'google') return sanitizeGemini;
   if (providerId === 'google-vertex') return modelIsGemini(modelId) ? sanitizeGemini : null;
   if (providerId === 'openai') return sanitizeOpenAI;
@@ -207,7 +207,7 @@ function sanitizeTool(tool: Tool, sanitize: SchemaSanitizer): Tool {
 
 export function sanitizeToolSchemasForProvider(
   tools: Record<string, Tool>,
-  providerId: ProviderId,
+  providerId: LlmProviderId,
   modelId: string,
 ): Record<string, Tool> {
   const sanitize = selectSanitizer(providerId, modelId);

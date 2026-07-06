@@ -1,8 +1,11 @@
+import { STT_PROVIDER_IDS } from '@stitch/shared/providers/types';
+
 import { PATHS } from '@/lib/paths.js';
 import { createRegistryCache, getStitchRegistryUserAgent } from '@/lib/registry-cache.js';
 import { SttRegistryPayloadSchema, type SttProvider, type SttRegistryPayload } from '@/models/stt/schema.js';
 
 const DEFAULT_STT_REGISTRY_URL = 'https://usestitch.ai/stt-models.json';
+const ALLOWED_PROVIDER_IDS = new Set<string>(STT_PROVIDER_IDS);
 
 function getRegistryUrl(): string {
   return process.env['STITCH_STT_REGISTRY_URL']?.trim() || DEFAULT_STT_REGISTRY_URL;
@@ -17,10 +20,9 @@ const sttRegistryCache = createRegistryCache<SttRegistryPayload>({
     const payload = SttRegistryPayloadSchema.parse(raw);
     return {
       ...payload,
-      providers: payload.providers.map((provider) => ({
-        ...provider,
-        models: provider.models.filter((model) => !model.deprecated),
-      })),
+      providers: payload.providers
+        .filter((provider) => ALLOWED_PROVIDER_IDS.has(provider.providerId))
+        .map((provider) => ({ ...provider, models: provider.models.filter((model) => !model.deprecated) })),
     };
   },
   userAgent: getStitchRegistryUserAgent,

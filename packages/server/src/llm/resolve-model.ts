@@ -1,16 +1,17 @@
 import { eq } from 'drizzle-orm';
 
+import type { LlmProviderId } from '@stitch/shared/providers/types';
 import type { SettingsKey } from '@stitch/shared/settings/types';
 
 import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema/providers.js';
 import { err, ok, type ServiceResult } from '@/lib/service-result.js';
-import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { isAllowedProvider } from '@/models/llm/registry.js';
 import * as Models from '@/models/llm/registry.js';
+import { isLlmProviderCredentials, type LlmProviderCredentials } from '@/provider/config/schema.js';
 import { getSettings } from '@/settings/service.js';
 
-export type ResolvedModel = { providerId: string; modelId: string; credentials: ProviderCredentials };
+export type ResolvedModel = { providerId: LlmProviderId; modelId: string; credentials: LlmProviderCredentials };
 
 type ResolveModelInput = {
   /** Settings keys to check for user-configured preference */
@@ -103,6 +104,10 @@ export async function resolveModel(input: ResolveModelInput): Promise<ServiceRes
 
   const config = configs.find((c) => c.providerId === targetProviderId);
   if (!config) return err('Provider is not configured', 400);
+
+  if (config.credentials.providerId !== targetProviderId || !isLlmProviderCredentials(config.credentials)) {
+    return err('Provider credentials do not match the resolved LLM provider', 400);
+  }
 
   return ok({ providerId: targetProviderId, modelId: targetModelId, credentials: config.credentials });
 }

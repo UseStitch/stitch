@@ -1,4 +1,4 @@
-import type { ProviderId } from '@stitch/shared/providers/types';
+import type { LlmProviderId } from '@stitch/shared/providers/types';
 
 import type { JSONValue } from 'ai';
 
@@ -17,7 +17,7 @@ import type { JSONValue } from 'ai';
  *   underlying provider the model routes to.
  */
 export function getProviderOptions(
-  providerId: ProviderId,
+  providerId: LlmProviderId,
   sessionId: string,
 ): Record<string, Record<string, JSONValue>> | undefined {
   switch (providerId) {
@@ -37,8 +37,6 @@ export function getProviderOptions(
     case 'amazon-bedrock':
     case 'google':
     case 'google-vertex':
-    case 'elevenlabs':
-    case 'assemblyai':
     case 'ollama_local':
       return undefined;
   }

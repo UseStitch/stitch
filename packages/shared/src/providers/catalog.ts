@@ -78,7 +78,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     displayName: 'Google AI',
     description: 'Access to Gemini and other Google AI models',
     api: 'https://generativelanguage.googleapis.com',
-    capabilities: ['llm'],
+    capabilities: ['llm', 'embedding'],
     extraFields: [],
     authMethods: [
       {
@@ -149,7 +149,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     displayName: 'NVIDIA',
     description: 'Access to NVIDIA NIM and foundation models',
     api: 'https://integrate.api.nvidia.com',
-    capabilities: ['llm'],
+    capabilities: ['llm', 'embedding'],
     extraFields: [],
     authMethods: [
       {
@@ -174,7 +174,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     displayName: 'OpenRouter',
     description: 'Unified API for multiple LLM providers',
     api: 'https://openrouter.ai/api',
-    capabilities: ['llm'],
+    capabilities: ['llm', 'embedding'],
     extraFields: [],
     authMethods: [
       {

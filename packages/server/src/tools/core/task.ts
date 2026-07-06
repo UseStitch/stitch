@@ -5,6 +5,7 @@ import { z } from 'zod';
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import { createMessageId, createPartId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
+import type { LlmProviderId } from '@stitch/shared/providers/types';
 
 import { createSession } from '@/chat/session-crud.js';
 import { getDb } from '@/db/client.js';
@@ -12,9 +13,9 @@ import { messages } from '@/db/schema/sessions.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
-import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { buildSessionLlmMessages } from '@/llm/session-history.js';
 import { runStream } from '@/llm/stream/runner.js';
+import type { LlmProviderCredentials } from '@/provider/config/schema.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import type { ToolsetManager } from '@/tools/toolsets/manager.js';
 
@@ -37,9 +38,9 @@ Returns a summary of the completed work. You can also link the user to the child
 type TaskToolDeps = {
   parentSessionId: PrefixedString<'ses'>;
   parentAbortSignal: AbortSignal;
-  credentials: ProviderCredentials;
+  credentials: LlmProviderCredentials;
   modelId: string;
-  providerId: string;
+  providerId: LlmProviderId;
   toolsetManager: ToolsetManager;
 };
 
