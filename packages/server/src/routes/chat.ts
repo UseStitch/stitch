@@ -7,6 +7,7 @@ import {
   abortSessionRun,
   getSessionStats,
   requestCompaction,
+  redoMessage,
   resolveDoomLoop,
   sendMessage,
   splitSession,
@@ -137,6 +138,26 @@ chatRouter.post(
     const body = c.req.valid('json');
     const result = await sendMessage({
       sessionId: id,
+      content: body.content,
+      attachments: body.attachments,
+      providerId: body.providerId,
+      modelId: body.modelId,
+      assistantMessageId: body.assistantMessageId,
+    });
+    return unwrapResult(c, result, 202);
+  },
+);
+
+chatRouter.post(
+  '/sessions/:id/redo/:msgId',
+  zValidator('param', splitParamSchema),
+  zValidator('json', sendMessageSchema),
+  async (c) => {
+    const { id, msgId } = c.req.valid('param');
+    const body = c.req.valid('json');
+    const result = await redoMessage({
+      sessionId: id,
+      editedMessageId: msgId,
       content: body.content,
       attachments: body.attachments,
       providerId: body.providerId,

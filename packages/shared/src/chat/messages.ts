@@ -80,6 +80,8 @@ export type Message = {
   costUsd: number | null;
   finishReason: string;
   isSummary: boolean;
+  archivedAt: number | null;
+  archivedReason: string | null;
   createdAt: number;
   updatedAt: number;
   startedAt: number;
@@ -93,6 +95,7 @@ export type Session = {
   automationId: PrefixedString<'auto'> | null;
   parentSessionId: PrefixedString<'ses'> | null;
   isUnread: boolean;
+  archivedAt: number | null;
   createdAt: number;
   updatedAt: number;
 };

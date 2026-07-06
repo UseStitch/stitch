@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, like, lt } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNull, like, lt } from 'drizzle-orm';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -39,6 +39,68 @@ type SendMessageInput = {
   modelId: string;
   assistantMessageId: string;
 };
+
+type RedoMessageInput = SendMessageInput & { editedMessageId: PrefixedString<'msg'> };
+
+async function buildUserMessageParts(input: {
+  content: string;
+  attachments?: Array<{ path: string; mime: string; filename: string }>;
+  existingAttachmentParts?: StoredPart[];
+  now: number;
+}): Promise<StoredPart[]> {
+  const userPart: StoredPart = {
+    type: 'text-delta',
+    id: createPartId(),
+    text: input.content,
+    startedAt: input.now,
+    endedAt: input.now,
+  };
+
+  const attachmentParts: StoredPart[] = await Promise.all(
+    (input.attachments ?? []).map(async (att): Promise<StoredPart> => {
+      const resolvedPath = path.resolve(att.path);
+      const fileBuffer = await fs.readFile(resolvedPath);
+
+      if (att.mime.startsWith('image/')) {
+        const dataUrl = `data:${att.mime};base64,${fileBuffer.toString('base64')}`;
+        return {
+          type: 'user-image' as const,
+          id: createPartId(),
+          dataUrl,
+          mime: att.mime,
+          filename: att.filename,
+          startedAt: input.now,
+          endedAt: input.now,
+        };
+      }
+
+      if (att.mime === 'application/pdf') {
+        const dataUrl = `data:application/pdf;base64,${fileBuffer.toString('base64')}`;
+        return {
+          type: 'user-file' as const,
+          id: createPartId(),
+          dataUrl,
+          mime: att.mime,
+          filename: att.filename,
+          startedAt: input.now,
+          endedAt: input.now,
+        };
+      }
+
+      return {
+        type: 'user-text-file' as const,
+        id: createPartId(),
+        content: fileBuffer.toString('utf8'),
+        mime: att.mime,
+        filename: att.filename,
+        startedAt: input.now,
+        endedAt: input.now,
+      };
+    }),
+  );
+
+  return [userPart, ...(input.existingAttachmentParts ?? []), ...attachmentParts];
+}
 
 async function maybeGenerateTitle(input: {
   sessionId: PrefixedString<'ses'>;
@@ -141,56 +203,7 @@ export async function sendMessage(
 
   const userMessageId = createMessageId();
   const now = Date.now();
-  const userPart: StoredPart = {
-    type: 'text-delta',
-    id: createPartId(),
-    text: input.content,
-    startedAt: now,
-    endedAt: now,
-  };
-
-  const attachmentParts: StoredPart[] = await Promise.all(
-    (input.attachments ?? []).map(async (att): Promise<StoredPart> => {
-      const resolvedPath = path.resolve(att.path);
-      const fileBuffer = await fs.readFile(resolvedPath);
-
-      if (att.mime.startsWith('image/')) {
-        const dataUrl = `data:${att.mime};base64,${fileBuffer.toString('base64')}`;
-        return {
-          type: 'user-image' as const,
-          id: createPartId(),
-          dataUrl,
-          mime: att.mime,
-          filename: att.filename,
-          startedAt: now,
-          endedAt: now,
-        };
-      }
-
-      if (att.mime === 'application/pdf') {
-        const dataUrl = `data:application/pdf;base64,${fileBuffer.toString('base64')}`;
-        return {
-          type: 'user-file' as const,
-          id: createPartId(),
-          dataUrl,
-          mime: att.mime,
-          filename: att.filename,
-          startedAt: now,
-          endedAt: now,
-        };
-      }
-
-      return {
-        type: 'user-text-file' as const,
-        id: createPartId(),
-        content: fileBuffer.toString('utf8'),
-        mime: att.mime,
-        filename: att.filename,
-        startedAt: now,
-        endedAt: now,
-      };
-    }),
-  );
+  const userParts = await buildUserMessageParts({ content: input.content, attachments: input.attachments, now });
 
   await db
     .insert(messages)
@@ -198,7 +211,7 @@ export async function sendMessage(
       id: userMessageId,
       sessionId: input.sessionId,
       role: 'user',
-      parts: [userPart, ...attachmentParts],
+      parts: userParts,
       modelId: input.modelId,
       providerId: input.providerId,
       costUsd: 0,
@@ -209,6 +222,104 @@ export async function sendMessage(
     });
 
   await db.update(sessions).set({ updatedAt: Date.now() }).where(eq(sessions.id, input.sessionId));
+
+  const llmMessages = await buildSessionLlmMessages(input.sessionId, { useBasePrompt: true, systemPrompt: null });
+  const assistantMessageId = input.assistantMessageId as PrefixedString<'msg'>;
+  const abortSignal = AbortRegistry.register(input.sessionId);
+
+  const isChildSession = session.parentSessionId !== null;
+
+  void runStream({
+    sessionId: input.sessionId,
+    assistantMessageId,
+    modelId: input.modelId,
+    llmMessages,
+    credentials: config.credentials,
+    abortSignal,
+    allowTaskTool: !isChildSession,
+    excludedToolsetIds: isChildSession ? ['browser'] : undefined,
+  })
+    .catch((error) => {
+      log.error(
+        { event: 'stream.failed', sessionId: input.sessionId, messageId: assistantMessageId, error },
+        'stream run failed',
+      );
+    })
+    .finally(() => {
+      AbortRegistry.cleanup(input.sessionId);
+    });
+
+  return ok({ messageId: assistantMessageId, userMessageId });
+}
+
+export async function redoMessage(
+  input: RedoMessageInput,
+): Promise<ServiceResult<{ messageId: string; userMessageId: string }>> {
+  const db = getDb();
+
+  const [session] = await db.select().from(sessions).where(eq(sessions.id, input.sessionId));
+  if (!session) {
+    return err('Session not found', 404);
+  }
+
+  const [config] = await db.select().from(providerConfig).where(eq(providerConfig.providerId, input.providerId));
+  if (!config) {
+    return err(`Provider "${input.providerId}" is not configured`, 400);
+  }
+
+  if (config.credentials.providerId !== input.providerId || !isLlmProviderCredentials(config.credentials)) {
+    return err(`Provider "${input.providerId}" is not configured for LLM usage`, 400);
+  }
+
+  const [editedMessage] = await db
+    .select()
+    .from(messages)
+    .where(
+      and(eq(messages.id, input.editedMessageId), eq(messages.sessionId, input.sessionId), isNull(messages.archivedAt)),
+    );
+  if (!editedMessage) return err('Message not found', 404);
+  if (editedMessage.role !== 'user') return err('Can only redo from user messages', 400);
+
+  const now = Date.now();
+  const userMessageId = createMessageId();
+  const existingAttachmentParts = editedMessage.parts.filter((part) => part.type !== 'text-delta');
+  const userParts = await buildUserMessageParts({
+    content: input.content,
+    attachments: input.attachments,
+    existingAttachmentParts,
+    now,
+  });
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(messages)
+      .set({ archivedAt: now, archivedReason: 'redo', updatedAt: now })
+      .where(
+        and(
+          eq(messages.sessionId, input.sessionId),
+          gte(messages.createdAt, editedMessage.createdAt),
+          isNull(messages.archivedAt),
+        ),
+      );
+
+    await tx
+      .insert(messages)
+      .values({
+        id: userMessageId,
+        sessionId: input.sessionId,
+        role: 'user',
+        parts: userParts,
+        modelId: input.modelId,
+        providerId: input.providerId,
+        costUsd: 0,
+        createdAt: now,
+        updatedAt: now,
+        startedAt: now,
+        duration: null,
+      });
+
+    await tx.update(sessions).set({ updatedAt: now }).where(eq(sessions.id, input.sessionId));
+  });
 
   const llmMessages = await buildSessionLlmMessages(input.sessionId, { useBasePrompt: true, systemPrompt: null });
   const assistantMessageId = input.assistantMessageId as PrefixedString<'msg'>;
@@ -294,14 +405,19 @@ export async function splitSession(
   const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
   if (!session) return err('Session not found', 404);
 
-  const [splitMsg] = await db.select().from(messages).where(eq(messages.id, msgId));
+  const [splitMsg] = await db
+    .select()
+    .from(messages)
+    .where(and(eq(messages.id, msgId), eq(messages.sessionId, sessionId), isNull(messages.archivedAt)));
   if (!splitMsg) return err('Message not found', 404);
   if (splitMsg.role !== 'user') return err('Can only split from user messages', 400);
 
   const priorMessages = await db
     .select()
     .from(messages)
-    .where(and(eq(messages.sessionId, sessionId), lt(messages.createdAt, splitMsg.createdAt)))
+    .where(
+      and(eq(messages.sessionId, sessionId), lt(messages.createdAt, splitMsg.createdAt), isNull(messages.archivedAt)),
+    )
     .orderBy(asc(messages.createdAt));
 
   const baseTitle = session.title ?? 'Session';
@@ -400,7 +516,7 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
         modelId: messages.modelId,
       })
       .from(messages)
-      .where(eq(messages.sessionId, sessionId))
+      .where(and(eq(messages.sessionId, sessionId), isNull(messages.archivedAt)))
       .orderBy(asc(messages.createdAt)),
     db.select({ id: sessions.id }).from(sessions).where(eq(sessions.parentSessionId, sessionId)),
   ]);
@@ -417,7 +533,7 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
     const childMsgs = await db
       .select({ costUsd: messages.costUsd, usage: messages.usage })
       .from(messages)
-      .where(inArray(messages.sessionId, childIds));
+      .where(and(inArray(messages.sessionId, childIds), isNull(messages.archivedAt)));
 
     childSessionsCostUsd = childMsgs.reduce((acc, m) => acc + (m.costUsd ?? 0), 0);
     childSessionsTokens = childMsgs.reduce((acc, m) => acc + getMessageTokens(m.usage), 0);

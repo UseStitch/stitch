@@ -57,6 +57,7 @@ export async function listSessions(
   if (type === 'chat') {
     conditions.push(isNull(sessions.parentSessionId));
   }
+  conditions.push(isNull(sessions.archivedAt));
 
   const rows = await db
     .select()
@@ -87,7 +88,7 @@ export async function listSessionMessages(
   const db = getDb();
   const pageSize = limit ? Math.min(Math.max(limit, 1), 200) : DEFAULT_PAGE_SIZE;
 
-  const conditions = [eq(messages.sessionId, sessionId)];
+  const conditions = [eq(messages.sessionId, sessionId), isNull(messages.archivedAt)];
   if (cursor !== undefined) {
     conditions.push(lt(messages.createdAt, cursor));
   }

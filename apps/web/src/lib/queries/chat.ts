@@ -145,6 +145,8 @@ type SendMessageInput = {
   assistantMessageId: PrefixedString<'msg'>;
 };
 
+type RedoMessageInput = SendMessageInput & { editedMessageId: PrefixedString<'msg'> };
+
 type SendMessageResult = { messageId: PrefixedString<'msg'>; userMessageId: PrefixedString<'msg'> };
 
 export function useCreateSession() {
@@ -330,6 +332,8 @@ export function useSendMessage() {
           costUsd: null,
           finishReason: 'stop',
           isSummary: false,
+          archivedAt: null,
+          archivedReason: null,
           createdAt: now,
           updatedAt: now,
           startedAt: now,
@@ -352,6 +356,79 @@ export function useSendMessage() {
       if (context?.previous) {
         queryClient.setQueryData(sessionKeys.messages(input.sessionId), context.previous);
       }
+    },
+  });
+}
+
+export function useRedoMessage() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: RedoMessageInput) =>
+      serverRequest<SendMessageResult>(`/chat/sessions/${input.sessionId}/redo/${input.editedMessageId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: input.content,
+          attachments: input.attachments?.map(({ path, mime, filename }) => ({ path, mime, filename })),
+          providerId: input.providerId,
+          modelId: input.modelId,
+          assistantMessageId: input.assistantMessageId,
+        }),
+      }),
+    onMutate: async (input) => {
+      const queryKey = sessionKeys.messages(input.sessionId);
+      await queryClient.cancelQueries({ queryKey });
+
+      const previous = queryClient.getQueryData<InfiniteData<MessagesPage>>(queryKey);
+      if (!previous) return { previous };
+
+      const editedMessage = previous.pages
+        .flatMap((page) => page.messages)
+        .find((msg) => msg.id === input.editedMessageId);
+      if (!editedMessage) return { previous };
+
+      const now = Date.now();
+      const optimisticMessage: Message = {
+        id: createMessageId(),
+        sessionId: input.sessionId,
+        role: 'user',
+        parts: [
+          { type: 'text-delta' as const, id: createPartId(), text: input.content, startedAt: now, endedAt: now },
+          ...editedMessage.parts.filter((part) => part.type !== 'text-delta'),
+        ],
+        modelId: input.modelId,
+        providerId: input.providerId,
+        usage: EMPTY_USAGE,
+        costUsd: null,
+        finishReason: 'stop',
+        isSummary: false,
+        archivedAt: null,
+        archivedReason: null,
+        createdAt: now,
+        updatedAt: now,
+        startedAt: now,
+        duration: null,
+      };
+
+      const updatedPages = previous.pages.map((page, index) => ({
+        ...page,
+        messages:
+          index === 0
+            ? [...page.messages.filter((msg) => msg.createdAt < editedMessage.createdAt), optimisticMessage]
+            : page.messages.filter((msg) => msg.createdAt < editedMessage.createdAt),
+      }));
+
+      queryClient.setQueryData<InfiniteData<MessagesPage>>(queryKey, { ...previous, pages: updatedPages });
+      return { previous };
+    },
+    onError: (_err, input, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(sessionKeys.messages(input.sessionId), context.previous);
+      }
+    },
+    onSuccess: (_data, input) => {
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.messages(input.sessionId) });
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.stats(input.sessionId) });
     },
   });
 }

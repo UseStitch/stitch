@@ -1,4 +1,4 @@
-import { FileIcon, FileTextIcon, GitForkIcon, ChevronsDownUpIcon, ChevronsUpDownIcon } from 'lucide-react';
+import { FileIcon, FileTextIcon, GitForkIcon, ChevronsDownUpIcon, ChevronsUpDownIcon, PencilIcon } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
@@ -11,9 +11,9 @@ import { cn } from '@/lib/utils';
 
 const COLLAPSED_MAX_HEIGHT = 150;
 
-type UserMessageBubbleProps = { parts: StoredPart[]; onSplit?: () => void };
+type UserMessageBubbleProps = { parts: StoredPart[]; onSplit?: () => void; onEdit?: () => void };
 
-export function UserMessageBubble({ parts, onSplit }: UserMessageBubbleProps) {
+export function UserMessageBubble({ parts, onSplit, onEdit }: UserMessageBubbleProps) {
   const text = extractTextFromParts(parts);
   const imageParts = parts.filter((part): part is StoredPart & { type: 'user-image' } => part.type === 'user-image');
   const fileParts = parts.filter((part): part is StoredPart & { type: 'user-file' } => part.type === 'user-file');
@@ -107,6 +107,19 @@ export function UserMessageBubble({ parts, onSplit }: UserMessageBubbleProps) {
       {text && (
         <div className="absolute right-0 -bottom-5 flex items-center gap-3 opacity-0 transition-opacity group-hover:opacity-100">
           <MessageCopyButton text={text} />
+
+          {onEdit && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={onEdit}
+              aria-label="Edit and redo from here"
+              className={MESSAGE_ACTION_BUTTON_CLASS}>
+              <PencilIcon className="size-3.5" />
+              Edit
+            </Button>
+          )}
 
           {onSplit && (
             <Button

@@ -22,6 +22,7 @@ export const sessions = sqliteTable('sessions', {
     .references((): ReturnType<typeof text> => sessions.id),
   isUnread: integer('is_unread', { mode: 'boolean' }).notNull().default(false),
   toolsetState: blob('toolset_state', { mode: 'json' }).$type<SessionToolsetState | null>(),
+  archivedAt: integer('archived_at', { mode: 'number' }),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()
     .$defaultFn(() => Date.now()),
@@ -44,6 +45,8 @@ export const messages = sqliteTable('messages', {
   costUsd: real('cost_usd').notNull().default(0),
   finishReason: text('finish_reason'),
   isSummary: integer('is_summary', { mode: 'boolean' }).notNull().default(false),
+  archivedAt: integer('archived_at', { mode: 'number' }),
+  archivedReason: text('archived_reason'),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()
     .$defaultFn(() => Date.now()),

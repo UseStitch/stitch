@@ -15,6 +15,7 @@ type RowContentProps = {
   onLoadMore: () => void;
   onAbortTool?: () => void;
   onSplit?: (msgId: string) => void;
+  onEdit?: (msgId: string) => void;
   sentinelRef: React.RefObject<HTMLDivElement | null>;
 };
 
@@ -25,6 +26,7 @@ export function RowContent({
   onLoadMore,
   onAbortTool,
   onSplit,
+  onEdit,
   sentinelRef,
 }: RowContentProps) {
   switch (row.kind) {
@@ -42,6 +44,7 @@ export function RowContent({
           finishReason={row.finishReason}
           onAbortTool={onAbortTool}
           onSplit={row.role === 'user' && !row.isFirstUserMessage && onSplit ? () => onSplit(row.id) : undefined}
+          onEdit={row.role === 'user' && onEdit ? () => onEdit(row.id) : undefined}
         />
       );
 
