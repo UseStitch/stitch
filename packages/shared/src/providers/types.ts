@@ -37,6 +37,48 @@ export type AuthMethodDef = { method: string; label: string; enabled: boolean; f
 
 export type ProviderCapability = 'llm' | 'stt' | 'embedding';
 
+export const PROVIDER_CAPABILITIES = {
+  'amazon-bedrock': ['llm'],
+  anthropic: ['llm'],
+  assemblyai: ['stt'],
+  elevenlabs: ['stt'],
+  google: ['llm', 'embedding'],
+  'google-vertex': ['llm'],
+  nvidia: ['llm', 'embedding'],
+  ollama_local: ['llm'],
+  openai: ['llm', 'stt', 'embedding'],
+  openrouter: ['llm', 'embedding'],
+  vercel: ['llm'],
+} as const satisfies Record<string, readonly ProviderCapability[]>;
+
+export type ProviderId = keyof typeof PROVIDER_CAPABILITIES;
+
+type ProvidersWithCapability<C extends ProviderCapability> = {
+  [K in ProviderId]: C extends (typeof PROVIDER_CAPABILITIES)[K][number] ? K : never;
+}[ProviderId];
+
+export type LlmProviderId = ProvidersWithCapability<'llm'>;
+type SttProviderId = ProvidersWithCapability<'stt'>;
+export type EmbeddingProviderId = ProvidersWithCapability<'embedding'>;
+
+function hasProviderCapability(providerId: string, capability: ProviderCapability): providerId is ProviderId {
+  return (
+    (PROVIDER_CAPABILITIES as Record<string, readonly ProviderCapability[]>)[providerId]?.includes(capability) ?? false
+  );
+}
+
+export function isLlmProviderId(providerId: string): providerId is LlmProviderId {
+  return hasProviderCapability(providerId, 'llm');
+}
+
+function isSttProviderId(providerId: string): providerId is SttProviderId {
+  return hasProviderCapability(providerId, 'stt');
+}
+
+export function isEmbeddingProviderId(providerId: string): providerId is EmbeddingProviderId {
+  return hasProviderCapability(providerId, 'embedding');
+}
+
 export type ProviderMeta = {
   displayName: string;
   description?: string;
@@ -46,18 +88,7 @@ export type ProviderMeta = {
   authMethods: AuthMethodDef[];
 };
 
-export const PROVIDER_IDS = [
-  'amazon-bedrock',
-  'anthropic',
-  'assemblyai',
-  'elevenlabs',
-  'google',
-  'google-vertex',
-  'nvidia',
-  'ollama_local',
-  'openai',
-  'openrouter',
-  'vercel',
-] as const;
-
-export type ProviderId = (typeof PROVIDER_IDS)[number];
+export const PROVIDER_IDS = Object.keys(PROVIDER_CAPABILITIES) as ProviderId[];
+export const LLM_PROVIDER_IDS = PROVIDER_IDS.filter(isLlmProviderId);
+export const STT_PROVIDER_IDS = PROVIDER_IDS.filter(isSttProviderId);
+export const EMBEDDING_PROVIDER_IDS = PROVIDER_IDS.filter(isEmbeddingProviderId);

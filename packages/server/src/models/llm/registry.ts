@@ -1,6 +1,6 @@
 import z from 'zod';
 
-import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
+import { LLM_PROVIDER_IDS, type LlmProviderId } from '@stitch/shared/providers/types';
 
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
@@ -9,10 +9,10 @@ import { createRegistryCache } from '@/lib/registry-cache.js';
 const log = Log.create({ service: 'models.dev' });
 const MODELS_DEV_URL = 'https://models.dev/api.json';
 
-const ALLOWERD_PROVIDER_IDS = PROVIDER_IDS satisfies readonly ProviderId[];
+const ALLOWED_PROVIDER_IDS = LLM_PROVIDER_IDS satisfies readonly LlmProviderId[];
 
-export function isAllowedProvider(providerId: string): boolean {
-  return (ALLOWERD_PROVIDER_IDS as readonly string[]).includes(providerId);
+export function isAllowedProvider(providerId: string): providerId is LlmProviderId {
+  return (ALLOWED_PROVIDER_IDS as readonly string[]).includes(providerId);
 }
 
 export const ModelSchema = z.object({

@@ -3,13 +3,13 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { createCodeModeTool } from '@/code-mode/tool.js';
 import * as Log from '@/lib/log.js';
 import { PromptComposer } from '@/llm/prompt/composer.js';
-import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { buildActiveToolsetInstructionsBlock } from '@/llm/session-summary.js';
 import {
   getCurrentSessionToolsetState,
   getSessionToolsetState,
   type SessionExpiredToolset,
 } from '@/llm/stream/session-toolsets.js';
+import type { LlmProviderCredentials } from '@/provider/config/schema.js';
 import { buildSkillsSystemPrompt } from '@/skills/service.js';
 import { createInspectImageTool } from '@/tools/core/inspect-image.js';
 import { createTaskTool } from '@/tools/core/task.js';
@@ -27,7 +27,7 @@ type SessionContextOptions = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   streamRunId: string;
-  credentials: ProviderCredentials;
+  credentials: LlmProviderCredentials;
   modelId: string;
   abortSignal: AbortSignal;
   llmMessages: ModelMessage[];

@@ -21,15 +21,10 @@ describe('getProviderOptions', () => {
     expect(getProviderOptions('vercel', sessionId)).toEqual({ gateway: { caching: 'auto' } });
   });
 
-  test.each([
-    'anthropic',
-    'amazon-bedrock',
-    'google',
-    'google-vertex',
-    'elevenlabs',
-    'assemblyai',
-    'ollama_local',
-  ] as const)('returns undefined for %s provider', (providerId) => {
-    expect(getProviderOptions(providerId, sessionId)).toBeUndefined();
-  });
+  test.each(['anthropic', 'amazon-bedrock', 'google', 'google-vertex', 'ollama_local'] as const)(
+    'returns undefined for %s provider',
+    (providerId) => {
+      expect(getProviderOptions(providerId, sessionId)).toBeUndefined();
+    },
+  );
 });

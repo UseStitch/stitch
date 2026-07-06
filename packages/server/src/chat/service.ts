@@ -23,6 +23,7 @@ import { runStream } from '@/llm/stream/runner.js';
 import { generateTitle } from '@/llm/title-generator.js';
 import * as Models from '@/models/llm/registry.js';
 import { abortPermissionResponses } from '@/permission/service.js';
+import { isLlmProviderCredentials } from '@/provider/config/schema.js';
 import { listProvidersWithCapabilities, type ProviderWithCapabilities } from '@/provider/service.js';
 import { abortQuestions } from '@/question/service.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
@@ -124,6 +125,10 @@ export async function sendMessage(
   const [config] = await db.select().from(providerConfig).where(eq(providerConfig.providerId, input.providerId));
   if (!config) {
     return err(`Provider "${input.providerId}" is not configured`, 400);
+  }
+
+  if (config.credentials.providerId !== input.providerId || !isLlmProviderCredentials(config.credentials)) {
+    return err(`Provider "${input.providerId}" is not configured for LLM usage`, 400);
   }
 
   await maybeGenerateTitle({

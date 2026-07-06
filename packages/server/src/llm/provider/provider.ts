@@ -9,11 +9,11 @@ import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createGateway } from 'ai';
 
-import type { ProviderCredentials } from '@/provider/config/schema.js';
+import type { ModelProviderCredentials } from '@/provider/config/schema.js';
 
 export { type ProviderCredentials } from '@/provider/config/schema.js';
 
-export const createProvider = (credentials: ProviderCredentials) => {
+export const createProvider = (credentials: ModelProviderCredentials) => {
   switch (credentials.providerId) {
     case 'amazon-bedrock': {
       const base = { region: credentials.region };
@@ -94,10 +94,5 @@ export const createProvider = (credentials: ProviderCredentials) => {
         name: 'ollama_local',
         baseURL: (credentials.baseURL ?? 'http://localhost:11434') + '/v1',
       });
-
-    case 'elevenlabs':
-    case 'assemblyai':
-      // STT-only providers — must not be used to create an LLM provider
-      throw new Error(`${credentials.providerId} is STT-only and has no LLM provider`);
   }
 };

@@ -1,3 +1,5 @@
+import { EMBEDDING_PROVIDER_IDS } from '@stitch/shared/providers/types';
+
 import { PATHS } from '@/lib/paths.js';
 import { createRegistryCache, getStitchRegistryUserAgent } from '@/lib/registry-cache.js';
 import {
@@ -10,6 +12,7 @@ import {
 } from '@/models/embedding/schema.js';
 
 const DEFAULT_EMBEDDING_REGISTRY_URL = 'https://usestitch.ai/embedding-models.json';
+const ALLOWED_PROVIDER_IDS = new Set<string>(EMBEDDING_PROVIDER_IDS);
 
 function toResolvedModel(model: EmbeddingModel): ResolvedEmbeddingModel {
   return {
@@ -47,10 +50,9 @@ const embeddingRegistryCache = createRegistryCache<EmbeddingRegistryPayload>({
     const payload = EmbeddingRegistryPayloadSchema.parse(raw);
     return {
       ...payload,
-      providers: payload.providers.map((provider) => ({
-        ...provider,
-        models: provider.models.filter((model) => !model.deprecated),
-      })),
+      providers: payload.providers
+        .filter((provider) => ALLOWED_PROVIDER_IDS.has(provider.providerId))
+        .map((provider) => ({ ...provider, models: provider.models.filter((model) => !model.deprecated) })),
     };
   },
   userAgent: getStitchRegistryUserAgent,

@@ -111,7 +111,7 @@ describe('recording analysis reruns', () => {
       {
         resolveModel: async () =>
           ok({
-            providerId: 'test-provider',
+            providerId: 'openai',
             modelId: 'test-model',
             credentials: { providerId: 'openai', auth: { method: 'api-key', apiKey: 'test-key' } },
           }),

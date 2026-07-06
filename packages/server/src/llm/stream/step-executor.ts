@@ -2,7 +2,7 @@ import { streamText, smoothStream } from 'ai';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
-import type { ProviderId } from '@stitch/shared/providers/types';
+import type { LlmProviderId } from '@stitch/shared/providers/types';
 
 import { StreamAccumulator } from './stream-accumulator.js';
 
@@ -42,7 +42,7 @@ export type StepOptions = {
   model: ReturnType<ReturnType<typeof createProvider>>;
   conversation: ModelMessage[];
   accumulatedParts: StoredPart[];
-  providerId: string;
+  providerId: LlmProviderId;
   tools: Record<string, Tool>;
   abortSignal: AbortSignal;
   streamRunId: string;
@@ -72,10 +72,10 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     'step execution started',
   );
 
-  const cachedMessages = addCacheControlToMessages(conversation, opts.providerId as ProviderId, model.modelId);
-  const sanitizedTools = sanitizeToolSchemasForProvider(tools, opts.providerId as ProviderId, model.modelId);
-  const cachedTools = addCacheControlToTools(sanitizedTools, opts.providerId as ProviderId, model.modelId);
-  const providerOptions = getProviderOptions(opts.providerId as ProviderId, opts.sessionId);
+  const cachedMessages = addCacheControlToMessages(conversation, opts.providerId, model.modelId);
+  const sanitizedTools = sanitizeToolSchemasForProvider(tools, opts.providerId, model.modelId);
+  const cachedTools = addCacheControlToTools(sanitizedTools, opts.providerId, model.modelId);
+  const providerOptions = getProviderOptions(opts.providerId, opts.sessionId);
 
   const result = streamText({
     model,

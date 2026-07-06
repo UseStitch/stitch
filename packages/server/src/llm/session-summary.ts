@@ -4,7 +4,7 @@ import { eq, asc } from 'drizzle-orm';
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 import { createMessageId, createPartId } from '@stitch/shared/id';
-import type { ProviderId } from '@stitch/shared/providers/types';
+import type { LlmProviderId } from '@stitch/shared/providers/types';
 
 import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
@@ -15,13 +15,13 @@ import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { getPromptUserContext } from '@/llm/prompt/builder.js';
 import { getProviderOptions } from '@/llm/provider-options.js';
 import { createProvider } from '@/llm/provider/provider.js';
-import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import { getSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { getToolPruneProtectOverrides } from '@/llm/tool-prune-policy.js';
 import * as OllamaModels from '@/models/llm/ollama.js';
 import * as Models from '@/models/llm/registry.js';
+import type { LlmProviderCredentials } from '@/provider/config/schema.js';
 import { getSettings } from '@/settings/service.js';
 import { getSessionTodosPromptBlock } from '@/todos/service.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
@@ -194,7 +194,7 @@ type CompactionSeverity = 'normal' | 'overflow';
 async function resolveCompactionModel(
   fallbackProviderId: string,
   fallbackModelId: string,
-): Promise<{ providerId: string; modelId: string; credentials: ProviderCredentials; limits: ModelLimits }> {
+): Promise<{ providerId: LlmProviderId; modelId: string; credentials: LlmProviderCredentials; limits: ModelLimits }> {
   const resolved = await resolveCheapModel({
     providerIdKey: 'model.compaction.providerId',
     modelIdKey: 'model.compaction.modelId',
@@ -318,8 +318,8 @@ export async function compact(input: {
       { role: 'user', content: severity === 'overflow' ? COMPACTION_PROMPT_OVERFLOW : COMPACTION_PROMPT },
     ];
 
-    const cachedMessages = addCacheControlToMessages(llmMessages, resolved.providerId as ProviderId, resolved.modelId);
-    const providerOptions = getProviderOptions(resolved.providerId as ProviderId, sessionId);
+    const cachedMessages = addCacheControlToMessages(llmMessages, resolved.providerId, resolved.modelId);
+    const providerOptions = getProviderOptions(resolved.providerId, sessionId);
 
     let summaryText = '';
     const result = streamText({

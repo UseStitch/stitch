@@ -1,4 +1,4 @@
-import type { ProviderId } from '@stitch/shared/providers/types';
+import type { LlmProviderId } from '@stitch/shared/providers/types';
 
 import type { ModelMessage, JSONValue, Tool } from 'ai';
 
@@ -25,7 +25,7 @@ const OPENROUTER_CACHE: ProviderCacheConfig = {
   breakpointCap: 4,
 };
 
-export function getCacheConfig(providerId: ProviderId, modelId: string): ProviderCacheConfig | null {
+export function getCacheConfig(providerId: LlmProviderId, modelId: string): ProviderCacheConfig | null {
   switch (providerId) {
     case 'anthropic':
       return ANTHROPIC_CACHE;
@@ -52,10 +52,6 @@ export function getCacheConfig(providerId: ProviderId, modelId: string): Provide
     case 'ollama_local':
     // NVIDIA: caching handled by API provider
     case 'nvidia':
-    // ElevenLabs: STT-only, no LLM cache control
-    case 'elevenlabs':
-    // AssemblyAI: STT-only, no LLM cache control
-    case 'assemblyai':
       return null;
   }
 }
@@ -85,7 +81,7 @@ function withCacheMarker(message: ModelMessage, config: ProviderCacheConfig): Mo
  */
 export function addCacheControlToMessages(
   messages: ModelMessage[],
-  providerId: ProviderId,
+  providerId: LlmProviderId,
   modelId: string,
 ): ModelMessage[] {
   if (messages.length === 0) return messages;
@@ -151,7 +147,7 @@ export function addCacheControlToMessages(
  */
 export function addCacheControlToTools(
   tools: Record<string, Tool>,
-  providerId: ProviderId,
+  providerId: LlmProviderId,
   modelId: string,
 ): Record<string, Tool> {
   const config = getCacheConfig(providerId, modelId);

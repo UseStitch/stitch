@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import { createPartId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
+import type { LlmProviderId } from '@stitch/shared/providers/types';
 
 import { saveAssistantMessage, markSessionUnread } from '@/chat/message-store.js';
 import { internalBus } from '@/lib/internal-bus.js';
@@ -10,7 +11,6 @@ import * as Log from '@/lib/log.js';
 import { transformAttachmentsForModel } from '@/llm/attachment-transform.js';
 import { compactConversationForStep } from '@/llm/context-budget.js';
 import { createProvider } from '@/llm/provider/provider.js';
-import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { isOverflow, compact, getCompactionSettings, getModelLimits, pruneSession } from '@/llm/session-summary.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import { checkAndHandleDoomLoop, type ToolCallRecord } from '@/llm/stream/doom-loop.js';
@@ -29,6 +29,7 @@ import {
   setSessionToolsetState,
 } from '@/llm/stream/session-toolsets.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
+import type { LlmProviderCredentials } from '@/provider/config/schema.js';
 import { MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
@@ -54,7 +55,7 @@ type RunStreamOptions = {
   assistantMessageId: PrefixedString<'msg'>;
   modelId: string;
   llmMessages: ModelMessage[];
-  credentials: ProviderCredentials;
+  credentials: LlmProviderCredentials;
   abortSignal: AbortSignal;
   /** Toolset IDs to pre-activate (e.g. inherited from parent session) */
   activeToolsetIds?: string[];
@@ -78,7 +79,7 @@ type StreamRunnerContext = {
   sessionId: PrefixedString<'ses'>;
   assistantMessageId: PrefixedString<'msg'>;
   modelId: string;
-  providerId: string;
+  providerId: LlmProviderId;
   abortSignal: AbortSignal;
   streamRunId: string;
   startedAt: number;
@@ -1134,7 +1135,7 @@ export async function runStream(opts: {
   assistantMessageId: PrefixedString<'msg'>;
   modelId: string;
   llmMessages: ModelMessage[];
-  credentials: ProviderCredentials;
+  credentials: LlmProviderCredentials;
   abortSignal: AbortSignal;
   /** Toolset IDs to pre-activate (e.g. inherited from parent task) */
   activeToolsetIds?: string[];

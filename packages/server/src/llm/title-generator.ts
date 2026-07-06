@@ -3,6 +3,7 @@ import { generateText } from 'ai';
 import * as Log from '@/lib/log.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
+import type { ResolvedModel } from '@/llm/resolve-model.js';
 import { mapAIError } from '@/llm/stream/ai-error-mapper.js';
 import type { LanguageModelUsage } from 'ai';
 
@@ -30,11 +31,7 @@ type GeneratedTitle = { title: string; usage: LanguageModelUsage | null; provide
 
 type TitleGeneratorDeps = {
   resolveModel?: typeof resolveCheapModel;
-  getModel?: (resolved: {
-    providerId: string;
-    modelId: string;
-    credentials: Parameters<typeof createProvider>[0];
-  }) => ReturnType<ReturnType<typeof createProvider>>;
+  getModel?: (resolved: ResolvedModel) => ReturnType<ReturnType<typeof createProvider>>;
 };
 
 export async function generateTitle(

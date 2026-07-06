@@ -1,8 +1,10 @@
 import { embed, embedMany, type EmbeddingModel } from 'ai';
 
+import type { EmbeddingProviderId } from '@stitch/shared/providers/types';
+
 import { createProvider } from '@/llm/provider/provider.js';
-import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import type { EmbedManyResult, EmbedResult, Embedder } from '@/models/embedding/embedder.js';
+import type { EmbeddingProviderCredentials } from '@/provider/config/schema.js';
 
 /**
  * Embedding implementation using AI SDK providers (OpenAI, Google, etc.).
@@ -14,7 +16,12 @@ export class ProviderEmbedder implements Embedder {
   readonly modelId: string;
   private readonly model: EmbeddingModel;
 
-  constructor(credentials: ProviderCredentials, providerId: string, modelId: string, dimensions: number) {
+  constructor(
+    credentials: EmbeddingProviderCredentials,
+    providerId: EmbeddingProviderId,
+    modelId: string,
+    dimensions: number,
+  ) {
     const embeddingProvider = createProvider(credentials);
     this.model = embeddingProvider.embeddingModel(modelId);
     this.dimensions = dimensions;
