@@ -30,6 +30,7 @@ interface ConfirmDialogProps {
   secondaryVariant?: 'destructive' | 'default';
   icon?: React.ReactNode;
   contentClassName?: string;
+  children?: React.ReactNode;
 }
 
 export function ConfirmDialog({
@@ -50,6 +51,7 @@ export function ConfirmDialog({
   secondaryVariant = 'default',
   icon,
   contentClassName,
+  children,
 }: ConfirmDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -59,6 +61,7 @@ export function ConfirmDialog({
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
+        {children}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isPending || isSecondaryPending}>{cancelLabel}</AlertDialogCancel>
           {onSecondaryAction && secondaryActionLabel ? (

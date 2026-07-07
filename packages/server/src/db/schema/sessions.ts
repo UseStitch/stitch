@@ -1,6 +1,6 @@
 import { blob, index, integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
-import type { MessageRole, StoredPart } from '@stitch/shared/chat/messages';
+import type { ArchiveReason, MessageRole, StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { TodoPriority, TodoStatus } from '@stitch/shared/todos/types';
 
@@ -23,7 +23,7 @@ export const sessions = sqliteTable('sessions', {
   isUnread: integer('is_unread', { mode: 'boolean' }).notNull().default(false),
   toolsetState: blob('toolset_state', { mode: 'json' }).$type<SessionToolsetState | null>(),
   archivedAt: integer('archived_at', { mode: 'number' }),
-  archivedReason: text('archived_reason'),
+  archivedReason: text('archived_reason').$type<ArchiveReason | null>(),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()
     .$defaultFn(() => Date.now()),
@@ -47,7 +47,7 @@ export const messages = sqliteTable('messages', {
   finishReason: text('finish_reason'),
   isSummary: integer('is_summary', { mode: 'boolean' }).notNull().default(false),
   archivedAt: integer('archived_at', { mode: 'number' }),
-  archivedReason: text('archived_reason'),
+  archivedReason: text('archived_reason').$type<ArchiveReason | null>(),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()
     .$defaultFn(() => Date.now()),

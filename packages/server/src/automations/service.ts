@@ -1,8 +1,9 @@
-import { and, asc, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
 
 import { validateCronExpression } from '@stitch/scheduler';
 import type {
   Automation,
+  DeleteAutomationInput,
   ListAutomationsResponse,
   AutomationSchedule,
   AutomationScheduleBlob,
@@ -11,6 +12,7 @@ import type {
   UpdateAutomationInput,
 } from '@stitch/shared/automations/types';
 import type { Session } from '@stitch/shared/chat/messages';
+import { ARCHIVE_REASONS } from '@stitch/shared/chat/messages';
 import { createAutomationId, createMessageId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
@@ -244,12 +246,23 @@ export async function updateAutomationAndSync(
   }
 }
 
-export async function deleteAutomation(automationId: string): Promise<ServiceResult<null>> {
+export async function deleteAutomation(
+  automationId: string,
+  input: DeleteAutomationInput = { archiveSessions: false },
+): Promise<ServiceResult<null>> {
   const db = getDb();
   const typedId = automationId as PrefixedString<'auto'>;
 
   const deleted = await db.transaction(async (tx) => {
-    await tx.update(sessions).set({ automationId: null }).where(eq(sessions.automationId, typedId));
+    const now = Date.now();
+    if (input.archiveSessions) {
+      await tx
+        .update(sessions)
+        .set({ automationId: null, archivedAt: now, archivedReason: ARCHIVE_REASONS.automationDeleted, updatedAt: now })
+        .where(eq(sessions.automationId, typedId));
+    } else {
+      await tx.delete(sessions).where(eq(sessions.automationId, typedId));
+    }
 
     return tx.delete(automations).where(eq(automations.id, typedId)).returning({ id: automations.id });
   });
@@ -274,7 +287,13 @@ export async function listAutomationSessions(automationId: string): Promise<Serv
   const rows = await db
     .select()
     .from(sessions)
-    .where(and(eq(sessions.type, 'automation'), eq(sessions.automationId, automationId as PrefixedString<'auto'>)))
+    .where(
+      and(
+        eq(sessions.type, 'automation'),
+        eq(sessions.automationId, automationId as PrefixedString<'auto'>),
+        isNull(sessions.archivedAt),
+      ),
+    )
     .orderBy(desc(sessions.updatedAt));
 
   return ok(rows);

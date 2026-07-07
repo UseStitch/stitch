@@ -2,6 +2,7 @@ import { and, asc, desc, eq, gte, inArray, isNull, like, lt } from 'drizzle-orm'
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { ARCHIVE_REASONS } from '@stitch/shared/chat/messages';
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { SessionStats } from '@stitch/shared/chat/messages';
 import { createMessageId, createPartId, createSessionId } from '@stitch/shared/id';
@@ -293,7 +294,7 @@ export async function redoMessage(
   await db.transaction(async (tx) => {
     await tx
       .update(messages)
-      .set({ archivedAt: now, archivedReason: 'redo', updatedAt: now })
+      .set({ archivedAt: now, archivedReason: ARCHIVE_REASONS.redo, updatedAt: now })
       .where(
         and(
           eq(messages.sessionId, input.sessionId),

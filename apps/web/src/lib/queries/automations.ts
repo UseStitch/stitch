@@ -3,6 +3,7 @@ import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query
 import type {
   Automation,
   CreateAutomationInput,
+  DeleteAutomationInput,
   ListAutomationsResponse,
   RunAutomationResponse,
   UpdateAutomationInput,
@@ -76,7 +77,12 @@ export function useUpdateAutomation() {
 export function useDeleteAutomation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (automationId: string) => serverRequest<void>(`/automations/${automationId}`, { method: 'DELETE' }),
+    mutationFn: ({ automationId, input }: { automationId: string; input: DeleteAutomationInput }) =>
+      serverRequest<void>(`/automations/${automationId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: automationKeys.all });
     },

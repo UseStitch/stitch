@@ -30,6 +30,8 @@ export type CreateAutomationInput = {
 
 export type UpdateAutomationInput = Partial<CreateAutomationInput>;
 
+export type DeleteAutomationInput = { archiveSessions: boolean };
+
 export type RunAutomationResponse = {
   sessionId: PrefixedString<'ses'>;
   assistantMessageId: PrefixedString<'msg'>;

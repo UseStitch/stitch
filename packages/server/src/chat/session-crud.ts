@@ -1,6 +1,6 @@
 import { and, desc, eq, isNull, like, lt } from 'drizzle-orm';
 
-import { SESSION_ARCHIVE_REASON_ARCHIVE_SESSION } from '@stitch/shared/chat/messages';
+import { ARCHIVE_REASONS } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 import { createSessionId } from '@stitch/shared/id';
 
@@ -121,7 +121,7 @@ export async function archiveSession(
   const now = Date.now();
   const [updated] = await db
     .update(sessions)
-    .set({ archivedAt: now, archivedReason: SESSION_ARCHIVE_REASON_ARCHIVE_SESSION, updatedAt: now })
+    .set({ archivedAt: now, archivedReason: ARCHIVE_REASONS.archiveSession, updatedAt: now })
     .where(eq(sessions.id, sessionId))
     .returning();
   if (!updated) return err('Session not found', 404);
