@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq, isNull } from 'drizzle-orm';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
@@ -23,7 +23,11 @@ export async function buildSessionLlmMessages(
   const db = getDb();
 
   const [msgs, promptUserContext, promptSettings, sessionRow, todoContext] = await Promise.all([
-    db.select().from(messages).where(eq(messages.sessionId, sessionId)).orderBy(asc(messages.createdAt)),
+    db
+      .select()
+      .from(messages)
+      .where(and(eq(messages.sessionId, sessionId), isNull(messages.archivedAt)))
+      .orderBy(asc(messages.createdAt)),
     getPromptUserContext(),
     getSettings(['agents.customInstructions'] as const),
     db.select({ type: sessions.type }).from(sessions).where(eq(sessions.id, sessionId)).limit(1),

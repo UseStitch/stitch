@@ -7,6 +7,14 @@ export type { LanguageModelV3Source, LanguageModelUsage };
 
 export const MESSAGE_ROLES = ['user', 'assistant', 'system', 'tool'] as const;
 
+export const ARCHIVE_REASONS = {
+  archiveSession: 'archive_session',
+  automationDeleted: 'automation_deleted',
+  redo: 'redo',
+} as const;
+
+export type ArchiveReason = (typeof ARCHIVE_REASONS)[keyof typeof ARCHIVE_REASONS];
+
 export type UserImagePart = { type: 'user-image'; dataUrl: string; mime: string; filename: string };
 
 export type UserFilePart = { type: 'user-file'; dataUrl: string; mime: string; filename: string };
@@ -80,6 +88,8 @@ export type Message = {
   costUsd: number | null;
   finishReason: string;
   isSummary: boolean;
+  archivedAt: number | null;
+  archivedReason: ArchiveReason | null;
   createdAt: number;
   updatedAt: number;
   startedAt: number;
@@ -93,6 +103,8 @@ export type Session = {
   automationId: PrefixedString<'auto'> | null;
   parentSessionId: PrefixedString<'ses'> | null;
   isUnread: boolean;
+  archivedAt: number | null;
+  archivedReason: ArchiveReason | null;
   createdAt: number;
   updatedAt: number;
 };

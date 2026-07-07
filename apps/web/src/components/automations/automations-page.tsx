@@ -11,6 +11,7 @@ import { AutomationDialog } from '@/components/automations/automation-dialog';
 import { AutomationRunsTable } from '@/components/automations/automation-runs-table';
 import { AutomationsTable } from '@/components/automations/automations-table';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Empty, EmptyDescription, EmptyTitle } from '@/components/ui/empty';
 import {
@@ -79,6 +80,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   });
 
   const [automationToDelete, setAutomationToDelete] = useState<Automation | null>(null);
+  const [archiveDeletedAutomationSessions, setArchiveDeletedAutomationSessions] = useState(false);
 
   useEffect(() => {
     if (automationsPage.totalPages === 0 && page !== 1) {
@@ -91,6 +93,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   }, [automationsPage.totalPages, page]);
 
   const handleDelete = (automation: Automation) => {
+    setArchiveDeletedAutomationSessions(false);
     setAutomationToDelete(automation);
   };
 
@@ -98,12 +101,16 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
     if (!automationToDelete) return;
 
     try {
-      await deleteAutomation.mutateAsync(automationToDelete.id);
+      await deleteAutomation.mutateAsync({
+        automationId: automationToDelete.id,
+        input: { archiveSessions: archiveDeletedAutomationSessions },
+      });
       if (automationId === automationToDelete.id) {
         void navigate({ to: '/automations' });
       }
       toast.success('Automation deleted', { id: 'automation-delete' });
       setAutomationToDelete(null);
+      setArchiveDeletedAutomationSessions(false);
     } catch (error) {
       toast.error(getErrorMessage(error, 'Failed to delete automation'), { id: 'automation-delete' });
     }
@@ -291,14 +298,31 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
 
       <ConfirmDialog
         open={automationToDelete !== null}
-        onOpenChange={(open) => !open && setAutomationToDelete(null)}
+        onOpenChange={(open) => {
+          if (open) return;
+          setAutomationToDelete(null);
+          setArchiveDeletedAutomationSessions(false);
+        }}
         title="Delete Automation"
-        description={`Are you sure you want to delete the automation "${automationToDelete?.title}"? This action cannot be undone.`}
+        description={`Delete "${automationToDelete?.title}" and its run sessions? You can archive the sessions instead.`}
         onConfirm={() => void confirmDelete()}
         confirmLabel="Delete"
         pendingLabel="Delete"
         isPending={deleteAutomation.isPending}
-      />
+        contentClassName="max-w-sm">
+        <label className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/40 p-3 text-sm">
+          <Checkbox
+            checked={archiveDeletedAutomationSessions}
+            onCheckedChange={(checked) => setArchiveDeletedAutomationSessions(Boolean(checked))}
+            disabled={deleteAutomation.isPending}
+            aria-label="Archive automation sessions"
+          />
+          <span className="space-y-1 text-left">
+            <span className="block font-medium text-foreground">Archive run sessions</span>
+            <span className="block text-muted-foreground">Keep sessions and cost data, hidden from lists.</span>
+          </span>
+        </label>
+      </ConfirmDialog>
     </Page>
   );
 }

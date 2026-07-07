@@ -2,7 +2,11 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import type { CreateAutomationInput, UpdateAutomationInput } from '@stitch/shared/automations/types';
+import type {
+  CreateAutomationInput,
+  DeleteAutomationInput,
+  UpdateAutomationInput,
+} from '@stitch/shared/automations/types';
 
 import { syncAutomationSchedule, unregisterAutomationSchedule } from '@/automations/scheduler.js';
 import {
@@ -34,6 +38,8 @@ const updateAutomationSchema = createAutomationSchema
   .partial()
   .refine((value) => Object.keys(value).length > 0, { message: 'At least one field must be provided' });
 
+const deleteAutomationSchema = z.object({ archiveSessions: z.boolean().optional().default(false) });
+
 const automationIdParamSchema = z.object({ id: routeSchemas.automationId });
 
 export const automationsRouter = new Hono();
@@ -62,17 +68,23 @@ automationsRouter.patch(
   },
 );
 
-automationsRouter.delete('/:id', zValidator('param', automationIdParamSchema), async (c) => {
-  const { id } = c.req.valid('param');
-  const result = await deleteAutomation(id);
-  if (result.error) return unwrapResult(c, result);
+automationsRouter.delete(
+  '/:id',
+  zValidator('param', automationIdParamSchema),
+  zValidator('json', deleteAutomationSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const body = c.req.valid('json') as DeleteAutomationInput;
+    const result = await deleteAutomation(id, body);
+    if (result.error) return unwrapResult(c, result);
 
-  await unregisterAutomationSchedule(id).catch((error: unknown) => {
-    log.error({ error }, 'failed to unregister automation schedule');
-  });
+    await unregisterAutomationSchedule(id).catch((error: unknown) => {
+      log.error({ error }, 'failed to unregister automation schedule');
+    });
 
-  return unwrapResult(c, result, 204);
-});
+    return unwrapResult(c, result, 204);
+  },
+);
 
 automationsRouter.get('/:id', zValidator('param', automationIdParamSchema), async (c) => {
   const { id } = c.req.valid('param');

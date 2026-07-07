@@ -21,6 +21,7 @@ type MessageListProps = {
   onLoadMore: () => void;
   onAbortTool?: () => void;
   onSplit?: (msgId: string) => void;
+  onEdit?: (msgId: string) => void;
 };
 
 export function MessageList({
@@ -31,6 +32,7 @@ export function MessageList({
   onLoadMore,
   onAbortTool,
   onSplit,
+  onEdit,
 }: MessageListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -124,6 +126,7 @@ export function MessageList({
                   onLoadMore={onLoadMore}
                   onAbortTool={onAbortTool}
                   onSplit={onSplit}
+                  onEdit={onEdit}
                   sentinelRef={sentinelRef}
                 />
               </div>
@@ -147,6 +150,7 @@ export function MessageList({
               onLoadMore={onLoadMore}
               onAbortTool={onAbortTool}
               onSplit={onSplit}
+              onEdit={onEdit}
               sentinelRef={sentinelRef}
             />
           </div>

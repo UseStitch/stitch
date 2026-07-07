@@ -9,9 +9,11 @@ import { createMessageId, type PrefixedString } from '@stitch/shared/id';
 import { ChatInput } from '@/components/chat/chat-input';
 import type { Attachment, ModelSpec } from '@/components/chat/chat-input-parts/types';
 import { DockContainer } from '@/components/chat/docks/dock';
+import { extractTextFromParts } from '@/components/chat/message-bubble/extract-text';
 import { MessageList } from '@/components/chat/message-list';
 import { findLastUsedModel } from '@/components/session/session-chat-pane/session-message-context';
 import { useSeededInput } from '@/components/session/session-chat-pane/use-seeded-input';
+import { Button } from '@/components/ui/button';
 import { useChatModel } from '@/hooks/session/use-chat-model';
 import { useSessionDocks } from '@/hooks/session/use-session-docks';
 import { useSessionPendingItems } from '@/hooks/session/use-session-pending-items';
@@ -23,6 +25,7 @@ import {
   flattenMessages,
   sessionMessagesInfiniteQueryOptions,
   sessionQueryOptions,
+  useRedoMessage,
   useSendMessage,
   useSplitSession,
 } from '@/lib/queries/chat';
@@ -43,8 +46,10 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
 
   const lastUsedModel = React.useMemo((): ModelSpec | null => findLastUsedModel(messages), [messages]);
   const { value, setValue } = useSeededInput();
+  const [editingMsgId, setEditingMsgId] = React.useState<string | null>(null);
   const { selectedModel, handleModelChange } = useChatModel({ lastUsedModel });
   const sendMessage = useSendMessage();
+  const redoMessage = useRedoMessage();
   const splitSession = useSplitSession();
   const streamState = useSessionStreamState(id);
   const startStream = useStreamStore((state) => state.startStream);
@@ -67,7 +72,15 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
   });
 
   const isStreaming = streamState.isStreaming;
-  const canSend = !sendMessage.isPending && !isStreaming && !isCompacting;
+  const canSend = !sendMessage.isPending && !redoMessage.isPending && !isStreaming && !isCompacting;
+  const editingMessage = React.useMemo(
+    () => (editingMsgId ? messages.find((message) => message.id === editingMsgId) : null),
+    [editingMsgId, messages],
+  );
+  const visibleMessages = React.useMemo(() => {
+    if (!editingMessage) return messages;
+    return messages.filter((message) => message.createdAt < editingMessage.createdAt);
+  }, [editingMessage, messages]);
 
   const submitTextMessage = React.useCallback(
     async (text: string) => {
@@ -100,8 +113,37 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
     if ((!text.trim() && attachments.length === 0) || !selectedModel) return;
     if (!canSend) return;
 
-    if (attachments.length === 0 && slashCommands.tryRun(text)) {
+    if (!editingMessage && attachments.length === 0 && slashCommands.tryRun(text)) {
       setValue('');
+      return;
+    }
+
+    if (editingMessage) {
+      const assistantMessageId = createMessageId();
+      startStream(id, assistantMessageId);
+      setEditingMsgId(null);
+      setValue('');
+
+      try {
+        await redoMessage.mutateAsync({
+          sessionId: id as PrefixedString<'ses'>,
+          editedMessageId: editingMessage.id,
+          content: text,
+          attachments: attachments.map((a) => ({
+            path: a.path,
+            previewUrl: a.previewUrl,
+            mime: a.mime,
+            filename: a.filename,
+          })),
+          providerId: selectedModel.providerId,
+          modelId: selectedModel.modelId,
+          assistantMessageId,
+        });
+      } catch (error) {
+        setEditingMsgId(editingMessage.id);
+        setValue(text);
+        throw error;
+      }
       return;
     }
 
@@ -139,19 +181,33 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
     void navigate({ to: '/session/$id', params: { id: result.session.id }, viewTransition: true });
   }
 
+  function handleEdit(msgId: string) {
+    const message = messages.find((msg) => msg.id === msgId);
+    if (!message) return;
+
+    setEditingMsgId(msgId);
+    setValue(extractTextFromParts(message.parts));
+  }
+
+  function cancelEdit() {
+    setEditingMsgId(null);
+    setValue('');
+  }
+
   return (
     <div className="h-full min-w-0 pt-4 pr-4">
       <StickToBottom className="relative h-full min-w-0 flex-1 overflow-hidden" resize="smooth" initial="smooth">
         <StickToBottom.Content scrollClassName="no-scrollbar" className={cn('pt-2', isChildSession ? 'pb-8' : 'pb-40')}>
           <div className="mx-auto max-w-4xl" style={{ viewTransitionName: 'chat-thread' }}>
             <MessageList
-              messages={messages}
+              messages={visibleMessages}
               streamState={streamState}
               hasMore={messagesQuery.hasNextPage}
               isFetchingMore={messagesQuery.isFetchingNextPage}
               onLoadMore={() => void messagesQuery.fetchNextPage()}
               onAbortTool={() => void abortStream(id)}
               onSplit={isChildSession ? undefined : handleSplit}
+              onEdit={isChildSession ? undefined : handleEdit}
             />
           </div>
         </StickToBottom.Content>
@@ -164,6 +220,14 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
                 <div className={cn('streaming-border-wrapper', streamState.isStreaming && 'is-streaming')}>
                   <div className="streaming-border-content shadow-sm" style={{ viewTransitionName: 'chat-input' }}>
                     <DockContainer docks={docks} />
+                    {editingMessage && (
+                      <div className="flex items-center justify-between gap-3 border-b border-border/60 px-3 py-2 text-xs text-muted-foreground">
+                        <span>Editing this message will redo the conversation from that point.</span>
+                        <Button type="button" variant="ghost" size="xs" onClick={cancelEdit}>
+                          Cancel
+                        </Button>
+                      </div>
+                    )}
                     <div>
                       <ChatInput
                         value={value}

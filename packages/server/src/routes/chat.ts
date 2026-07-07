@@ -7,11 +7,13 @@ import {
   abortSessionRun,
   getSessionStats,
   requestCompaction,
+  redoMessage,
   resolveDoomLoop,
   sendMessage,
   splitSession,
 } from '@/chat/service.js';
 import {
+  archiveSession,
   createSession,
   deleteSession,
   getSessionById,
@@ -110,6 +112,12 @@ chatRouter.delete('/sessions/:id', zValidator('param', sessionIdParamSchema), as
   return unwrapResult(c, result, 204);
 });
 
+chatRouter.patch('/sessions/:id/archive', zValidator('param', sessionIdParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
+  const result = await archiveSession(id);
+  return unwrapResult(c, result);
+});
+
 chatRouter.patch(
   '/sessions/:id',
   zValidator('param', sessionIdParamSchema),
@@ -137,6 +145,26 @@ chatRouter.post(
     const body = c.req.valid('json');
     const result = await sendMessage({
       sessionId: id,
+      content: body.content,
+      attachments: body.attachments,
+      providerId: body.providerId,
+      modelId: body.modelId,
+      assistantMessageId: body.assistantMessageId,
+    });
+    return unwrapResult(c, result, 202);
+  },
+);
+
+chatRouter.post(
+  '/sessions/:id/redo/:msgId',
+  zValidator('param', splitParamSchema),
+  zValidator('json', sendMessageSchema),
+  async (c) => {
+    const { id, msgId } = c.req.valid('param');
+    const body = c.req.valid('json');
+    const result = await redoMessage({
+      sessionId: id,
+      editedMessageId: msgId,
       content: body.content,
       attachments: body.attachments,
       providerId: body.providerId,

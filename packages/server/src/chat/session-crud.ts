@@ -1,5 +1,6 @@
 import { and, desc, eq, isNull, like, lt } from 'drizzle-orm';
 
+import { ARCHIVE_REASONS } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 import { createSessionId } from '@stitch/shared/id';
 
@@ -57,6 +58,7 @@ export async function listSessions(
   if (type === 'chat') {
     conditions.push(isNull(sessions.parentSessionId));
   }
+  conditions.push(isNull(sessions.archivedAt));
 
   const rows = await db
     .select()
@@ -87,7 +89,7 @@ export async function listSessionMessages(
   const db = getDb();
   const pageSize = limit ? Math.min(Math.max(limit, 1), 200) : DEFAULT_PAGE_SIZE;
 
-  const conditions = [eq(messages.sessionId, sessionId)];
+  const conditions = [eq(messages.sessionId, sessionId), isNull(messages.archivedAt)];
   if (cursor !== undefined) {
     conditions.push(lt(messages.createdAt, cursor));
   }
@@ -110,6 +112,20 @@ export async function deleteSession(sessionId: PrefixedString<'ses'>): Promise<S
   const result = await db.delete(sessions).where(eq(sessions.id, sessionId)).returning({ id: sessions.id });
   if (result.length === 0) return err('Session not found', 404);
   return ok(result[0]);
+}
+
+export async function archiveSession(
+  sessionId: PrefixedString<'ses'>,
+): Promise<ServiceResult<typeof sessions.$inferSelect>> {
+  const db = getDb();
+  const now = Date.now();
+  const [updated] = await db
+    .update(sessions)
+    .set({ archivedAt: now, archivedReason: ARCHIVE_REASONS.archiveSession, updatedAt: now })
+    .where(eq(sessions.id, sessionId))
+    .returning();
+  if (!updated) return err('Session not found', 404);
+  return ok(updated);
 }
 
 export async function renameSession(
