@@ -44,6 +44,7 @@
     { "idx": 33, "version": "6", "when": 1781297017613, "tag": "0033_glossy_gressill", "breakpoints": true },
     { "idx": 34, "version": "6", "when": 1781653056873, "tag": "0034_acoustic_eternity", "breakpoints": true },
     { "idx": 35, "version": "6", "when": 1782067742555, "tag": "0035_slim_sumo", "breakpoints": true },
-    { "idx": 36, "version": "6", "when": 1783382634204, "tag": "0036_perfect_mauler", "breakpoints": true }
+    { "idx": 36, "version": "6", "when": 1783382634204, "tag": "0036_perfect_mauler", "breakpoints": true },
+    { "idx": 37, "version": "6", "when": 1783471267511, "tag": "0037_rich_maelstrom", "breakpoints": true }
   ]
 }

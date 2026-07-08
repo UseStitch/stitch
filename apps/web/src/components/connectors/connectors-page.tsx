@@ -20,10 +20,15 @@ import {
   PageTitle,
 } from '@/components/ui/page';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { connectorDefinitionsQueryOptions, connectorInstancesQueryOptions } from '@/lib/queries/connectors';
+import {
+  connectorDefinitionsQueryOptions,
+  connectorInstancesQueryOptions,
+  connectorsQueryOptions,
+} from '@/lib/queries/connectors';
 
 export function ConnectorsPage() {
   const { data: definitions } = useSuspenseQuery(connectorDefinitionsQueryOptions);
+  const { data: connectors } = useSuspenseQuery(connectorsQueryOptions);
   const { data: instances } = useSuspenseQuery(connectorInstancesQueryOptions);
   const [setupConnector, setSetupConnector] = useState<ConnectorDefinition | null>(null);
   const [search, setSearch] = useState('');
@@ -116,7 +121,13 @@ export function ConnectorsPage() {
         </Tabs>
       </PageContent>
 
-      {setupConnector && <SetupWizard definition={setupConnector} onClose={() => setSetupConnector(null)} />}
+      {setupConnector && (
+        <SetupWizard
+          definition={setupConnector}
+          connectors={connectors.filter((connector) => connector.connectorId === setupConnector.id)}
+          onClose={() => setSetupConnector(null)}
+        />
+      )}
     </Page>
   );
 }

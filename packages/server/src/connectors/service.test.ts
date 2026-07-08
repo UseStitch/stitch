@@ -6,12 +6,12 @@ import type { ConnectorDefinition } from '@stitch/shared/connectors/types';
 import { registerConnector, unregisterConnector } from '@/connectors/registry.js';
 import {
   authorizeOAuthInstance,
+  createOAuthConnector,
   createApiKeyConnectorInstance,
-  createOAuthConnectorInstance,
   upgradeConnectorInstance,
 } from '@/connectors/service.js';
 import { getDb } from '@/db/client.js';
-import { connectorInstances } from '@/db/schema/connectors.js';
+import { connectorInstances, connectors } from '@/db/schema/connectors.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 
 setupTestDb();
@@ -54,6 +54,20 @@ function oauthDefinition(overrides: Partial<ConnectorDefinition> = {}): Connecto
   };
 }
 
+async function insertOAuthConnector(connectorRefId: string, connectorId = 'example'): Promise<void> {
+  await getDb()
+    .insert(connectors)
+    .values({
+      id: connectorRefId as never,
+      connectorId,
+      authType: 'oauth2',
+      label: 'Example OAuth App',
+      clientId: 'client-id',
+      clientSecret: 'client-secret',
+      apiKey: 'old-key',
+    });
+}
+
 describe('connector service', () => {
   beforeEach(() => {
     unregisterConnector('example');
@@ -68,17 +82,17 @@ describe('connector service', () => {
     // Create an instance at v1 so upgrade sees rotate + reauthorize actions
     const db = getDb();
     const instanceId = 'conn_test_upgrade' as never;
+    const connectorRefId = 'cnr_test_upgrade';
+    await insertOAuthConnector(connectorRefId, definition.id);
     await db
       .insert(connectorInstances)
       .values({
         id: instanceId,
         connectorId: definition.id,
+        connectorRefId: connectorRefId as never,
         label: 'Example',
         appliedVersion: 1,
         capabilities: ['example.read'],
-        clientId: 'client-id',
-        clientSecret: 'client-secret',
-        apiKey: 'old-key',
         accessToken: 'token',
         refreshToken: 'refresh',
         tokenExpiresAt: Date.now() + 60_000,
@@ -108,17 +122,17 @@ describe('connector service', () => {
 
     const db = getDb();
     const instanceId = 'conn_test_mixed' as never;
+    const connectorRefId = 'cnr_test_mixed';
+    await insertOAuthConnector(connectorRefId, definition.id);
     await db
       .insert(connectorInstances)
       .values({
         id: instanceId,
         connectorId: definition.id,
+        connectorRefId: connectorRefId as never,
         label: 'Example',
         appliedVersion: 1,
         capabilities: ['example.read'],
-        clientId: 'client-id',
-        clientSecret: 'client-secret',
-        apiKey: 'old-key',
         accessToken: 'token',
         refreshToken: 'refresh',
         tokenExpiresAt: Date.now() + 60_000,
@@ -157,8 +171,12 @@ describe('connector service', () => {
     await new Promise((r) => setTimeout(r, 50));
 
     const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
+    const [connector] = await db
+      .select()
+      .from(connectors)
+      .where(eq(connectors.id, connectorRefId as never));
     // After token exchange the instance should be connected with the new key and merged scopes
-    expect(row?.apiKey).toBe('new-key');
+    expect(connector?.apiKey).toBe('new-key');
     expect((row?.scopes as string[])?.includes('scope:admin')).toBe(true);
     expect(requestedScopes).toEqual(['scope:read', 'scope:admin']);
   });
@@ -177,17 +195,17 @@ describe('connector service', () => {
 
     const db = getDb();
     const instanceId = 'conn_test_incremental' as never;
+    const connectorRefId = 'cnr_test_incremental';
+    await insertOAuthConnector(connectorRefId, definition.id);
     await db
       .insert(connectorInstances)
       .values({
         id: instanceId,
         connectorId: definition.id,
+        connectorRefId: connectorRefId as never,
         label: 'Example',
         appliedVersion: 2,
         capabilities: ['example.read', 'example.write'],
-        clientId: 'client-id',
-        clientSecret: 'client-secret',
-        apiKey: null,
         accessToken: 'token',
         refreshToken: 'refresh',
         tokenExpiresAt: Date.now() + 60_000,
@@ -248,12 +266,11 @@ describe('connector service', () => {
       setupInstructions: [],
     });
 
-    const oauthResult = await createOAuthConnectorInstance({
+    const oauthConnectorResult = await createOAuthConnector({
       connectorId: 'disabled-oauth',
       label: 'Disabled OAuth',
       clientId: 'client-id',
       clientSecret: 'client-secret',
-      scopes: ['scope:read'],
     });
 
     const apiKeyResult = await createApiKeyConnectorInstance({
@@ -262,9 +279,9 @@ describe('connector service', () => {
       apiKey: 'secret',
     });
 
-    expect(oauthResult.error).not.toBeNull();
+    expect(oauthConnectorResult.error).not.toBeNull();
     expect(apiKeyResult.error).not.toBeNull();
-    if (oauthResult.error) expect(oauthResult.error.message).toBe('Connector is currently disabled');
+    if (oauthConnectorResult.error) expect(oauthConnectorResult.error.message).toBe('Connector is currently disabled');
     if (apiKeyResult.error) expect(apiKeyResult.error.message).toBe('Connector is currently disabled');
 
     // Nothing written to DB
@@ -281,17 +298,17 @@ describe('connector service', () => {
 
     const db = getDb();
     const instanceId = 'conn_auth_fail' as never;
+    const connectorRefId = 'cnr_auth_fail';
+    await insertOAuthConnector(connectorRefId, definition.id);
     await db
       .insert(connectorInstances)
       .values({
         id: instanceId,
         connectorId: definition.id,
+        connectorRefId: connectorRefId as never,
         label: 'Example OAuth',
         appliedVersion: 1,
         capabilities: ['example.read'],
-        clientId: 'client-id',
-        clientSecret: 'client-secret',
-        apiKey: null,
         accessToken: null,
         refreshToken: null,
         tokenExpiresAt: null,
@@ -332,17 +349,17 @@ describe('connector service', () => {
 
     const db = getDb();
     const instanceId = 'conn_auth_success' as never;
+    const connectorRefId = 'cnr_auth_success';
+    await insertOAuthConnector(connectorRefId, definition.id);
     await db
       .insert(connectorInstances)
       .values({
         id: instanceId,
         connectorId: definition.id,
+        connectorRefId: connectorRefId as never,
         label: 'Example OAuth',
         appliedVersion: 1,
         capabilities: ['example.read'],
-        clientId: 'client-id',
-        clientSecret: 'client-secret',
-        apiKey: null,
         accessToken: null,
         refreshToken: null,
         tokenExpiresAt: null,
@@ -392,17 +409,17 @@ describe('connector service', () => {
 
     const db = getDb();
     const instanceId = 'conn_auth_incremental_reauth' as never;
+    const connectorRefId = 'cnr_auth_incremental_reauth';
+    await insertOAuthConnector(connectorRefId, definition.id);
     await db
       .insert(connectorInstances)
       .values({
         id: instanceId,
         connectorId: definition.id,
+        connectorRefId: connectorRefId as never,
         label: 'Example OAuth',
         appliedVersion: definition.currentVersion,
         capabilities: ['example.read', 'example.write', 'example.admin'],
-        clientId: 'client-id',
-        clientSecret: 'client-secret',
-        apiKey: null,
         accessToken: 'old-access-token',
         refreshToken: 'existing-refresh-token',
         tokenExpiresAt: Date.now() - 1_000,
@@ -443,17 +460,17 @@ describe('connector service', () => {
 
     const db = getDb();
     const instanceId = 'conn_auth_preserve_refresh' as never;
+    const connectorRefId = 'cnr_auth_preserve_refresh';
+    await insertOAuthConnector(connectorRefId, definition.id);
     await db
       .insert(connectorInstances)
       .values({
         id: instanceId,
         connectorId: definition.id,
+        connectorRefId: connectorRefId as never,
         label: 'Example OAuth',
         appliedVersion: 1,
         capabilities: ['example.read'],
-        clientId: 'client-id',
-        clientSecret: 'client-secret',
-        apiKey: null,
         accessToken: 'old-access-token',
         refreshToken: 'existing-refresh-token',
         tokenExpiresAt: Date.now() - 1_000,

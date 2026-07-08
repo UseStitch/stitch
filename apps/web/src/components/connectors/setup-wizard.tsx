@@ -6,6 +6,7 @@ import type {
   ConnectorDefinition,
   OAuthConfig,
   ApiKeyConfig,
+  ConnectorSafe,
   ConnectorSetupInstruction,
 } from '@stitch/shared/connectors/types';
 
@@ -23,20 +24,27 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getErrorMessage } from '@/lib/errors';
-import { useCreateOAuthConnector, useCreateApiKeyConnector, useAuthorizeConnector } from '@/lib/queries/connectors';
+import {
+  useCreateOAuthConnectorCredentials,
+  useCreateOAuthConnectorAccount,
+  useCreateApiKeyConnector,
+  useAuthorizeConnector,
+} from '@/lib/queries/connectors';
 
-type Props = { definition: ConnectorDefinition; onClose: () => void };
+type Props = { definition: ConnectorDefinition; connectors: ConnectorSafe[]; onClose: () => void };
 
-type WizardStep = 'instructions' | 'credentials' | 'scopes' | 'authorizing' | 'done';
+type WizardStep = 'instructions' | 'connector' | 'account' | 'scopes' | 'authorizing' | 'done';
 
-export function SetupWizard({ definition, onClose }: Props) {
+export function SetupWizard({ definition, connectors, onClose }: Props) {
   const [step, setStep] = useState<WizardStep>('instructions');
   const [label, setLabel] = useState('');
 
   // OAuth fields
   const [clientId, setClientId] = useState('');
   const [clientSecret, setClientSecret] = useState('');
+  const [selectedConnectorRefId, setSelectedConnectorRefId] = useState<string>(connectors[0]?.id ?? 'new');
   const [selectedScopes, setSelectedScopes] = useState<string[]>(
     definition.authType === 'oauth2' ? (definition.authConfig as OAuthConfig).defaultScopes : [],
   );
@@ -44,13 +52,15 @@ export function SetupWizard({ definition, onClose }: Props) {
   // API key fields
   const [apiKey, setApiKey] = useState('');
 
-  const createOAuth = useCreateOAuthConnector();
+  const createOAuthCredentials = useCreateOAuthConnectorCredentials();
+  const createOAuthAccount = useCreateOAuthConnectorAccount();
   const createApiKey = useCreateApiKeyConnector();
   const authorize = useAuthorizeConnector();
 
   const isOAuth = definition.authType === 'oauth2';
   const oauthConfig = isOAuth ? (definition.authConfig as OAuthConfig) : null;
   const apiKeyConfig = !isOAuth ? (definition.authConfig as ApiKeyConfig) : null;
+  const isCreatingConnector = selectedConnectorRefId === 'new';
 
   const initialServiceAccess = useMemo(() => {
     if (!oauthConfig?.serviceAccessOptions) return {} as Record<string, 'none' | 'read' | 'write'>;
@@ -79,17 +89,32 @@ export function SetupWizard({ definition, onClose }: Props) {
       setStep('authorizing');
 
       try {
-        if (!clientId.trim() || !clientSecret.trim()) {
+        let connectorRefId = selectedConnectorRefId;
+        if (isCreatingConnector) {
+          if (!clientId.trim() || !clientSecret.trim()) {
+            toast.error('Client ID and Client Secret are required', { id: 'connector-setup-credentials' });
+            setStep('connector');
+            return;
+          }
+
+          const connector = await createOAuthCredentials.mutateAsync({
+            connectorId: definition.id,
+            label: label.trim() || definition.name,
+            clientId: clientId.trim(),
+            clientSecret: clientSecret.trim(),
+          });
+          connectorRefId = connector.id;
+        }
+
+        if (!connectorRefId || connectorRefId === 'new') {
           toast.error('Client ID and Client Secret are required', { id: 'connector-setup-credentials' });
-          setStep('credentials');
+          setStep('connector');
           return;
         }
 
-        const instance = await createOAuth.mutateAsync({
-          connectorId: definition.id,
+        const instance = await createOAuthAccount.mutateAsync({
+          connectorRefId,
           label: label.trim() || definition.name,
-          clientId: clientId.trim(),
-          clientSecret: clientSecret.trim(),
           scopes: scopesToUse,
         });
 
@@ -98,7 +123,7 @@ export function SetupWizard({ definition, onClose }: Props) {
         setStep('done');
       } catch (e) {
         toast.error(getErrorMessage(e, 'Failed to create connector'), { id: 'connector-setup-create' });
-        setStep('scopes');
+        setStep('connector');
       }
     } else {
       if (!apiKey.trim()) {
@@ -119,7 +144,7 @@ export function SetupWizard({ definition, onClose }: Props) {
         toast.success('Connector created successfully', { id: 'connector-setup-create' });
       } catch (e) {
         toast.error(getErrorMessage(e, 'Failed to create connector'), { id: 'connector-setup-create' });
-        setStep('credentials');
+        setStep('connector');
       }
     }
   }
@@ -135,7 +160,8 @@ export function SetupWizard({ definition, onClose }: Props) {
           <WizardProgress step={step} isOAuth={isOAuth} />
           <DialogDescription>
             {step === 'instructions' && 'Follow these steps to set up your credentials.'}
-            {step === 'credentials' && 'Enter your credentials below.'}
+            {step === 'connector' && 'Choose or create connector credentials.'}
+            {step === 'account' && 'Name the account connection.'}
             {step === 'scopes' && 'Choose which permissions to grant.'}
             {step === 'authorizing' && 'Setting up your connection...'}
             {step === 'done' &&
@@ -145,30 +171,41 @@ export function SetupWizard({ definition, onClose }: Props) {
 
         <div className="min-h-0 flex-1">
           {step === 'instructions' && (
-            <InstructionsStep instructions={definition.setupInstructions} onNext={() => setStep('credentials')} />
+            <InstructionsStep instructions={definition.setupInstructions} onNext={() => setStep('connector')} />
           )}
 
-          {step === 'credentials' && (
-            <CredentialsStep
+          {step === 'connector' && (
+            <ConnectorCredentialsStep
               isOAuth={isOAuth}
-              label={label}
-              setLabel={setLabel}
               clientId={clientId}
               setClientId={setClientId}
               clientSecret={clientSecret}
               setClientSecret={setClientSecret}
+              connectors={connectors}
+              selectedConnectorRefId={selectedConnectorRefId}
+              setSelectedConnectorRefId={setSelectedConnectorRefId}
+              isCreatingConnector={isCreatingConnector}
               apiKey={apiKey}
               setApiKey={setApiKey}
               apiKeyConfig={apiKeyConfig}
-              definitionName={definition.name}
               onBack={() => setStep('instructions')}
               onNext={() => {
                 if (isOAuth && oauthConfig) {
-                  setStep('scopes');
+                  setStep('account');
                 } else {
                   void handleCreateAndAuthorize();
                 }
               }}
+            />
+          )}
+
+          {step === 'account' && (
+            <ConnectorAccountStep
+              label={label}
+              setLabel={setLabel}
+              definitionName={definition.name}
+              onBack={() => setStep('connector')}
+              onNext={() => setStep('scopes')}
             />
           )}
 
@@ -179,7 +216,7 @@ export function SetupWizard({ definition, onClose }: Props) {
               toggleScope={toggleScope}
               serviceAccess={serviceAccess}
               setServiceAccess={setServiceAccess}
-              onBack={() => setStep('credentials')}
+              onBack={() => setStep('account')}
               onNext={(scopes) => {
                 setSelectedScopes(scopes);
                 void handleCreateAndAuthorize(scopes);
@@ -256,69 +293,87 @@ function InstructionsStep({ instructions, onNext }: { instructions: ConnectorSet
   );
 }
 
-function CredentialsStep({
+function ConnectorCredentialsStep({
   isOAuth,
-  label,
-  setLabel,
   clientId,
   setClientId,
   clientSecret,
   setClientSecret,
+  connectors,
+  selectedConnectorRefId,
+  setSelectedConnectorRefId,
+  isCreatingConnector,
   apiKey,
   setApiKey,
   apiKeyConfig,
-  definitionName,
   onBack,
   onNext,
 }: {
   isOAuth: boolean;
-  label: string;
-  setLabel: (v: string) => void;
   clientId: string;
   setClientId: (v: string) => void;
   clientSecret: string;
   setClientSecret: (v: string) => void;
+  connectors: ConnectorSafe[];
+  selectedConnectorRefId: string;
+  setSelectedConnectorRefId: (v: string) => void;
+  isCreatingConnector: boolean;
   apiKey: string;
   setApiKey: (v: string) => void;
   apiKeyConfig: ApiKeyConfig | null;
-  definitionName: string;
   onBack: () => void;
   onNext: () => void;
 }) {
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-        <div className="space-y-1.5">
-          <Label htmlFor="label">Label</Label>
-          <Input
-            id="label"
-            placeholder={`e.g. Work ${definitionName}, Personal ${definitionName}`}
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-          />
-        </div>
-
         {isOAuth ? (
           <>
             <div className="space-y-1.5">
-              <Label htmlFor="clientId">Client ID</Label>
-              <Input
-                id="clientId"
-                placeholder="Your OAuth Client ID"
-                value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
-              />
+              <Label>Connector Credentials</Label>
+              <Select
+                value={selectedConnectorRefId}
+                onValueChange={(value) => setSelectedConnectorRefId(value ?? 'new')}>
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {isCreatingConnector
+                      ? 'Create new connector credentials'
+                      : connectors.find((connector) => connector.id === selectedConnectorRefId)?.label}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {connectors.map((connector) => (
+                    <SelectItem key={connector.id} value={connector.id}>
+                      {connector.label}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="new">Create new connector credentials</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="clientSecret">Client Secret</Label>
-              <Input
-                id="clientSecret"
-                type="password"
-                placeholder="Your OAuth Client Secret"
-                value={clientSecret}
-                onChange={(e) => setClientSecret(e.target.value)}
-              />
-            </div>
+            {isCreatingConnector ? (
+              <>
+                <div className="space-y-1.5">
+                  <Label htmlFor="clientId">Client ID</Label>
+                  <Input
+                    id="clientId"
+                    placeholder="Your OAuth Client ID"
+                    value={clientId}
+                    onChange={(e) => setClientId(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="clientSecret">Client Secret</Label>
+                  <Input
+                    id="clientSecret"
+                    type="password"
+                    placeholder="Your OAuth Client Secret"
+                    value={clientSecret}
+                    onChange={(e) => setClientSecret(e.target.value)}
+                  />
+                </div>
+              </>
+            ) : null}
           </>
         ) : (
           <div className="space-y-1.5">
@@ -356,7 +411,47 @@ function CredentialsStep({
           Back
         </Button>
         <Button onClick={onNext}>
-          {isOAuth ? 'Choose Scopes' : 'Connect'}
+          {isOAuth ? 'Continue' : 'Connect'}
+          <ArrowRightIcon className="size-3.5" />
+        </Button>
+      </DialogFooter>
+    </div>
+  );
+}
+
+function ConnectorAccountStep({
+  label,
+  setLabel,
+  definitionName,
+  onBack,
+  onNext,
+}: {
+  label: string;
+  setLabel: (v: string) => void;
+  definitionName: string;
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+        <div className="space-y-1.5">
+          <Label htmlFor="label">Account Label</Label>
+          <Input
+            id="label"
+            placeholder={`e.g. Work ${definitionName}, Personal ${definitionName}`}
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+          />
+        </div>
+      </div>
+      <DialogFooter className="shrink-0">
+        <Button variant="outline" onClick={onBack}>
+          <ArrowLeftIcon className="size-3.5" />
+          Back
+        </Button>
+        <Button onClick={onNext}>
+          Choose Scopes
           <ArrowRightIcon className="size-3.5" />
         </Button>
       </DialogFooter>
@@ -510,14 +605,15 @@ function WizardProgress({ step, isOAuth }: { step: WizardStep; isOAuth: boolean 
   const steps: Array<{ id: WizardStep; label: string }> = isOAuth
     ? [
         { id: 'instructions', label: 'Instructions' },
-        { id: 'credentials', label: 'Credentials' },
+        { id: 'connector', label: 'Connector' },
+        { id: 'account', label: 'Account' },
         { id: 'scopes', label: 'Access' },
         { id: 'authorizing', label: 'Authorize' },
         { id: 'done', label: 'Done' },
       ]
     : [
         { id: 'instructions', label: 'Instructions' },
-        { id: 'credentials', label: 'Credentials' },
+        { id: 'connector', label: 'Connector' },
         { id: 'authorizing', label: 'Connect' },
         { id: 'done', label: 'Done' },
       ];
@@ -525,7 +621,7 @@ function WizardProgress({ step, isOAuth }: { step: WizardStep; isOAuth: boolean 
   const activeIndex = steps.findIndex((item) => item.id === step);
 
   return (
-    <div className={`mt-2 grid gap-2 ${isOAuth ? 'grid-cols-2 sm:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4'}`}>
+    <div className={`mt-2 grid gap-2 ${isOAuth ? 'grid-cols-2 sm:grid-cols-6' : 'grid-cols-2 sm:grid-cols-4'}`}>
       {steps.map((item, index) => (
         <div
           key={item.id}

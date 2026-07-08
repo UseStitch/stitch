@@ -59,8 +59,7 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
             accessToken: connectorInstances.accessToken,
             refreshToken: connectorInstances.refreshToken,
             tokenExpiresAt: connectorInstances.tokenExpiresAt,
-            clientId: connectorInstances.clientId,
-            clientSecret: connectorInstances.clientSecret,
+            connectorRefId: connectorInstances.connectorRefId,
             connectorId: connectorInstances.connectorId,
             status: connectorInstances.status,
             scopes: connectorInstances.scopes,
@@ -107,8 +106,7 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
                 accessToken: connectorInstances.accessToken,
                 refreshToken: connectorInstances.refreshToken,
                 tokenExpiresAt: connectorInstances.tokenExpiresAt,
-                clientId: connectorInstances.clientId,
-                clientSecret: connectorInstances.clientSecret,
+                connectorRefId: connectorInstances.connectorRefId,
               })
               .from(connectorInstances)
               .where(eq(connectorInstances.id, chosen.id));

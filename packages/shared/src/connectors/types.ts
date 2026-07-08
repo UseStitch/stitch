@@ -52,6 +52,26 @@ export type ConnectorDefinition = {
   setupInstructions: ConnectorSetupInstruction[];
 };
 
+export type ConnectorBase = {
+  id: PrefixedString<'cnr'>;
+  connectorId: string;
+  label: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type OAuthConnector = ConnectorBase & { authType: 'oauth2'; clientId: string; clientSecret: string };
+
+export type ApiKeyConnector = ConnectorBase & { authType: 'api_key'; apiKey: string };
+
+export type Connector = OAuthConnector | ApiKeyConnector;
+
+export type OAuthConnectorSafe = Omit<OAuthConnector, 'clientSecret'> & { hasClientSecret: boolean };
+
+export type ApiKeyConnectorSafe = Omit<ApiKeyConnector, 'apiKey'> & { hasApiKey: boolean };
+
+export type ConnectorSafe = OAuthConnectorSafe | ApiKeyConnectorSafe;
+
 export type ConnectorVersion = {
   version: number;
   title: string;
@@ -64,12 +84,10 @@ export type ConnectorVersion = {
 export type ConnectorInstance = {
   id: PrefixedString<'conn'>;
   connectorId: string;
+  connectorRefId: PrefixedString<'cnr'>;
   label: string;
   appliedVersion: number;
   capabilities: string[];
-  clientId: string | null;
-  clientSecret: string | null;
-  apiKey: string | null;
   accessToken: string | null;
   refreshToken: string | null;
   tokenExpiresAt: number | null;
@@ -82,14 +100,9 @@ export type ConnectorInstance = {
   updatedAt: number;
 };
 
-export type ConnectorInstanceSafe = Omit<
-  ConnectorInstance,
-  'clientSecret' | 'accessToken' | 'refreshToken' | 'apiKey'
-> & {
-  hasClientSecret: boolean;
+export type ConnectorInstanceSafe = Omit<ConnectorInstance, 'accessToken' | 'refreshToken'> & {
   hasAccessToken: boolean;
   hasRefreshToken: boolean;
-  hasApiKey: boolean;
   upgrade: {
     available: boolean;
     fromVersion: number;

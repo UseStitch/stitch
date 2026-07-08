@@ -3,13 +3,15 @@ import { asc, eq } from 'drizzle-orm';
 import { buildUpgradeState, getCapabilitiesForVersion } from '@stitch-connectors/sdk/upgrade';
 
 import type {
+  Connector,
   ConnectorDefinition,
   ConnectorInstance,
   ConnectorInstanceSafe,
+  ConnectorSafe,
   ConnectorStatus,
   OAuthConfig,
 } from '@stitch/shared/connectors/types';
-import { createConnectorInstanceId } from '@stitch/shared/id';
+import { createConnectorId, createConnectorInstanceId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
@@ -23,7 +25,7 @@ import { withRefreshLock } from '@/connectors/auth/refresh-lock.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getConnectorModule, refreshConnectorToolsetsFor } from '@/connectors/runtime.js';
 import { getDb } from '@/db/client.js';
-import { connectorInstances } from '@/db/schema/connectors.js';
+import { connectorInstances, connectors } from '@/db/schema/connectors.js';
 import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
@@ -32,7 +34,7 @@ const log = Log.create({ service: 'connectors' });
 const REFRESH_BUFFER_MS = 60_000;
 
 function toSafe(instance: ConnectorInstance, definition: ConnectorDefinition | undefined): ConnectorInstanceSafe {
-  const { clientSecret, accessToken, refreshToken, apiKey, ...rest } = instance;
+  const { accessToken, refreshToken, ...rest } = instance;
   const appliedVersion = Number.isFinite(instance.appliedVersion) ? instance.appliedVersion : 1;
   const storedCapabilities = Array.isArray(instance.capabilities) ? instance.capabilities : [];
   const effectiveCapabilities =
@@ -51,12 +53,109 @@ function toSafe(instance: ConnectorInstance, definition: ConnectorDefinition | u
     ...rest,
     appliedVersion,
     capabilities: effectiveCapabilities,
-    hasClientSecret: clientSecret !== null && clientSecret !== '',
     hasAccessToken: accessToken !== null && accessToken !== '',
     hasRefreshToken: refreshToken !== null && refreshToken !== '',
-    hasApiKey: apiKey !== null && apiKey !== '',
     upgrade,
   };
+}
+
+function toConnector(row: typeof connectors.$inferSelect): Connector {
+  if (row.authType === 'oauth2') {
+    return {
+      id: row.id,
+      connectorId: row.connectorId,
+      authType: row.authType,
+      label: row.label,
+      clientId: row.clientId ?? '',
+      clientSecret: row.clientSecret ?? '',
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
+  }
+
+  return {
+    id: row.id,
+    connectorId: row.connectorId,
+    authType: row.authType,
+    label: row.label,
+    apiKey: row.apiKey ?? '',
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
+function toConnectorSafe(connector: Connector): ConnectorSafe {
+  if (connector.authType === 'oauth2') {
+    const { clientSecret, ...rest } = connector;
+    return { ...rest, hasClientSecret: clientSecret !== '' };
+  }
+
+  const { apiKey, ...rest } = connector;
+  return { ...rest, hasApiKey: apiKey !== '' };
+}
+
+export async function listConnectors(): Promise<ServiceResult<ConnectorSafe[]>> {
+  const db = getDb();
+  const rows = await db.select().from(connectors).orderBy(asc(connectors.createdAt));
+  return ok(rows.map((row) => toConnectorSafe(toConnector(row))));
+}
+
+export async function createOAuthConnector(input: {
+  connectorId: string;
+  label: string;
+  clientId: string;
+  clientSecret: string;
+}): Promise<ServiceResult<ConnectorSafe>> {
+  const definition = getConnectorDefinition(input.connectorId);
+  if (!definition) return err('Unknown connector type', 400);
+  if (!definition.enabled) return err('Connector is currently disabled', 400);
+  if (definition.authType !== 'oauth2') return err('Connector does not use OAuth2', 400);
+
+  const clientId = input.clientId.trim();
+  const clientSecret = input.clientSecret.trim();
+  if (!clientId || !clientSecret) {
+    return err('Client credentials are required', 400);
+  }
+
+  const db = getDb();
+  const id = createConnectorId();
+  const connector = {
+    id,
+    connectorId: input.connectorId,
+    authType: 'oauth2' as const,
+    label: input.label,
+    clientId,
+    clientSecret,
+    apiKey: null,
+  };
+
+  await db.insert(connectors).values(connector);
+
+  log.info(
+    { event: 'connector.credentials.created', connectorRefId: id, connectorId: input.connectorId },
+    'Connector created',
+  );
+
+  const [row] = await db.select().from(connectors).where(eq(connectors.id, id));
+  return ok(toConnectorSafe(toConnector(row)));
+}
+
+export async function deleteConnector(connectorRefId: string): Promise<ServiceResult<null>> {
+  const db = getDb();
+  const typedConnectorRefId = connectorRefId as PrefixedString<'cnr'>;
+  const [existing] = await db.select().from(connectors).where(eq(connectors.id, typedConnectorRefId));
+
+  if (!existing) return err('Connector not found', 404);
+
+  await db.delete(connectors).where(eq(connectors.id, typedConnectorRefId));
+  await refreshConnectorToolsetsFor(existing.connectorId);
+
+  log.info(
+    { event: 'connector.credentials.deleted', connectorRefId, connectorId: existing.connectorId },
+    `Connector deleted: ${existing.label}`,
+  );
+
+  return ok(null);
 }
 
 export async function listConnectorInstances(): Promise<ServiceResult<ConnectorInstanceSafe[]>> {
@@ -83,35 +182,33 @@ export async function getConnectorInstance(id: string): Promise<ServiceResult<Co
 }
 
 export async function createOAuthConnectorInstance(input: {
-  connectorId: string;
+  connectorRefId: string;
   label: string;
-  clientId: string;
-  clientSecret: string;
   scopes: string[];
 }): Promise<ServiceResult<ConnectorInstanceSafe>> {
-  const definition = getConnectorDefinition(input.connectorId);
+  const db = getDb();
+  const [connector] = await db
+    .select()
+    .from(connectors)
+    .where(eq(connectors.id, input.connectorRefId as PrefixedString<'cnr'>));
+
+  if (!connector) return err('Connector not found', 404);
+
+  const definition = getConnectorDefinition(connector.connectorId);
   if (!definition) return err('Unknown connector type', 400);
   if (!definition.enabled) return err('Connector is currently disabled', 400);
   if (definition.authType !== 'oauth2') return err('Connector does not use OAuth2', 400);
+  if (!connector.clientId || !connector.clientSecret) return err('OAuth credentials not configured', 400);
 
-  const db = getDb();
   const id = createConnectorInstanceId();
-
-  const clientId = input.clientId.trim();
-  const clientSecret = input.clientSecret.trim();
-  if (!clientId || !clientSecret) {
-    return err('Client credentials are required', 400);
-  }
 
   const instance = {
     id,
-    connectorId: input.connectorId,
+    connectorId: connector.connectorId,
+    connectorRefId: connector.id,
     label: input.label,
     appliedVersion: definition.currentVersion,
     capabilities: getCapabilitiesForVersion(definition, definition.currentVersion),
-    clientId,
-    clientSecret,
-    apiKey: null,
     accessToken: null,
     refreshToken: null,
     tokenExpiresAt: null,
@@ -125,7 +222,12 @@ export async function createOAuthConnectorInstance(input: {
   await db.insert(connectorInstances).values(instance);
 
   log.info(
-    { event: 'connector.created', instanceId: id, connectorId: input.connectorId },
+    {
+      event: 'connector.account.created',
+      instanceId: id,
+      connectorRefId: connector.id,
+      connectorId: connector.connectorId,
+    },
     `Connector instance created: ${input.label}`,
   );
 
@@ -144,17 +246,28 @@ export async function createApiKeyConnectorInstance(input: {
   if (definition.authType !== 'api_key') return err('Connector does not use API key', 400);
 
   const db = getDb();
+  const connectorRefId = createConnectorId();
   const id = createConnectorInstanceId();
+
+  await db
+    .insert(connectors)
+    .values({
+      id: connectorRefId,
+      connectorId: input.connectorId,
+      authType: 'api_key',
+      label: input.label,
+      clientId: null,
+      clientSecret: null,
+      apiKey: input.apiKey,
+    });
 
   const instance = {
     id,
     connectorId: input.connectorId,
+    connectorRefId,
     label: input.label,
     appliedVersion: definition.currentVersion,
     capabilities: getCapabilitiesForVersion(definition, definition.currentVersion),
-    clientId: null,
-    clientSecret: null,
-    apiKey: input.apiKey,
     accessToken: null,
     refreshToken: null,
     tokenExpiresAt: null,
@@ -339,9 +452,13 @@ export async function upgradeConnectorInstance(
 
   if (requiresApiKeyRotation && !requiresReauthorize) {
     await db
+      .update(connectors)
+      .set({ apiKey: input.apiKey?.trim() ?? null, updatedAt: now })
+      .where(eq(connectors.id, instance.connectorRefId));
+
+    await db
       .update(connectorInstances)
       .set({
-        apiKey: input.apiKey?.trim() ?? null,
         appliedVersion: definition.currentVersion,
         capabilities: getCapabilitiesForVersion(definition, definition.currentVersion),
         status: 'connected' as ConnectorStatus,
@@ -362,16 +479,18 @@ export async function upgradeConnectorInstance(
     const scopeSet = new Set([...currentScopes, ...upgrade.missingScopes]);
     const nextScopes = [...scopeSet];
 
-    const setValues: {
-      scopes: string[];
-      status: ConnectorStatus;
-      authIssue: null;
-      updatedAt: number;
-      apiKey?: string | null;
-    } = { scopes: nextScopes, status: 'awaiting_auth' as ConnectorStatus, authIssue: null, updatedAt: now };
+    const setValues: { scopes: string[]; status: ConnectorStatus; authIssue: null; updatedAt: number } = {
+      scopes: nextScopes,
+      status: 'awaiting_auth' as ConnectorStatus,
+      authIssue: null,
+      updatedAt: now,
+    };
 
     if (requiresApiKeyRotation) {
-      setValues.apiKey = input.apiKey?.trim() ?? null;
+      await db
+        .update(connectors)
+        .set({ apiKey: input.apiKey?.trim() ?? null, updatedAt: now })
+        .where(eq(connectors.id, instance.connectorRefId));
     }
 
     await db.update(connectorInstances).set(setValues).where(eq(connectorInstances.id, typedInstanceId));
@@ -480,7 +599,9 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
 
     if (definition.authType === 'oauth2' && testedInstance.accessToken) {
       return ok(true);
-    } else if (definition.authType === 'api_key' && instance.apiKey) {
+    } else if (definition.authType === 'api_key') {
+      const [connector] = await db.select().from(connectors).where(eq(connectors.id, instance.connectorRefId));
+      if (!connector?.apiKey) return err('Connector has no credentials to test', 400);
       return err('Connector test is not supported for this connector type', 400);
     } else {
       return err('Connector has no credentials to test', 400);

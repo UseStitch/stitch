@@ -29,12 +29,10 @@ export type ConnectorDefinitionInput = {
 export type ConnectorInstanceRecord = {
   id: string;
   connectorId: string;
+  connectorRefId: string;
   label: string;
   appliedVersion: number;
   capabilities: string[];
-  clientId: string | null;
-  clientSecret: string | null;
-  apiKey: string | null;
   accessToken: string | null;
   refreshToken: string | null;
   tokenExpiresAt: number | null;
