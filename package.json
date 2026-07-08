@@ -19,6 +19,9 @@
     "website:build": "bun run --cwd apps/website build",
     "website:dev": "bun run --cwd apps/website dev"
   },
+  "dependencies": {
+    "dompurify": "^3.4.11"
+  },
   "devDependencies": {
     "knip": "latest",
     "oxfmt": "latest",

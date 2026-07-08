@@ -2,6 +2,7 @@ import type { StreamErrorDetails } from '@stitch/shared/chat/errors';
 import type { PartId, StoredPart } from '@stitch/shared/chat/messages';
 import type { PartDelta, PartUpdate } from '@stitch/shared/chat/stream-events';
 import type { PrefixedString } from '@stitch/shared/id';
+import type { MailEvents } from '@stitch/shared/mail/events';
 import type { McpAuthStatus } from '@stitch/shared/mcp/types';
 import type { PermissionResponse } from '@stitch/shared/permissions/types';
 import type { QuestionRequest } from '@stitch/shared/questions/types';
@@ -256,6 +257,14 @@ export type McpToolsChangedEvent = { serverId: PrefixedString<'mcp'>; serverName
 
 export type McpAuthStatusChangedEvent = { serverId: PrefixedString<'mcp'>; authStatus: McpAuthStatus };
 
+// ─── Mail ────────────────────────────────────────────────────────────────────
+
+export type MailSyncProgressEvent = MailEvents['mail.sync.progress'];
+
+export type MailAccountUpdatedEvent = MailEvents['mail.account.updated'];
+
+export type MailThreadsChangedEvent = MailEvents['mail.threads.changed'];
+
 // ─── Event Map ───────────────────────────────────────────────────────────────
 
 export type InternalEventMap = {
@@ -314,4 +323,9 @@ export type InternalEventMap = {
   'mcp.tools.list_changed': McpToolsChangedEvent;
   'mcp.tools.changed': McpToolsChangedEvent;
   'mcp.auth.status_changed': McpAuthStatusChangedEvent;
+
+  // Mail
+  'mail.sync.progress': MailSyncProgressEvent;
+  'mail.account.updated': MailAccountUpdatedEvent;
+  'mail.threads.changed': MailThreadsChangedEvent;
 };

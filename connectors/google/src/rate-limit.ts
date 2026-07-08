@@ -34,10 +34,13 @@ const GMAIL_METHOD_COSTS = {
   MESSAGES_ATTACHMENTS_GET: 20,
   MESSAGES_MODIFY: 5,
   MESSAGES_SEND: 100,
+  HISTORY_LIST: 2,
   LABELS_LIST: 1,
   LABELS_GET: 1,
   LABELS_MUTATE: 5,
   THREADS_MODIFY: 10,
+  THREADS_TRASH: 5,
+  DRAFTS_SEND: 100,
   FILTERS_LIST: 1,
   FILTERS_GET: 1,
   FILTERS_MUTATE: 5,
@@ -73,6 +76,18 @@ function resolveGmailQuotaCost(pathname: string, method: string): number {
 
   if (withoutQuery.endsWith('/messages/send') && method === 'POST') {
     return GMAIL_METHOD_COSTS.MESSAGES_SEND;
+  }
+
+  if (withoutQuery.endsWith('/history') && method === 'GET') {
+    return GMAIL_METHOD_COSTS.HISTORY_LIST;
+  }
+
+  if (/\/drafts\/[^/]+\/send$/.test(withoutQuery) && method === 'POST') {
+    return GMAIL_METHOD_COSTS.DRAFTS_SEND;
+  }
+
+  if (/\/threads\/[^/]+\/(?:trash|untrash)$/.test(withoutQuery) && method === 'POST') {
+    return GMAIL_METHOD_COSTS.THREADS_TRASH;
   }
 
   if (/\/messages\/[^/]+\/modify$/.test(withoutQuery) && method === 'POST') {
@@ -147,6 +162,10 @@ export function resolveGoogleQuotaOperation(url: string, method: string | undefi
   const normalizedMethod = normalizeMethod(method);
 
   if (parsed.hostname === 'gmail.googleapis.com') {
+    if (parsed.pathname.startsWith('/batch/gmail/')) {
+      // V1 mail sync charges Gmail batch envelopes as one default request; inner-call summing can be added if the mail HTTP contract grows metadata.
+      return { service: 'gmail', quotaCost: GMAIL_METHOD_COSTS.DEFAULT };
+    }
     return { service: 'gmail', quotaCost: resolveGmailQuotaCost(parsed.pathname, normalizedMethod) };
   }
 

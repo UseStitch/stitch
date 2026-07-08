@@ -15,12 +15,15 @@ type ServerPaths = {
   tempDir: string;
   filePaths: {
     db: string;
+    mailDb: string;
     models: string;
     embeddingModelsRegistry: string;
     sttModelsRegistry: string;
     mcpRegistry: string;
   };
   dirPaths: {
+    apps: string;
+    mailbox: string;
     toolOutput: string;
     skills: string;
     providerLogos: string;
@@ -29,6 +32,7 @@ type ServerPaths = {
     connectorIcons: string;
     simpleIcons: string;
     recordings: string;
+    mailAttachments: string;
   };
 };
 
@@ -128,6 +132,8 @@ export function createPaths(options: CreatePathsOptions = {}): ServerPaths {
     homedir: options.homedir ?? homedir,
     tmpdir: options.tmpdir ?? tmpdir,
   });
+  const appsDir = path.join(paths.data, 'apps');
+  const mailboxDir = path.join(appsDir, 'mailbox');
 
   return {
     appName,
@@ -139,6 +145,7 @@ export function createPaths(options: CreatePathsOptions = {}): ServerPaths {
 
     filePaths: {
       db: path.join(paths.data, `${appName}.db`),
+      mailDb: path.join(mailboxDir, 'mail.db'),
       models: path.join(paths.cache, 'models.json'),
       embeddingModelsRegistry: path.join(paths.cache, 'embedding-models-registry.json'),
       sttModelsRegistry: path.join(paths.cache, 'stt-models-registry.json'),
@@ -146,6 +153,8 @@ export function createPaths(options: CreatePathsOptions = {}): ServerPaths {
     },
 
     dirPaths: {
+      apps: appsDir,
+      mailbox: mailboxDir,
       toolOutput: path.join(paths.data, 'tool-output'),
       skills: path.join(paths.data, 'skills'),
       providerLogos: path.join(paths.cache, 'provider-logos'),
@@ -154,6 +163,7 @@ export function createPaths(options: CreatePathsOptions = {}): ServerPaths {
       connectorIcons: path.join(paths.cache, 'connector-icons'),
       simpleIcons: path.join(paths.cache, 'simple-icons'),
       recordings: path.join(paths.data, 'recordings'),
+      mailAttachments: path.join(mailboxDir, 'attachments'),
     },
   };
 }

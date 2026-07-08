@@ -5,6 +5,7 @@ import {
   GlobeIcon,
   KeyboardIcon,
   ListTodoIcon,
+  MailIcon,
   MicIcon,
   MonitorIcon,
   NetworkIcon,
@@ -90,6 +91,15 @@ export const SETTINGS_PAGES = [
     to: '/settings/agenda',
     section: 'Apps',
     icon: ListTodoIcon,
+  },
+  {
+    id: 'mail',
+    label: 'Mail',
+    title: 'Mail',
+    description: 'Configure mail accounts and sync settings.',
+    to: '/settings/mail',
+    section: 'Apps',
+    icon: MailIcon,
   },
   {
     id: 'agents',

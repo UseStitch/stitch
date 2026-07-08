@@ -6,6 +6,7 @@ describe('SETTINGS_SCHEMAS', () => {
   test('parses boolean setting strings', () => {
     expect(SETTINGS_SCHEMAS['recordings.autoAnalyze'].parse('true')).toBe(true);
     expect(SETTINGS_SCHEMAS['recordings.autoAnalyze'].parse('false')).toBe(false);
+    expect(SETTINGS_SCHEMAS['mail.alwaysLoadRemoteImages'].parse('true')).toBe(true);
   });
 });
 

@@ -44,6 +44,7 @@ const config: Configuration = {
     { from: 'resources/', to: '', filter: ['icon.png', 'icon.ico'] },
     { from: '../../packages/server/dist', to: '', filter: ['stitch-server*', 'stitch-sandbox*'] },
     { from: '../../packages/server/drizzle', to: 'drizzle', filter: ['**/*'] },
+    { from: '../../packages/mail/drizzle', to: 'drizzle-mail', filter: ['**/*'] },
     { from: '../web/dist', to: 'web/dist', filter: ['**/*'] },
     {
       from: '../../packages/server/src',

@@ -36,6 +36,11 @@ describe('resolveGoogleQuotaOperation', () => {
     expect(
       resolveGoogleQuotaOperation('https://gmail.googleapis.com/gmail/v1/users/me/threads/thread-1/modify', 'POST'),
     ).toEqual({ service: 'gmail', quotaCost: 10 });
+
+    expect(resolveGoogleQuotaOperation('https://gmail.googleapis.com/batch/gmail/v1', 'POST')).toEqual({
+      service: 'gmail',
+      quotaCost: 5,
+    });
   });
 
   test('maps Gmail settings.filters endpoints to correct quota costs', () => {

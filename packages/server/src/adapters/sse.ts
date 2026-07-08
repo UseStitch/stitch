@@ -235,4 +235,18 @@ export function registerSseAdapter(): void {
       offsetMs: event.offsetMs,
     });
   });
+
+  // ─── Mail ───────────────────────────────────────────────────────────────────
+
+  internalBus.onSync('mail.sync.progress', (event) => {
+    broadcast('mail.sync.progress', event);
+  });
+
+  internalBus.onSync('mail.account.updated', (event) => {
+    broadcast('mail.account.updated', event);
+  });
+
+  internalBus.onSync('mail.threads.changed', (event) => {
+    broadcast('mail.threads.changed', event);
+  });
 }

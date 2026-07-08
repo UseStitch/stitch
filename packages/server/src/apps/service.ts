@@ -3,7 +3,7 @@ import type { AppEnabledState, AppId } from '@stitch/shared/apps/types';
 import { APP_MANIFESTS, findAppByToolsetId } from '@/apps/registry.js';
 import { isToolEnabled } from '@/tools/enabled-service.js';
 
-async function isAppEnabled(appId: AppId): Promise<boolean> {
+export async function isAppEnabled(appId: AppId): Promise<boolean> {
   return isToolEnabled({ scope: 'app', identifier: appId });
 }
 

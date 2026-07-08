@@ -3,6 +3,7 @@ import type { RegisteredJob } from '@stitch/scheduler';
 
 import { refreshExpiringTokens } from '@/connectors/auth/token-refresh.js';
 import * as Log from '@/lib/log.js';
+import { runMailSyncTick } from '@/mail/wiring.js';
 import { refreshMcpRegistryCache } from '@/mcp/registry-service.js';
 import { refreshExpiringMcpTokens } from '@/mcp/service.js';
 import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
@@ -25,6 +26,7 @@ const TOOL_OUTPUT_CLEANUP_INTERVAL_MS = 1 * HOUR_MS;
 const MCP_REFRESH_INTERVAL_MS = 15 * 60 * 1000;
 const MCP_REGISTRY_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
 const TOKEN_REFRESH_INTERVAL_MS = 60 * 1000;
+const MAIL_SYNC_INTERVAL_MS = 30 * 1000;
 
 let scheduler: ReturnType<typeof createScheduler> | null = null;
 
@@ -89,6 +91,12 @@ function getBuiltinJobs(): RegisteredJob[] {
       key: 'mcp-token-refresh',
       schedule: { type: 'interval', everyMs: TOKEN_REFRESH_INTERVAL_MS },
       callback: () => refreshExpiringMcpTokens(),
+    },
+    {
+      key: 'mail-sync-tick',
+      schedule: { type: 'interval', everyMs: MAIL_SYNC_INTERVAL_MS },
+      callback: () => runMailSyncTick(),
+      catchup: 'none',
     },
   ];
 

@@ -18,6 +18,8 @@
     "./liquid-ui/parse": "./src/liquid-ui/parse.ts",
     "./liquid-ui/schema": "./src/liquid-ui/schema.ts",
     "./mcp/types": "./src/mcp/types.ts",
+    "./mail/events": "./src/mail/events.ts",
+    "./mail/types": "./src/mail/types.ts",
     "./permissions/types": "./src/permissions/types.ts",
     "./permissions/events": "./src/permissions/events.ts",
     "./providers/catalog": "./src/providers/catalog.ts",

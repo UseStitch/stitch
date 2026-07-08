@@ -3,6 +3,7 @@ import { useRouterState } from '@tanstack/react-router';
 import { AgendaSidebarContent } from '@/components/agenda/agenda-sidebar';
 import { AutomationsSidebarContent } from '@/components/automations/automations-sidebar';
 import { ChatSidebarContent } from '@/components/chat/chat-sidebar';
+import { MailSidebarContent } from '@/components/mail/mail-sidebar';
 import { RecordingsSidebarContent } from '@/components/recordings/recordings-sidebar';
 import { SettingsSidebarContent } from '@/components/settings/settings-nav';
 import { Sidebar } from '@/components/ui/sidebar';
@@ -14,6 +15,7 @@ const SIDEBAR_CONTENT = [
   { path: '/automations', content: <AutomationsSidebarContent /> },
   { path: '/recordings', content: <RecordingsSidebarContent /> },
   { path: '/agenda', content: <AgendaSidebarContent /> },
+  { path: '/mail', content: <MailSidebarContent /> },
 ] as const;
 
 export function AppSidebar() {

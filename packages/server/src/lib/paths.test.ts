@@ -50,6 +50,10 @@ describe('createPaths', () => {
     expect(paths.configDir).toBe(path.join('C:\\Users\\test\\AppData\\Roaming', 'stitch-custom', 'Config'));
     expect(paths.logDir).toBe(path.join('C:\\Users\\test\\AppData\\Local', 'stitch-custom', 'Log'));
     expect(paths.filePaths.db).toBe(path.join(paths.dataDir, 'stitch-custom.db'));
+    expect(paths.dirPaths.apps).toBe(path.join(paths.dataDir, 'apps'));
+    expect(paths.dirPaths.mailbox).toBe(path.join(paths.dirPaths.apps, 'mailbox'));
+    expect(paths.filePaths.mailDb).toBe(path.join(paths.dirPaths.mailbox, 'mail.db'));
+    expect(paths.dirPaths.mailAttachments).toBe(path.join(paths.dirPaths.mailbox, 'attachments'));
     expect(paths.dirPaths.recordings).toBe(path.join(paths.dataDir, 'recordings'));
   });
 

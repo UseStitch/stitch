@@ -28,6 +28,7 @@
     "@openrouter/ai-sdk-provider": "catalog:ai",
     "@stitch-connectors/google": "workspace:*",
     "@stitch-connectors/sdk": "workspace:*",
+    "@stitch/mail": "workspace:*",
     "@stitch/sandbox": "workspace:*",
     "@stitch/scheduler": "workspace:*",
     "@stitch/shared": "workspace:*",

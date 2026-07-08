@@ -1,4 +1,4 @@
-export const APP_IDS = ['browser', 'recordings', 'agenda'] as const;
+export const APP_IDS = ['browser', 'recordings', 'agenda', 'mail'] as const;
 
 export type AppId = (typeof APP_IDS)[number];
 
