@@ -141,18 +141,24 @@ describe('buildHistoryMessages', () => {
     return { type: 'text-delta', id: 'prt_text' as StoredPart['id'], text, ...timing } as StoredPart;
   }
 
-  function toolCallPart(toolCallId: string, toolName = 'bash'): StoredPart {
+  function toolCallPart(toolCallId: string, toolName = 'bash', providerMetadata?: Record<string, unknown>): StoredPart {
     return {
       type: 'tool-call',
       id: `prt_call_${toolCallId}` as StoredPart['id'],
       toolCallId,
       toolName,
       input: { command: 'pwd' },
+      ...(providerMetadata ? { providerMetadata } : {}),
       ...timing,
     } as StoredPart;
   }
 
-  function toolResultPart(toolCallId: string, output: unknown, toolName = 'bash'): StoredPart {
+  function toolResultPart(
+    toolCallId: string,
+    output: unknown,
+    toolName = 'bash',
+    providerMetadata?: Record<string, unknown>,
+  ): StoredPart {
     return {
       type: 'tool-result',
       id: `prt_result_${toolCallId}` as StoredPart['id'],
@@ -160,6 +166,7 @@ describe('buildHistoryMessages', () => {
       toolName,
       output,
       truncated: false,
+      ...(providerMetadata ? { providerMetadata } : {}),
       ...timing,
     } as StoredPart;
   }
@@ -193,6 +200,41 @@ describe('buildHistoryMessages', () => {
     expect(nonSystem).toHaveLength(2);
     expect(nonSystem[0]).toMatchObject({ role: 'assistant', content: [{ type: 'tool-call', toolCallId: 'tc_1' }] });
     expect(nonSystem[1]).toMatchObject({ role: 'tool', content: [{ type: 'tool-result', toolCallId: 'tc_1' }] });
+  });
+
+  test('preserves provider metadata on replayed tool-call and tool-result parts', () => {
+    const providerMetadata = { google: { thoughtSignature: 'thought-sig-1' } };
+    const result = buildHistoryMessages(
+      [
+        {
+          role: 'assistant',
+          isSummary: false,
+          modelId: 'gemini-3.5-flash',
+          parts: [
+            toolCallPart('tc_1', 'gmail_search', providerMetadata),
+            toolResultPart('tc_1', { ok: true }, 'gmail_search', providerMetadata),
+          ],
+        },
+      ],
+      {
+        useBasePrompt: true,
+        systemPrompt: null,
+        userName: '',
+        userTimezone: '',
+        memoryContext: null,
+        todoContext: null,
+      },
+    );
+
+    const nonSystem = result.filter((m) => m.role !== 'system');
+    expect(nonSystem[0]).toMatchObject({
+      role: 'assistant',
+      content: [{ type: 'tool-call', toolCallId: 'tc_1', providerOptions: providerMetadata }],
+    });
+    expect(nonSystem[1]).toMatchObject({
+      role: 'tool',
+      content: [{ type: 'tool-result', toolCallId: 'tc_1', providerOptions: providerMetadata }],
+    });
   });
 
   test('drops unmatched tool-call parts from history', () => {
