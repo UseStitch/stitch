@@ -15,7 +15,15 @@ import { useQuery } from '@tanstack/react-query';
 
 import type { MailAccountId, MailLabelView } from '@stitch/shared/mail/types';
 
-import { getLabelDisplayName, getLabelParts, SYSTEM_LABEL_ORDER, titleCase } from '@/components/mail/mail-label-utils';
+import {
+  getLabelDisplayName,
+  getLabelParts,
+  readCollapsedLabelState,
+  SYSTEM_LABEL_ORDER,
+  titleCase,
+  writeCollapsedLabelState,
+  type LabelSection,
+} from '@/components/mail/mail-label-utils';
 import { useMailStore } from '@/components/mail/mail-store';
 import { InternalSidebar } from '@/components/navigation/internal-sidebar';
 import { Badge } from '@/components/ui/badge';
@@ -31,8 +39,6 @@ import { getDefaultMailLabel, mailAccountsQueryOptions, mailLabelsQueryOptions }
 import { cn } from '@/lib/utils';
 
 type UserLabelNode = { key: string; name: string; label: MailLabelView | null; children: UserLabelNode[] };
-
-type LabelSection = 'categories' | 'markers' | 'custom';
 
 function getSystemLabelGroup(label: MailLabelView): 'primary' | 'category' | 'marker' | null {
   const normalized = label.providerLabelId.toUpperCase();
@@ -263,8 +269,13 @@ function MailLabelList({ accountId }: { accountId: MailAccountId }) {
   const { selectedLabelId, setSelectedLabelId } = useMailStore();
   const { data: labels = [] } = useQuery(mailLabelsQueryOptions(accountId));
   const sortedLabels = React.useMemo(() => sortLabels(labels), [labels]);
-  const [collapsedLabels, setCollapsedLabels] = React.useState<Set<string>>(new Set());
-  const [collapsedSections, setCollapsedSections] = React.useState<Set<LabelSection>>(new Set());
+  const initialCollapsedState = React.useMemo(() => readCollapsedLabelState(accountId), [accountId]);
+  const [collapsedLabels, setCollapsedLabels] = React.useState<Set<string>>(
+    () => new Set(initialCollapsedState.labels),
+  );
+  const [collapsedSections, setCollapsedSections] = React.useState<Set<LabelSection>>(
+    () => new Set(initialCollapsedState.sections),
+  );
   const primaryLabels = sortedLabels.filter((label) => getSystemLabelGroup(label) === 'primary');
   const categoryLabels = sortedLabels.filter((label) => getSystemLabelGroup(label) === 'category');
   const markerLabels = sortedLabels.filter((label) => getSystemLabelGroup(label) === 'marker');
@@ -273,23 +284,31 @@ function MailLabelList({ accountId }: { accountId: MailAccountId }) {
     [sortedLabels],
   );
 
-  const toggleCollapsedLabel = React.useCallback((key: string) => {
-    setCollapsedLabels((current) => {
-      const next = new Set(current);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }, []);
+  const toggleCollapsedLabel = React.useCallback(
+    (key: string) => {
+      setCollapsedLabels((currentLabels) => {
+        const nextLabels = new Set(currentLabels);
+        if (nextLabels.has(key)) nextLabels.delete(key);
+        else nextLabels.add(key);
+        writeCollapsedLabelState(accountId, nextLabels, collapsedSections);
+        return nextLabels;
+      });
+    },
+    [accountId, collapsedSections],
+  );
 
-  const toggleSection = React.useCallback((section: LabelSection) => {
-    setCollapsedSections((current) => {
-      const next = new Set(current);
-      if (next.has(section)) next.delete(section);
-      else next.add(section);
-      return next;
-    });
-  }, []);
+  const toggleSection = React.useCallback(
+    (section: LabelSection) => {
+      setCollapsedSections((currentSections) => {
+        const nextSections = new Set(currentSections);
+        if (nextSections.has(section)) nextSections.delete(section);
+        else nextSections.add(section);
+        writeCollapsedLabelState(accountId, collapsedLabels, nextSections);
+        return nextSections;
+      });
+    },
+    [accountId, collapsedLabels],
+  );
 
   React.useEffect(() => {
     if (!selectedLabelId && labels.length > 0) setSelectedLabelId(getDefaultMailLabel(labels)?.id ?? null);
@@ -406,7 +425,7 @@ export function MailSidebarContent() {
             description="Enroll an account in Settings."
           />
         ) : (
-          <MailLabelList accountId={selectedAccount.id} />
+          <MailLabelList key={selectedAccount.id} accountId={selectedAccount.id} />
         )}
       </InternalSidebar.Content>
     </InternalSidebar>

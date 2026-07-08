@@ -1,4 +1,10 @@
-import type { MailLabelView } from '@stitch/shared/mail/types';
+import type { MailAccountId, MailLabelView } from '@stitch/shared/mail/types';
+
+export type LabelSection = 'categories' | 'markers' | 'custom';
+
+type CollapsedLabelState = { labels: string[]; sections: LabelSection[] };
+
+const COLLAPSED_LABEL_STATE_KEY_PREFIX = 'stitch.mail.collapsed-labels';
 
 export const SYSTEM_LABEL_ORDER = [
   'INBOX',
@@ -53,4 +59,38 @@ export function getLabelDisplayName(label: MailLabelView): string {
 
   const parts = getLabelParts(label);
   return parts.at(-1) ?? titleCase(label.name);
+}
+
+function getCollapsedLabelStateKey(accountId: MailAccountId): string {
+  return `${COLLAPSED_LABEL_STATE_KEY_PREFIX}.${accountId}`;
+}
+
+function isLabelSection(value: string): value is LabelSection {
+  return value === 'categories' || value === 'markers' || value === 'custom';
+}
+
+export function readCollapsedLabelState(accountId: MailAccountId): CollapsedLabelState {
+  if (typeof window === 'undefined') return { labels: [], sections: [] };
+
+  const stored = window.localStorage.getItem(getCollapsedLabelStateKey(accountId));
+  if (!stored) return { labels: [], sections: [] };
+
+  const parsed = JSON.parse(stored) as Partial<CollapsedLabelState>;
+  return {
+    labels: Array.isArray(parsed.labels) ? parsed.labels.filter((value) => typeof value === 'string') : [],
+    sections: Array.isArray(parsed.sections) ? parsed.sections.filter(isLabelSection) : [],
+  };
+}
+
+export function writeCollapsedLabelState(
+  accountId: MailAccountId,
+  collapsedLabels: Set<string>,
+  collapsedSections: Set<LabelSection>,
+) {
+  if (typeof window === 'undefined') return;
+
+  window.localStorage.setItem(
+    getCollapsedLabelStateKey(accountId),
+    JSON.stringify({ labels: [...collapsedLabels], sections: [...collapsedSections] } satisfies CollapsedLabelState),
+  );
 }
