@@ -400,14 +400,14 @@ export function MailSidebarContent() {
               render={
                 <Button
                   variant="outline"
-                  className="mx-2 mb-2 min-w-0 justify-between"
+                  className="mx-2 mb-2 w-[calc(100%-1rem)] min-w-0 justify-between"
                   aria-label="Switch mail account"
                 />
               }>
               <span className="truncate">{selectedAccount.email}</span>
               <ChevronDownIcon className="size-4 text-muted-foreground" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-64">
+            <DropdownMenuContent>
               {accounts.map((account) => (
                 <DropdownMenuItem key={account.id} onClick={() => setSelectedAccountId(account.id)}>
                   <span className="truncate">{account.email}</span>
