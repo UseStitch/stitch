@@ -11,6 +11,7 @@ type GmailProfile = { emailAddress?: string; messagesTotal?: number; threadsTota
 type GmailLabel = { id: string; name: string; type?: string; color?: { backgroundColor?: string; textColor?: string } };
 type GmailLabelListResponse = { labels?: GmailLabel[] };
 type GmailMessageListResponse = { messages?: { id: string; threadId: string }[]; nextPageToken?: string };
+type GmailThreadListResponse = { threads?: { id: string }[]; nextPageToken?: string };
 type GmailAttachmentResponse = { data?: string; size?: number };
 export type GmailMessageFormat = 'full' | 'metadata';
 export type GmailHistoryResponse = { history?: GmailHistory[]; nextPageToken?: string; historyId: string };
@@ -59,12 +60,30 @@ export async function listMessages(
   return gmailApiRequest<GmailMessageListResponse>(ctx, `/messages?${params.toString()}`);
 }
 
+export async function listThreads(
+  ctx: MailProviderContext,
+  input: { pageToken?: string; afterEpochSeconds?: number },
+): Promise<GmailThreadListResponse> {
+  const params = new URLSearchParams({ maxResults: '500' });
+  if (input.pageToken) params.set('pageToken', input.pageToken);
+  if (input.afterEpochSeconds !== undefined) params.set('q', `after:${input.afterEpochSeconds}`);
+  return gmailApiRequest<GmailThreadListResponse>(ctx, `/threads?${params.toString()}`);
+}
+
 export function buildGetMessagePath(messageId: string, format: GmailMessageFormat): string {
   const params = new URLSearchParams({ format });
   if (format === 'metadata') {
     for (const header of METADATA_HEADERS) params.append('metadataHeaders', header);
   }
   return `/messages/${encodeURIComponent(messageId)}?${params.toString()}`;
+}
+
+export function buildGetThreadPath(threadId: string, format: GmailMessageFormat): string {
+  const params = new URLSearchParams({ format });
+  if (format === 'metadata') {
+    for (const header of METADATA_HEADERS) params.append('metadataHeaders', header);
+  }
+  return `/threads/${encodeURIComponent(threadId)}?${params.toString()}`;
 }
 
 export async function getMessage(

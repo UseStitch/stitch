@@ -5,7 +5,7 @@ import {
   getProfile,
   listHistory,
   listLabelsRaw,
-  listMessages,
+  listThreads,
   modifyMessageRaw,
   sendDraftRaw,
   sendMessageRaw,
@@ -13,7 +13,7 @@ import {
   untrashThreadRaw,
   updateDraftRaw,
   deleteDraftRaw,
-  buildGetMessagePath,
+  buildGetThreadPath,
   type GmailMessageFormat,
 } from './api.js';
 import { gmailBatchRequest } from './batch.js';
@@ -28,10 +28,11 @@ import type {
   OutgoingDraft,
   SyncChange,
   SyncLabel,
-  SyncMessage,
+  SyncThread,
 } from '../../contracts.js';
 
 type BackfillCursor = { pageToken: string };
+type GmailThread = { id: string; messages?: GmailMessage[] };
 
 const BATCH_SIZE = 50;
 
@@ -50,42 +51,49 @@ function chunks<T>(items: T[], size: number): T[][] {
   return result;
 }
 
-async function batchGetMessages(
+async function batchGetThreads(
   ctx: MailProviderContext,
-  messageIds: string[],
+  threadIds: string[],
   format: GmailMessageFormat,
-): Promise<{ messageId: string; status: number; message: GmailMessage | null }[]> {
-  const results: { messageId: string; status: number; message: GmailMessage | null }[] = [];
-  for (const group of chunks(messageIds, BATCH_SIZE)) {
-    const batch = await gmailBatchRequest<GmailMessage>(
+): Promise<{ threadId: string; status: number; thread: GmailThread | null }[]> {
+  const results: { threadId: string; status: number; thread: GmailThread | null }[] = [];
+  for (const group of chunks(threadIds, BATCH_SIZE)) {
+    const batch = await gmailBatchRequest<GmailThread>(
       ctx,
-      group.map((messageId) => ({
-        id: messageId,
+      group.map((threadId) => ({
+        id: threadId,
         method: 'GET',
-        path: `/gmail/v1/users/me${buildGetMessagePath(messageId, format)}`,
+        path: `/gmail/v1/users/me${buildGetThreadPath(threadId, format)}`,
       })),
     );
     const byId = new Map(batch.map((item) => [item.id, item]));
-    for (const messageId of group) {
-      const item = byId.get(messageId);
-      results.push({ messageId, status: item?.status ?? 0, message: item?.body ?? null });
+    for (const threadId of group) {
+      const item = byId.get(threadId);
+      results.push({ threadId, status: item?.status ?? 0, thread: item?.body ?? null });
     }
   }
   return results;
 }
 
-async function batchGetParsedMessages(
+function parseGmailThread(thread: GmailThread, format: GmailMessageFormat): SyncThread {
+  return {
+    providerThreadId: thread.id,
+    messages: (thread.messages ?? []).map((message) => parseGmailMessage(message, format)),
+  };
+}
+
+async function batchGetParsedThreads(
   ctx: MailProviderContext,
-  messageIds: string[],
+  threadIds: string[],
   format: GmailMessageFormat,
-): Promise<SyncMessage[]> {
-  const responses = await batchGetMessages(ctx, messageIds, format);
+): Promise<SyncThread[]> {
+  const responses = await batchGetThreads(ctx, threadIds, format);
   return responses
     .filter(
-      (response): response is { messageId: string; status: number; message: GmailMessage } =>
-        response.status >= 200 && response.status < 300 && response.message !== null,
+      (response): response is { threadId: string; status: number; thread: GmailThread } =>
+        response.status >= 200 && response.status < 300 && response.thread !== null,
     )
-    .map((response) => parseGmailMessage(response.message, format));
+    .map((response) => parseGmailThread(response.thread, format));
 }
 
 function buildAddressHeader(name: string | null, email: string): string {
@@ -156,15 +164,15 @@ function mapLabel(label: { id: string; name: string; type?: string; color?: { ba
   };
 }
 
-async function listAllMessageIdsSince(ctx: MailProviderContext, sinceMs: number): Promise<string[]> {
-  const messageIds: string[] = [];
+async function listAllThreadIdsSince(ctx: MailProviderContext, sinceMs: number): Promise<string[]> {
+  const threadIds: string[] = [];
   let pageToken: string | undefined;
   do {
-    const page = await listMessages(ctx, { afterEpochSeconds: Math.floor(sinceMs / 1000), pageToken });
-    messageIds.push(...(page.messages ?? []).map((message) => message.id));
+    const page = await listThreads(ctx, { afterEpochSeconds: Math.floor(sinceMs / 1000), pageToken });
+    threadIds.push(...(page.threads ?? []).map((thread) => thread.id));
     pageToken = page.nextPageToken;
   } while (pageToken);
-  return messageIds;
+  return threadIds;
 }
 
 export const gmailSyncProvider: MailSyncProvider = {
@@ -180,26 +188,24 @@ export const gmailSyncProvider: MailSyncProvider = {
 
   async backfillPage(ctx, cursor, fullBodiesAfter) {
     const parsedCursor = parseBackfillCursor(cursor);
-    const page = await listMessages(ctx, { pageToken: parsedCursor?.pageToken });
-    const messageIds = (page.messages ?? []).map((message) => message.id);
-    const metadataMessages = await batchGetParsedMessages(ctx, messageIds, 'metadata');
-    const fullIds = metadataMessages
-      .filter((message) => message.internalDate >= fullBodiesAfter)
-      .map((message) => message.providerMessageId);
-    const fullMessages = await batchGetParsedMessages(ctx, fullIds, 'full');
-    const fullById = new Map(fullMessages.map((message) => [message.providerMessageId, message]));
+    const page = await listThreads(ctx, { pageToken: parsedCursor?.pageToken });
+    const threadIds = (page.threads ?? []).map((thread) => thread.id);
+    const metadataThreads = await batchGetParsedThreads(ctx, threadIds, 'metadata');
+    const fullIds = metadataThreads
+      .filter((thread) => thread.messages.some((message) => message.internalDate >= fullBodiesAfter))
+      .map((thread) => thread.providerThreadId);
+    const fullThreads = await batchGetParsedThreads(ctx, fullIds, 'full');
+    const fullById = new Map(fullThreads.map((thread) => [thread.providerThreadId, thread]));
 
     return {
-      messages: metadataMessages.map((message) => fullById.get(message.providerMessageId) ?? message),
+      threads: metadataThreads.map((thread) => fullById.get(thread.providerThreadId) ?? thread),
       nextPageCursor: encodeBackfillCursor(page.nextPageToken),
     };
   },
 
   async incrementalSync(ctx, syncCursor): Promise<IncrementalResult> {
     const changes: SyncChange[] = [];
-    const upsertIds = new Set<string>();
-    const deletedIds = new Set<string>();
-    const labelChanges = new Map<string, { addProviderIds: Set<string>; removeProviderIds: Set<string> }>();
+    const touchedThreadIds = new Set<string>();
     let pageToken: string | undefined;
     let nextSyncCursor = syncCursor;
 
@@ -208,24 +214,14 @@ export const gmailSyncProvider: MailSyncProvider = {
         const page = await listHistory(ctx, { startHistoryId: syncCursor, pageToken });
         nextSyncCursor = page.historyId;
         for (const history of page.history ?? []) {
-          for (const added of history.messagesAdded ?? []) upsertIds.add(added.message.id);
-          for (const deleted of history.messagesDeleted ?? []) deletedIds.add(deleted.message.id);
-          for (const added of history.labelsAdded ?? []) {
-            const existing = labelChanges.get(added.message.id) ?? {
-              addProviderIds: new Set<string>(),
-              removeProviderIds: new Set<string>(),
-            };
-            for (const labelId of added.labelIds ?? []) existing.addProviderIds.add(labelId);
-            labelChanges.set(added.message.id, existing);
-          }
-          for (const removed of history.labelsRemoved ?? []) {
-            const existing = labelChanges.get(removed.message.id) ?? {
-              addProviderIds: new Set<string>(),
-              removeProviderIds: new Set<string>(),
-            };
-            for (const labelId of removed.labelIds ?? []) existing.removeProviderIds.add(labelId);
-            labelChanges.set(removed.message.id, existing);
-          }
+          for (const added of history.messagesAdded ?? [])
+            if (added.message.threadId) touchedThreadIds.add(added.message.threadId);
+          for (const deleted of history.messagesDeleted ?? [])
+            if (deleted.message.threadId) touchedThreadIds.add(deleted.message.threadId);
+          for (const added of history.labelsAdded ?? [])
+            if (added.message.threadId) touchedThreadIds.add(added.message.threadId);
+          for (const removed of history.labelsRemoved ?? [])
+            if (removed.message.threadId) touchedThreadIds.add(removed.message.threadId);
         }
         pageToken = page.nextPageToken;
       } while (pageToken);
@@ -234,33 +230,23 @@ export const gmailSyncProvider: MailSyncProvider = {
       throw error;
     }
 
-    const upserts = await batchGetMessages(ctx, [...upsertIds], 'full');
-    for (const response of upserts) {
-      if (response.status === 404) {
-        changes.push({ kind: 'delete', providerMessageId: response.messageId });
-      } else if (response.status >= 200 && response.status < 300 && response.message) {
-        changes.push({ kind: 'upsert', message: parseGmailMessage(response.message, 'full') });
+    const threads = await batchGetThreads(ctx, [...touchedThreadIds], 'full');
+    for (const response of threads) {
+      if (response.status === 404) changes.push({ kind: 'deleteThread', providerThreadId: response.threadId });
+      if (response.status >= 200 && response.status < 300 && response.thread) {
+        changes.push({ kind: 'upsertThread', thread: parseGmailThread(response.thread, 'full') });
       }
-    }
-    for (const providerMessageId of deletedIds) changes.push({ kind: 'delete', providerMessageId });
-    for (const [providerMessageId, change] of labelChanges) {
-      changes.push({
-        kind: 'labels',
-        providerMessageId,
-        addProviderIds: [...change.addProviderIds],
-        removeProviderIds: [...change.removeProviderIds],
-      });
     }
 
     return { status: 'ok', changes, nextSyncCursor };
   },
 
-  async listMessagesSince(ctx, sinceMs) {
-    return batchGetParsedMessages(ctx, await listAllMessageIdsSince(ctx, sinceMs), 'full');
+  async listThreadsSince(ctx, sinceMs) {
+    return batchGetParsedThreads(ctx, await listAllThreadIdsSince(ctx, sinceMs), 'full');
   },
 
-  async hydrateMessages(ctx, providerMessageIds) {
-    return batchGetParsedMessages(ctx, providerMessageIds, 'full');
+  async getThread(ctx, providerThreadId, hydration) {
+    return (await batchGetParsedThreads(ctx, [providerThreadId], hydration))[0] ?? null;
   },
 
   async fetchAttachment(ctx, providerMessageId, providerAttachmentId) {

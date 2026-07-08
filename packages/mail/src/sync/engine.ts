@@ -144,8 +144,8 @@ export function createMailEngine(deps: MailEngineDeps): MailEngine {
     createContext: (account) => createContext(account),
     emitAccountUpdated,
     emitThreadsChanged,
-    hydrateSentMessage: async (ctx, provider, providerMessageId) =>
-      provider.sync.hydrateMessages(ctx, [providerMessageId]),
+    hydrateSentThread: async (ctx, provider, providerThreadId) =>
+      provider.sync.getThread(ctx, providerThreadId, 'full'),
   });
   const ops = createOperations({
     outbox,

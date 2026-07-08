@@ -1,12 +1,12 @@
-import path from 'node:path';
-
 import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
+import path from 'node:path';
 
 import { closeMailDb, getMailDb, initMailDb } from '../db/client.js';
 import { mailAccounts, mailLabels, mailThreads } from '../db/schema.js';
-import type { SyncMessage } from '../contracts.js';
 import { persistLabels, persistSyncPage } from './persist.js';
+
+import type { SyncMessage } from '../contracts.js';
 
 const migrationsDir = path.join(import.meta.dir, '../../drizzle');
 
@@ -41,7 +41,10 @@ afterEach(() => {
 
 test('persistSyncPage recomputes thread denorms and label counts', async () => {
   const db = getMailDb();
-  const [account] = await db.insert(mailAccounts).values({ connectorInstanceId: 'ci_1', provider: 'gmail', email: 'a@example.com' }).returning();
+  const [account] = await db
+    .insert(mailAccounts)
+    .values({ connectorInstanceId: 'ci_1', provider: 'gmail', email: 'a@example.com' })
+    .returning();
   await persistLabels(account.id, [
     { providerLabelId: 'INBOX', name: 'Inbox', kind: 'system', color: null },
     { providerLabelId: 'UNREAD', name: 'Unread', kind: 'system', color: null },
@@ -49,9 +52,19 @@ test('persistSyncPage recomputes thread denorms and label counts', async () => {
   ]);
 
   const touched = await persistSyncPage(account.id, {
-    messages: [
-      message({ providerMessageId: 'msg-1', labelProviderIds: ['INBOX', 'UNREAD'], internalDate: 1000 }),
-      message({ providerMessageId: 'msg-2', labelProviderIds: ['INBOX', 'TRASH'], internalDate: 2000, attachments: [{ providerAttachmentId: 'att-1', filename: 'a.txt', mimeType: 'text/plain', sizeBytes: 3 }] }),
+    threads: [
+      {
+        providerThreadId: 'thread-1',
+        messages: [
+          message({ providerMessageId: 'msg-1', labelProviderIds: ['INBOX', 'UNREAD'], internalDate: 1000 }),
+          message({
+            providerMessageId: 'msg-2',
+            labelProviderIds: ['INBOX', 'TRASH'],
+            internalDate: 2000,
+            attachments: [{ providerAttachmentId: 'att-1', filename: 'a.txt', mimeType: 'text/plain', sizeBytes: 3 }],
+          }),
+        ],
+      },
     ],
     nextPageCursor: undefined,
   });
@@ -70,4 +83,35 @@ test('persistSyncPage recomputes thread denorms and label counts', async () => {
   expect(inbox?.totalCount).toBe(2);
   expect(inbox?.unreadCount).toBe(1);
   expect(unread?.totalCount).toBe(1);
+});
+
+test('persistSyncPage treats fetched thread membership as authoritative', async () => {
+  const db = getMailDb();
+  const [account] = await db
+    .insert(mailAccounts)
+    .values({ connectorInstanceId: 'ci_1', provider: 'gmail', email: 'a@example.com' })
+    .returning();
+  await persistLabels(account.id, [{ providerLabelId: 'INBOX', name: 'Inbox', kind: 'system', color: null }]);
+
+  const first = await persistSyncPage(account.id, {
+    threads: [
+      {
+        providerThreadId: 'thread-1',
+        messages: [
+          message({ providerMessageId: 'msg-1' }),
+          message({ providerMessageId: 'msg-2', internalDate: 2000 }),
+        ],
+      },
+    ],
+    nextPageCursor: undefined,
+  });
+  await persistSyncPage(account.id, {
+    threads: [
+      { providerThreadId: 'thread-1', messages: [message({ providerMessageId: 'msg-2', internalDate: 2000 })] },
+    ],
+    nextPageCursor: undefined,
+  });
+
+  const [thread] = await db.select().from(mailThreads).where(eq(mailThreads.id, first[0])).limit(1);
+  expect(thread.messageCount).toBe(1);
 });

@@ -1,12 +1,12 @@
-import path from 'node:path';
-
 import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
+import path from 'node:path';
 
 import { closeMailDb, getMailDb, initMailDb } from '../db/client.js';
 import { mailAccounts, mailMessages } from '../db/schema.js';
-import type { MailProviderContext, MailSyncProvider, SyncMessage } from '../contracts.js';
 import { runIncremental } from './incremental.js';
+
+import type { MailProviderContext, MailSyncProvider, SyncMessage } from '../contracts.js';
 
 const migrationsDir = path.join(import.meta.dir, '../../drizzle');
 
@@ -44,7 +44,14 @@ test('runIncremental follows cursor-expired recovery ladder', async () => {
   const db = getMailDb();
   const [account] = await db
     .insert(mailAccounts)
-    .values({ connectorInstanceId: 'ci_1', provider: 'gmail', email: 'a@example.com', syncPhase: 'incremental', syncCursor: 'old', lastSyncedAt: syncedAt })
+    .values({
+      connectorInstanceId: 'ci_1',
+      provider: 'gmail',
+      email: 'a@example.com',
+      syncPhase: 'incremental',
+      syncCursor: 'old',
+      lastSyncedAt: syncedAt,
+    })
     .returning();
   const calls: string[] = [];
   const provider: MailSyncProvider = {
@@ -54,32 +61,40 @@ test('runIncremental follows cursor-expired recovery ladder', async () => {
       calls.push('snapshot');
       return 'new-cursor';
     },
-    backfillPage: async () => ({ messages: [], nextPageCursor: undefined }),
+    backfillPage: async () => ({ threads: [], nextPageCursor: undefined }),
     incrementalSync: async () => {
       calls.push('incremental');
       return { status: 'cursor_expired' };
     },
-    listMessagesSince: async (_ctx, sinceMs) => {
+    listThreadsSince: async (_ctx, sinceMs) => {
       calls.push(`since:${sinceMs}`);
-      return [message()];
+      return [{ providerThreadId: 'new-thread', messages: [message()] }];
     },
-    hydrateMessages: async () => [],
+    getThread: async () => null,
     fetchAttachment: async () => new Uint8Array(),
   };
 
-  const result = await runIncremental({ account, http: { request: fetch }, logger: consoleLogger, signal: new AbortController().signal } satisfies MailProviderContext, provider);
+  const result = await runIncremental(
+    {
+      account,
+      http: { request: fetch },
+      logger: consoleLogger,
+      signal: new AbortController().signal,
+    } satisfies MailProviderContext,
+    provider,
+  );
 
   expect(calls).toEqual(['incremental', 'snapshot', `since:${syncedAt - 86_400_000}`]);
   expect(result.queuedReconcile).toBe(true);
   const [updated] = await db.select().from(mailAccounts).where(eq(mailAccounts.id, account.id)).limit(1);
   expect(updated.syncCursor).toBe('new-cursor');
   expect(updated.syncPhase).toBe('reconciling');
-  const [persisted] = await db.select().from(mailMessages).where(eq(mailMessages.providerMessageId, 'new-message')).limit(1);
+  const [persisted] = await db
+    .select()
+    .from(mailMessages)
+    .where(eq(mailMessages.providerMessageId, 'new-message'))
+    .limit(1);
   expect(persisted.subject).toBe('Recovered');
 });
 
-const consoleLogger = {
-  info() {},
-  warn() {},
-  error() {},
-};
+const consoleLogger = { info() {}, warn() {}, error() {} };

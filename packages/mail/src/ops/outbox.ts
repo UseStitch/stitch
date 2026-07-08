@@ -16,7 +16,7 @@ import {
 import { getMailProvider } from '../registry.js';
 import { persistSyncPage } from '../sync/persist.js';
 
-import type { MailProviderContext, MailProviderModule, OutgoingDraft, SyncMessage } from '../contracts.js';
+import type { MailProviderContext, MailProviderModule, OutgoingDraft, SyncThread } from '../contracts.js';
 
 const BASE_BACKOFF_MS = 30_000;
 const MAX_BACKOFF_MS = 3_600_000;
@@ -33,11 +33,11 @@ type OutboxDeps = {
   createContext(account: MailAccountRecord): MailProviderContext;
   emitAccountUpdated(accountId: MailAccountId): void;
   emitThreadsChanged(accountId: MailAccountId, threadIds: MailThreadId[]): void;
-  hydrateSentMessage(
+  hydrateSentThread(
     ctx: MailProviderContext,
     provider: MailProviderModule,
-    providerMessageId: string,
-  ): Promise<SyncMessage[]>;
+    providerThreadId: string,
+  ): Promise<SyncThread | null>;
 };
 
 export type OutboxController = {
@@ -74,11 +74,11 @@ async function processSentMessage(
   deps: OutboxDeps,
   ctx: MailProviderContext,
   provider: MailProviderModule,
-  providerMessageId: string,
+  providerThreadId: string,
 ): Promise<void> {
-  const messages = await deps.hydrateSentMessage(ctx, provider, providerMessageId);
-  if (messages.length === 0) return;
-  const touched = await persistSyncPage(ctx.account.id, { messages, nextPageCursor: undefined });
+  const thread = await deps.hydrateSentThread(ctx, provider, providerThreadId);
+  if (!thread) return;
+  const touched = await persistSyncPage(ctx.account.id, { threads: [thread], nextPageCursor: undefined });
   deps.emitThreadsChanged(ctx.account.id, touched);
 }
 
@@ -92,7 +92,7 @@ async function processOutboxRow(deps: OutboxDeps, row: typeof mailOutbox.$inferS
 
   if (row.opType === 'send') {
     const result = await provider.ops.send(ctx, (payload as Extract<OutboxPayload, { draft: OutgoingDraft }>).draft);
-    await processSentMessage(deps, ctx, provider, result.providerMessageId);
+    await processSentMessage(deps, ctx, provider, result.providerThreadId);
   }
   if (row.opType === 'send_draft') {
     const draftPayload = payload as Extract<
@@ -103,7 +103,7 @@ async function processOutboxRow(deps: OutboxDeps, row: typeof mailOutbox.$inferS
       ? await provider.ops.sendDraft(ctx, draftPayload.providerDraftId)
       : await provider.ops.send(ctx, draftPayload.draft);
     await db.delete(mailDrafts).where(eq(mailDrafts.id, draftPayload.draftId));
-    await processSentMessage(deps, ctx, provider, result.providerMessageId);
+    await processSentMessage(deps, ctx, provider, result.providerThreadId);
   }
   if (row.opType === 'trash_thread') {
     await provider.ops.trashThread(

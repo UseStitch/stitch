@@ -1,13 +1,13 @@
-import path from 'node:path';
-
 import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
+import path from 'node:path';
 
 import { closeMailDb, getMailDb, initMailDb } from '../db/client.js';
 import { mailAccounts, mailOutbox } from '../db/schema.js';
-import type { MailProviderModule } from '../contracts.js';
 import { registerMailProvider } from '../registry.js';
 import { createOutbox, OUTBOX_RETRY } from './outbox.js';
+
+import type { MailProviderModule } from '../contracts.js';
 
 const migrationsDir = path.join(import.meta.dir, '../../drizzle');
 
@@ -21,13 +21,21 @@ afterEach(() => {
 
 test('flushOutbox marks failed sends with exponential retry delay', async () => {
   const db = getMailDb();
-  const [account] = await db.insert(mailAccounts).values({ connectorInstanceId: 'ci_1', provider: 'gmail', email: 'a@example.com' }).returning();
+  const [account] = await db
+    .insert(mailAccounts)
+    .values({ connectorInstanceId: 'ci_1', provider: 'gmail', email: 'a@example.com' })
+    .returning();
   registerMailProvider(failingProvider);
   const outbox = createOutbox({
-    createContext: (mailAccount) => ({ account: mailAccount, http: { request: fetch }, logger: consoleLogger, signal: new AbortController().signal }),
+    createContext: (mailAccount) => ({
+      account: mailAccount,
+      http: { request: fetch },
+      logger: consoleLogger,
+      signal: new AbortController().signal,
+    }),
     emitAccountUpdated() {},
     emitThreadsChanged() {},
-    hydrateSentMessage: async () => [],
+    hydrateSentThread: async () => null,
   });
 
   const before = Date.now();
@@ -49,10 +57,10 @@ const failingProvider: MailProviderModule = {
     id: 'gmail',
     listLabels: async () => [],
     snapshotCursor: async () => 'cursor',
-    backfillPage: async () => ({ messages: [], nextPageCursor: undefined }),
+    backfillPage: async () => ({ threads: [], nextPageCursor: undefined }),
     incrementalSync: async () => ({ status: 'ok', changes: [], nextSyncCursor: 'cursor' }),
-    listMessagesSince: async () => [],
-    hydrateMessages: async () => [],
+    listThreadsSince: async () => [],
+    getThread: async () => null,
     fetchAttachment: async () => new Uint8Array(),
   },
   ops: {
@@ -70,8 +78,4 @@ const failingProvider: MailProviderModule = {
   },
 };
 
-const consoleLogger = {
-  info() {},
-  warn() {},
-  error() {},
-};
+const consoleLogger = { info() {}, warn() {}, error() {} };

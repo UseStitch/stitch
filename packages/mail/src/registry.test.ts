@@ -9,10 +9,10 @@ const module: MailProviderModule = {
     id: 'gmail',
     listLabels: async () => [],
     snapshotCursor: async () => 'cursor',
-    backfillPage: async () => ({ messages: [], nextPageCursor: undefined }),
+    backfillPage: async () => ({ threads: [], nextPageCursor: undefined }),
     incrementalSync: async () => ({ status: 'ok', changes: [], nextSyncCursor: 'cursor' }),
-    listMessagesSince: async () => [],
-    hydrateMessages: async () => [],
+    listThreadsSince: async () => [],
+    getThread: async () => null,
     fetchAttachment: async () => new Uint8Array(),
   },
   ops: {

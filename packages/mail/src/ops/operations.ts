@@ -238,18 +238,15 @@ export function createOperations(deps: OperationsDeps) {
 
     async hydrateThread(threadId: MailThreadId): Promise<void> {
       const db = getMailDb();
-      const messages = await db
-        .select()
-        .from(mailMessages)
-        .where(and(eq(mailMessages.threadId, threadId), eq(mailMessages.hydration, 'metadata')));
-      if (messages.length === 0) return;
-      const account = await getAccount(messages[0].accountId);
+      const [thread] = await db.select().from(mailThreads).where(eq(mailThreads.id, threadId)).limit(1);
+      if (!thread) throw new MailNotFoundError(`Mail thread not found: ${threadId}`);
+      const messages = await db.select().from(mailMessages).where(eq(mailMessages.threadId, threadId));
+      if (messages.length > 0 && messages.every((message) => message.hydration === 'full')) return;
+      const account = await getAccount(thread.accountId);
       const provider = getMailProvider(account.provider);
-      const hydrated = await provider.sync.hydrateMessages(
-        deps.createContext(account),
-        messages.map((message) => message.providerMessageId),
-      );
-      const touched = await persistSyncPage(account.id, { messages: hydrated, nextPageCursor: undefined }, db);
+      const hydrated = await provider.sync.getThread(deps.createContext(account), thread.providerThreadId, 'full');
+      if (!hydrated) return;
+      const touched = await persistSyncPage(account.id, { threads: [hydrated], nextPageCursor: undefined }, db);
       deps.emitThreadsChanged(account.id, touched);
     },
 

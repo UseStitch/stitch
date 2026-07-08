@@ -2,14 +2,17 @@ import { eq } from 'drizzle-orm';
 
 import { getMailDb } from '../db/client.js';
 import { mailAccounts, type MailThreadId } from '../db/schema.js';
-import type { MailProviderContext, MailSyncProvider } from '../contracts.js';
 import { persistLabels, persistSyncPage } from './persist.js';
 
-type BackfillEvents = {
-  progress(processed: number, estimatedTotal: number): void;
-};
+import type { MailProviderContext, MailSyncProvider } from '../contracts.js';
 
-export async function runBackfill(ctx: MailProviderContext, provider: MailSyncProvider, events: BackfillEvents): Promise<MailThreadId[]> {
+type BackfillEvents = { progress(processed: number, estimatedTotal: number): void };
+
+export async function runBackfill(
+  ctx: MailProviderContext,
+  provider: MailSyncProvider,
+  events: BackfillEvents,
+): Promise<MailThreadId[]> {
   const db = getMailDb();
   const account = ctx.account;
   const touched: MailThreadId[] = [];
@@ -27,7 +30,7 @@ export async function runBackfill(ctx: MailProviderContext, provider: MailSyncPr
   while (!ctx.signal.aborted) {
     const page = await provider.backfillPage(ctx, cursor, fullBodiesAfter);
     touched.push(...(await persistSyncPage(account.id, page, db)));
-    processed += page.messages.length;
+    processed += page.threads.length;
     cursor = page.nextPageCursor;
     await db
       .update(mailAccounts)
@@ -40,7 +43,14 @@ export async function runBackfill(ctx: MailProviderContext, provider: MailSyncPr
   if (ctx.signal.aborted) throw new DOMException('Mail backfill aborted', 'AbortError');
   await db
     .update(mailAccounts)
-    .set({ syncCursor: snapshot, backfillCursor: null, syncPhase: 'incremental', lastSyncedAt: Date.now(), lastError: null, updatedAt: Date.now() })
+    .set({
+      syncCursor: snapshot,
+      backfillCursor: null,
+      syncPhase: 'incremental',
+      lastSyncedAt: Date.now(),
+      lastError: null,
+      updatedAt: Date.now(),
+    })
     .where(eq(mailAccounts.id, account.id));
   return [...new Set(touched)];
 }

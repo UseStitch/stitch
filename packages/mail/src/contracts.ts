@@ -50,15 +50,16 @@ export type SyncMessage = {
 };
 
 export type SyncPage = {
-  messages: SyncMessage[];
+  threads: SyncThread[];
   /** Opaque resume cursor persisted after each page; undefined = backfill complete. */
   nextPageCursor: string | undefined;
 };
 
+export type SyncThread = { providerThreadId: string; messages: SyncMessage[] };
+
 export type SyncChange =
-  | { kind: 'upsert'; message: SyncMessage }
-  | { kind: 'delete'; providerMessageId: string }
-  | { kind: 'labels'; providerMessageId: string; addProviderIds: string[]; removeProviderIds: string[] };
+  | { kind: 'upsertThread'; thread: SyncThread }
+  | { kind: 'deleteThread'; providerThreadId: string };
 
 export type IncrementalResult =
   | { status: 'ok'; changes: SyncChange[]; nextSyncCursor: string }
@@ -73,9 +74,13 @@ export type MailSyncProvider = {
   /** Newest-first, resumable. `fullBodiesAfter` (epoch ms) controls hydration format. */
   backfillPage(ctx: MailProviderContext, cursor: string | undefined, fullBodiesAfter: number): Promise<SyncPage>;
   incrementalSync(ctx: MailProviderContext, syncCursor: string): Promise<IncrementalResult>;
-  /** Approximate catch-up when cursor expired (Gmail: messages.list q=after:<epochSec>). */
-  listMessagesSince(ctx: MailProviderContext, sinceMs: number): Promise<SyncMessage[]>;
-  hydrateMessages(ctx: MailProviderContext, providerMessageIds: string[]): Promise<SyncMessage[]>;
+  /** Approximate catch-up when cursor expired (Gmail: threads.list q=after:<epochSec>). */
+  listThreadsSince(ctx: MailProviderContext, sinceMs: number): Promise<SyncThread[]>;
+  getThread(
+    ctx: MailProviderContext,
+    providerThreadId: string,
+    hydration: 'metadata' | 'full',
+  ): Promise<SyncThread | null>;
   fetchAttachment(
     ctx: MailProviderContext,
     providerMessageId: string,
