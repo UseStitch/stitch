@@ -12,14 +12,14 @@ function MailRoute() {
 }
 
 export const Route = createFileRoute('/mail')({
-  loader: async ({ context }) => {
+  beforeLoad: async ({ context }) => {
     const appStates = await context.queryClient.ensureQueryData(appEnabledStatesQueryOptions);
     const mailEnabled = appStates.find((state) => state.appId === 'mail')?.enabled ?? true;
     if (!mailEnabled) {
       toast.warning('Mail is disabled. Enable it in Settings > Mail.', { id: 'mail-disabled' });
       throw redirect({ to: '/' });
     }
-    await context.queryClient.ensureQueryData(mailAccountsQueryOptions);
   },
+  loader: ({ context }) => context.queryClient.ensureQueryData(mailAccountsQueryOptions),
   component: MailRoute,
 });

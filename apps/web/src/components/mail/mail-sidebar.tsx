@@ -15,7 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { mailAccountsQueryOptions, mailLabelsQueryOptions } from '@/lib/queries/mail';
+import { getDefaultMailLabel, mailAccountsQueryOptions, mailLabelsQueryOptions } from '@/lib/queries/mail';
 import { cn } from '@/lib/utils';
 
 const SYSTEM_LABEL_ORDER = ['INBOX', 'SENT', 'DRAFT', 'DRAFTS', 'TRASH'] as const;
@@ -38,18 +38,14 @@ function sortLabels(labels: MailLabelView[]): MailLabelView[] {
   });
 }
 
-function findDefaultLabel(labels: MailLabelView[]): MailLabelView | undefined {
-  return labels.find((label) => label.providerLabelId.toUpperCase() === 'INBOX') ?? labels[0];
-}
-
 function MailLabelList({ accountId }: { accountId: MailAccountId }) {
   const { selectedLabelId, setSelectedLabelId } = useMailStore();
   const { data: labels = [] } = useQuery(mailLabelsQueryOptions(accountId));
   const sortedLabels = React.useMemo(() => sortLabels(labels), [labels]);
 
   React.useEffect(() => {
-    if (!selectedLabelId && sortedLabels.length > 0) setSelectedLabelId(findDefaultLabel(sortedLabels)?.id ?? null);
-  }, [selectedLabelId, setSelectedLabelId, sortedLabels]);
+    if (!selectedLabelId && labels.length > 0) setSelectedLabelId(getDefaultMailLabel(labels)?.id ?? null);
+  }, [labels, selectedLabelId, setSelectedLabelId]);
 
   return (
     <InternalSidebar.Section title="Labels">
@@ -97,7 +93,11 @@ export function MailSidebarContent() {
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
-                <Button variant="outline" className="mx-2 mb-2 min-w-0 justify-between" aria-label="Switch mail account" />
+                <Button
+                  variant="outline"
+                  className="mx-2 mb-2 min-w-0 justify-between"
+                  aria-label="Switch mail account"
+                />
               }>
               <span className="truncate">{selectedAccount.email}</span>
               <ChevronDownIcon className="size-4 text-muted-foreground" />
@@ -114,7 +114,11 @@ export function MailSidebarContent() {
       </InternalSidebar.Header>
       <InternalSidebar.Content>
         {!selectedAccount ? (
-          <InternalSidebar.EmptyState icon={MailIcon} title="No mail accounts" description="Enroll an account in Settings." />
+          <InternalSidebar.EmptyState
+            icon={MailIcon}
+            title="No mail accounts"
+            description="Enroll an account in Settings."
+          />
         ) : (
           <MailLabelList accountId={selectedAccount.id} />
         )}

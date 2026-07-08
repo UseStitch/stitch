@@ -1,7 +1,7 @@
 import { PaperclipIcon } from 'lucide-react';
 import * as React from 'react';
 
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useSuspenseInfiniteQuery } from '@tanstack/react-query';
 import { useVirtualizer } from '@tanstack/react-virtual';
 
 import type { MailAccountId, MailLabelId, MailThreadId, MailThreadListItem } from '@stitch/shared/mail/types';
@@ -20,7 +20,8 @@ type ThreadListProps = {
 function formatThreadDate(value: number): string {
   const date = new Date(value);
   const now = new Date();
-  if (date.toDateString() === now.toDateString()) return new Intl.DateTimeFormat(undefined, { timeStyle: 'short' }).format(date);
+  if (date.toDateString() === now.toDateString())
+    return new Intl.DateTimeFormat(undefined, { timeStyle: 'short' }).format(date);
   return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(date);
 }
 
@@ -46,7 +47,8 @@ function ThreadRow({ thread, active, onClick }: { thread: MailThreadListItem; ac
         {thread.hasAttachments ? <PaperclipIcon className="size-3.5 text-muted-foreground" /> : null}
         <span className="shrink-0 text-xs text-muted-foreground">{formatThreadDate(thread.lastMessageAt)}</span>
       </div>
-      <div className={cn('truncate text-sm', thread.hasUnread ? 'font-medium text-foreground' : 'text-muted-foreground')}>
+      <div
+        className={cn('truncate text-sm', thread.hasUnread ? 'font-medium text-foreground' : 'text-muted-foreground')}>
         {thread.subject || '(No subject)'}
       </div>
       <div className="line-clamp-2 text-xs text-muted-foreground">{thread.snippet}</div>
@@ -57,8 +59,8 @@ function ThreadRow({ thread, active, onClick }: { thread: MailThreadListItem; ac
 export function ThreadList({ accountId, labelId, selectedThreadId, onSelectThread }: ThreadListProps) {
   const parentRef = React.useRef<HTMLDivElement>(null);
   const loadMoreRef = React.useRef<HTMLDivElement>(null);
-  const query = useInfiniteQuery(mailThreadsInfiniteQueryOptions(accountId, labelId));
-  const threads = query.data?.pages.flatMap((page) => page.threads) ?? [];
+  const query = useSuspenseInfiniteQuery(mailThreadsInfiniteQueryOptions(accountId, labelId));
+  const threads = query.data.pages.flatMap((page) => page.threads);
   const rowVirtualizer = useVirtualizer({
     count: threads.length,
     getScrollElement: () => parentRef.current,
@@ -76,10 +78,6 @@ export function ThreadList({ accountId, labelId, selectedThreadId, onSelectThrea
     observer.observe(el);
     return () => observer.disconnect();
   }, [query]);
-
-  if (query.isLoading) {
-    return <div className="p-4 text-sm text-muted-foreground">Loading threads…</div>;
-  }
 
   if (threads.length === 0) {
     return <div className="p-4 text-sm text-muted-foreground">No messages in this label.</div>;
@@ -110,7 +108,11 @@ export function ThreadList({ accountId, labelId, selectedThreadId, onSelectThrea
       </div>
       <div ref={loadMoreRef} className="flex justify-center p-3">
         {query.hasNextPage ? (
-          <Button variant="ghost" size="sm" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={query.isFetchingNextPage}
+            onClick={() => void query.fetchNextPage()}>
             {query.isFetchingNextPage ? 'Loading…' : 'Load more'}
           </Button>
         ) : null}
