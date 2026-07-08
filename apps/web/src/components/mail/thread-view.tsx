@@ -72,7 +72,15 @@ function LabelCombobox({
   );
 }
 
-function MessageCard({ message, collapsed }: { message: MailMessageView; collapsed: boolean }) {
+function MessageCard({
+  message,
+  collapsed,
+  collapseQuotedReplies,
+}: {
+  message: MailMessageView;
+  collapsed: boolean;
+  collapseQuotedReplies: boolean;
+}) {
   const [open, setOpen] = React.useState(!collapsed);
 
   function openAttachment(attachmentId: string) {
@@ -97,7 +105,11 @@ function MessageCard({ message, collapsed }: { message: MailMessageView; collaps
       </button>
       {open ? (
         <div className="mt-4 space-y-3">
-          <MessageBody bodyHtml={message.bodyHtml} bodyText={message.bodyText} />
+          <MessageBody
+            bodyHtml={message.bodyHtml}
+            bodyText={message.bodyText}
+            collapseQuotedReplies={collapseQuotedReplies}
+          />
           {message.attachments.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {message.attachments.map((attachment) => (
@@ -191,7 +203,12 @@ export function ThreadView({ accountId, threadId, onClose }: ThreadViewProps) {
       <div className="thin-scrollbar min-h-0 flex-1 overflow-y-auto p-6">
         <div className="w-full space-y-4">
           {currentThread.messages.map((message, index) => (
-            <MessageCard key={message.id} message={message} collapsed={index < currentThread.messages.length - 1} />
+            <MessageCard
+              key={message.id}
+              message={message}
+              collapsed={index < currentThread.messages.length - 1}
+              collapseQuotedReplies={index > 0 || Boolean(message.inReplyTo)}
+            />
           ))}
         </div>
       </div>
