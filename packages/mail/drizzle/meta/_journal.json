@@ -2,7 +2,12 @@
   "version": "7",
   "dialect": "sqlite",
   "entries": [
-    { "idx": 0, "version": "6", "when": 1783476933102, "tag": "0000_happy_spectrum", "breakpoints": true },
-    { "idx": 1, "version": "6", "when": 1783520528944, "tag": "0001_mature_starfox", "breakpoints": true }
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1783526596851,
+      "tag": "0000_yummy_spirit",
+      "breakpoints": true
+    }
   ]
 }

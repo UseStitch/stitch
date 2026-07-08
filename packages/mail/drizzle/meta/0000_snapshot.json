@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "b1c88a8f-60c4-4117-aebc-affd5739a69e",
+  "id": "74ca4e7d-6873-4b8c-8d2d-154d326bd330",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "mail_accounts": {
@@ -41,7 +41,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": true
+          "default": false
         },
         "sync_phase": {
           "name": "sync_phase",
@@ -93,7 +93,7 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": 90
+          "default": 30
         },
         "created_at": {
           "name": "created_at",
