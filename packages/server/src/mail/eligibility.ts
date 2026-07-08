@@ -1,7 +1,6 @@
 const REQUIRED_GMAIL_SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/gmail.modify',
-  'https://www.googleapis.com/auth/gmail.send',
 ] as const;
 
 export type EligibleConnectorInstance = {
@@ -42,6 +41,6 @@ export function assertCanEnrollMailAccount(instance: EligibleConnectorInstance |
   if (instance.status !== 'connected') throw new Error('Google connector instance must be connected before mail enrollment');
   if (!instance.accountEmail) throw new Error('Google connector instance is missing an account email');
   if (!hasRequiredGmailScopes(instance.scopes)) {
-    throw new Error('Google connector instance is missing required Gmail scopes: gmail.readonly, gmail.modify, gmail.send');
+    throw new Error('Google connector instance is missing required Gmail scopes: gmail.readonly, gmail.modify');
   }
 }

@@ -5,7 +5,6 @@ import { filterEligibleMailAccounts, hasRequiredGmailScopes, type EligibleConnec
 const REQUIRED_SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/gmail.modify',
-  'https://www.googleapis.com/auth/gmail.send',
 ];
 
 function instance(patch: Partial<EligibleConnectorInstance>): EligibleConnectorInstance {
@@ -20,9 +19,9 @@ function instance(patch: Partial<EligibleConnectorInstance>): EligibleConnectorI
 }
 
 describe('hasRequiredGmailScopes', () => {
-  test('requires readonly, modify, and send scopes', () => {
+  test('requires readonly and modify scopes', () => {
     expect(hasRequiredGmailScopes(REQUIRED_SCOPES)).toBe(true);
-    expect(hasRequiredGmailScopes(REQUIRED_SCOPES.slice(0, 2))).toBe(false);
+    expect(hasRequiredGmailScopes(REQUIRED_SCOPES.slice(0, 1))).toBe(false);
     expect(hasRequiredGmailScopes(null)).toBe(false);
   });
 });
@@ -34,7 +33,7 @@ describe('filterEligibleMailAccounts', () => {
       instance({ id: 'conn_enrolled' }),
       instance({ id: 'conn_disconnected', status: 'error' }),
       instance({ id: 'conn_wrong_provider', connectorId: 'slack' }),
-      instance({ id: 'conn_missing_scope', scopes: REQUIRED_SCOPES.slice(0, 2) }),
+      instance({ id: 'conn_missing_scope', scopes: REQUIRED_SCOPES.slice(0, 1) }),
       instance({ id: 'conn_missing_email', accountEmail: null }),
     ];
 
