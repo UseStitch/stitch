@@ -36,9 +36,9 @@ function ThreadRow({ thread, active, onClick }: { thread: MailThreadListItem; ac
       type="button"
       onClick={onClick}
       className={cn(
-        'flex w-full flex-col gap-1 border-b border-border px-3 py-3 text-left transition-colors hover:bg-muted/60',
-        active && 'bg-muted',
-        thread.hasUnread && 'bg-primary/5',
+        'flex w-full flex-col gap-1 border-b border-sidebar-border px-3 py-3 text-left transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+        active && 'bg-sidebar-accent text-sidebar-accent-foreground',
+        thread.hasUnread && 'bg-sidebar-primary/5',
       )}>
       <div className="flex items-center gap-2">
         <span className={cn('min-w-0 flex-1 truncate text-sm', thread.hasUnread && 'font-semibold')}>
@@ -48,7 +48,10 @@ function ThreadRow({ thread, active, onClick }: { thread: MailThreadListItem; ac
         <span className="shrink-0 text-xs text-muted-foreground">{formatThreadDate(thread.lastMessageAt)}</span>
       </div>
       <div
-        className={cn('truncate text-sm', thread.hasUnread ? 'font-medium text-foreground' : 'text-muted-foreground')}>
+        className={cn(
+          'truncate text-sm',
+          thread.hasUnread ? 'font-medium text-sidebar-foreground' : 'text-muted-foreground',
+        )}>
         {thread.subject || '(No subject)'}
       </div>
       <div className="line-clamp-2 text-xs text-muted-foreground">{thread.snippet}</div>
@@ -84,7 +87,7 @@ export function ThreadList({ accountId, labelId, selectedThreadId, onSelectThrea
   }
 
   return (
-    <div ref={parentRef} className="min-h-0 flex-1 overflow-y-auto">
+    <div ref={parentRef} className="thin-scrollbar min-h-0 flex-1 overflow-y-auto">
       <div className="relative" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {
           const thread = threads[virtualRow.index];

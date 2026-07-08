@@ -9,7 +9,7 @@ import { Composer } from '@/components/mail/composer';
 import { useMailStore } from '@/components/mail/mail-store';
 import { ThreadList } from '@/components/mail/thread-list';
 import { ThreadView } from '@/components/mail/thread-view';
-import { Button } from '@/components/ui/button';
+import { InternalSidebar } from '@/components/navigation/internal-sidebar';
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { getDefaultMailLabel, mailAccountsQueryOptions, mailLabelsQueryOptions } from '@/lib/queries/mail';
 
@@ -57,14 +57,15 @@ function MailPageContent({
 
   return (
     <div className="flex h-full min-h-0 bg-background">
-      <div className="flex w-96 min-w-80 flex-col border-r border-border">
-        <div className="flex h-12 items-center justify-between border-b border-border px-3">
-          <div className="text-sm font-medium">Threads</div>
-          <Button size="sm" onClick={() => setComposerOpen(true)}>
-            <EditIcon className="size-3.5" />
-            Compose
-          </Button>
-        </div>
+      <div className="flex w-(--sidebar-width) min-w-80 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+        <InternalSidebar.Header>
+          <InternalSidebar.Top>
+            <InternalSidebar.TopTitle>Threads</InternalSidebar.TopTitle>
+            <InternalSidebar.TopAction onClick={() => setComposerOpen(true)} aria-label="Compose mail">
+              <EditIcon className="size-3.5" />
+            </InternalSidebar.TopAction>
+          </InternalSidebar.Top>
+        </InternalSidebar.Header>
         <ThreadList
           accountId={accountId}
           labelId={labelId}
