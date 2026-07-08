@@ -1,22 +1,17 @@
-import { ArrowLeftIcon, ReplyIcon, TagIcon, TrashIcon, Undo2Icon } from 'lucide-react';
+import { ArrowLeftIcon, CheckIcon, ReplyIcon, TagIcon, TrashIcon, Undo2Icon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
 import { useQuery } from '@tanstack/react-query';
 
-import type { MailAccountId, MailMessageView, MailThreadId } from '@stitch/shared/mail/types';
+import type { MailAccountId, MailLabelView, MailMessageView, MailThreadId } from '@stitch/shared/mail/types';
 
 import { Composer } from '@/components/mail/composer';
 import { getLabelDisplayName } from '@/components/mail/mail-label-utils';
 import { MessageBody } from '@/components/mail/message-body';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { getServerUrl } from '@/lib/api';
 import { getErrorMessage } from '@/lib/errors';
 import { useModifyMailMessage, useTrashMailThread, useUntrashMailThread } from '@/lib/mutations/mail';
@@ -31,6 +26,50 @@ function formatAddress(message: MailMessageView): string {
 
 function formatMessageDate(value: number): string {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+}
+
+function LabelCombobox({
+  labels,
+  selectedLabels,
+  onChange,
+}: {
+  labels: MailLabelView[];
+  selectedLabels: MailLabelView[];
+  onChange: (labelId: MailLabelView['id'], checked: boolean) => void;
+}) {
+  const selectedLabelIds = new Set(selectedLabels.map((label) => label.id));
+
+  return (
+    <Popover>
+      <PopoverTrigger render={<Button variant="outline" size="sm" />}>
+        <TagIcon className="size-3.5" />
+        {selectedLabels.length > 0 ? `${selectedLabels.length} labels` : 'Labels'}
+      </PopoverTrigger>
+      <PopoverContent side="bottom" sideOffset={4} align="end" className="w-72 p-0">
+        <Command>
+          <CommandInput placeholder="Search labels..." />
+          <CommandList className="thin-scrollbar max-h-72">
+            <CommandEmpty>No labels found.</CommandEmpty>
+            <CommandGroup>
+              {labels.map((label) => {
+                const checked = selectedLabelIds.has(label.id);
+
+                return (
+                  <CommandItem
+                    key={label.id}
+                    value={getLabelDisplayName(label)}
+                    onSelect={() => onChange(label.id, !checked)}>
+                    <CheckIcon className={checked ? 'size-4 opacity-100' : 'size-4 opacity-0'} />
+                    <span className="truncate">{getLabelDisplayName(label)}</span>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 function MessageCard({ message, collapsed }: { message: MailMessageView; collapsed: boolean }) {
@@ -135,22 +174,7 @@ export function ThreadView({ accountId, threadId, onClose }: ThreadViewProps) {
           <ArrowLeftIcon className="size-4" />
         </Button>
         <div className="min-w-0 flex-1 truncate text-sm font-medium">{currentThread.subject || '(No subject)'}</div>
-        <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-            <TagIcon className="size-3.5" />
-            Labels
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
-            {labels.map((label) => (
-              <DropdownMenuCheckboxItem
-                key={label.id}
-                checked={latestMessage?.labels.some((messageLabel) => messageLabel.id === label.id) ?? false}
-                onCheckedChange={(checked) => handleLabel(label.id, checked)}>
-                {label.name}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <LabelCombobox labels={labels} selectedLabels={latestMessage?.labels ?? []} onChange={handleLabel} />
         <Button
           variant="outline"
           size="sm"
@@ -165,14 +189,7 @@ export function ThreadView({ accountId, threadId, onClose }: ThreadViewProps) {
         </Button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-6">
-        <div className="mx-auto max-w-5xl space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {currentThread.labels.map((label) => (
-              <Badge key={label.id} variant="secondary">
-                {getLabelDisplayName(label)}
-              </Badge>
-            ))}
-          </div>
+        <div className="w-full space-y-4">
           {currentThread.messages.map((message, index) => (
             <MessageCard key={message.id} message={message} collapsed={index < currentThread.messages.length - 1} />
           ))}
