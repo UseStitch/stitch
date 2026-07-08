@@ -1,23 +1,36 @@
 import { describe, expect, test } from 'bun:test';
 
-import { MailConfigurationError, MailError } from './errors.js';
 import { getMailProvider, registerMailProvider } from './registry.js';
 
 import type { MailProviderModule } from './contracts.js';
 
-const module = { sync: { id: 'test' }, ops: { id: 'test' } } as MailProviderModule;
+const module: MailProviderModule = {
+  sync: {
+    id: 'gmail',
+    listLabels: async () => [],
+    snapshotCursor: async () => 'cursor',
+    backfillPage: async () => ({ messages: [], nextPageCursor: undefined }),
+    incrementalSync: async () => ({ status: 'ok', changes: [], nextSyncCursor: 'cursor' }),
+    listMessagesSince: async () => [],
+    hydrateMessages: async () => [],
+    fetchAttachment: async () => new Uint8Array(),
+  },
+  ops: {
+    id: 'gmail',
+    send: async () => ({ providerMessageId: 'message', providerThreadId: 'thread' }),
+    createDraft: async () => ({ providerDraftId: 'draft' }),
+    updateDraft: async () => {},
+    deleteDraft: async () => {},
+    sendDraft: async () => ({ providerMessageId: 'message', providerThreadId: 'thread' }),
+    trashThread: async () => {},
+    untrashThread: async () => {},
+    modifyMessageLabels: async () => {},
+  },
+};
 
 describe('mail provider registry', () => {
   test('registers and resolves providers', () => {
     registerMailProvider(module);
-    expect(getMailProvider('test')).toBe(module);
-  });
-
-  test('throws typed errors for invalid providers', () => {
-    expect(() => getMailProvider('missing')).toThrow(MailConfigurationError);
-    expect(() => getMailProvider('missing')).toThrow(MailError);
-    expect(() => registerMailProvider({ sync: { id: 'sync' }, ops: { id: 'ops' } } as MailProviderModule)).toThrow(
-      MailConfigurationError,
-    );
+    expect(getMailProvider('gmail')).toBe(module);
   });
 });

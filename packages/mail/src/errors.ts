@@ -1,4 +1,6 @@
-export class MailError extends Error {
+import type { MailProviderId } from './db/schema.js';
+
+class MailError extends Error {
   constructor(
     message: string,
     readonly code: string,
@@ -23,7 +25,7 @@ export class MailNotFoundError extends MailError {
 
 class MailProviderError extends MailError {
   constructor(
-    readonly provider: string,
+    readonly provider: MailProviderId,
     message: string,
     code = 'mail_provider_error',
     options?: ErrorOptions,

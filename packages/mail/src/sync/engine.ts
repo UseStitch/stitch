@@ -8,6 +8,10 @@ import {
   type MailAccountId,
   type MailAccountRecord,
   type MailProviderId,
+  type MailAttachmentId,
+  type MailDraftId,
+  type MailLabelId,
+  type MailMessageId,
   type MailThreadId,
 } from '../db/schema.js';
 import { createOperations } from '../ops/operations.js';
@@ -39,7 +43,7 @@ type MailEngineDeps = {
 
 export type EnrollInput = {
   connectorInstanceId: string;
-  provider: string;
+  provider: MailProviderId;
   email: string;
   backfillDays?: number;
   syncFrequencySeconds?: number;
@@ -52,7 +56,7 @@ export type DraftInput = {
   subject: string;
   bodyText: string;
   bodyHtml: string | null;
-  inReplyToMessageId: string | null;
+  inReplyToMessageId: MailMessageId | null;
 };
 
 export type MailEngine = {
@@ -70,18 +74,18 @@ export type MailEngine = {
   };
   ops: {
     modifyMessage(
-      messageId: string,
-      input: { addLabelIds?: string[]; removeLabelIds?: string[]; markRead?: boolean },
+      messageId: MailMessageId,
+      input: { addLabelIds?: MailLabelId[]; removeLabelIds?: MailLabelId[]; markRead?: boolean },
     ): Promise<void>;
-    trashThread(threadId: string): Promise<void>;
-    untrashThread(threadId: string): Promise<void>;
-    createDraft(input: DraftInput): Promise<string>;
-    updateDraft(draftId: string, input: Partial<DraftInput>): Promise<void>;
-    deleteDraft(draftId: string): Promise<void>;
-    sendDraft(draftId: string): Promise<void>;
+    trashThread(threadId: MailThreadId): Promise<void>;
+    untrashThread(threadId: MailThreadId): Promise<void>;
+    createDraft(input: DraftInput): Promise<MailDraftId>;
+    updateDraft(draftId: MailDraftId, input: Partial<DraftInput>): Promise<void>;
+    deleteDraft(draftId: MailDraftId): Promise<void>;
+    sendDraft(draftId: MailDraftId): Promise<void>;
     send(input: DraftInput): Promise<void>;
-    hydrateThread(threadId: string): Promise<void>;
-    fetchAttachment(attachmentId: string): Promise<string>;
+    hydrateThread(threadId: MailThreadId): Promise<void>;
+    fetchAttachment(attachmentId: MailAttachmentId): Promise<string>;
   };
 };
 
@@ -262,7 +266,7 @@ export function createMailEngine(deps: MailEngineDeps): MailEngine {
           .insert(mailAccounts)
           .values({
             connectorInstanceId: input.connectorInstanceId,
-            provider: input.provider as MailProviderId,
+            provider: input.provider,
             email: input.email,
             enabled: false,
             syncPhase: 'idle',

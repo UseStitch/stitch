@@ -1,4 +1,4 @@
-import type { MailAccountRecord } from './db/schema.js';
+import type { MailAccountRecord, MailProviderId } from './db/schema.js';
 
 // ── Infrastructure injected by the server ────────────────────────────────
 export type MailHttpClient = {
@@ -20,12 +20,7 @@ export type MailProviderContext = {
 };
 
 // ── Normalized provider data (provider → engine) ─────────────────────────
-export type SyncLabel = {
-  providerLabelId: string;
-  name: string;
-  kind: 'system' | 'user';
-  color: string | null;
-};
+export type SyncLabel = { providerLabelId: string; name: string; kind: 'system' | 'user'; color: string | null };
 
 export type SyncAddress = { name: string | null; email: string };
 
@@ -71,7 +66,7 @@ export type IncrementalResult =
 
 // ── Plugin interfaces ─────────────────────────────────────────────────────
 export type MailSyncProvider = {
-  readonly id: string; // 'gmail'
+  readonly id: MailProviderId;
   listLabels(ctx: MailProviderContext): Promise<SyncLabel[]>;
   /** Snapshot a sync cursor BEFORE backfill starts (Gmail: current historyId via getProfile). */
   snapshotCursor(ctx: MailProviderContext): Promise<string>;
@@ -99,12 +94,18 @@ export type OutgoingDraft = {
 };
 
 export type MailOpsProvider = {
-  readonly id: string; // 'gmail'
-  send(ctx: MailProviderContext, draft: OutgoingDraft): Promise<{ providerMessageId: string; providerThreadId: string }>;
+  readonly id: MailProviderId;
+  send(
+    ctx: MailProviderContext,
+    draft: OutgoingDraft,
+  ): Promise<{ providerMessageId: string; providerThreadId: string }>;
   createDraft(ctx: MailProviderContext, draft: OutgoingDraft): Promise<{ providerDraftId: string }>;
   updateDraft(ctx: MailProviderContext, providerDraftId: string, draft: OutgoingDraft): Promise<void>;
   deleteDraft(ctx: MailProviderContext, providerDraftId: string): Promise<void>;
-  sendDraft(ctx: MailProviderContext, providerDraftId: string): Promise<{ providerMessageId: string; providerThreadId: string }>;
+  sendDraft(
+    ctx: MailProviderContext,
+    providerDraftId: string,
+  ): Promise<{ providerMessageId: string; providerThreadId: string }>;
   trashThread(ctx: MailProviderContext, providerThreadId: string): Promise<void>;
   untrashThread(ctx: MailProviderContext, providerThreadId: string): Promise<void>;
   modifyMessageLabels(

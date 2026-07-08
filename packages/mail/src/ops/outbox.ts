@@ -7,14 +7,16 @@ import {
   mailOutbox,
   type MailAccountId,
   type MailDraftId,
+  type MailMessageId,
   type MailAccountRecord,
   type MailOutboxId,
   type MailOutboxOpType,
   type MailThreadId,
 } from '../db/schema.js';
-import type { MailProviderContext, MailProviderModule, OutgoingDraft, SyncMessage } from '../contracts.js';
 import { getMailProvider } from '../registry.js';
 import { persistSyncPage } from '../sync/persist.js';
+
+import type { MailProviderContext, MailProviderModule, OutgoingDraft, SyncMessage } from '../contracts.js';
 
 const BASE_BACKOFF_MS = 30_000;
 const MAX_BACKOFF_MS = 3_600_000;
@@ -22,20 +24,24 @@ const MAX_ATTEMPTS = 8;
 
 export type OutboxPayload =
   | { draft: OutgoingDraft }
-  | { draftId: string; providerDraftId: string | null; draft: OutgoingDraft }
-  | { threadId: string; providerThreadId: string }
-  | { messageId: string; providerMessageId: string; addProviderIds: string[]; removeProviderIds: string[] }
-  | { draftId: string; providerDraftId: string | null };
+  | { draftId: MailDraftId; providerDraftId: string | null; draft: OutgoingDraft }
+  | { threadId: MailThreadId; providerThreadId: string }
+  | { messageId: MailMessageId; providerMessageId: string; addProviderIds: string[]; removeProviderIds: string[] }
+  | { draftId: MailDraftId; providerDraftId: string | null };
 
 type OutboxDeps = {
   createContext(account: MailAccountRecord): MailProviderContext;
-  emitAccountUpdated(accountId: string): void;
-  emitThreadsChanged(accountId: string, threadIds: MailThreadId[]): void;
-  hydrateSentMessage(ctx: MailProviderContext, provider: MailProviderModule, providerMessageId: string): Promise<SyncMessage[]>;
+  emitAccountUpdated(accountId: MailAccountId): void;
+  emitThreadsChanged(accountId: MailAccountId, threadIds: MailThreadId[]): void;
+  hydrateSentMessage(
+    ctx: MailProviderContext,
+    provider: MailProviderModule,
+    providerMessageId: string,
+  ): Promise<SyncMessage[]>;
 };
 
 export type OutboxController = {
-  enqueue(accountId: string, opType: MailOutboxOpType, payload: OutboxPayload): Promise<MailOutboxId>;
+  enqueue(accountId: MailAccountId, opType: MailOutboxOpType, payload: OutboxPayload): Promise<MailOutboxId>;
   flushOutbox(): Promise<void>;
 };
 
@@ -55,11 +61,21 @@ async function markFailed(id: MailOutboxId, attempts: number, error: unknown): P
   const db = getMailDb();
   await db
     .update(mailOutbox)
-    .set({ status: 'failed', attempts, nextAttemptAt: attempts >= MAX_ATTEMPTS ? Date.now() : nextAttemptAt(attempts), lastError: errorMessage(error) })
+    .set({
+      status: 'failed',
+      attempts,
+      nextAttemptAt: attempts >= MAX_ATTEMPTS ? Date.now() : nextAttemptAt(attempts),
+      lastError: errorMessage(error),
+    })
     .where(eq(mailOutbox.id, id));
 }
 
-async function processSentMessage(deps: OutboxDeps, ctx: MailProviderContext, provider: MailProviderModule, providerMessageId: string): Promise<void> {
+async function processSentMessage(
+  deps: OutboxDeps,
+  ctx: MailProviderContext,
+  provider: MailProviderModule,
+  providerMessageId: string,
+): Promise<void> {
   const messages = await deps.hydrateSentMessage(ctx, provider, providerMessageId);
   if (messages.length === 0) return;
   const touched = await persistSyncPage(ctx.account.id, { messages, nextPageCursor: undefined });
@@ -79,35 +95,65 @@ async function processOutboxRow(deps: OutboxDeps, row: typeof mailOutbox.$inferS
     await processSentMessage(deps, ctx, provider, result.providerMessageId);
   }
   if (row.opType === 'send_draft') {
-    const draftPayload = payload as Extract<OutboxPayload, { draftId: string; providerDraftId: string | null; draft: OutgoingDraft }>;
+    const draftPayload = payload as Extract<
+      OutboxPayload,
+      { draftId: MailDraftId; providerDraftId: string | null; draft: OutgoingDraft }
+    >;
     const result = draftPayload.providerDraftId
       ? await provider.ops.sendDraft(ctx, draftPayload.providerDraftId)
       : await provider.ops.send(ctx, draftPayload.draft);
-    await db.delete(mailDrafts).where(eq(mailDrafts.id, draftPayload.draftId as MailDraftId));
+    await db.delete(mailDrafts).where(eq(mailDrafts.id, draftPayload.draftId));
     await processSentMessage(deps, ctx, provider, result.providerMessageId);
   }
   if (row.opType === 'trash_thread') {
-    await provider.ops.trashThread(ctx, (payload as Extract<OutboxPayload, { providerThreadId: string }>).providerThreadId);
+    await provider.ops.trashThread(
+      ctx,
+      (payload as Extract<OutboxPayload, { providerThreadId: string }>).providerThreadId,
+    );
   }
   if (row.opType === 'untrash_thread') {
-    await provider.ops.untrashThread(ctx, (payload as Extract<OutboxPayload, { providerThreadId: string }>).providerThreadId);
+    await provider.ops.untrashThread(
+      ctx,
+      (payload as Extract<OutboxPayload, { providerThreadId: string }>).providerThreadId,
+    );
   }
   if (row.opType === 'modify_labels') {
-    const labelPayload = payload as Extract<OutboxPayload, { providerMessageId: string; addProviderIds: string[]; removeProviderIds: string[] }>;
-    await provider.ops.modifyMessageLabels(ctx, labelPayload.providerMessageId, labelPayload.addProviderIds, labelPayload.removeProviderIds);
+    const labelPayload = payload as Extract<
+      OutboxPayload,
+      { providerMessageId: string; addProviderIds: string[]; removeProviderIds: string[] }
+    >;
+    await provider.ops.modifyMessageLabels(
+      ctx,
+      labelPayload.providerMessageId,
+      labelPayload.addProviderIds,
+      labelPayload.removeProviderIds,
+    );
   }
   if (row.opType === 'create_draft') {
-    const draftPayload = payload as Extract<OutboxPayload, { draftId: string; providerDraftId: string | null; draft: OutgoingDraft }>;
+    const draftPayload = payload as Extract<
+      OutboxPayload,
+      { draftId: MailDraftId; providerDraftId: string | null; draft: OutgoingDraft }
+    >;
     const result = await provider.ops.createDraft(ctx, draftPayload.draft);
-    await db.update(mailDrafts).set({ providerDraftId: result.providerDraftId, dirty: false, updatedAt: Date.now() }).where(eq(mailDrafts.id, draftPayload.draftId as MailDraftId));
+    await db
+      .update(mailDrafts)
+      .set({ providerDraftId: result.providerDraftId, dirty: false, updatedAt: Date.now() })
+      .where(eq(mailDrafts.id, draftPayload.draftId));
   }
   if (row.opType === 'update_draft') {
-    const draftPayload = payload as Extract<OutboxPayload, { draftId: string; providerDraftId: string | null; draft: OutgoingDraft }>;
-    if (draftPayload.providerDraftId) await provider.ops.updateDraft(ctx, draftPayload.providerDraftId, draftPayload.draft);
-    await db.update(mailDrafts).set({ dirty: false, updatedAt: Date.now() }).where(eq(mailDrafts.id, draftPayload.draftId as MailDraftId));
+    const draftPayload = payload as Extract<
+      OutboxPayload,
+      { draftId: MailDraftId; providerDraftId: string | null; draft: OutgoingDraft }
+    >;
+    if (draftPayload.providerDraftId)
+      await provider.ops.updateDraft(ctx, draftPayload.providerDraftId, draftPayload.draft);
+    await db
+      .update(mailDrafts)
+      .set({ dirty: false, updatedAt: Date.now() })
+      .where(eq(mailDrafts.id, draftPayload.draftId));
   }
   if (row.opType === 'delete_draft') {
-    const draftPayload = payload as Extract<OutboxPayload, { draftId: string; providerDraftId: string | null }>;
+    const draftPayload = payload as Extract<OutboxPayload, { draftId: MailDraftId; providerDraftId: string | null }>;
     if (draftPayload.providerDraftId) await provider.ops.deleteDraft(ctx, draftPayload.providerDraftId);
   }
 }
@@ -124,7 +170,13 @@ export function createOutbox(deps: OutboxDeps): OutboxController {
         const rows = await db
           .select()
           .from(mailOutbox)
-          .where(and(or(eq(mailOutbox.status, 'pending'), eq(mailOutbox.status, 'failed')), lt(mailOutbox.attempts, MAX_ATTEMPTS), lte(mailOutbox.nextAttemptAt, now)))
+          .where(
+            and(
+              or(eq(mailOutbox.status, 'pending'), eq(mailOutbox.status, 'failed')),
+              lt(mailOutbox.attempts, MAX_ATTEMPTS),
+              lte(mailOutbox.nextAttemptAt, now),
+            ),
+          )
           .orderBy(asc(mailOutbox.createdAt))
           .limit(10);
         if (rows.length === 0) break;
@@ -150,11 +202,22 @@ export function createOutbox(deps: OutboxDeps): OutboxController {
     }
   }
 
-  async function enqueue(accountId: string, opType: MailOutboxOpType, payload: OutboxPayload): Promise<MailOutboxId> {
+  async function enqueue(
+    accountId: MailAccountId,
+    opType: MailOutboxOpType,
+    payload: OutboxPayload,
+  ): Promise<MailOutboxId> {
     const db = getMailDb();
     const [row] = await db
       .insert(mailOutbox)
-      .values({ accountId: accountId as MailAccountId, opType, payloadJson: JSON.stringify(payload), status: 'pending', attempts: 0, nextAttemptAt: Date.now() })
+      .values({
+        accountId,
+        opType,
+        payloadJson: JSON.stringify(payload),
+        status: 'pending',
+        attempts: 0,
+        nextAttemptAt: Date.now(),
+      })
       .returning({ id: mailOutbox.id });
     void flushOutbox();
     return row.id;

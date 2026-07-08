@@ -32,19 +32,15 @@ type OperationsDeps = {
   outbox: OutboxController;
   attachmentsDir: string;
   createContext(account: MailAccountRecord): MailProviderContext;
-  emitThreadsChanged(accountId: string, threadIds: MailThreadId[]): void;
+  emitThreadsChanged(accountId: MailAccountId, threadIds: MailThreadId[]): void;
 };
 
 function stringifyAddresses(addresses: SyncAddress[]): string {
   return JSON.stringify(addresses);
 }
 
-async function getAccount(accountId: string): Promise<MailAccountRecord> {
-  const [account] = await getMailDb()
-    .select()
-    .from(mailAccounts)
-    .where(eq(mailAccounts.id, accountId as MailAccountId))
-    .limit(1);
+async function getAccount(accountId: MailAccountId): Promise<MailAccountRecord> {
+  const [account] = await getMailDb().select().from(mailAccounts).where(eq(mailAccounts.id, accountId)).limit(1);
   if (!account) throw new MailNotFoundError(`Mail account not found: ${accountId}`);
   return account;
 }
@@ -62,11 +58,7 @@ async function toOutgoingDraft(input: DraftInput): Promise<OutgoingDraft> {
       inReplyTo: null,
     };
   }
-  const [message] = await db
-    .select()
-    .from(mailMessages)
-    .where(eq(mailMessages.id, input.inReplyToMessageId as MailMessageId))
-    .limit(1);
+  const [message] = await db.select().from(mailMessages).where(eq(mailMessages.id, input.inReplyToMessageId)).limit(1);
   if (!message) throw new MailNotFoundError(`Reply message not found: ${input.inReplyToMessageId}`);
   const [thread] = await db.select().from(mailThreads).where(eq(mailThreads.id, message.threadId)).limit(1);
   if (!thread) throw new MailNotFoundError(`Reply thread not found: ${message.threadId}`);
@@ -81,27 +73,20 @@ async function toOutgoingDraft(input: DraftInput): Promise<OutgoingDraft> {
   };
 }
 
-async function labelsById(labelIds: string[]): Promise<Map<string, string>> {
+async function labelsById(labelIds: MailLabelId[]): Promise<Map<MailLabelId, string>> {
   if (labelIds.length === 0) return new Map();
-  const rows = await getMailDb()
-    .select()
-    .from(mailLabels)
-    .where(inArray(mailLabels.id, labelIds as MailLabelId[]));
+  const rows = await getMailDb().select().from(mailLabels).where(inArray(mailLabels.id, labelIds));
   return new Map(rows.map((label) => [label.id, label.providerLabelId]));
 }
 
 export function createOperations(deps: OperationsDeps) {
   return {
     async modifyMessage(
-      messageId: string,
-      input: { addLabelIds?: string[]; removeLabelIds?: string[]; markRead?: boolean },
+      messageId: MailMessageId,
+      input: { addLabelIds?: MailLabelId[]; removeLabelIds?: MailLabelId[]; markRead?: boolean },
     ): Promise<void> {
       const db = getMailDb();
-      const [message] = await db
-        .select()
-        .from(mailMessages)
-        .where(eq(mailMessages.id, messageId as MailMessageId))
-        .limit(1);
+      const [message] = await db.select().from(mailMessages).where(eq(mailMessages.id, messageId)).limit(1);
       if (!message) throw new MailNotFoundError(`Mail message not found: ${messageId}`);
       const addProviderIds = [...(await labelsById(input.addLabelIds ?? [])).values()];
       const removeProviderIds = [...(await labelsById(input.removeLabelIds ?? [])).values()];
@@ -109,10 +94,7 @@ export function createOperations(deps: OperationsDeps) {
 
       const addLabelMap = await labelsById(input.addLabelIds ?? []);
       for (const labelId of addLabelMap.keys())
-        await db
-          .insert(mailMessageLabels)
-          .values({ messageId: message.id, labelId: labelId as MailLabelId })
-          .onConflictDoNothing();
+        await db.insert(mailMessageLabels).values({ messageId: message.id, labelId }).onConflictDoNothing();
       const removeLabelIds = input.markRead
         ? [
             ...(input.removeLabelIds ?? []),
@@ -132,9 +114,7 @@ export function createOperations(deps: OperationsDeps) {
       for (const labelId of removeLabelIds)
         await db
           .delete(mailMessageLabels)
-          .where(
-            and(eq(mailMessageLabels.messageId, message.id), eq(mailMessageLabels.labelId, labelId as MailLabelId)),
-          );
+          .where(and(eq(mailMessageLabels.messageId, message.id), eq(mailMessageLabels.labelId, labelId)));
       await db
         .update(mailMessages)
         .set({ isUnread: input.markRead ? false : message.isUnread, updatedAt: Date.now() })
@@ -150,15 +130,15 @@ export function createOperations(deps: OperationsDeps) {
       deps.emitThreadsChanged(message.accountId, [message.threadId]);
     },
 
-    async trashThread(threadId: string): Promise<void> {
+    async trashThread(threadId: MailThreadId): Promise<void> {
       await setThreadTrash(threadId, true, deps);
     },
 
-    async untrashThread(threadId: string): Promise<void> {
+    async untrashThread(threadId: MailThreadId): Promise<void> {
       await setThreadTrash(threadId, false, deps);
     },
 
-    async createDraft(input: DraftInput): Promise<string> {
+    async createDraft(input: DraftInput): Promise<MailDraftId> {
       const db = getMailDb();
       await getAccount(input.accountId);
       const id = createMailDraftId();
@@ -173,7 +153,7 @@ export function createOperations(deps: OperationsDeps) {
           subject: input.subject,
           bodyText: input.bodyText,
           bodyHtml: input.bodyHtml,
-          inReplyToMessageId: input.inReplyToMessageId as MailMessageId | null,
+          inReplyToMessageId: input.inReplyToMessageId,
           dirty: true,
           createdAt: Date.now(),
           updatedAt: Date.now(),
@@ -186,13 +166,9 @@ export function createOperations(deps: OperationsDeps) {
       return id;
     },
 
-    async updateDraft(draftId: string, input: Partial<DraftInput>): Promise<void> {
+    async updateDraft(draftId: MailDraftId, input: Partial<DraftInput>): Promise<void> {
       const db = getMailDb();
-      const [draft] = await db
-        .select()
-        .from(mailDrafts)
-        .where(eq(mailDrafts.id, draftId as MailDraftId))
-        .limit(1);
+      const [draft] = await db.select().from(mailDrafts).where(eq(mailDrafts.id, draftId)).limit(1);
       if (!draft) throw new MailNotFoundError(`Mail draft not found: ${draftId}`);
       const next = {
         accountId: input.accountId ?? draft.accountId,
@@ -213,7 +189,7 @@ export function createOperations(deps: OperationsDeps) {
           subject: next.subject,
           bodyText: next.bodyText,
           bodyHtml: next.bodyHtml,
-          inReplyToMessageId: next.inReplyToMessageId as MailMessageId | null,
+          inReplyToMessageId: next.inReplyToMessageId,
           dirty: true,
           updatedAt: Date.now(),
         })
@@ -225,26 +201,18 @@ export function createOperations(deps: OperationsDeps) {
       });
     },
 
-    async deleteDraft(draftId: string): Promise<void> {
+    async deleteDraft(draftId: MailDraftId): Promise<void> {
       const db = getMailDb();
-      const [draft] = await db
-        .select()
-        .from(mailDrafts)
-        .where(eq(mailDrafts.id, draftId as MailDraftId))
-        .limit(1);
+      const [draft] = await db.select().from(mailDrafts).where(eq(mailDrafts.id, draftId)).limit(1);
       if (!draft) return;
       await db.delete(mailDrafts).where(eq(mailDrafts.id, draft.id));
       if (draft.providerDraftId)
         await deps.outbox.enqueue(draft.accountId, 'delete_draft', { draftId, providerDraftId: draft.providerDraftId });
     },
 
-    async sendDraft(draftId: string): Promise<void> {
+    async sendDraft(draftId: MailDraftId): Promise<void> {
       const db = getMailDb();
-      const [draft] = await db
-        .select()
-        .from(mailDrafts)
-        .where(eq(mailDrafts.id, draftId as MailDraftId))
-        .limit(1);
+      const [draft] = await db.select().from(mailDrafts).where(eq(mailDrafts.id, draftId)).limit(1);
       if (!draft) throw new MailNotFoundError(`Mail draft not found: ${draftId}`);
       const input: DraftInput = {
         accountId: draft.accountId,
@@ -268,12 +236,12 @@ export function createOperations(deps: OperationsDeps) {
       await deps.outbox.enqueue(input.accountId, 'send', { draft: await toOutgoingDraft(input) });
     },
 
-    async hydrateThread(threadId: string): Promise<void> {
+    async hydrateThread(threadId: MailThreadId): Promise<void> {
       const db = getMailDb();
       const messages = await db
         .select()
         .from(mailMessages)
-        .where(and(eq(mailMessages.threadId, threadId as MailThreadId), eq(mailMessages.hydration, 'metadata')));
+        .where(and(eq(mailMessages.threadId, threadId), eq(mailMessages.hydration, 'metadata')));
       if (messages.length === 0) return;
       const account = await getAccount(messages[0].accountId);
       const provider = getMailProvider(account.provider);
@@ -285,13 +253,13 @@ export function createOperations(deps: OperationsDeps) {
       deps.emitThreadsChanged(account.id, touched);
     },
 
-    async fetchAttachment(attachmentId: string): Promise<string> {
+    async fetchAttachment(attachmentId: MailAttachmentId): Promise<string> {
       const db = getMailDb();
       const [row] = await db
         .select({ attachment: mailAttachments, message: mailMessages })
         .from(mailAttachments)
         .innerJoin(mailMessages, eq(mailMessages.id, mailAttachments.messageId))
-        .where(eq(mailAttachments.id, attachmentId as MailAttachmentId))
+        .where(eq(mailAttachments.id, attachmentId))
         .limit(1);
       if (!row) throw new MailNotFoundError(`Mail attachment not found: ${attachmentId}`);
       if (row.attachment.localPath) return row.attachment.localPath;
@@ -315,13 +283,9 @@ export function createOperations(deps: OperationsDeps) {
   };
 }
 
-async function setThreadTrash(threadId: string, isTrashed: boolean, deps: OperationsDeps): Promise<void> {
+async function setThreadTrash(threadId: MailThreadId, isTrashed: boolean, deps: OperationsDeps): Promise<void> {
   const db = getMailDb();
-  const [thread] = await db
-    .select()
-    .from(mailThreads)
-    .where(eq(mailThreads.id, threadId as MailThreadId))
-    .limit(1);
+  const [thread] = await db.select().from(mailThreads).where(eq(mailThreads.id, threadId)).limit(1);
   if (!thread) throw new MailNotFoundError(`Mail thread not found: ${threadId}`);
   const messages = await db.select().from(mailMessages).where(eq(mailMessages.threadId, thread.id));
   const trashLabels = await db
