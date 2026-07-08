@@ -1,11 +1,12 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import type { ConnectorDefinition, ConnectorInstanceSafe } from '@stitch/shared/connectors/types';
+import type { ConnectorDefinition, ConnectorInstanceSafe, ConnectorSafe } from '@stitch/shared/connectors/types';
 
 import { serverRequest } from '@/lib/api';
 
 const connectorKeys = {
   all: ['connectors'] as const,
+  configured: () => [...connectorKeys.all, 'configured'] as const,
   definitions: () => [...connectorKeys.all, 'definitions'] as const,
   instances: () => [...connectorKeys.all, 'instances'] as const,
   instance: (id: string) => [...connectorKeys.all, 'instance', id] as const,
@@ -14,6 +15,11 @@ const connectorKeys = {
 export const connectorDefinitionsQueryOptions = queryOptions({
   queryKey: connectorKeys.definitions(),
   queryFn: () => serverRequest<ConnectorDefinition[]>('/connectors/definitions'),
+});
+
+export const connectorsQueryOptions = queryOptions({
+  queryKey: connectorKeys.configured(),
+  queryFn: () => serverRequest<ConnectorSafe[]>('/connectors'),
 });
 
 export const connectorInstancesQueryOptions = queryOptions({
@@ -26,16 +32,25 @@ export const connectorInstancesQueryOptions = queryOptions({
   queryFn: () => serverRequest<ConnectorInstanceSafe[]>('/connectors/instances'),
 });
 
-export function useCreateOAuthConnector() {
+export function useCreateOAuthConnectorCredentials() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: {
-      connectorId: string;
-      label: string;
-      clientId: string;
-      clientSecret: string;
-      scopes: string[];
-    }) =>
+    mutationFn: (input: { connectorId: string; label: string; clientId: string; clientSecret: string }) =>
+      serverRequest<ConnectorSafe>('/connectors/oauth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: connectorKeys.all });
+    },
+  });
+}
+
+export function useCreateOAuthConnectorAccount() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { connectorRefId: string; label: string; scopes: string[] }) =>
       serverRequest<ConnectorInstanceSafe>('/connectors/instances/oauth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

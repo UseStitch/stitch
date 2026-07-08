@@ -8,7 +8,7 @@ import { OAuthRefreshError } from '@/connectors/auth/oauth2.js';
 import { refreshExpiringTokens } from '@/connectors/auth/token-refresh.js';
 import { registerConnector, unregisterConnector } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
-import { connectorInstances } from '@/db/schema/connectors.js';
+import { connectorInstances, connectors } from '@/db/schema/connectors.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 
 setupTestDb();
@@ -34,17 +34,28 @@ function createDefinition(): ConnectorDefinition {
 }
 
 async function insertExpiredInstance(id: string) {
+  const connectorRefId = `cnr_${id}` as PrefixedString<'cnr'>;
+  await getDb()
+    .insert(connectors)
+    .values({
+      id: connectorRefId,
+      connectorId: 'google',
+      authType: 'oauth2',
+      label: 'Google OAuth App',
+      clientId: 'client-id',
+      clientSecret: 'client-secret',
+      apiKey: null,
+    });
+
   await getDb()
     .insert(connectorInstances)
     .values({
       id: id as PrefixedString<'conn'>,
       connectorId: 'google',
+      connectorRefId,
       label: 'Google Account',
       appliedVersion: 1,
       capabilities: ['google.drive.read'],
-      clientId: 'client-id',
-      clientSecret: 'client-secret',
-      apiKey: null,
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
       tokenExpiresAt: Date.now() - 1_000,

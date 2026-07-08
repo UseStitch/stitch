@@ -4,12 +4,15 @@ import { z } from 'zod';
 
 import { listConnectorDefinitions } from '@/connectors/registry.js';
 import {
+  listConnectors,
   listConnectorInstances,
   getConnectorInstance,
+  createOAuthConnector,
   createOAuthConnectorInstance,
   createApiKeyConnectorInstance,
   authorizeOAuthInstance,
   updateConnectorInstance,
+  deleteConnector,
   deleteConnectorInstance,
   testConnectorInstance,
   upgradeConnectorInstance,
@@ -24,6 +27,26 @@ const log = Log.create({ service: 'connectors-route' });
 connectorsRouter.get('/definitions', (c) => {
   const definitions = listConnectorDefinitions();
   return c.json(definitions);
+});
+
+// List configured connector credentials
+connectorsRouter.get('/', async (c) => {
+  const result = await listConnectors();
+  return unwrapResult(c, result);
+});
+
+// Create OAuth connector credentials
+const createConnectorOAuthSchema = z.object({
+  connectorId: z.string().min(1),
+  label: z.string().min(1),
+  clientId: z.string().min(1),
+  clientSecret: z.string().min(1),
+});
+
+connectorsRouter.post('/oauth', zValidator('json', createConnectorOAuthSchema), async (c) => {
+  const body = c.req.valid('json');
+  const result = await createOAuthConnector(body);
+  return unwrapResult(c, result, 201);
 });
 
 // List all connector instances
@@ -41,10 +64,8 @@ connectorsRouter.get('/instances/:id', async (c) => {
 
 // Create an OAuth connector instance
 const createOAuthSchema = z.object({
-  connectorId: z.string().min(1),
+  connectorRefId: z.string().min(1),
   label: z.string().min(1),
-  clientId: z.string().min(1),
-  clientSecret: z.string().min(1),
   scopes: z.array(z.string()).min(1),
 });
 
@@ -101,6 +122,13 @@ connectorsRouter.patch('/instances/:id', zValidator('json', updateSchema), async
 connectorsRouter.delete('/instances/:id', async (c) => {
   const id = c.req.param('id');
   const result = await deleteConnectorInstance(id);
+  return unwrapResult(c, result, 204);
+});
+
+// Delete connector credentials and all linked accounts
+connectorsRouter.delete('/:id', async (c) => {
+  const id = c.req.param('id');
+  const result = await deleteConnector(id);
   return unwrapResult(c, result, 204);
 });
 
