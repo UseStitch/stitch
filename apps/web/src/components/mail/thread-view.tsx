@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { MailAccountId, MailMessageView, MailThreadId } from '@stitch/shared/mail/types';
 
 import { Composer } from '@/components/mail/composer';
+import { getLabelDisplayName } from '@/components/mail/mail-label-utils';
 import { MessageBody } from '@/components/mail/message-body';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -164,11 +165,11 @@ export function ThreadView({ accountId, threadId, onClose }: ThreadViewProps) {
         </Button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-6">
-        <div className="mx-auto max-w-3xl space-y-4">
+        <div className="mx-auto max-w-5xl space-y-4">
           <div className="flex flex-wrap gap-2">
             {currentThread.labels.map((label) => (
               <Badge key={label.id} variant="secondary">
-                {label.name}
+                {getLabelDisplayName(label)}
               </Badge>
             ))}
           </div>

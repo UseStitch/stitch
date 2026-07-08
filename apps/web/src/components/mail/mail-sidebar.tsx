@@ -15,6 +15,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import type { MailAccountId, MailLabelView } from '@stitch/shared/mail/types';
 
+import { getLabelDisplayName, getLabelParts, SYSTEM_LABEL_ORDER, titleCase } from '@/components/mail/mail-label-utils';
 import { useMailStore } from '@/components/mail/mail-store';
 import { InternalSidebar } from '@/components/navigation/internal-sidebar';
 import { Badge } from '@/components/ui/badge';
@@ -29,56 +30,9 @@ import { SidebarMenuAction, SidebarMenuButton, SidebarMenuItem } from '@/compone
 import { getDefaultMailLabel, mailAccountsQueryOptions, mailLabelsQueryOptions } from '@/lib/queries/mail';
 import { cn } from '@/lib/utils';
 
-const SYSTEM_LABEL_ORDER = [
-  'INBOX',
-  'SENT',
-  'DRAFT',
-  'DRAFTS',
-  'TRASH',
-  'CATEGORY_PERSONAL',
-  'CATEGORY_UPDATES',
-  'CATEGORY_PROMOTIONS',
-  'CATEGORY_SOCIAL',
-  'CATEGORY_FORUMS',
-  'IMPORTANT',
-  'YELLOW_STAR',
-  'STARRED',
-  'UNREAD',
-  'SPAM',
-] as const;
-
-const SYSTEM_LABEL_NAMES: Record<string, string> = {
-  CATEGORY_FORUMS: 'Forums',
-  CATEGORY_PERSONAL: 'Personal',
-  CATEGORY_PROMOTIONS: 'Promotions',
-  CATEGORY_SOCIAL: 'Social',
-  CATEGORY_UPDATES: 'Updates',
-  DRAFT: 'Drafts',
-  DRAFTS: 'Drafts',
-  IMPORTANT: 'Important',
-  INBOX: 'Inbox',
-  SENT: 'Sent',
-  SPAM: 'Spam',
-  STARRED: 'Starred',
-  TRASH: 'Trash',
-  UNREAD: 'Unread',
-  YELLOW_STAR: 'Yellow Star',
-};
-
 type UserLabelNode = { key: string; name: string; label: MailLabelView | null; children: UserLabelNode[] };
 
 type LabelSection = 'categories' | 'markers' | 'custom';
-
-function titleCase(value: string): string {
-  return value
-    .split(/([\s_-]+)/)
-    .map((part) => (part.trim() ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase() : part))
-    .join('');
-}
-
-function getLabelParts(label: MailLabelView): string[] {
-  return label.name.split(/(?<!\s)\/(?!\s)/).filter(Boolean);
-}
 
 function getSystemLabelGroup(label: MailLabelView): 'primary' | 'category' | 'marker' | null {
   const normalized = label.providerLabelId.toUpperCase();
@@ -86,14 +40,6 @@ function getSystemLabelGroup(label: MailLabelView): 'primary' | 'category' | 'ma
   if (normalized.startsWith('CATEGORY_')) return 'category';
   if (label.kind === 'system') return 'marker';
   return null;
-}
-
-function getLabelDisplayName(label: MailLabelView): string {
-  const normalized = label.providerLabelId.toUpperCase();
-  if (SYSTEM_LABEL_NAMES[normalized]) return SYSTEM_LABEL_NAMES[normalized];
-
-  const parts = getLabelParts(label);
-  return parts.at(-1) ?? titleCase(label.name);
 }
 
 function getSystemIcon(label: MailLabelView) {
