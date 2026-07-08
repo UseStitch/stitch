@@ -47,7 +47,6 @@ const config: KnipConfig = {
     'tailwindcss',
     '@tailwindcss/typography',
   ],
-  ignoreIssues: { 'apps/web/src/routes/mail/**': ['exports'], 'apps/web/src/routes/settings/mail.tsx': ['exports'] },
   ignoreBinaries: [],
 };
 
