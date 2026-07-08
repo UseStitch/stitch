@@ -16,9 +16,9 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { getServerUrl } from '@/lib/api';
 import { getErrorMessage } from '@/lib/errors';
 import { useModifyMailMessage, useTrashMailThread, useUntrashMailThread } from '@/lib/mutations/mail';
-import { getServerUrl } from '@/lib/api';
 import { mailLabelsQueryOptions, mailThreadQueryOptions } from '@/lib/queries/mail';
 
 type ThreadViewProps = { accountId: MailAccountId; threadId: MailThreadId; onClose: () => void };
@@ -36,15 +36,22 @@ function MessageCard({ message, collapsed }: { message: MailMessageView; collaps
   const [open, setOpen] = React.useState(!collapsed);
 
   function openAttachment(attachmentId: string) {
-    void getServerUrl().then((baseUrl) => window.open(`${baseUrl}/mail/attachments/${attachmentId}`, '_blank', 'noopener,noreferrer'));
+    void getServerUrl().then((baseUrl) =>
+      window.open(`${baseUrl}/mail/attachments/${attachmentId}`, '_blank', 'noopener,noreferrer'),
+    );
   }
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 text-card-foreground">
-      <button type="button" className="flex w-full items-start justify-between gap-3 text-left" onClick={() => setOpen(!open)}>
+      <button
+        type="button"
+        className="flex w-full items-start justify-between gap-3 text-left"
+        onClick={() => setOpen(!open)}>
         <div className="min-w-0">
           <div className="truncate text-sm font-medium">{formatAddress(message)}</div>
-          <div className="text-xs text-muted-foreground">To: {message.to.map((address) => address.email).join(', ') || 'Undisclosed'}</div>
+          <div className="text-xs text-muted-foreground">
+            To: {message.to.map((address) => address.email).join(', ') || 'Undisclosed'}
+          </div>
         </div>
         <div className="shrink-0 text-xs text-muted-foreground">{formatMessageDate(message.internalDate)}</div>
       </button>
@@ -99,10 +106,14 @@ export function ThreadView({ accountId, threadId, onClose }: ThreadViewProps) {
     void mutation
       .mutateAsync({ accountId, threadId: currentThread.id })
       .then(() => {
-        toast.success(currentThread.isTrashed ? 'Thread restored' : 'Thread moved to trash');
+        toast.success(currentThread.isTrashed ? 'Thread restored' : 'Thread moved to trash', {
+          id: 'mail-thread-trash',
+        });
         if (!currentThread.isTrashed) onClose();
       })
-      .catch((error: unknown) => toast.error(getErrorMessage(error, 'Failed to update thread')));
+      .catch((error: unknown) =>
+        toast.error(getErrorMessage(error, 'Failed to update thread'), { id: 'mail-thread-trash' }),
+      );
   }
 
   function handleLabel(labelId: (typeof labels)[number]['id'], checked: boolean) {
@@ -139,7 +150,11 @@ export function ThreadView({ accountId, threadId, onClose }: ThreadViewProps) {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button variant="outline" size="sm" onClick={() => latestMessage && setReplyTo(latestMessage)} disabled={!latestMessage}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => latestMessage && setReplyTo(latestMessage)}
+          disabled={!latestMessage}>
           <ReplyIcon className="size-3.5" />
           Reply
         </Button>

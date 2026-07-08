@@ -2,7 +2,13 @@ import { SendIcon, XIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
-import type { MailAccountId, MailAddressView, MailDraftId, MailDraftView, MailMessageView } from '@stitch/shared/mail/types';
+import type {
+  MailAccountId,
+  MailAddressView,
+  MailDraftId,
+  MailDraftView,
+  MailMessageView,
+} from '@stitch/shared/mail/types';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -78,11 +84,13 @@ export function Composer({ accountId, draft, replyTo, onClose }: ComposerProps) 
 
   function handleSend() {
     onClose();
-    toast.success('Sending message…');
+    toast.success('Sending message…', { id: 'mail-message-send' });
     const promise = draftId ? sendDraft.mutateAsync({ id: draftId, accountId }) : sendMessage.mutateAsync(payload);
     void promise
-      .then(() => toast.success('Message queued to send'))
-      .catch((error: unknown) => toast.error(getErrorMessage(error, 'Failed to send message')));
+      .then(() => toast.success('Message queued to send', { id: 'mail-message-send' }))
+      .catch((error: unknown) =>
+        toast.error(getErrorMessage(error, 'Failed to send message'), { id: 'mail-message-send' }),
+      );
   }
 
   return (
@@ -96,7 +104,12 @@ export function Composer({ accountId, draft, replyTo, onClose }: ComposerProps) 
       <div className="space-y-3 p-3">
         <div className="space-y-1">
           <Label htmlFor="mail-to">To</Label>
-          <Input id="mail-to" value={to} onChange={(event) => setTo(event.target.value)} placeholder="name@example.com" />
+          <Input
+            id="mail-to"
+            value={to}
+            onChange={(event) => setTo(event.target.value)}
+            placeholder="name@example.com"
+          />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
@@ -112,7 +125,12 @@ export function Composer({ accountId, draft, replyTo, onClose }: ComposerProps) 
           <Label htmlFor="mail-subject">Subject</Label>
           <Input id="mail-subject" value={subject} onChange={(event) => setSubject(event.target.value)} />
         </div>
-        <Textarea value={bodyText} onChange={(event) => setBodyText(event.target.value)} placeholder="Write your message…" className="min-h-40" />
+        <Textarea
+          value={bodyText}
+          onChange={(event) => setBodyText(event.target.value)}
+          placeholder="Write your message…"
+          className="min-h-40"
+        />
       </div>
       <div className="flex items-center justify-between border-t border-border px-3 py-2">
         <div className="text-xs text-muted-foreground">Drafts autosave after a short pause.</div>
