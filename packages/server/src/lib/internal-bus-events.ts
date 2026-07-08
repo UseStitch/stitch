@@ -256,6 +256,19 @@ export type McpToolsChangedEvent = { serverId: PrefixedString<'mcp'>; serverName
 
 export type McpAuthStatusChangedEvent = { serverId: PrefixedString<'mcp'>; authStatus: McpAuthStatus };
 
+// ─── Mail ────────────────────────────────────────────────────────────────────
+
+export type MailSyncProgressEvent = {
+  accountId: string;
+  phase: 'backfill' | 'reconciling';
+  processed: number;
+  estimatedTotal: number;
+};
+
+export type MailAccountUpdatedEvent = { accountId: string };
+
+export type MailThreadsChangedEvent = { accountId: string; threadIds: string[] };
+
 // ─── Event Map ───────────────────────────────────────────────────────────────
 
 export type InternalEventMap = {
@@ -314,4 +327,9 @@ export type InternalEventMap = {
   'mcp.tools.list_changed': McpToolsChangedEvent;
   'mcp.tools.changed': McpToolsChangedEvent;
   'mcp.auth.status_changed': McpAuthStatusChangedEvent;
+
+  // Mail
+  'mail.sync.progress': MailSyncProgressEvent;
+  'mail.account.updated': MailAccountUpdatedEvent;
+  'mail.threads.changed': MailThreadsChangedEvent;
 };
