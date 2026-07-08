@@ -50,6 +50,7 @@ export const SETTINGS_KEYS = [
   'stt.default.providerId',
   'stt.default.modelId',
   'stt.holdToTalk',
+  'mail.alwaysLoadRemoteImages',
 ] as const;
 
 export type SettingsKey = (typeof SETTINGS_KEYS)[number];
@@ -106,6 +107,7 @@ export const SETTINGS_SCHEMAS = {
   'stt.default.providerId': z.string(),
   'stt.default.modelId': z.string(),
   'stt.holdToTalk': booleanSetting,
+  'mail.alwaysLoadRemoteImages': booleanSetting,
 } as const;
 
 export function isValidLeaderKeyHotkey(value: string): boolean {
@@ -324,5 +326,10 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     value: 'false',
     description:
       'When enabled, the dictation shortcut records only while held and finalizes on release (push-to-talk). When disabled, the shortcut toggles recording on and off.',
+  },
+  {
+    key: 'mail.alwaysLoadRemoteImages',
+    value: 'true',
+    description: 'Always load remote images in Mail message bodies.',
   },
 ];

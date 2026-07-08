@@ -1,8 +1,11 @@
 import DOMPurify from 'dompurify';
 import * as React from 'react';
 
+import { useSuspenseQuery } from '@tanstack/react-query';
+
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/ui/use-theme';
+import { settingsQueryOptions } from '@/lib/queries/settings';
 
 const BLOCKED_IMAGE_SRC = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg"/%3E';
 const LIGHT_MAIL_BACKGROUND = '#ffffff';
@@ -174,7 +177,10 @@ function getFrameHeight(contentHeight: number): number {
 }
 
 export function MessageBody({ bodyHtml, bodyText }: { bodyHtml: string | null; bodyText: string | null }) {
-  const [loadImages, setLoadImages] = React.useState(false);
+  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const alwaysLoadRemoteImages = settings['mail.alwaysLoadRemoteImages'] !== 'false';
+  const [loadImagesForMessage, setLoadImagesForMessage] = React.useState(false);
+  const loadImages = alwaysLoadRemoteImages || loadImagesForMessage;
   const iframeRef = React.useRef<HTMLIFrameElement>(null);
   const resizeObserverRef = React.useRef<ResizeObserver | null>(null);
   const isDark = useIsDarkMode();
@@ -209,7 +215,7 @@ export function MessageBody({ bodyHtml, bodyText }: { bodyHtml: string | null; b
   return (
     <div className="space-y-2">
       {!loadImages && bodyHtml ? (
-        <Button variant="outline" size="xs" onClick={() => setLoadImages(true)}>
+        <Button variant="outline" size="xs" onClick={() => setLoadImagesForMessage(true)}>
           Load remote images
         </Button>
       ) : null}
