@@ -301,6 +301,13 @@ function isHiddenByClosedDetails(element: Element): boolean {
 }
 
 function getBodyContentHeight(doc: Document): number {
+  const paddingBottom = Number.parseFloat(doc.defaultView?.getComputedStyle(doc.body).paddingBottom ?? '0') || 0;
+  const collapsedQuotedReplySummary = doc.body.querySelector('details.stitch-quoted-reply:not([open]) > summary');
+  if (collapsedQuotedReplySummary) {
+    const bodyTop = doc.body.getBoundingClientRect().top;
+    return Math.ceil(collapsedQuotedReplySummary.getBoundingClientRect().bottom - bodyTop + paddingBottom);
+  }
+
   const children = Array.from(doc.body.querySelectorAll('*')).filter((element) => {
     if (isHiddenByClosedDetails(element) || !hasDirectMeaningfulContent(element)) return false;
 
@@ -311,7 +318,6 @@ function getBodyContentHeight(doc: Document): number {
 
   const bodyTop = doc.body.getBoundingClientRect().top;
   const contentBottom = Math.max(...children.map((child) => child.getBoundingClientRect().bottom - bodyTop));
-  const paddingBottom = Number.parseFloat(doc.defaultView?.getComputedStyle(doc.body).paddingBottom ?? '0') || 0;
   return Math.ceil(contentBottom + paddingBottom);
 }
 
@@ -319,10 +325,12 @@ export function MessageBody({
   bodyHtml,
   bodyText,
   collapseQuotedReplies = false,
+  fillAvailableHeight = false,
 }: {
   bodyHtml: string | null;
   bodyText: string | null;
   collapseQuotedReplies?: boolean;
+  fillAvailableHeight?: boolean;
 }) {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
   const alwaysLoadRemoteImages = settings['mail.alwaysLoadRemoteImages'] !== 'false';
@@ -381,7 +389,7 @@ export function MessageBody({
   }
 
   return (
-    <div className="space-y-2">
+    <div className={fillAvailableHeight ? 'flex min-h-0 flex-1 flex-col space-y-2' : 'space-y-2'}>
       {!loadImages && bodyHtml ? (
         <Button variant="outline" size="xs" onClick={() => setLoadImagesForMessage(true)}>
           Load remote images
@@ -394,7 +402,11 @@ export function MessageBody({
         referrerPolicy="no-referrer"
         srcDoc={srcDoc}
         onLoad={handleFrameLoad}
-        className="thin-scrollbar min-h-32 w-full rounded-md border border-border bg-card"
+        className={
+          fillAvailableHeight
+            ? 'thin-scrollbar min-h-32 w-full flex-1 rounded-md border border-border bg-card'
+            : 'thin-scrollbar min-h-32 w-full rounded-md border border-border bg-card'
+        }
       />
     </div>
   );

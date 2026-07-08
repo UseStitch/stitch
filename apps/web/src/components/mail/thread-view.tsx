@@ -76,10 +76,12 @@ function MessageCard({
   message,
   collapsed,
   collapseQuotedReplies,
+  fillAvailableHeight,
 }: {
   message: MailMessageView;
   collapsed: boolean;
   collapseQuotedReplies: boolean;
+  fillAvailableHeight: boolean;
 }) {
   const [open, setOpen] = React.useState(!collapsed);
 
@@ -90,7 +92,12 @@ function MessageCard({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4 text-card-foreground">
+    <div
+      className={
+        fillAvailableHeight
+          ? 'flex min-h-0 flex-1 flex-col rounded-lg border border-border bg-card p-4 text-card-foreground'
+          : 'rounded-lg border border-border bg-card p-4 text-card-foreground'
+      }>
       <button
         type="button"
         className="flex w-full items-start justify-between gap-3 text-left"
@@ -104,11 +111,12 @@ function MessageCard({
         <div className="shrink-0 text-xs text-muted-foreground">{formatMessageDate(message.internalDate)}</div>
       </button>
       {open ? (
-        <div className="mt-4 space-y-3">
+        <div className={fillAvailableHeight ? 'mt-4 flex min-h-0 flex-1 flex-col space-y-3' : 'mt-4 space-y-3'}>
           <MessageBody
             bodyHtml={message.bodyHtml}
             bodyText={message.bodyText}
             collapseQuotedReplies={collapseQuotedReplies}
+            fillAvailableHeight={fillAvailableHeight}
           />
           {message.attachments.length > 0 ? (
             <div className="flex flex-wrap gap-2">
@@ -201,15 +209,21 @@ export function ThreadView({ accountId, threadId, onClose }: ThreadViewProps) {
         </Button>
       </div>
       <div className="thin-scrollbar min-h-0 flex-1 overflow-y-auto p-6">
-        <div className="w-full space-y-4">
-          {currentThread.messages.map((message, index) => (
-            <MessageCard
-              key={message.id}
-              message={message}
-              collapsed={index < currentThread.messages.length - 1}
-              collapseQuotedReplies={index > 0 || Boolean(message.inReplyTo)}
-            />
-          ))}
+        <div className="flex min-h-full w-full flex-col space-y-4">
+          {currentThread.messages.map((message, index) => {
+            const isLatestMessage = index === currentThread.messages.length - 1;
+            const collapseQuotedReplies = index > 0 || Boolean(message.inReplyTo);
+
+            return (
+              <MessageCard
+                key={message.id}
+                message={message}
+                collapsed={!isLatestMessage}
+                collapseQuotedReplies={collapseQuotedReplies}
+                fillAvailableHeight={isLatestMessage && !collapseQuotedReplies}
+              />
+            );
+          })}
         </div>
       </div>
       {replyTo ? <Composer accountId={accountId} replyTo={replyTo} onClose={() => setReplyTo(null)} /> : null}
