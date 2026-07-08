@@ -13,7 +13,9 @@ export function unregisterSseConnection(stream: SSEStreamingApi): void {
   connections.delete(stream);
 }
 
-function broadcast<K extends SseEventName>(event: K, data: SseEventPayloadMap[K]): void {
+function broadcast<K extends SseEventName>(event: K, data: SseEventPayloadMap[K]): void;
+function broadcast(event: string, data: unknown): void;
+function broadcast(event: string, data: unknown): void {
   const payload = JSON.stringify(data);
   void Promise.allSettled(Array.from(connections).map((stream) => stream.writeSSE({ event, data: payload })));
 }
@@ -234,5 +236,19 @@ export function registerSseAdapter(): void {
       content: event.content,
       offsetMs: event.offsetMs,
     });
+  });
+
+  // ─── Mail ───────────────────────────────────────────────────────────────────
+
+  internalBus.onSync('mail.sync.progress', (event) => {
+    broadcast('mail.sync.progress', event);
+  });
+
+  internalBus.onSync('mail.account.updated', (event) => {
+    broadcast('mail.account.updated', event);
+  });
+
+  internalBus.onSync('mail.threads.changed', (event) => {
+    broadcast('mail.threads.changed', event);
   });
 }

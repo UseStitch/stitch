@@ -15,6 +15,7 @@ type ServerPaths = {
   tempDir: string;
   filePaths: {
     db: string;
+    mailDb: string;
     models: string;
     embeddingModelsRegistry: string;
     sttModelsRegistry: string;
@@ -29,6 +30,7 @@ type ServerPaths = {
     connectorIcons: string;
     simpleIcons: string;
     recordings: string;
+    mailAttachments: string;
   };
 };
 
@@ -139,6 +141,7 @@ export function createPaths(options: CreatePathsOptions = {}): ServerPaths {
 
     filePaths: {
       db: path.join(paths.data, `${appName}.db`),
+      mailDb: path.join(paths.data, 'mail.db'),
       models: path.join(paths.cache, 'models.json'),
       embeddingModelsRegistry: path.join(paths.cache, 'embedding-models-registry.json'),
       sttModelsRegistry: path.join(paths.cache, 'stt-models-registry.json'),
@@ -154,6 +157,7 @@ export function createPaths(options: CreatePathsOptions = {}): ServerPaths {
       connectorIcons: path.join(paths.cache, 'connector-icons'),
       simpleIcons: path.join(paths.cache, 'simple-icons'),
       recordings: path.join(paths.data, 'recordings'),
+      mailAttachments: path.join(paths.data, 'mail-attachments'),
     },
   };
 }

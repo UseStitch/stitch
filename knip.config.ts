@@ -28,6 +28,11 @@ const config: KnipConfig = {
       entry: ['src/index.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
     },
+    'packages/mail': {
+      entry: ['src/**/*.test.{ts,tsx}'],
+      project: ['src/**/*.{ts,tsx}'],
+      ignore: ['src/providers/gmail/api.ts', 'src/providers/gmail/batch.ts', 'src/providers/gmail/parse.ts'],
+    },
     'connectors/*': { entry: ['src/index.{ts,tsx}', 'src/**/*.test.{ts,tsx}'], project: ['src/**/*.{ts,tsx}'] },
     'connectors/sdk': { entry: ['src/index.{ts,tsx}'], project: ['src/**/*.{ts,tsx}'] },
   },
@@ -42,6 +47,7 @@ const config: KnipConfig = {
     'tailwindcss',
     '@tailwindcss/typography',
   ],
+  ignoreIssues: { 'apps/web/src/routes/mail/**': ['exports'], 'apps/web/src/routes/settings/mail.tsx': ['exports'] },
   ignoreBinaries: [],
 };
 
