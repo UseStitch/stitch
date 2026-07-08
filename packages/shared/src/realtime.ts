@@ -1,5 +1,6 @@
 import { SESSION_EVENT_NAMES, type SessionEvents } from './chat/session-events.js';
 import { STREAM_EVENT_NAMES, type StreamEvents } from './chat/stream-events.js';
+import { MAIL_EVENT_NAMES, type MailEvents } from './mail/events.js';
 import { MCP_EVENT_NAMES, type McpEvents } from './mcp/events.js';
 import { PERMISSION_EVENT_NAMES, type PermissionEvents } from './permissions/events.js';
 import { QUESTION_EVENT_NAMES, type QuestionEvents } from './questions/events.js';
@@ -15,7 +16,8 @@ export type SseEventPayloadMap = ConnectionEvents &
   RecordingEvents &
   QuestionEvents &
   PermissionEvents &
-  McpEvents;
+  McpEvents &
+  MailEvents;
 
 export const SSE_EVENT_NAMES = [
   ...CONNECTION_EVENT_NAMES,
@@ -25,6 +27,7 @@ export const SSE_EVENT_NAMES = [
   ...QUESTION_EVENT_NAMES,
   ...PERMISSION_EVENT_NAMES,
   ...MCP_EVENT_NAMES,
+  ...MAIL_EVENT_NAMES,
 ] as const satisfies readonly (keyof SseEventPayloadMap)[];
 
 export type SseEventName = (typeof SSE_EVENT_NAMES)[number];
