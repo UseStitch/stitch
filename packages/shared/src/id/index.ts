@@ -20,6 +20,12 @@ export const ID_PREFIXES = {
   agendaList: 'alist',
   agendaItem: 'aitm',
   todo: 'todo',
+  mailAccount: 'macc',
+  mailLabel: 'mlbl',
+  mailThread: 'mthr',
+  mailMessage: 'mmsg',
+  mailAttachment: 'matt',
+  mailDraft: 'mdrf',
 } as const;
 
 export type IdPrefix = (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES];

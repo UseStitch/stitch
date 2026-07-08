@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { getSessionById } from '@/chat/session-crud.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
+import { routeSchemas } from '@/lib/route-schemas.js';
 import {
   allowPermissionResponse,
   alternativePermissionResponse,
@@ -11,11 +12,11 @@ import {
   rejectPermissionResponse,
 } from '@/permission/service.js';
 
-const sessionParamSchema = z.object({ id: z.templateLiteral(['ses_', z.string()]) });
+const sessionParamSchema = z.object({ id: routeSchemas.sessionId });
 
 const permissionResponseParamSchema = z.object({
-  sessionId: z.templateLiteral(['ses_', z.string()]),
-  permissionResponseId: z.templateLiteral(['permres_', z.string()]),
+  sessionId: routeSchemas.sessionId,
+  permissionResponseId: routeSchemas.permissionResponseId,
 });
 
 const setPermissionRuleSchema = z.object({

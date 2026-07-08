@@ -4,14 +4,12 @@ import { z } from 'zod';
 
 import { getSessionById } from '@/chat/session-crud.js';
 import { unwrapResult } from '@/lib/route-helpers.js';
+import { routeSchemas } from '@/lib/route-schemas.js';
 import { createQuestion, getPendingQuestions, rejectQuestion, replyQuestion } from '@/question/service.js';
 
-const sessionParamSchema = z.object({ id: z.templateLiteral(['ses_', z.string()]) });
+const sessionParamSchema = z.object({ id: routeSchemas.sessionId });
 
-const questionParamSchema = z.object({
-  sessionId: z.templateLiteral(['ses_', z.string()]),
-  questionId: z.templateLiteral(['quest_', z.string()]),
-});
+const questionParamSchema = z.object({ sessionId: routeSchemas.sessionId, questionId: routeSchemas.questionId });
 
 const questionOptionSchema = z.object({ label: z.string(), description: z.string() });
 
@@ -26,7 +24,7 @@ const questionInfoSchema = z.object({
 const createQuestionsSchema = z.object({
   questions: z.array(questionInfoSchema).min(1),
   toolCallId: z.string().min(1),
-  messageId: z.templateLiteral(['msg_', z.string()]),
+  messageId: routeSchemas.messageId,
 });
 
 const replySchema = z.object({ answers: z.array(z.array(z.string())) });

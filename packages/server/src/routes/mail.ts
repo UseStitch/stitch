@@ -9,23 +9,17 @@ import { mailAccounts } from '@stitch/mail/db/schema';
 
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema/connectors.js';
+import { routeSchemas } from '@/lib/route-schemas.js';
 import { assertCanEnrollMailAccount, filterEligibleMailAccounts } from '@/mail/eligibility.js';
 import { getAttachmentRecord, getDraftView, getMessageView } from '@/mail/read-model.js';
 import { getMailEngine, getMailSyncProgress, removeMailAccount } from '@/mail/wiring.js';
 import type { Context } from 'hono';
 
-const mailAccountIdSchema = z.templateLiteral([z.literal('macc_'), z.string().min(1)]);
-const mailLabelIdSchema = z.templateLiteral([z.literal('mlbl_'), z.string().min(1)]);
-const mailThreadIdSchema = z.templateLiteral([z.literal('mthr_'), z.string().min(1)]);
-const mailMessageIdSchema = z.templateLiteral([z.literal('mmsg_'), z.string().min(1)]);
-const mailAttachmentIdSchema = z.templateLiteral([z.literal('matt_'), z.string().min(1)]);
-const mailDraftIdSchema = z.templateLiteral([z.literal('mdrf_'), z.string().min(1)]);
-
-const accountIdParamSchema = z.object({ id: mailAccountIdSchema });
-const threadIdParamSchema = z.object({ id: mailThreadIdSchema });
-const messageIdParamSchema = z.object({ id: mailMessageIdSchema });
-const attachmentIdParamSchema = z.object({ id: mailAttachmentIdSchema });
-const draftIdParamSchema = z.object({ id: mailDraftIdSchema });
+const accountIdParamSchema = z.object({ id: routeSchemas.mailAccountId });
+const threadIdParamSchema = z.object({ id: routeSchemas.mailThreadId });
+const messageIdParamSchema = z.object({ id: routeSchemas.mailMessageId });
+const attachmentIdParamSchema = z.object({ id: routeSchemas.mailAttachmentId });
+const draftIdParamSchema = z.object({ id: routeSchemas.mailDraftId });
 
 const accountPatchSchema = z.object({
   enabled: z.boolean().optional(),
@@ -42,28 +36,28 @@ const enrollSchema = z.object({
 const resyncSchema = z.object({ mode: z.enum(['full', 'incremental']) });
 
 const threadsQuerySchema = z.object({
-  labelId: mailLabelIdSchema.optional(),
+  labelId: routeSchemas.mailLabelId.optional(),
   cursor: z.string().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
 
 const modifyMessageSchema = z.object({
-  addLabelIds: z.array(mailLabelIdSchema).optional(),
-  removeLabelIds: z.array(mailLabelIdSchema).optional(),
+  addLabelIds: z.array(routeSchemas.mailLabelId).optional(),
+  removeLabelIds: z.array(routeSchemas.mailLabelId).optional(),
   markRead: z.boolean().optional(),
 });
 
 const addressSchema = z.object({ name: z.string().nullable(), email: z.string().email() });
 
 const draftSchema = z.object({
-  accountId: mailAccountIdSchema,
+  accountId: routeSchemas.mailAccountId,
   to: z.array(addressSchema),
   cc: z.array(addressSchema).default([]),
   bcc: z.array(addressSchema).default([]),
   subject: z.string(),
   bodyText: z.string(),
   bodyHtml: z.string().nullable().default(null),
-  inReplyToMessageId: mailMessageIdSchema.nullable().default(null),
+  inReplyToMessageId: routeSchemas.mailMessageId.nullable().default(null),
 });
 
 const draftPatchSchema = draftSchema.partial().omit({ accountId: true });
