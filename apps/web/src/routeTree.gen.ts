@@ -14,11 +14,13 @@ import { Route as MemoriesRouteImport } from './routes/memories'
 import { Route as ConnectorsRouteImport } from './routes/connectors'
 import { Route as SettingsRouteRouteImport } from './routes/settings/route'
 import { Route as RecordingsRouteRouteImport } from './routes/recordings/route'
+import { Route as MailRouteRouteImport } from './routes/mail/route'
 import { Route as AutomationsRouteRouteImport } from './routes/automations/route'
 import { Route as AgendaRouteRouteImport } from './routes/agenda/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as RecordingsIndexRouteImport } from './routes/recordings/index'
+import { Route as MailIndexRouteImport } from './routes/mail/index'
 import { Route as AutomationsIndexRouteImport } from './routes/automations/index'
 import { Route as AgendaIndexRouteImport } from './routes/agenda/index'
 import { Route as SettingsToolsRouteImport } from './routes/settings/tools'
@@ -29,6 +31,7 @@ import { Route as SettingsProvidersRouteImport } from './routes/settings/provide
 import { Route as SettingsModelsRouteImport } from './routes/settings/models'
 import { Route as SettingsMemoryRouteImport } from './routes/settings/memory'
 import { Route as SettingsMcpServersRouteImport } from './routes/settings/mcp-servers'
+import { Route as SettingsMailRouteImport } from './routes/settings/mail'
 import { Route as SettingsGeneralRouteImport } from './routes/settings/general'
 import { Route as SettingsConnectionRouteImport } from './routes/settings/connection'
 import { Route as SettingsBrowserRouteImport } from './routes/settings/browser'
@@ -66,6 +69,11 @@ const RecordingsRouteRoute = RecordingsRouteRouteImport.update({
   path: '/recordings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MailRouteRoute = MailRouteRouteImport.update({
+  id: '/mail',
+  path: '/mail',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AutomationsRouteRoute = AutomationsRouteRouteImport.update({
   id: '/automations',
   path: '/automations',
@@ -90,6 +98,11 @@ const RecordingsIndexRoute = RecordingsIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => RecordingsRouteRoute,
+} as any)
+const MailIndexRoute = MailIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MailRouteRoute,
 } as any)
 const AutomationsIndexRoute = AutomationsIndexRouteImport.update({
   id: '/',
@@ -139,6 +152,11 @@ const SettingsMemoryRoute = SettingsMemoryRouteImport.update({
 const SettingsMcpServersRoute = SettingsMcpServersRouteImport.update({
   id: '/mcp-servers',
   path: '/mcp-servers',
+  getParentRoute: () => SettingsRouteRoute,
+} as any)
+const SettingsMailRoute = SettingsMailRouteImport.update({
+  id: '/mail',
+  path: '/mail',
   getParentRoute: () => SettingsRouteRoute,
 } as any)
 const SettingsGeneralRoute = SettingsGeneralRouteImport.update({
@@ -201,6 +219,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agenda': typeof AgendaRouteRouteWithChildren
   '/automations': typeof AutomationsRouteRouteWithChildren
+  '/mail': typeof MailRouteRouteWithChildren
   '/recordings': typeof RecordingsRouteRouteWithChildren
   '/settings': typeof SettingsRouteRouteWithChildren
   '/connectors': typeof ConnectorsRoute
@@ -216,6 +235,7 @@ export interface FileRoutesByFullPath {
   '/settings/browser': typeof SettingsBrowserRoute
   '/settings/connection': typeof SettingsConnectionRoute
   '/settings/general': typeof SettingsGeneralRoute
+  '/settings/mail': typeof SettingsMailRoute
   '/settings/mcp-servers': typeof SettingsMcpServersRoute
   '/settings/memory': typeof SettingsMemoryRoute
   '/settings/models': typeof SettingsModelsRoute
@@ -226,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/settings/tools': typeof SettingsToolsRoute
   '/agenda/': typeof AgendaIndexRoute
   '/automations/': typeof AutomationsIndexRoute
+  '/mail/': typeof MailIndexRoute
   '/recordings/': typeof RecordingsIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/automations/sessions/$id': typeof AutomationsSessionsIdRoute
@@ -245,6 +266,7 @@ export interface FileRoutesByTo {
   '/settings/browser': typeof SettingsBrowserRoute
   '/settings/connection': typeof SettingsConnectionRoute
   '/settings/general': typeof SettingsGeneralRoute
+  '/settings/mail': typeof SettingsMailRoute
   '/settings/mcp-servers': typeof SettingsMcpServersRoute
   '/settings/memory': typeof SettingsMemoryRoute
   '/settings/models': typeof SettingsModelsRoute
@@ -255,6 +277,7 @@ export interface FileRoutesByTo {
   '/settings/tools': typeof SettingsToolsRoute
   '/agenda': typeof AgendaIndexRoute
   '/automations': typeof AutomationsIndexRoute
+  '/mail': typeof MailIndexRoute
   '/recordings': typeof RecordingsIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/automations/sessions/$id': typeof AutomationsSessionsIdRoute
@@ -264,6 +287,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/agenda': typeof AgendaRouteRouteWithChildren
   '/automations': typeof AutomationsRouteRouteWithChildren
+  '/mail': typeof MailRouteRouteWithChildren
   '/recordings': typeof RecordingsRouteRouteWithChildren
   '/settings': typeof SettingsRouteRouteWithChildren
   '/connectors': typeof ConnectorsRoute
@@ -279,6 +303,7 @@ export interface FileRoutesById {
   '/settings/browser': typeof SettingsBrowserRoute
   '/settings/connection': typeof SettingsConnectionRoute
   '/settings/general': typeof SettingsGeneralRoute
+  '/settings/mail': typeof SettingsMailRoute
   '/settings/mcp-servers': typeof SettingsMcpServersRoute
   '/settings/memory': typeof SettingsMemoryRoute
   '/settings/models': typeof SettingsModelsRoute
@@ -289,6 +314,7 @@ export interface FileRoutesById {
   '/settings/tools': typeof SettingsToolsRoute
   '/agenda/': typeof AgendaIndexRoute
   '/automations/': typeof AutomationsIndexRoute
+  '/mail/': typeof MailIndexRoute
   '/recordings/': typeof RecordingsIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/automations/sessions/$id': typeof AutomationsSessionsIdRoute
@@ -299,6 +325,7 @@ export interface FileRouteTypes {
     | '/'
     | '/agenda'
     | '/automations'
+    | '/mail'
     | '/recordings'
     | '/settings'
     | '/connectors'
@@ -314,6 +341,7 @@ export interface FileRouteTypes {
     | '/settings/browser'
     | '/settings/connection'
     | '/settings/general'
+    | '/settings/mail'
     | '/settings/mcp-servers'
     | '/settings/memory'
     | '/settings/models'
@@ -324,6 +352,7 @@ export interface FileRouteTypes {
     | '/settings/tools'
     | '/agenda/'
     | '/automations/'
+    | '/mail/'
     | '/recordings/'
     | '/settings/'
     | '/automations/sessions/$id'
@@ -343,6 +372,7 @@ export interface FileRouteTypes {
     | '/settings/browser'
     | '/settings/connection'
     | '/settings/general'
+    | '/settings/mail'
     | '/settings/mcp-servers'
     | '/settings/memory'
     | '/settings/models'
@@ -353,6 +383,7 @@ export interface FileRouteTypes {
     | '/settings/tools'
     | '/agenda'
     | '/automations'
+    | '/mail'
     | '/recordings'
     | '/settings'
     | '/automations/sessions/$id'
@@ -361,6 +392,7 @@ export interface FileRouteTypes {
     | '/'
     | '/agenda'
     | '/automations'
+    | '/mail'
     | '/recordings'
     | '/settings'
     | '/connectors'
@@ -376,6 +408,7 @@ export interface FileRouteTypes {
     | '/settings/browser'
     | '/settings/connection'
     | '/settings/general'
+    | '/settings/mail'
     | '/settings/mcp-servers'
     | '/settings/memory'
     | '/settings/models'
@@ -386,6 +419,7 @@ export interface FileRouteTypes {
     | '/settings/tools'
     | '/agenda/'
     | '/automations/'
+    | '/mail/'
     | '/recordings/'
     | '/settings/'
     | '/automations/sessions/$id'
@@ -395,6 +429,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgendaRouteRoute: typeof AgendaRouteRouteWithChildren
   AutomationsRouteRoute: typeof AutomationsRouteRouteWithChildren
+  MailRouteRoute: typeof MailRouteRouteWithChildren
   RecordingsRouteRoute: typeof RecordingsRouteRouteWithChildren
   SettingsRouteRoute: typeof SettingsRouteRouteWithChildren
   ConnectorsRoute: typeof ConnectorsRoute
@@ -440,6 +475,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RecordingsRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mail': {
+      id: '/mail'
+      path: '/mail'
+      fullPath: '/mail'
+      preLoaderRoute: typeof MailRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/automations': {
       id: '/automations'
       path: '/automations'
@@ -474,6 +516,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/recordings/'
       preLoaderRoute: typeof RecordingsIndexRouteImport
       parentRoute: typeof RecordingsRouteRoute
+    }
+    '/mail/': {
+      id: '/mail/'
+      path: '/'
+      fullPath: '/mail/'
+      preLoaderRoute: typeof MailIndexRouteImport
+      parentRoute: typeof MailRouteRoute
     }
     '/automations/': {
       id: '/automations/'
@@ -543,6 +592,13 @@ declare module '@tanstack/react-router' {
       path: '/mcp-servers'
       fullPath: '/settings/mcp-servers'
       preLoaderRoute: typeof SettingsMcpServersRouteImport
+      parentRoute: typeof SettingsRouteRoute
+    }
+    '/settings/mail': {
+      id: '/settings/mail'
+      path: '/mail'
+      fullPath: '/settings/mail'
+      preLoaderRoute: typeof SettingsMailRouteImport
       parentRoute: typeof SettingsRouteRoute
     }
     '/settings/general': {
@@ -654,6 +710,18 @@ const AutomationsRouteRouteChildren: AutomationsRouteRouteChildren = {
 const AutomationsRouteRouteWithChildren =
   AutomationsRouteRoute._addFileChildren(AutomationsRouteRouteChildren)
 
+interface MailRouteRouteChildren {
+  MailIndexRoute: typeof MailIndexRoute
+}
+
+const MailRouteRouteChildren: MailRouteRouteChildren = {
+  MailIndexRoute: MailIndexRoute,
+}
+
+const MailRouteRouteWithChildren = MailRouteRoute._addFileChildren(
+  MailRouteRouteChildren,
+)
+
 interface RecordingsRouteRouteChildren {
   RecordingsIdRoute: typeof RecordingsIdRoute
   RecordingsIndexRoute: typeof RecordingsIndexRoute
@@ -675,6 +743,7 @@ interface SettingsRouteRouteChildren {
   SettingsBrowserRoute: typeof SettingsBrowserRoute
   SettingsConnectionRoute: typeof SettingsConnectionRoute
   SettingsGeneralRoute: typeof SettingsGeneralRoute
+  SettingsMailRoute: typeof SettingsMailRoute
   SettingsMcpServersRoute: typeof SettingsMcpServersRoute
   SettingsMemoryRoute: typeof SettingsMemoryRoute
   SettingsModelsRoute: typeof SettingsModelsRoute
@@ -693,6 +762,7 @@ const SettingsRouteRouteChildren: SettingsRouteRouteChildren = {
   SettingsBrowserRoute: SettingsBrowserRoute,
   SettingsConnectionRoute: SettingsConnectionRoute,
   SettingsGeneralRoute: SettingsGeneralRoute,
+  SettingsMailRoute: SettingsMailRoute,
   SettingsMcpServersRoute: SettingsMcpServersRoute,
   SettingsMemoryRoute: SettingsMemoryRoute,
   SettingsModelsRoute: SettingsModelsRoute,
@@ -712,6 +782,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgendaRouteRoute: AgendaRouteRouteWithChildren,
   AutomationsRouteRoute: AutomationsRouteRouteWithChildren,
+  MailRouteRoute: MailRouteRouteWithChildren,
   RecordingsRouteRoute: RecordingsRouteRouteWithChildren,
   SettingsRouteRoute: SettingsRouteRouteWithChildren,
   ConnectorsRoute: ConnectorsRoute,

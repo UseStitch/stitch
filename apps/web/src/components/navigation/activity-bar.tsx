@@ -3,6 +3,7 @@ import {
   BotIcon,
   BrainIcon,
   ListTodoIcon,
+  MailIcon,
   MessageSquareIcon,
   MicIcon,
   PlugIcon,
@@ -47,6 +48,14 @@ const TOP_ITEMS: NavItemData[] = [
     to: '/agenda',
     matchPrefix: '/agenda',
     appId: 'agenda',
+  },
+  {
+    id: 'mail',
+    icon: <MailIcon className="size-5" />,
+    label: 'Mail',
+    to: '/mail',
+    matchPrefix: '/mail',
+    appId: 'mail',
   },
 ];
 
