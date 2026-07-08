@@ -11,6 +11,22 @@ const log = Log.create({ service: 'history-messages' });
 const PRESERVE_RECENT_ASSISTANT_TURNS = 3;
 const IMAGE_PRUNED_PLACEHOLDER = '[Image already processed by model]';
 
+type ProviderOptions = NonNullable<ModelMessage['providerOptions']>;
+type StoredPartWithProviderOptions = StoredPart & {
+  providerMetadata?: ProviderOptions;
+  providerOptions?: ProviderOptions;
+  callProviderMetadata?: ProviderOptions;
+};
+
+function getPartProviderOptions(part: StoredPart): ProviderOptions | undefined {
+  const withProviderOptions = part as StoredPartWithProviderOptions;
+  return (
+    withProviderOptions.providerOptions ??
+    withProviderOptions.providerMetadata ??
+    withProviderOptions.callProviderMetadata
+  );
+}
+
 export function buildHistoryMessages(
   msgs: Array<Pick<Message, 'role' | 'parts' | 'isSummary' | 'modelId'>>,
   promptConfig: PromptConfig,
@@ -138,7 +154,14 @@ export function buildHistoryMessages(
 
       if (textParts.length > 0 || matchedToolCalls.length > 0) {
         const assistantContent: Array<
-          { type: 'text'; text: string } | { type: 'tool-call'; toolCallId: string; toolName: string; input: unknown }
+          | { type: 'text'; text: string }
+          | {
+              type: 'tool-call';
+              toolCallId: string;
+              toolName: string;
+              input: unknown;
+              providerOptions?: ProviderOptions;
+            }
         > = [];
 
         const combinedText = textParts.map((p) => p.text).join('');
@@ -147,11 +170,13 @@ export function buildHistoryMessages(
         }
 
         for (const tc of matchedToolCalls) {
+          const providerOptions = getPartProviderOptions(tc);
           assistantContent.push({
             type: 'tool-call',
             toolCallId: tc.toolCallId,
             toolName: tc.toolName,
             input: tc.input,
+            ...(providerOptions ? { providerOptions } : {}),
           });
         }
 
@@ -165,6 +190,7 @@ export function buildHistoryMessages(
             .filter((tr) => matchedToolCallIds.has(tr.toolCallId))
             .map((tr) => {
               const compactedOutput = compactToolResultOutput(tr);
+              const providerOptions = getPartProviderOptions(tr);
 
               return {
                 type: 'tool-result' as const,
@@ -173,6 +199,7 @@ export function buildHistoryMessages(
                 output: isToolResultError(tr.output)
                   ? { type: 'error-json' as const, value: compactedOutput as never }
                   : { type: 'json' as const, value: compactedOutput as never },
+                ...(providerOptions ? { providerOptions } : {}),
               };
             }),
         });
