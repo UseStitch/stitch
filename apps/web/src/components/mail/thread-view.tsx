@@ -188,7 +188,7 @@ export function ThreadView({ accountId, threadId, onClose }: ThreadViewProps) {
           {currentThread.isTrashed ? 'Restore' : 'Trash'}
         </Button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-6">
+      <div className="thin-scrollbar min-h-0 flex-1 overflow-y-auto p-6">
         <div className="w-full space-y-4">
           {currentThread.messages.map((message, index) => (
             <MessageCard key={message.id} message={message} collapsed={index < currentThread.messages.length - 1} />
