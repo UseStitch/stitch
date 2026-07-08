@@ -5,18 +5,27 @@ import { z } from 'zod';
 
 import { getMailDb } from '@stitch/mail/db/client';
 import { getAccount, getThread, listAccounts, listDrafts, listLabels, listThreads } from '@stitch/mail/db/queries';
-import { mailAccounts, type MailAccountId, type MailLabelId, type MailThreadId } from '@stitch/mail/db/schema';
-import type { Context } from 'hono';
+import { mailAccounts } from '@stitch/mail/db/schema';
 
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema/connectors.js';
 import { assertCanEnrollMailAccount, filterEligibleMailAccounts } from '@/mail/eligibility.js';
 import { getAttachmentRecord, getDraftView, getMessageView } from '@/mail/read-model.js';
 import { getMailEngine, getMailSyncProgress, removeMailAccount } from '@/mail/wiring.js';
-import type { DraftInput } from '@stitch/mail/engine';
+import type { Context } from 'hono';
 
-const idParamSchema = z.object({ id: z.string().min(1) });
-const accountIdParamSchema = z.object({ id: z.string().min(1) });
+const mailAccountIdSchema = z.templateLiteral([z.literal('macc_'), z.string().min(1)]);
+const mailLabelIdSchema = z.templateLiteral([z.literal('mlbl_'), z.string().min(1)]);
+const mailThreadIdSchema = z.templateLiteral([z.literal('mthr_'), z.string().min(1)]);
+const mailMessageIdSchema = z.templateLiteral([z.literal('mmsg_'), z.string().min(1)]);
+const mailAttachmentIdSchema = z.templateLiteral([z.literal('matt_'), z.string().min(1)]);
+const mailDraftIdSchema = z.templateLiteral([z.literal('mdrf_'), z.string().min(1)]);
+
+const accountIdParamSchema = z.object({ id: mailAccountIdSchema });
+const threadIdParamSchema = z.object({ id: mailThreadIdSchema });
+const messageIdParamSchema = z.object({ id: mailMessageIdSchema });
+const attachmentIdParamSchema = z.object({ id: mailAttachmentIdSchema });
+const draftIdParamSchema = z.object({ id: mailDraftIdSchema });
 
 const accountPatchSchema = z.object({
   enabled: z.boolean().optional(),
@@ -33,28 +42,28 @@ const enrollSchema = z.object({
 const resyncSchema = z.object({ mode: z.enum(['full', 'incremental']) });
 
 const threadsQuerySchema = z.object({
-  labelId: z.string().min(1).optional(),
+  labelId: mailLabelIdSchema.optional(),
   cursor: z.string().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });
 
 const modifyMessageSchema = z.object({
-  addLabelIds: z.array(z.string().min(1)).optional(),
-  removeLabelIds: z.array(z.string().min(1)).optional(),
+  addLabelIds: z.array(mailLabelIdSchema).optional(),
+  removeLabelIds: z.array(mailLabelIdSchema).optional(),
   markRead: z.boolean().optional(),
 });
 
 const addressSchema = z.object({ name: z.string().nullable(), email: z.string().email() });
 
 const draftSchema = z.object({
-  accountId: z.string().min(1),
+  accountId: mailAccountIdSchema,
   to: z.array(addressSchema),
   cc: z.array(addressSchema).default([]),
   bcc: z.array(addressSchema).default([]),
   subject: z.string(),
   bodyText: z.string(),
   bodyHtml: z.string().nullable().default(null),
-  inReplyToMessageId: z.string().min(1).nullable().default(null),
+  inReplyToMessageId: mailMessageIdSchema.nullable().default(null),
 });
 
 const draftPatchSchema = draftSchema.partial().omit({ accountId: true });
@@ -113,7 +122,7 @@ mailRouter.post('/accounts', zValidator('json', enrollSchema), async (c) => {
       backfillDays: body.backfillDays,
       syncFrequencySeconds: body.syncFrequencySeconds,
     });
-    const account = await getAccount(accountId as MailAccountId);
+    const account = await getAccount(accountId);
     if (!account) return errorResponse(c, new Error('Mail account was not created'), 500);
     return c.json(account, 201);
   } catch (error) {
@@ -121,13 +130,18 @@ mailRouter.post('/accounts', zValidator('json', enrollSchema), async (c) => {
   }
 });
 
-mailRouter.patch('/accounts/:id', zValidator('param', accountIdParamSchema), zValidator('json', accountPatchSchema), async (c) => {
-  const { id } = c.req.valid('param');
-  await getMailEngine().accounts.update(id, c.req.valid('json'));
-  const account = await getAccount(id as MailAccountId);
-  if (!account) return errorResponse(c, new Error('Mail account not found'), 404);
-  return c.json(account);
-});
+mailRouter.patch(
+  '/accounts/:id',
+  zValidator('param', accountIdParamSchema),
+  zValidator('json', accountPatchSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    await getMailEngine().accounts.update(id, c.req.valid('json'));
+    const account = await getAccount(id);
+    if (!account) return errorResponse(c, new Error('Mail account not found'), 404);
+    return c.json(account);
+  },
+);
 
 mailRouter.delete('/accounts/:id', zValidator('param', accountIdParamSchema), async (c) => {
   const { id } = c.req.valid('param');
@@ -135,58 +149,68 @@ mailRouter.delete('/accounts/:id', zValidator('param', accountIdParamSchema), as
   return c.body(null, 204);
 });
 
-mailRouter.post('/accounts/:id/resync', zValidator('param', accountIdParamSchema), zValidator('json', resyncSchema), async (c) => {
-  const { id } = c.req.valid('param');
-  const { mode } = c.req.valid('json');
-  getMailEngine().triggerSync(id, mode);
-  return c.json({ accepted: true }, 202);
-});
+mailRouter.post(
+  '/accounts/:id/resync',
+  zValidator('param', accountIdParamSchema),
+  zValidator('json', resyncSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const { mode } = c.req.valid('json');
+    getMailEngine().triggerSync(id, mode);
+    return c.json({ accepted: true }, 202);
+  },
+);
 
 mailRouter.get('/accounts/:id/labels', zValidator('param', accountIdParamSchema), async (c) => {
   const { id } = c.req.valid('param');
-  return c.json(await listLabels(id as MailAccountId));
+  return c.json(await listLabels(id));
 });
 
-mailRouter.get('/accounts/:id/threads', zValidator('param', accountIdParamSchema), zValidator('query', threadsQuerySchema), async (c) => {
-  const { id } = c.req.valid('param');
-  const query = c.req.valid('query');
-  return c.json(
-    await listThreads({
-      accountId: id as MailAccountId,
-      labelId: query.labelId as MailLabelId | undefined,
-      cursor: query.cursor,
-      limit: query.limit,
-    }),
-  );
-});
+mailRouter.get(
+  '/accounts/:id/threads',
+  zValidator('param', accountIdParamSchema),
+  zValidator('query', threadsQuerySchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    const query = c.req.valid('query');
+    return c.json(
+      await listThreads({ accountId: id, labelId: query.labelId, cursor: query.cursor, limit: query.limit }),
+    );
+  },
+);
 
-mailRouter.get('/threads/:id', zValidator('param', idParamSchema), async (c) => {
+mailRouter.get('/threads/:id', zValidator('param', threadIdParamSchema), async (c) => {
   const { id } = c.req.valid('param');
   await getMailEngine().ops.hydrateThread(id);
-  const thread = await getThread(id as MailThreadId);
+  const thread = await getThread(id);
   if (!thread) return errorResponse(c, new Error('Mail thread not found'), 404);
   return c.json(thread);
 });
 
-mailRouter.post('/messages/:id/modify', zValidator('param', idParamSchema), zValidator('json', modifyMessageSchema), async (c) => {
-  const { id } = c.req.valid('param');
-  await getMailEngine().ops.modifyMessage(id, c.req.valid('json'));
-  const message = await getMessageView(id);
-  if (!message) return errorResponse(c, new Error('Mail message not found'), 404);
-  return c.json(message);
-});
+mailRouter.post(
+  '/messages/:id/modify',
+  zValidator('param', messageIdParamSchema),
+  zValidator('json', modifyMessageSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    await getMailEngine().ops.modifyMessage(id, c.req.valid('json'));
+    const message = await getMessageView(id);
+    if (!message) return errorResponse(c, new Error('Mail message not found'), 404);
+    return c.json(message);
+  },
+);
 
-mailRouter.post('/threads/:id/trash', zValidator('param', idParamSchema), async (c) => {
+mailRouter.post('/threads/:id/trash', zValidator('param', threadIdParamSchema), async (c) => {
   await getMailEngine().ops.trashThread(c.req.valid('param').id);
   return c.json({ ok: true });
 });
 
-mailRouter.post('/threads/:id/untrash', zValidator('param', idParamSchema), async (c) => {
+mailRouter.post('/threads/:id/untrash', zValidator('param', threadIdParamSchema), async (c) => {
   await getMailEngine().ops.untrashThread(c.req.valid('param').id);
   return c.json({ ok: true });
 });
 
-mailRouter.get('/attachments/:id', zValidator('param', idParamSchema), async (c) => {
+mailRouter.get('/attachments/:id', zValidator('param', attachmentIdParamSchema), async (c) => {
   const { id } = c.req.valid('param');
   const [localPath, attachment] = await Promise.all([getMailEngine().ops.fetchAttachment(id), getAttachmentRecord(id)]);
   const file = Bun.file(localPath);
@@ -201,7 +225,7 @@ mailRouter.get('/attachments/:id', zValidator('param', idParamSchema), async (c)
 
 mailRouter.get('/accounts/:id/drafts', zValidator('param', accountIdParamSchema), async (c) => {
   const { id } = c.req.valid('param');
-  return c.json(await listDrafts(id as MailAccountId));
+  return c.json(await listDrafts(id));
 });
 
 mailRouter.post('/drafts', zValidator('json', draftSchema), async (c) => {
@@ -211,20 +235,25 @@ mailRouter.post('/drafts', zValidator('json', draftSchema), async (c) => {
   return c.json(draft, 201);
 });
 
-mailRouter.patch('/drafts/:id', zValidator('param', idParamSchema), zValidator('json', draftPatchSchema), async (c) => {
-  const { id } = c.req.valid('param');
-  await getMailEngine().ops.updateDraft(id, c.req.valid('json') as Partial<DraftInput>);
-  const draft = await getDraftView(id);
-  if (!draft) return errorResponse(c, new Error('Mail draft not found'), 404);
-  return c.json(draft);
-});
+mailRouter.patch(
+  '/drafts/:id',
+  zValidator('param', draftIdParamSchema),
+  zValidator('json', draftPatchSchema),
+  async (c) => {
+    const { id } = c.req.valid('param');
+    await getMailEngine().ops.updateDraft(id, c.req.valid('json'));
+    const draft = await getDraftView(id);
+    if (!draft) return errorResponse(c, new Error('Mail draft not found'), 404);
+    return c.json(draft);
+  },
+);
 
-mailRouter.delete('/drafts/:id', zValidator('param', idParamSchema), async (c) => {
+mailRouter.delete('/drafts/:id', zValidator('param', draftIdParamSchema), async (c) => {
   await getMailEngine().ops.deleteDraft(c.req.valid('param').id);
   return c.body(null, 204);
 });
 
-mailRouter.post('/drafts/:id/send', zValidator('param', idParamSchema), async (c) => {
+mailRouter.post('/drafts/:id/send', zValidator('param', draftIdParamSchema), async (c) => {
   await getMailEngine().ops.sendDraft(c.req.valid('param').id);
   return c.json({ accepted: true }, 202);
 });
@@ -245,10 +274,5 @@ mailRouter.get('/sync/status', async (c) => {
     .from(mailAccounts)
     .where(and(eq(mailAccounts.enabled, true), eq(mailAccounts.provider, 'gmail')));
 
-  return c.json(
-    accounts.map((account) => ({
-      ...account,
-      progress: getMailSyncProgress(account.accountId),
-    })),
-  );
+  return c.json(accounts.map((account) => ({ ...account, progress: getMailSyncProgress(account.accountId) })));
 });

@@ -1,13 +1,15 @@
+import { eq } from 'drizzle-orm';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { eq } from 'drizzle-orm';
-
 import { GoogleClient } from '@stitch-connectors/google/client';
-import type { OAuthConfig } from '@stitch/shared/connectors/types';
+
 import type { MailHttpClient } from '@stitch/mail/contracts';
+import type { MailAccountId } from '@stitch/mail/db/schema';
+import { createMailEngine, type MailEngine, type MailEngineEvent } from '@stitch/mail/engine';
 import { gmailOpsProvider, gmailSyncProvider } from '@stitch/mail/providers/gmail';
 import { registerMailProvider } from '@stitch/mail/registry';
+import type { OAuthConfig } from '@stitch/shared/connectors/types';
 
 import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
 import { refreshAccessToken, requiresOAuthReauth } from '@/connectors/auth/oauth2.js';
@@ -18,7 +20,6 @@ import { connectorInstances } from '@/db/schema/connectors.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
-import { createMailEngine, type MailEngine, type MailEngineEvent } from '@stitch/mail/engine';
 
 const log = Log.create({ service: 'mail' });
 const REFRESH_BUFFER_MS = 60_000;
@@ -60,9 +61,7 @@ function createMailHttpClient(connectorInstanceId: string): MailHttpClient {
     quotaAccountKey: connectorInstanceId,
   });
 
-  return {
-    request: (url, init) => client.requestRaw(url, init),
-  };
+  return { request: (url, init) => client.requestRaw(url, init) };
 }
 
 export function getMailEngine(): MailEngine {
@@ -94,7 +93,7 @@ export async function runMailSyncTick(): Promise<void> {
   await engine.runDueSyncs();
 }
 
-export async function removeMailAccount(accountId: string): Promise<void> {
+export async function removeMailAccount(accountId: MailAccountId): Promise<void> {
   await getMailEngine().accounts.remove(accountId);
   const attachmentDir = path.join(PATHS.dirPaths.mailAttachments, accountId);
   await fs.promises.rm(attachmentDir, { recursive: true, force: true });
@@ -120,7 +119,9 @@ async function getGoogleAccessToken(connectorInstanceId: string, forceRefresh: b
 
   const shouldRefresh =
     Boolean(latest.refreshToken) &&
-    (forceRefresh || latest.accessToken === null || (latest.tokenExpiresAt !== null && latest.tokenExpiresAt <= now + REFRESH_BUFFER_MS));
+    (forceRefresh ||
+      latest.accessToken === null ||
+      (latest.tokenExpiresAt !== null && latest.tokenExpiresAt <= now + REFRESH_BUFFER_MS));
 
   if (shouldRefresh) {
     const definition = getConnectorDefinition(latest.connectorId);

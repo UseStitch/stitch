@@ -13,9 +13,7 @@ export function unregisterSseConnection(stream: SSEStreamingApi): void {
   connections.delete(stream);
 }
 
-function broadcast<K extends SseEventName>(event: K, data: SseEventPayloadMap[K]): void;
-function broadcast(event: string, data: unknown): void;
-function broadcast(event: string, data: unknown): void {
+function broadcast<K extends SseEventName>(event: K, data: SseEventPayloadMap[K]): void {
   const payload = JSON.stringify(data);
   void Promise.allSettled(Array.from(connections).map((stream) => stream.writeSSE({ event, data: payload })));
 }

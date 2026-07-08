@@ -2,6 +2,7 @@ import type { StreamErrorDetails } from '@stitch/shared/chat/errors';
 import type { PartId, StoredPart } from '@stitch/shared/chat/messages';
 import type { PartDelta, PartUpdate } from '@stitch/shared/chat/stream-events';
 import type { PrefixedString } from '@stitch/shared/id';
+import type { MailEvents } from '@stitch/shared/mail/events';
 import type { McpAuthStatus } from '@stitch/shared/mcp/types';
 import type { PermissionResponse } from '@stitch/shared/permissions/types';
 import type { QuestionRequest } from '@stitch/shared/questions/types';
@@ -258,16 +259,11 @@ export type McpAuthStatusChangedEvent = { serverId: PrefixedString<'mcp'>; authS
 
 // ─── Mail ────────────────────────────────────────────────────────────────────
 
-export type MailSyncProgressEvent = {
-  accountId: string;
-  phase: 'backfill' | 'reconciling';
-  processed: number;
-  estimatedTotal: number;
-};
+export type MailSyncProgressEvent = MailEvents['mail.sync.progress'];
 
-export type MailAccountUpdatedEvent = { accountId: string };
+export type MailAccountUpdatedEvent = MailEvents['mail.account.updated'];
 
-export type MailThreadsChangedEvent = { accountId: string; threadIds: string[] };
+export type MailThreadsChangedEvent = MailEvents['mail.threads.changed'];
 
 // ─── Event Map ───────────────────────────────────────────────────────────────
 

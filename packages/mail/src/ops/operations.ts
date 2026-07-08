@@ -166,7 +166,7 @@ export function createOperations(deps: OperationsDeps) {
         .insert(mailDrafts)
         .values({
           id,
-          accountId: input.accountId as MailAccountId,
+          accountId: input.accountId,
           toJson: stringifyAddresses(input.to),
           ccJson: stringifyAddresses(input.cc),
           bccJson: stringifyAddresses(input.bcc),

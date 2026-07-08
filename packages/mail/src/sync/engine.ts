@@ -1,7 +1,6 @@
+import { and, eq, lte, or } from 'drizzle-orm';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-
-import { and, eq, lte, or } from 'drizzle-orm';
 
 import { getMailDb } from '../db/client.js';
 import {
@@ -11,18 +10,25 @@ import {
   type MailProviderId,
   type MailThreadId,
 } from '../db/schema.js';
-import type { MailHttpClient, MailLogger, MailProviderContext, SyncAddress } from '../contracts.js';
-import { getMailProvider } from '../registry.js';
 import { createOperations } from '../ops/operations.js';
 import { createOutbox } from '../ops/outbox.js';
+import { getMailProvider } from '../registry.js';
 import { runBackfill } from './backfill.js';
 import { runIncremental } from './incremental.js';
 import { runReconcile } from './reconcile.js';
 
+import type { MailHttpClient, MailLogger, MailProviderContext, SyncAddress } from '../contracts.js';
+
 export type MailEngineEvent =
-  | { type: 'sync.progress'; accountId: string; phase: 'backfill' | 'reconciling'; processed: number; estimatedTotal: number }
-  | { type: 'account.updated'; accountId: string }
-  | { type: 'threads.changed'; accountId: string; threadIds: string[] };
+  | {
+      type: 'sync.progress';
+      accountId: MailAccountId;
+      phase: 'backfill' | 'reconciling';
+      processed: number;
+      estimatedTotal: number;
+    }
+  | { type: 'account.updated'; accountId: MailAccountId }
+  | { type: 'threads.changed'; accountId: MailAccountId; threadIds: MailThreadId[] };
 
 type MailEngineDeps = {
   createHttpClient(connectorInstanceId: string): MailHttpClient;
@@ -31,9 +37,15 @@ type MailEngineDeps = {
   emit(event: MailEngineEvent): void;
 };
 
-export type EnrollInput = { connectorInstanceId: string; provider: string; email: string; backfillDays?: number; syncFrequencySeconds?: number };
+export type EnrollInput = {
+  connectorInstanceId: string;
+  provider: string;
+  email: string;
+  backfillDays?: number;
+  syncFrequencySeconds?: number;
+};
 export type DraftInput = {
-  accountId: string;
+  accountId: MailAccountId;
   to: SyncAddress[];
   cc: SyncAddress[];
   bcc: SyncAddress[];
@@ -45,16 +57,22 @@ export type DraftInput = {
 
 export type MailEngine = {
   runDueSyncs(): Promise<void>;
-  triggerSync(accountId: string, mode: 'full' | 'incremental'): void;
+  triggerSync(accountId: MailAccountId, mode: 'full' | 'incremental'): void;
   flushOutbox(): Promise<void>;
   stop(): Promise<void>;
   accounts: {
-    enroll(input: EnrollInput): Promise<string>;
-    update(accountId: string, patch: { enabled?: boolean; syncFrequencySeconds?: number; backfillDays?: number }): Promise<void>;
-    remove(accountId: string): Promise<void>;
+    enroll(input: EnrollInput): Promise<MailAccountId>;
+    update(
+      accountId: MailAccountId,
+      patch: { enabled?: boolean; syncFrequencySeconds?: number; backfillDays?: number },
+    ): Promise<void>;
+    remove(accountId: MailAccountId): Promise<void>;
   };
   ops: {
-    modifyMessage(messageId: string, input: { addLabelIds?: string[]; removeLabelIds?: string[]; markRead?: boolean }): Promise<void>;
+    modifyMessage(
+      messageId: string,
+      input: { addLabelIds?: string[]; removeLabelIds?: string[]; markRead?: boolean },
+    ): Promise<void>;
     trashThread(threadId: string): Promise<void>;
     untrashThread(threadId: string): Promise<void>;
     createDraft(input: DraftInput): Promise<string>;
@@ -80,23 +98,23 @@ function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError';
 }
 
-async function readAccount(accountId: string): Promise<MailAccountRecord | null> {
-  const [account] = await getMailDb().select().from(mailAccounts).where(eq(mailAccounts.id, accountId as MailAccountId)).limit(1);
+async function readAccount(accountId: MailAccountId): Promise<MailAccountRecord | null> {
+  const [account] = await getMailDb().select().from(mailAccounts).where(eq(mailAccounts.id, accountId)).limit(1);
   return account ?? null;
 }
 
 export function createMailEngine(deps: MailEngineDeps): MailEngine {
-  const running = new Map<string, RunningSync>();
-  const threadBuffers = new Map<string, Set<string>>();
-  const threadTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const running = new Map<MailAccountId, RunningSync>();
+  const threadBuffers = new Map<MailAccountId, Set<MailThreadId>>();
+  const threadTimers = new Map<MailAccountId, ReturnType<typeof setTimeout>>();
 
-  function emitAccountUpdated(accountId: string): void {
+  function emitAccountUpdated(accountId: MailAccountId): void {
     deps.emit({ type: 'account.updated', accountId });
   }
 
-  function emitThreadsChanged(accountId: string, threadIds: MailThreadId[]): void {
+  function emitThreadsChanged(accountId: MailAccountId, threadIds: MailThreadId[]): void {
     if (threadIds.length === 0) return;
-    const buffer = threadBuffers.get(accountId) ?? new Set<string>();
+    const buffer = threadBuffers.get(accountId) ?? new Set<MailThreadId>();
     for (const threadId of threadIds) buffer.add(threadId);
     threadBuffers.set(accountId, buffer);
     if (threadTimers.has(accountId)) return;
@@ -110,18 +128,29 @@ export function createMailEngine(deps: MailEngineDeps): MailEngine {
   }
 
   function createContext(account: MailAccountRecord, controller = new AbortController()): MailProviderContext {
-    return { account, http: deps.createHttpClient(account.connectorInstanceId), logger: deps.logger, signal: controller.signal };
+    return {
+      account,
+      http: deps.createHttpClient(account.connectorInstanceId),
+      logger: deps.logger,
+      signal: controller.signal,
+    };
   }
 
   const outbox = createOutbox({
     createContext: (account) => createContext(account),
     emitAccountUpdated,
     emitThreadsChanged,
-    hydrateSentMessage: async (ctx, provider, providerMessageId) => provider.sync.hydrateMessages(ctx, [providerMessageId]),
+    hydrateSentMessage: async (ctx, provider, providerMessageId) =>
+      provider.sync.hydrateMessages(ctx, [providerMessageId]),
   });
-  const ops = createOperations({ outbox, attachmentsDir: deps.attachmentsDir, createContext: (account) => createContext(account), emitThreadsChanged });
+  const ops = createOperations({
+    outbox,
+    attachmentsDir: deps.attachmentsDir,
+    createContext: (account) => createContext(account),
+    emitThreadsChanged,
+  });
 
-  async function runAccount(accountId: string, forcedMode?: 'full' | 'incremental'): Promise<void> {
+  async function runAccount(accountId: MailAccountId, forcedMode?: 'full' | 'incremental'): Promise<void> {
     if (running.has(accountId)) return running.get(accountId)!.promise;
     const controller = new AbortController();
     const promise = (async () => {
@@ -131,7 +160,13 @@ export function createMailEngine(deps: MailEngineDeps): MailEngine {
       if (forcedMode === 'full') {
         await db
           .update(mailAccounts)
-          .set({ syncPhase: 'backfill', syncCursor: null, backfillCursor: null, lastError: null, updatedAt: Date.now() })
+          .set({
+            syncPhase: 'backfill',
+            syncCursor: null,
+            backfillCursor: null,
+            lastError: null,
+            updatedAt: Date.now(),
+          })
           .where(eq(mailAccounts.id, account.id));
         account = (await readAccount(accountId))!;
       }
@@ -141,7 +176,8 @@ export function createMailEngine(deps: MailEngineDeps): MailEngine {
       try {
         if (account.syncPhase === 'backfill' || account.syncPhase === 'idle' || forcedMode === 'full') {
           const touched = await runBackfill(ctx, provider, {
-            progress: (processed, estimatedTotal) => deps.emit({ type: 'sync.progress', accountId, phase: 'backfill', processed, estimatedTotal }),
+            progress: (processed, estimatedTotal) =>
+              deps.emit({ type: 'sync.progress', accountId, phase: 'backfill', processed, estimatedTotal }),
           });
           emitThreadsChanged(accountId, touched);
         } else if (account.syncPhase === 'reconciling') {
@@ -193,14 +229,16 @@ export function createMailEngine(deps: MailEngineDeps): MailEngine {
       );
     const due = accounts.filter(
       (account) =>
-        account.syncPhase !== 'incremental' || account.lastSyncedAt === null || now >= account.lastSyncedAt + account.syncFrequencySeconds * 1000,
+        account.syncPhase !== 'incremental' ||
+        account.lastSyncedAt === null ||
+        now >= account.lastSyncedAt + account.syncFrequencySeconds * 1000,
     );
     for (let index = 0; index < due.length; index += ACCOUNT_CONCURRENCY) {
       await Promise.all(due.slice(index, index + ACCOUNT_CONCURRENCY).map((account) => runAccount(account.id)));
     }
   }
 
-  function triggerSync(accountId: string, mode: 'full' | 'incremental'): void {
+  function triggerSync(accountId: MailAccountId, mode: 'full' | 'incremental'): void {
     void runAccount(accountId, mode);
   }
 
@@ -211,13 +249,14 @@ export function createMailEngine(deps: MailEngineDeps): MailEngine {
     async stop(): Promise<void> {
       for (const timer of threadTimers.values()) clearTimeout(timer);
       threadTimers.clear();
-      for (const [accountId, ids] of threadBuffers) deps.emit({ type: 'threads.changed', accountId, threadIds: [...ids] });
+      for (const [accountId, ids] of threadBuffers)
+        deps.emit({ type: 'threads.changed', accountId, threadIds: [...ids] });
       threadBuffers.clear();
       for (const run of running.values()) run.controller.abort();
       await Promise.all([...running.values()].map((run) => run.promise));
     },
     accounts: {
-      async enroll(input): Promise<string> {
+      async enroll(input): Promise<MailAccountId> {
         const db = getMailDb();
         const [row] = await db
           .insert(mailAccounts)
@@ -243,12 +282,12 @@ export function createMailEngine(deps: MailEngineDeps): MailEngine {
         await db
           .update(mailAccounts)
           .set({ ...patch, updatedAt: Date.now() })
-          .where(eq(mailAccounts.id, accountId as MailAccountId));
+          .where(eq(mailAccounts.id, accountId));
         emitAccountUpdated(accountId);
       },
       async remove(accountId): Promise<void> {
         running.get(accountId)?.controller.abort();
-        await getMailDb().delete(mailAccounts).where(eq(mailAccounts.id, accountId as MailAccountId));
+        await getMailDb().delete(mailAccounts).where(eq(mailAccounts.id, accountId));
         await fs.rm(path.join(deps.attachmentsDir, accountId), { recursive: true, force: true });
         emitAccountUpdated(accountId);
       },
