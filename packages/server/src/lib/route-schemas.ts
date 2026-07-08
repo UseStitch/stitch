@@ -11,9 +11,7 @@ export function paginationQuerySchema(defaults: { pageSize?: number } = {}) {
 }
 
 function prefixedId<P extends IdPrefix>(prefix: P) {
-  return z.custom<PrefixedString<P>>((val) => {
-    return typeof val === 'string' && val.startsWith(`${prefix}_`);
-  }, `Invalid ID format. Expected prefix: ${prefix}_`);
+  return z.templateLiteral([z.literal(`${prefix}_`), z.string()]) as z.ZodType<PrefixedString<P>>;
 }
 
 export const routeSchemas = {
@@ -34,4 +32,11 @@ export const routeSchemas = {
   agendaListId: prefixedId(ID_PREFIXES.agendaList),
   agendaItemId: prefixedId(ID_PREFIXES.agendaItem),
   todoId: prefixedId(ID_PREFIXES.todo),
+  meetingNoteTemplateId: prefixedId(ID_PREFIXES.meetingNoteTemplate),
+  mailAccountId: prefixedId(ID_PREFIXES.mailAccount),
+  mailLabelId: prefixedId(ID_PREFIXES.mailLabel),
+  mailThreadId: prefixedId(ID_PREFIXES.mailThread),
+  mailMessageId: prefixedId(ID_PREFIXES.mailMessage),
+  mailAttachmentId: prefixedId(ID_PREFIXES.mailAttachment),
+  mailDraftId: prefixedId(ID_PREFIXES.mailDraft),
 } as const;

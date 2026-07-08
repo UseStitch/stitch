@@ -5,7 +5,7 @@ import { z } from 'zod';
 import type { StartRecordingInput, StopRecordingInput } from '@stitch/shared/recordings/types';
 
 import { unwrapResult } from '@/lib/route-helpers.js';
-import { paginationQuerySchema } from '@/lib/route-schemas.js';
+import { paginationQuerySchema, routeSchemas } from '@/lib/route-schemas.js';
 import { cancelRecordingAnalysis, startRecordingAnalysis } from '@/recordings/analysis-service.js';
 import {
   createMeetingNoteTemplate,
@@ -31,9 +31,9 @@ const startRecordingSchema = z.object({
 
 const stopRecordingSchema = z.object({ durationMs: z.number().int().nonnegative().nullable() });
 
-const recordingIdParamSchema = z.object({ id: z.templateLiteral([z.literal('rec'), z.string()]) });
+const recordingIdParamSchema = z.object({ id: routeSchemas.recordingId });
 
-const meetingNoteTemplateIdParamSchema = z.object({ id: z.templateLiteral([z.literal('mnt'), z.string()]) });
+const meetingNoteTemplateIdParamSchema = z.object({ id: routeSchemas.meetingNoteTemplateId });
 
 const meetingNoteTemplateSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -42,7 +42,7 @@ const meetingNoteTemplateSchema = z.object({
 
 const analyzeQuerySchema = z.object({ force: z.enum(['1', 'true']).optional() });
 
-const analyzeBodySchema = z.object({ templateId: z.templateLiteral([z.literal('mnt'), z.string()]) });
+const analyzeBodySchema = z.object({ templateId: routeSchemas.meetingNoteTemplateId });
 
 export const recordingsRouter = new Hono();
 
