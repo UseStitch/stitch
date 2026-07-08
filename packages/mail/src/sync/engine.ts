@@ -264,16 +264,15 @@ export function createMailEngine(deps: MailEngineDeps): MailEngine {
             connectorInstanceId: input.connectorInstanceId,
             provider: input.provider as MailProviderId,
             email: input.email,
-            enabled: true,
-            syncPhase: 'backfill',
+            enabled: false,
+            syncPhase: 'idle',
             syncFrequencySeconds: input.syncFrequencySeconds ?? 90,
-            backfillDays: input.backfillDays ?? 90,
+            backfillDays: input.backfillDays ?? 30,
             createdAt: Date.now(),
             updatedAt: Date.now(),
           })
           .returning({ id: mailAccounts.id });
         emitAccountUpdated(row.id);
-        triggerSync(row.id, 'full');
         return row.id;
       },
       async update(accountId, patch): Promise<void> {

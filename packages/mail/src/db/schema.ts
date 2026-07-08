@@ -55,14 +55,14 @@ export const mailAccounts = sqliteTable(
     connectorInstanceId: text('connector_instance_id').notNull(),
     provider: text('provider').$type<MailProviderId>().notNull(),
     email: text('email').notNull(),
-    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
     syncPhase: text('sync_phase').$type<MailSyncPhase>().notNull().default('idle'),
     syncCursor: text('sync_cursor'),
     backfillCursor: text('backfill_cursor'),
     lastSyncedAt: integer('last_synced_at', { mode: 'number' }),
     lastError: text('last_error'),
     syncFrequencySeconds: integer('sync_frequency_seconds').notNull().default(90),
-    backfillDays: integer('backfill_days').notNull().default(90),
+    backfillDays: integer('backfill_days').notNull().default(30),
     createdAt: integer('created_at', { mode: 'number' })
       .notNull()
       .$defaultFn(() => Date.now()),
@@ -179,7 +179,10 @@ export const mailMessageLabels = sqliteTable(
       .notNull()
       .references(() => mailLabels.id, { onDelete: 'cascade' }),
   },
-  (table) => [primaryKey({ columns: [table.messageId, table.labelId] }), index('mail_message_labels_label_id_idx').on(table.labelId)],
+  (table) => [
+    primaryKey({ columns: [table.messageId, table.labelId] }),
+    index('mail_message_labels_label_id_idx').on(table.labelId),
+  ],
 );
 
 export const mailAttachments = sqliteTable(
