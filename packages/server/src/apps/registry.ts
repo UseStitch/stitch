@@ -6,6 +6,7 @@ export const APP_MANIFESTS: readonly AppManifest[] = [
   { id: 'browser', toolsetIds: ['browser'], skillNames: ['browser-automation'] },
   { id: 'recordings', toolsetIds: ['recordings'], skillNames: [] },
   { id: 'agenda', toolsetIds: ['agenda'], skillNames: [] },
+  { id: 'mail', toolsetIds: [], skillNames: [] },
 ];
 
 export function findAppByToolsetId(toolsetId: string): AppManifest | undefined {

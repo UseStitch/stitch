@@ -11,6 +11,7 @@ import { gmailOpsProvider, gmailSyncProvider } from '@stitch/mail/providers/gmai
 import { registerMailProvider } from '@stitch/mail/registry';
 import type { OAuthConfig } from '@stitch/shared/connectors/types';
 
+import { isAppEnabled } from '@/apps/service.js';
 import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
 import { refreshAccessToken, requiresOAuthReauth } from '@/connectors/auth/oauth2.js';
 import { withRefreshLock } from '@/connectors/auth/refresh-lock.js';
@@ -88,6 +89,8 @@ export function getMailSyncProgress(accountId: string): { processed: number; est
 }
 
 export async function runMailSyncTick(): Promise<void> {
+  if (!(await isAppEnabled('mail'))) return;
+
   const engine = getMailEngine();
   await engine.flushOutbox();
   await engine.runDueSyncs();
