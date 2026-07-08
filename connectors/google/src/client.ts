@@ -58,12 +58,16 @@ type GoogleErrorResponse = {
   };
 };
 
-type RequestOptions = {
-  method?: string;
-  headers?: Record<string, string>;
-  body?: string | ArrayBuffer;
-  signal?: AbortSignal;
-};
+type RequestOptions = RequestInit;
+
+function mergeHeaders(
+  base: RequestOptions['headers'] | undefined,
+  extra: Record<string, string>,
+): Record<string, string> {
+  const headers = new Headers(base);
+  for (const [key, value] of Object.entries(extra)) headers.set(key, value);
+  return { ...Object.fromEntries(headers.entries()), ...extra };
+}
 
 export class GoogleClient {
   private static readonly MAX_RETRIES = 5;
@@ -87,9 +91,13 @@ export class GoogleClient {
   async request<T>(url: string, options?: RequestOptions): Promise<T> {
     const response = await this.executeWithRetries(url, {
       ...options,
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      headers: mergeHeaders(options?.headers, { 'Content-Type': 'application/json' }),
     });
     return (await response.json()) as T;
+  }
+
+  async requestRaw(url: string, options?: RequestOptions): Promise<Response> {
+    return this.executeWithRetries(url, options);
   }
 
   async requestText(url: string, options?: RequestOptions): Promise<string> {
@@ -104,7 +112,7 @@ export class GoogleClient {
 
     for (let attempt = 1; attempt <= GoogleClient.MAX_RETRIES + 1; attempt += 1) {
       try {
-        const queuedMs = await this.rateLimitCoordinator.acquire(url, method, options?.signal);
+        const queuedMs = await this.rateLimitCoordinator.acquire(url, method, options?.signal ?? undefined);
         if (queuedMs > 0) {
           this.log.debug({ url, method, queuedMs }, 'Delayed Google API request due to local quota queue');
         }
@@ -119,10 +127,9 @@ export class GoogleClient {
       this.log.debug({ url, method, attempt }, 'Google API request');
 
       const response = await fetch(url, {
+        ...options,
         method,
-        body: options?.body,
-        signal: options?.signal,
-        headers: { Authorization: `Bearer ${token}`, ...options?.headers },
+        headers: mergeHeaders(options?.headers, { Authorization: `Bearer ${token}` }),
       });
 
       if (response.ok) {
@@ -190,7 +197,7 @@ export class GoogleClient {
         'Google API rate limited, retrying request',
       );
 
-      await sleep(backoffMs, options?.signal);
+      await sleep(backoffMs, options?.signal ?? undefined);
     }
 
     throw new GoogleApiError(503, 'Google API request failed after retries', { reason: 'maxRetriesExceeded' });
