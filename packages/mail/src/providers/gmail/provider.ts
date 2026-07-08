@@ -1,19 +1,8 @@
-import type {
-  IncrementalResult,
-  MailOpsProvider,
-  MailProviderContext,
-  MailProviderModule,
-  MailSyncProvider,
-  OutgoingDraft,
-  SyncChange,
-  SyncLabel,
-  SyncMessage,
-} from '../../contracts.js';
+import { GmailApiError, GmailAttachmentError } from '../../errors.js';
 import {
   createDraftRaw,
   getAttachment,
   getProfile,
-  GmailApiError,
   listHistory,
   listLabelsRaw,
   listMessages,
@@ -29,6 +18,18 @@ import {
 } from './api.js';
 import { gmailBatchRequest } from './batch.js';
 import { decodeBase64UrlBytes, parseGmailMessage, type GmailMessage } from './parse.js';
+
+import type {
+  IncrementalResult,
+  MailOpsProvider,
+  MailProviderContext,
+  MailProviderModule,
+  MailSyncProvider,
+  OutgoingDraft,
+  SyncChange,
+  SyncLabel,
+  SyncMessage,
+} from '../../contracts.js';
 
 type BackfillCursor = { pageToken: string };
 
@@ -80,7 +81,10 @@ async function batchGetParsedMessages(
 ): Promise<SyncMessage[]> {
   const responses = await batchGetMessages(ctx, messageIds, format);
   return responses
-    .filter((response): response is { messageId: string; status: number; message: GmailMessage } => response.status >= 200 && response.status < 300 && response.message !== null)
+    .filter(
+      (response): response is { messageId: string; status: number; message: GmailMessage } =>
+        response.status >= 200 && response.status < 300 && response.message !== null,
+    )
     .map((response) => parseGmailMessage(response.message, format));
 }
 
@@ -91,7 +95,9 @@ function buildAddressHeader(name: string | null, email: string): string {
 }
 
 function buildAddressListHeader(addresses: OutgoingDraft['to']): string | undefined {
-  return addresses.length ? addresses.map((address) => buildAddressHeader(address.name, address.email)).join(', ') : undefined;
+  return addresses.length
+    ? addresses.map((address) => buildAddressHeader(address.name, address.email)).join(', ')
+    : undefined;
 }
 
 function base64UrlEncode(value: string): string {
@@ -115,7 +121,10 @@ function buildRfc2822Message(draft: OutgoingDraft): { raw: string; threadId: str
 
   if (!draft.bodyHtml) {
     headers.push('Content-Type: text/plain; charset="UTF-8"');
-    return { raw: base64UrlEncode(`${headers.join('\r\n')}\r\n\r\n${draft.bodyText}`), threadId: draft.inReplyTo?.providerThreadId };
+    return {
+      raw: base64UrlEncode(`${headers.join('\r\n')}\r\n\r\n${draft.bodyText}`),
+      threadId: draft.inReplyTo?.providerThreadId,
+    };
   }
 
   const boundary = `stitch-mail-${crypto.randomUUID()}`;
@@ -132,7 +141,10 @@ function buildRfc2822Message(draft: OutgoingDraft): { raw: string; threadId: str
     `--${boundary}--`,
     '',
   ].join('\r\n');
-  return { raw: base64UrlEncode(`${headers.join('\r\n')}\r\n\r\n${body}`), threadId: draft.inReplyTo?.providerThreadId };
+  return {
+    raw: base64UrlEncode(`${headers.join('\r\n')}\r\n\r\n${body}`),
+    threadId: draft.inReplyTo?.providerThreadId,
+  };
 }
 
 function mapLabel(label: { id: string; name: string; type?: string; color?: { backgroundColor?: string } }): SyncLabel {
@@ -199,12 +211,18 @@ export const gmailSyncProvider: MailSyncProvider = {
           for (const added of history.messagesAdded ?? []) upsertIds.add(added.message.id);
           for (const deleted of history.messagesDeleted ?? []) deletedIds.add(deleted.message.id);
           for (const added of history.labelsAdded ?? []) {
-            const existing = labelChanges.get(added.message.id) ?? { addProviderIds: new Set<string>(), removeProviderIds: new Set<string>() };
+            const existing = labelChanges.get(added.message.id) ?? {
+              addProviderIds: new Set<string>(),
+              removeProviderIds: new Set<string>(),
+            };
             for (const labelId of added.labelIds ?? []) existing.addProviderIds.add(labelId);
             labelChanges.set(added.message.id, existing);
           }
           for (const removed of history.labelsRemoved ?? []) {
-            const existing = labelChanges.get(removed.message.id) ?? { addProviderIds: new Set<string>(), removeProviderIds: new Set<string>() };
+            const existing = labelChanges.get(removed.message.id) ?? {
+              addProviderIds: new Set<string>(),
+              removeProviderIds: new Set<string>(),
+            };
             for (const labelId of removed.labelIds ?? []) existing.removeProviderIds.add(labelId);
             labelChanges.set(removed.message.id, existing);
           }
@@ -247,7 +265,8 @@ export const gmailSyncProvider: MailSyncProvider = {
 
   async fetchAttachment(ctx, providerMessageId, providerAttachmentId) {
     const response = await getAttachment(ctx, providerMessageId, providerAttachmentId);
-    if (!response.data) throw new Error(`Gmail attachment ${providerAttachmentId} did not include download data`);
+    if (!response.data)
+      throw new GmailAttachmentError(`Gmail attachment ${providerAttachmentId} did not include download data`);
     return decodeBase64UrlBytes(response.data);
   },
 };

@@ -1,18 +1,11 @@
+import { GmailApiError } from '../../errors.js';
+
 import type { MailProviderContext } from '../../contracts.js';
 import type { GmailMessage } from './parse.js';
 
 export const GMAIL_API_BASE = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
 const METADATA_HEADERS = ['From', 'To', 'Cc', 'Bcc', 'Subject', 'Message-ID', 'In-Reply-To', 'References', 'Date'];
-
-export class GmailApiError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-  ) {
-    super(message);
-  }
-}
 
 type GmailProfile = { emailAddress?: string; messagesTotal?: number; threadsTotal?: number; historyId: string };
 type GmailLabel = { id: string; name: string; type?: string; color?: { backgroundColor?: string; textColor?: string } };
@@ -74,7 +67,11 @@ export function buildGetMessagePath(messageId: string, format: GmailMessageForma
   return `/messages/${encodeURIComponent(messageId)}?${params.toString()}`;
 }
 
-export async function getMessage(ctx: MailProviderContext, messageId: string, format: GmailMessageFormat): Promise<GmailMessage> {
+export async function getMessage(
+  ctx: MailProviderContext,
+  messageId: string,
+  format: GmailMessageFormat,
+): Promise<GmailMessage> {
   return gmailApiRequest<GmailMessage>(ctx, buildGetMessagePath(messageId, format));
 }
 
@@ -83,11 +80,13 @@ export async function listHistory(
   input: { startHistoryId: string; pageToken?: string },
 ): Promise<GmailHistoryResponse> {
   const params = new URLSearchParams({ startHistoryId: input.startHistoryId });
-  for (const type of ['messageAdded', 'messageDeleted', 'labelAdded', 'labelRemoved']) params.append('historyTypes', type);
+  for (const type of ['messageAdded', 'messageDeleted', 'labelAdded', 'labelRemoved'])
+    params.append('historyTypes', type);
   if (input.pageToken) params.set('pageToken', input.pageToken);
   const response = await ctx.http.request(gmailUrl(`/history?${params.toString()}`), { signal: ctx.signal });
   if (response.status === 404) throw new GmailApiError(404, 'Gmail history cursor expired');
-  if (!response.ok) throw new GmailApiError(response.status, `Gmail history request failed with status ${response.status}`);
+  if (!response.ok)
+    throw new GmailApiError(response.status, `Gmail history request failed with status ${response.status}`);
   return readJson<GmailHistoryResponse>(response);
 }
 
@@ -107,17 +106,15 @@ export async function sendMessageRaw(
   raw: string,
   threadId: string | undefined,
 ): Promise<{ id: string; threadId: string }> {
-  return gmailApiRequest(ctx, '/messages/send', {
-    method: 'POST',
-    body: JSON.stringify({ raw, threadId }),
-  });
+  return gmailApiRequest(ctx, '/messages/send', { method: 'POST', body: JSON.stringify({ raw, threadId }) });
 }
 
-export async function createDraftRaw(ctx: MailProviderContext, raw: string, threadId: string | undefined): Promise<{ id: string }> {
-  return gmailApiRequest(ctx, '/drafts', {
-    method: 'POST',
-    body: JSON.stringify({ message: { raw, threadId } }),
-  });
+export async function createDraftRaw(
+  ctx: MailProviderContext,
+  raw: string,
+  threadId: string | undefined,
+): Promise<{ id: string }> {
+  return gmailApiRequest(ctx, '/drafts', { method: 'POST', body: JSON.stringify({ message: { raw, threadId } }) });
 }
 
 export async function updateDraftRaw(
@@ -136,7 +133,10 @@ export async function deleteDraftRaw(ctx: MailProviderContext, draftId: string):
   await gmailApiRequest(ctx, `/drafts/${encodeURIComponent(draftId)}`, { method: 'DELETE' });
 }
 
-export async function sendDraftRaw(ctx: MailProviderContext, draftId: string): Promise<{ id: string; threadId: string }> {
+export async function sendDraftRaw(
+  ctx: MailProviderContext,
+  draftId: string,
+): Promise<{ id: string; threadId: string }> {
   return gmailApiRequest(ctx, `/drafts/${encodeURIComponent(draftId)}/send`, { method: 'POST' });
 }
 

@@ -9,6 +9,7 @@
     "./db/client": "./src/db/client.ts",
     "./db/queries": "./src/db/queries.ts",
     "./engine": "./src/sync/engine.ts",
+    "./errors": "./src/errors.ts",
     "./registry": "./src/registry.ts",
     "./providers/gmail": "./src/providers/gmail/provider.ts"
   },

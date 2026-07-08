@@ -1,7 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { MailConfigurationError } from '../errors.js';
 import * as schema from './schema.js';
+
 import type { Database } from 'bun:sqlite';
 import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 
@@ -11,7 +13,7 @@ let _db: MailDb | undefined;
 let _sqlite: Database | undefined;
 
 export function getMailDb(): MailDb {
-  if (!_db) throw new Error('Mail database not initialized - call initMailDb() first');
+  if (!_db) throw new MailConfigurationError('Mail database not initialized - call initMailDb() first');
   return _db;
 }
 

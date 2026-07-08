@@ -1,3 +1,5 @@
+import { GmailBatchError } from '../../errors.js';
+
 import type { MailProviderContext } from '../../contracts.js';
 
 const GMAIL_BATCH_URL = 'https://gmail.googleapis.com/batch/gmail/v1';
@@ -38,15 +40,18 @@ function parsePart(part: string): GmailBatchResult | null {
   const bodyLines = separator === -1 ? [] : rest.slice(separator + 1);
   const headers = parseHeaders(headerLines.join('\r\n'));
   const bodyText = bodyLines.join('\n').trim();
-  const body = bodyText && headers.get('content-type')?.includes('application/json') ? JSON.parse(bodyText) : bodyText || null;
+  const body =
+    bodyText && headers.get('content-type')?.includes('application/json') ? JSON.parse(bodyText) : bodyText || null;
   const id = contentId.replace(/^response-/, '');
 
   return { id, status, body };
 }
 
 export function parseGmailBatchResponse(contentType: string | null, body: string): GmailBatchResult[] {
-  const boundary = contentType?.match(/boundary=(?:"([^"]+)"|([^;]+))/i)?.[1] ?? contentType?.match(/boundary=(?:"([^"]+)"|([^;]+))/i)?.[2];
-  if (!boundary) throw new Error('Gmail batch response did not include a multipart boundary');
+  const boundary =
+    contentType?.match(/boundary=(?:"([^"]+)"|([^;]+))/i)?.[1] ??
+    contentType?.match(/boundary=(?:"([^"]+)"|([^;]+))/i)?.[2];
+  if (!boundary) throw new GmailBatchError('Gmail batch response did not include a multipart boundary');
 
   return body
     .split(`--${boundary}`)
@@ -61,7 +66,7 @@ export async function gmailBatchRequest<T = unknown>(
   operations: GmailBatchOperation[],
 ): Promise<GmailBatchResult<T>[]> {
   if (operations.length > MAX_BATCH_OPERATIONS) {
-    throw new Error(`Gmail batch requests support at most ${MAX_BATCH_OPERATIONS} operations`);
+    throw new GmailBatchError(`Gmail batch requests support at most ${MAX_BATCH_OPERATIONS} operations`);
   }
   if (operations.length === 0) return [];
 
@@ -73,7 +78,7 @@ export async function gmailBatchRequest<T = unknown>(
     signal: ctx.signal,
   });
 
-  if (!response.ok) throw new Error(`Gmail batch request failed with status ${response.status}`);
+  if (!response.ok) throw new GmailBatchError(`Gmail batch request failed with status ${response.status}`);
 
   return parseGmailBatchResponse(response.headers.get('content-type'), await response.text()) as GmailBatchResult<T>[];
 }

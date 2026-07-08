@@ -1,9 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { MailProviderContext } from '../../contracts.js';
+import { GmailBatchError } from '../../errors.js';
 import { createGmailBatchRequestBodyForTests, gmailBatchRequest, parseGmailBatchResponse } from './batch.js';
 
-function createContext(handler: (url: string, init?: RequestInit) => Response | Promise<Response>): MailProviderContext {
+import type { MailProviderContext } from '../../contracts.js';
+
+function createContext(
+  handler: (url: string, init?: RequestInit) => Response | Promise<Response>,
+): MailProviderContext {
   return {
     account: {} as MailProviderContext['account'],
     http: { request: async (url, init) => handler(url, init) },
@@ -52,6 +56,10 @@ describe('gmailBatchRequest', () => {
     ]);
   });
 
+  test('throws typed errors for invalid batch responses', () => {
+    expect(() => parseGmailBatchResponse('application/json', '{}')).toThrow(GmailBatchError);
+  });
+
   test('posts to Gmail batch endpoint and returns parsed items', async () => {
     const ctx = createContext((_url, init) => {
       expect(init?.method).toBe('POST');
@@ -74,8 +82,16 @@ describe('gmailBatchRequest', () => {
       );
     });
 
-     expect(
+    expect(
       gmailBatchRequest(ctx, [{ id: 'msg-1', method: 'GET', path: '/messages/msg-1?format=metadata' }]),
     ).resolves.toEqual([{ id: 'msg-1', status: 200, body: { id: 'msg-1' } }]);
+  });
+
+  test('throws typed errors for failed batch requests', () => {
+    const ctx = createContext(() => new Response('', { status: 503 }));
+
+    expect(gmailBatchRequest(ctx, [{ id: 'msg-1', method: 'GET', path: '/messages/msg-1' }])).rejects.toThrow(
+      GmailBatchError,
+    );
   });
 });
