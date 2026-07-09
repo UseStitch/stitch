@@ -22,6 +22,7 @@ import { withRefreshLock } from '@/connectors/auth/refresh-lock.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema/connectors.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 import { registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
@@ -145,6 +146,8 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
                       })
                       .where(eq(connectorInstances.id, chosen.id));
 
+                    internalBus.emit('connector.token.refreshed', { instanceId: chosen.id });
+
                     return refreshed.accessToken;
                   } catch (error) {
                     const message = error instanceof Error ? error.message : String(error);
@@ -167,6 +170,7 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
                         .update(connectorInstances)
                         .set({ status: 'error', authIssue: 'reauthorization_required', updatedAt: Date.now() })
                         .where(eq(connectorInstances.id, chosen.id));
+                      internalBus.emit('connector.auth.failed', { instanceId: chosen.id });
                     }
                     throw error;
                   }

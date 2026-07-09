@@ -1,3 +1,4 @@
+import { registerConnectorEventsAdapter } from './connectors.js';
 import { registerMemoryAdapter } from './memory.js';
 import { registerSseAdapter } from './sse.js';
 import { registerUsageAdapter } from './usage.js';
@@ -8,6 +9,7 @@ import { registerUsageAdapter } from './usage.js';
  */
 export function registerAdapters(): void {
   registerSseAdapter();
+  registerConnectorEventsAdapter();
   registerUsageAdapter();
   registerMemoryAdapter();
 }

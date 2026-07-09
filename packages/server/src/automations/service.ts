@@ -21,6 +21,7 @@ import { createSession } from '@/chat/session-crud.js';
 import { getDb } from '@/db/client.js';
 import { automations } from '@/db/schema/automations.js';
 import { sessions } from '@/db/schema/sessions.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { paginatedQuery } from '@/lib/paginated-query.js';
 import { err, ok } from '@/lib/service-result.js';
@@ -319,6 +320,7 @@ export async function runAutomation(automationId: string): Promise<ServiceResult
   const sessionResult = await createSession({ title, type: 'automation', automationId: automation.id });
   if (sessionResult.error) return sessionResult;
   const session = sessionResult.data;
+  internalBus.emit('automation.run.started', { automationId: automation.id, sessionId: session.id });
 
   const assistantMessageId = createMessageId();
   const sendResult = await sendMessage({
@@ -328,7 +330,10 @@ export async function runAutomation(automationId: string): Promise<ServiceResult
     modelId: automation.modelId,
     assistantMessageId,
   });
-  if (sendResult.error) return sendResult;
+  if (sendResult.error) {
+    internalBus.emit('automation.run.failed', { automationId: automation.id, error: sendResult.error.message });
+    return sendResult;
+  }
 
   const [updatedAutomation] = await db.transaction(async (tx) => {
     const [updated] = await tx
@@ -348,8 +353,11 @@ export async function runAutomation(automationId: string): Promise<ServiceResult
   });
 
   if (!updatedAutomation) {
+    internalBus.emit('automation.run.failed', { automationId: automation.id, error: 'Automation not found' });
     return err('Automation not found', 404);
   }
+
+  internalBus.emit('automation.run.completed', { automationId: automation.id, sessionId: session.id });
 
   return ok({
     sessionId: session.id,
