@@ -242,6 +242,10 @@ export type RecordingAnalysisUpdatedEvent = {
   title: string | null;
 };
 
+export type RecordingAnalysisCompletedEvent = { recordingId: PrefixedString<'rec'>; title: string };
+
+export type RecordingAnalysisFailedEvent = { recordingId: PrefixedString<'rec'> };
+
 export type RecordingTranscriptEntryEvent = {
   recordingId: string;
   kind: 'partial' | 'final';
@@ -256,6 +260,38 @@ export type RecordingTranscriptEntryEvent = {
 export type McpToolsChangedEvent = { serverId: PrefixedString<'mcp'>; serverName: string; toolCount: number | null };
 
 export type McpAuthStatusChangedEvent = { serverId: PrefixedString<'mcp'>; authStatus: McpAuthStatus };
+
+// ─── Skills ──────────────────────────────────────────────────────────────────
+
+export type SkillCreatedEvent = { name: string };
+
+export type SkillUpdatedEvent = { name: string; previousName: string };
+
+export type SkillDeletedEvent = { name: string };
+
+// ─── Connectors ──────────────────────────────────────────────────────────────
+
+export type ConnectorTokenRefreshedEvent = { instanceId: string };
+
+export type ConnectorAuthFailedEvent = { instanceId: string };
+
+export type ConnectorAuthorizedEvent = { instanceId: string; connectorId: string };
+
+export type ConnectorRemovedEvent = { instanceId: string | null; connectorId: string };
+
+// ─── Automations / Schedules ─────────────────────────────────────────────────
+
+export type AutomationRunStartedEvent = { automationId: PrefixedString<'auto'>; sessionId: PrefixedString<'ses'> };
+
+export type AutomationRunCompletedEvent = { automationId: PrefixedString<'auto'>; sessionId: PrefixedString<'ses'> };
+
+export type AutomationRunFailedEvent = { automationId: PrefixedString<'auto'>; error: string };
+
+export type ScheduleJobFiredEvent = { key: string; automationId: PrefixedString<'auto'> };
+
+export type ScheduleJobSucceededEvent = { key: string; automationId: PrefixedString<'auto'> };
+
+export type ScheduleJobFailedEvent = { key: string; automationId: PrefixedString<'auto'>; error: string };
 
 // ─── Mail ────────────────────────────────────────────────────────────────────
 
@@ -317,12 +353,33 @@ export type InternalEventMap = {
   'recording.stopped': RecordingStoppedEvent;
   'recording.unrecoverable': RecordingUnrecoverableEvent;
   'recording.analysis.updated': RecordingAnalysisUpdatedEvent;
+  'recording.analysis.completed': RecordingAnalysisCompletedEvent;
+  'recording.analysis.failed': RecordingAnalysisFailedEvent;
   'recording.transcript.entry': RecordingTranscriptEntryEvent;
 
   // MCP
   'mcp.tools.list_changed': McpToolsChangedEvent;
   'mcp.tools.changed': McpToolsChangedEvent;
   'mcp.auth.status_changed': McpAuthStatusChangedEvent;
+
+  // Skills
+  'skill.created': SkillCreatedEvent;
+  'skill.updated': SkillUpdatedEvent;
+  'skill.deleted': SkillDeletedEvent;
+
+  // Connectors
+  'connector.token.refreshed': ConnectorTokenRefreshedEvent;
+  'connector.auth.failed': ConnectorAuthFailedEvent;
+  'connector.authorized': ConnectorAuthorizedEvent;
+  'connector.removed': ConnectorRemovedEvent;
+
+  // Automations / Schedules
+  'automation.run.started': AutomationRunStartedEvent;
+  'automation.run.completed': AutomationRunCompletedEvent;
+  'automation.run.failed': AutomationRunFailedEvent;
+  'schedule.job.fired': ScheduleJobFiredEvent;
+  'schedule.job.succeeded': ScheduleJobSucceededEvent;
+  'schedule.job.failed': ScheduleJobFailedEvent;
 
   // Mail
   'mail.sync.progress': MailSyncProgressEvent;

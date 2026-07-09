@@ -7,6 +7,10 @@ export type RecordingAnalysisUpdatedPayload = {
   title: string | null;
 };
 
+export type RecordingAnalysisCompletedPayload = { recordingId: PrefixedString<'rec'>; title: string };
+
+export type RecordingAnalysisFailedPayload = { recordingId: PrefixedString<'rec'> };
+
 export type RecordingWarningPayload = { code: string; message: string };
 
 export type RecordingDeviceChangedPayload = { kind: 'input' | 'output' | 'list'; deviceName: string | null };
@@ -29,6 +33,8 @@ export type RecordingTranscriptEntryPayload = {
 
 export const RECORDING_EVENT_NAMES = [
   'recording-analysis-updated',
+  'recording-analysis-completed',
+  'recording-analysis-failed',
   'recording-transcript-entry',
   'recording-started',
   'recording-stopped',
@@ -37,6 +43,8 @@ export const RECORDING_EVENT_NAMES = [
 
 export type RecordingEvents = {
   'recording-analysis-updated': RecordingAnalysisUpdatedPayload;
+  'recording-analysis-completed': RecordingAnalysisCompletedPayload;
+  'recording-analysis-failed': RecordingAnalysisFailedPayload;
   'recording-transcript-entry': RecordingTranscriptEntryPayload;
   'recording-started': RecordingStartedPayload;
   'recording-stopped': RecordingStoppedPayload;
