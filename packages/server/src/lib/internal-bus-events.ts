@@ -7,6 +7,7 @@ import type { McpAuthStatus } from '@stitch/shared/mcp/types';
 import type { PermissionResponse } from '@stitch/shared/permissions/types';
 import type { QuestionRequest } from '@stitch/shared/questions/types';
 import type { RecordingAnalysisStatus } from '@stitch/shared/recordings/types';
+import type { SettingsKey } from '@stitch/shared/settings/types';
 
 import type { LanguageModelUsage } from 'ai';
 
@@ -279,6 +280,10 @@ export type ConnectorAuthorizedEvent = { instanceId: string; connectorId: string
 
 export type ConnectorRemovedEvent = { instanceId: string | null; connectorId: string };
 
+// ─── Settings ────────────────────────────────────────────────────────────────
+
+export type SettingsChangedEvent = { key: SettingsKey };
+
 // ─── Automations / Schedules ─────────────────────────────────────────────────
 
 export type AutomationRunStartedEvent = { automationId: PrefixedString<'auto'>; sessionId: PrefixedString<'ses'> };
@@ -372,6 +377,9 @@ export type InternalEventMap = {
   'connector.auth.failed': ConnectorAuthFailedEvent;
   'connector.authorized': ConnectorAuthorizedEvent;
   'connector.removed': ConnectorRemovedEvent;
+
+  // Settings
+  'settings.changed': SettingsChangedEvent;
 
   // Automations / Schedules
   'automation.run.started': AutomationRunStartedEvent;
