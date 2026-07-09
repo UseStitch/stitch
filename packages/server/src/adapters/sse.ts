@@ -225,6 +225,14 @@ export function registerSseAdapter(): void {
     });
   });
 
+  internalBus.onSync('recording.analysis.completed', (event) => {
+    broadcast('recording-analysis-completed', { recordingId: event.recordingId, title: event.title });
+  });
+
+  internalBus.onSync('recording.analysis.failed', (event) => {
+    broadcast('recording-analysis-failed', { recordingId: event.recordingId });
+  });
+
   internalBus.onSync('recording.transcript.entry', (event) => {
     broadcast('recording-transcript-entry', {
       recordingId: event.recordingId,
@@ -234,6 +242,38 @@ export function registerSseAdapter(): void {
       content: event.content,
       offsetMs: event.offsetMs,
     });
+  });
+
+  // ─── Skills ────────────────────────────────────────────────────────────────
+
+  internalBus.onSync('skill.created', (event) => {
+    broadcast('skill-created', { name: event.name });
+  });
+
+  internalBus.onSync('skill.updated', (event) => {
+    broadcast('skill-updated', { name: event.name, previousName: event.previousName });
+  });
+
+  internalBus.onSync('skill.deleted', (event) => {
+    broadcast('skill-deleted', { name: event.name });
+  });
+
+  // ─── Connectors ────────────────────────────────────────────────────────────
+
+  internalBus.onSync('connector.token.refreshed', (event) => {
+    broadcast('connector-token-refreshed', { instanceId: event.instanceId });
+  });
+
+  internalBus.onSync('connector.auth.failed', (event) => {
+    broadcast('connector-auth-failed', { instanceId: event.instanceId });
+  });
+
+  internalBus.onSync('connector.authorized', (event) => {
+    broadcast('connector-authorized', { instanceId: event.instanceId, connectorId: event.connectorId });
+  });
+
+  internalBus.onSync('connector.removed', (event) => {
+    broadcast('connector-removed', { instanceId: event.instanceId, connectorId: event.connectorId });
   });
 
   // ─── Mail ───────────────────────────────────────────────────────────────────

@@ -3,14 +3,13 @@ import { eq, inArray } from 'drizzle-orm';
 import { SETTINGS_DEFAULTS, SETTINGS_SCHEMAS } from '@stitch/shared/settings/types';
 import type { SettingsKey } from '@stitch/shared/settings/types';
 
-import { syncAllAutomationSchedules } from '@/automations/scheduler.js';
 import { getDb } from '@/db/client.js';
 import { userSettings } from '@/db/schema/settings.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { listEnabledProviderEmbeddingModels } from '@/llm/provider/service.js';
 import { getMemoryConfig, hasConfiguredEmbeddingModel } from '@/memory/config.js';
-import { resetEmbedder } from '@/models/embedding/factory.js';
 import type { z } from 'zod';
 
 type SettingValue<K extends SettingsKey> = z.infer<(typeof SETTINGS_SCHEMAS)[K]>;
@@ -80,24 +79,6 @@ async function checkMemoryEnablePrerequisites(): Promise<ServiceResult<null>> {
   return ok(null);
 }
 
-function isTimezoneKey(key: string): boolean {
-  return key === 'profile.timezone';
-}
-
-function isEmbeddingKey(key: string): boolean {
-  return key === 'memory.embedding.providerId' || key === 'memory.embedding.modelId';
-}
-
-async function runSettingSideEffects(key: string): Promise<void> {
-  if (isTimezoneKey(key)) {
-    await syncAllAutomationSchedules();
-  }
-
-  if (isEmbeddingKey(key)) {
-    resetEmbedder();
-  }
-}
-
 export async function saveSetting(key: string, value: string): Promise<ServiceResult<null>> {
   const schema = SETTINGS_SCHEMAS[key as SettingsKey];
   if (!schema) {
@@ -121,7 +102,7 @@ export async function saveSetting(key: string, value: string): Promise<ServiceRe
     .values({ key: key as SettingsKey, value })
     .onConflictDoUpdate({ target: userSettings.key, set: { value, updatedAt: Date.now() } });
 
-  await runSettingSideEffects(key);
+  internalBus.emit('settings.changed', { key: key as SettingsKey });
 
   return ok(null);
 }
@@ -140,7 +121,7 @@ export async function deleteSetting(key: string): Promise<ServiceResult<null>> {
     return err('Setting not found', 404);
   }
 
-  await runSettingSideEffects(key);
+  internalBus.emit('settings.changed', { key: key as SettingsKey });
 
   return ok(null);
 }

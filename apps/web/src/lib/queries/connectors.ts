@@ -4,7 +4,7 @@ import type { ConnectorDefinition, ConnectorInstanceSafe, ConnectorSafe } from '
 
 import { serverRequest } from '@/lib/api';
 
-const connectorKeys = {
+export const connectorKeys = {
   all: ['connectors'] as const,
   configured: () => [...connectorKeys.all, 'configured'] as const,
   definitions: () => [...connectorKeys.all, 'definitions'] as const,

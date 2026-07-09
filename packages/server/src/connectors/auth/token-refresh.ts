@@ -9,6 +9,7 @@ import { withRefreshLock } from '@/connectors/auth/refresh-lock.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema/connectors.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'token-refresh' });
@@ -105,6 +106,7 @@ export async function refreshExpiringTokens(deps?: {
         .where(eq(connectorInstances.id, instance.id));
 
       log.info({ event: 'token-refresh.success', instanceId: instance.id }, `Token refreshed for ${instance.label}`);
+      internalBus.emit('connector.token.refreshed', { instanceId: instance.id });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       const requiresReauth = requiresOAuthReauth(e);
@@ -126,6 +128,7 @@ export async function refreshExpiringTokens(deps?: {
           .update(connectorInstances)
           .set({ status: 'error', authIssue: 'reauthorization_required', updatedAt: Date.now() })
           .where(eq(connectorInstances.id, instance.id));
+        internalBus.emit('connector.auth.failed', { instanceId: instance.id });
       }
     }
   }

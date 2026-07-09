@@ -261,7 +261,7 @@ export async function cancelRecordingAnalysis(recordingId: PrefixedString<'rec'>
     .where(eq(recordingAnalyses.id, existing.id))
     .returning();
 
-  broadcastRecordingAnalysisUpdated({ recordingId, status: 'failed', title: null });
+  internalBus.emit('recording.analysis.failed', { recordingId });
 
   if (!updated) {
     return err('Failed to cancel recording analysis', 400);
@@ -384,7 +384,7 @@ async function runRecordingAnalysis(
       })
       .where(eq(recordingAnalyses.id, analysisId));
 
-    broadcastRecordingAnalysisUpdated({ recordingId: input.recordingId, status: 'completed', title });
+    internalBus.emit('recording.analysis.completed', { recordingId: input.recordingId, title });
 
     log.info({ analysisId, recordingId: input.recordingId }, 'recording analysis completed');
   } catch (error) {
@@ -406,7 +406,7 @@ async function runRecordingAnalysis(
       .set({ status: 'failed', error: message, endedAt, durationMs: endedAt - startedAt, updatedAt: endedAt })
       .where(eq(recordingAnalyses.id, analysisId));
 
-    broadcastRecordingAnalysisUpdated({ recordingId: input.recordingId, status: 'failed', title: null });
+    internalBus.emit('recording.analysis.failed', { recordingId: input.recordingId });
 
     log.error({ analysisId, recordingId: input.recordingId, error: message }, 'recording analysis failed');
   } finally {

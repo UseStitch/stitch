@@ -150,6 +150,8 @@ async function getGoogleAccessToken(connectorInstanceId: string, forceRefresh: b
             })
             .where(eq(connectorInstances.id, connectorInstanceId as ConnectorInstanceId));
 
+          internalBus.emit('connector.token.refreshed', { instanceId: connectorInstanceId });
+
           return refreshed.accessToken;
         } catch (error) {
           const requiresReauth = requiresOAuthReauth(error);
@@ -169,6 +171,7 @@ async function getGoogleAccessToken(connectorInstanceId: string, forceRefresh: b
               .update(connectorInstances)
               .set({ status: 'error', authIssue: 'reauthorization_required', updatedAt: Date.now() })
               .where(eq(connectorInstances.id, connectorInstanceId as ConnectorInstanceId));
+            internalBus.emit('connector.auth.failed', { instanceId: connectorInstanceId });
           }
           throw error;
         }

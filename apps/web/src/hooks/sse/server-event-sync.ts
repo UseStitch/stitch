@@ -9,11 +9,13 @@ import type { PartDelta } from '@stitch/shared/chat/stream-events';
 
 import { useSSE } from '@/hooks/sse/sse-context';
 import { sessionKeys } from '@/lib/queries/chat';
+import { connectorKeys } from '@/lib/queries/connectors';
 import { mcpKeys } from '@/lib/queries/mcp';
 import { permissionResponseKeys } from '@/lib/queries/permissions';
 import { questionKeys } from '@/lib/queries/questions';
 import { recordingsKeys } from '@/lib/queries/recordings';
 import { settingsQueryOptions } from '@/lib/queries/settings';
+import { skillKeys } from '@/lib/queries/skills';
 import { todoKeys } from '@/lib/queries/todos';
 import { toolKeys } from '@/lib/queries/tools';
 import { playNotificationSound } from '@/lib/sounds';
@@ -156,6 +158,53 @@ function useServerEventSync(): void {
     },
     'recording-analysis-updated': ({ recordingId }) => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.detail(recordingId) });
+    },
+    'recording-analysis-completed': ({ recordingId }) => {
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.detail(recordingId) });
+    },
+    'recording-analysis-failed': ({ recordingId }) => {
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.detail(recordingId) });
+    },
+
+    // Skill Events
+    'skill-created': () => {
+      void queryClient.invalidateQueries({ queryKey: skillKeys.all });
+    },
+    'skill-updated': () => {
+      void queryClient.invalidateQueries({ queryKey: skillKeys.all });
+    },
+    'skill-deleted': () => {
+      void queryClient.invalidateQueries({ queryKey: skillKeys.all });
+    },
+
+    // Connector Events
+    'connector-token-refreshed': ({ instanceId }) => {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: connectorKeys.instances() }),
+        queryClient.invalidateQueries({ queryKey: connectorKeys.instance(instanceId) }),
+      ]);
+    },
+    'connector-auth-failed': ({ instanceId }) => {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: connectorKeys.instances() }),
+        queryClient.invalidateQueries({ queryKey: connectorKeys.instance(instanceId) }),
+      ]);
+    },
+    'connector-authorized': ({ instanceId }) => {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: connectorKeys.instances() }),
+        queryClient.invalidateQueries({ queryKey: connectorKeys.instance(instanceId) }),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownTools() }),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownToolsets() }),
+      ]);
+    },
+    'connector-removed': ({ instanceId }) => {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: connectorKeys.all }),
+        ...(instanceId ? [queryClient.invalidateQueries({ queryKey: connectorKeys.instance(instanceId) })] : []),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownTools() }),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownToolsets() }),
+      ]);
     },
 
     // Session Events
