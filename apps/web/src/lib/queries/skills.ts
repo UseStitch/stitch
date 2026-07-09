@@ -13,7 +13,7 @@ import type {
 
 import { serverRequest } from '@/lib/api';
 
-const skillKeys = {
+export const skillKeys = {
   all: ['skills'] as const,
   list: () => [...skillKeys.all, 'list'] as const,
   search: (query: string) => [...skillKeys.all, 'search', query] as const,
