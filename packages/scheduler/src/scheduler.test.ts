@@ -179,7 +179,6 @@ describe('scheduler', () => {
     expect(callback).toHaveBeenCalledTimes(3);
 
     const status = await store.getJob('interval-job');
-    expect(status).not.toBeNull();
     expect(status?.runningCount).toBe(0);
     expect(status?.totalRuns).toBe(3);
   });
@@ -207,7 +206,6 @@ describe('scheduler', () => {
     await scheduler.stop();
 
     const status = await store.getJob('concurrency-job');
-    expect(status).not.toBeNull();
     expect(status!.totalRuns).toBeGreaterThanOrEqual(2);
     expect(status!.runningCount).toBe(0);
   });

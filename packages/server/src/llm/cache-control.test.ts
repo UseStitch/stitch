@@ -130,16 +130,24 @@ describe('addCacheControlToMessages', () => {
     expect(result[0].providerOptions).toEqual({ anthropic: { cacheControl: { type: 'ephemeral' } } });
   });
 
-  test('marks both system and user in minimal conversation', () => {
+  test('marks both system and user in minimal conversation without mutating original messages', () => {
     const messages: ModelMessage[] = [
       { role: 'system', content: 'System prompt' },
       { role: 'user', content: 'Hello' },
     ];
 
+    const original0 = messages[0];
+    const original1 = messages[1];
+
     const result = addCacheControlToMessages(messages, 'anthropic', 'claude-sonnet-4-5');
 
     expect(result[0].providerOptions).toEqual({ anthropic: { cacheControl: { type: 'ephemeral' } } });
     expect(result[1].providerOptions).toEqual({ anthropic: { cacheControl: { type: 'ephemeral' } } });
+
+    expect(messages[0]).toBe(original0);
+    expect(messages[1]).toBe(original1);
+    expect(messages[0].providerOptions).toBeUndefined();
+    expect(messages[1].providerOptions).toBeUndefined();
   });
 
   test('preserves existing providerOptions on messages', () => {
@@ -153,23 +161,6 @@ describe('addCacheControlToMessages', () => {
     expect(result[0].providerOptions).toEqual({
       anthropic: { someOtherOption: true, cacheControl: { type: 'ephemeral' } },
     });
-  });
-
-  test('does not mutate the original messages array', () => {
-    const messages: ModelMessage[] = [
-      { role: 'system', content: 'System prompt' },
-      { role: 'user', content: 'Hello' },
-    ];
-
-    const original0 = messages[0];
-    const original1 = messages[1];
-
-    addCacheControlToMessages(messages, 'anthropic', 'claude-sonnet-4-5');
-
-    expect(messages[0]).toBe(original0);
-    expect(messages[1]).toBe(original1);
-    expect(messages[0].providerOptions).toBeUndefined();
-    expect(messages[1].providerOptions).toBeUndefined();
   });
 
   test('marks latest user message when no system messages exist', () => {

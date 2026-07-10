@@ -59,7 +59,7 @@ describe('StreamAccumulator', () => {
   // ─── Text accumulation ──────────────────────────────────────────────
 
   describe('text accumulation', () => {
-    test('accumulates text-start → text-delta → text-end into a stored part', () => {
+    test('accumulates text-start → text-delta → text-end into a stored part and broadcasts update/delta events', () => {
       const parts: StoredPart[] = [];
       const acc = createAccumulator(parts);
 
@@ -70,9 +70,12 @@ describe('StreamAccumulator', () => {
 
       expect(parts).toHaveLength(1);
       expect(parts[0]).toMatchObject({ type: 'text-delta', text: 'Hello, world!' });
+
+      expect(getEmittedCalls('part.update')).toHaveLength(2);
+      expect(getEmittedCalls('part.delta')).toHaveLength(2);
     });
 
-    test('flush() emits buffered text when no text-end arrives', () => {
+    test('flush() emits buffered text when no text-end arrives and broadcasts text-end', () => {
       const parts: StoredPart[] = [];
       const acc = createAccumulator(parts);
 
@@ -82,6 +85,11 @@ describe('StreamAccumulator', () => {
 
       expect(parts).toHaveLength(1);
       expect(parts[0]).toMatchObject({ type: 'text-delta', text: 'Incomplete' });
+
+      const updateCalls = getEmittedCalls('part.update');
+      // text-start + text-end (from flush)
+      expect(updateCalls).toHaveLength(2);
+      expect(updateCalls[1]).toMatchObject({ part: { type: 'text-end' } });
     });
 
     test('flush() does nothing when text buffer is empty', () => {
@@ -127,7 +135,7 @@ describe('StreamAccumulator', () => {
       expect(acc.getProtocolViolationCount()).toBe(1);
     });
 
-    test('flush() emits buffered reasoning when no reasoning-end arrives', () => {
+    test('flush() emits buffered reasoning when no reasoning-end arrives and broadcasts reasoning-end', () => {
       const parts: StoredPart[] = [];
       const acc = createAccumulator(parts);
 
@@ -137,28 +145,23 @@ describe('StreamAccumulator', () => {
 
       expect(parts).toHaveLength(1);
       expect(parts[0]).toMatchObject({ type: 'reasoning-delta', text: 'Partial reasoning' });
+
+      const updateCalls = getEmittedCalls('part.update');
+      // reasoning-start + reasoning-end (from flush)
+      expect(updateCalls).toHaveLength(2);
+      expect(updateCalls[1]).toMatchObject({ part: { type: 'reasoning-end' } });
     });
   });
 
   // ─── Tool call handling ─────────────────────────────────────────────
 
   describe('tool calls', () => {
-    test('records tool-call in both accumulatedParts and toolCalls', () => {
+    test('records tool-call and tool-result in accumulatedParts/toolCalls and broadcasts lifecycle events', () => {
       const parts: StoredPart[] = [];
       const toolCalls: ToolCallRecord[] = [];
       const acc = createAccumulator(parts, toolCalls);
 
       acc.handlePart(part({ type: 'tool-call', toolCallId: 'call_1', toolName: 'bash', input: { command: 'pwd' } }));
-
-      expect(toolCalls).toEqual([expect.objectContaining({ toolName: 'bash' })]);
-      expect(parts).toHaveLength(1);
-      expect(parts[0]).toMatchObject({ type: 'tool-call', toolCallId: 'call_1', toolName: 'bash' });
-    });
-
-    test('records tool-result in accumulatedParts', () => {
-      const parts: StoredPart[] = [];
-      const acc = createAccumulator(parts);
-
       acc.handlePart(
         part({
           type: 'tool-result',
@@ -169,39 +172,23 @@ describe('StreamAccumulator', () => {
         }),
       );
 
-      expect(parts).toHaveLength(1);
-      expect(parts[0]).toMatchObject({
+      expect(toolCalls).toEqual([expect.objectContaining({ toolName: 'bash' })]);
+      expect(parts).toHaveLength(2);
+      expect(parts[0]).toMatchObject({ type: 'tool-call', toolCallId: 'call_1', toolName: 'bash' });
+      expect(parts[1]).toMatchObject({
         type: 'tool-result',
         toolCallId: 'call_1',
         toolName: 'bash',
         output: { result: '/home/user' },
         truncated: false,
       });
-    });
-
-    test('broadcasts tool.started and tool.completed for tool-call and tool-result lifecycle', () => {
-      const acc = createAccumulator();
-
-      acc.handlePart(
-        part({ type: 'tool-call', toolCallId: 'call_1', toolName: 'read', input: { filePath: 'README.md' } }),
-      );
-      acc.handlePart(
-        part({
-          type: 'tool-result',
-          toolCallId: 'call_1',
-          toolName: 'read',
-          input: { filePath: 'README.md' },
-          output: { content: '# Hello' },
-        }),
-      );
 
       const startedCalls = getEmittedCalls('tool.started');
       const completedCalls = getEmittedCalls('tool.completed');
-
       expect(startedCalls).toHaveLength(1);
       expect(completedCalls).toHaveLength(1);
-      expect(startedCalls[0]).toMatchObject({ toolName: 'read' });
-      expect(completedCalls[0]).toMatchObject({ toolName: 'read' });
+      expect(startedCalls[0]).toMatchObject({ toolName: 'bash' });
+      expect(completedCalls[0]).toMatchObject({ toolName: 'bash' });
     });
 
     test('broadcasts tool.failed when a tool-result contains an error payload', () => {
@@ -236,7 +223,7 @@ describe('StreamAccumulator', () => {
   // ─── Tool error handling ────────────────────────────────────────────
 
   describe('tool errors', () => {
-    test('converts tool-error to tool-result with error output', () => {
+    test('converts tool-error to tool-result with error output and broadcasts tool.failed', () => {
       const parts: StoredPart[] = [];
       const acc = createAccumulator(parts);
 
@@ -257,6 +244,10 @@ describe('StreamAccumulator', () => {
         toolName: 'webfetch',
         output: { error: 'connection refused' },
       });
+
+      const failedCalls = getEmittedCalls('tool.failed');
+      expect(failedCalls).toHaveLength(1);
+      expect(failedCalls[0]).toMatchObject({ toolName: 'webfetch', error: 'connection refused' });
     });
 
     test('captures PermissionRejectedError from tool-error', () => {
@@ -285,47 +276,25 @@ describe('StreamAccumulator', () => {
 
       expect(acc.getPermissionRejected()).toBeNull();
     });
-
-    test('broadcasts tool.failed for tool errors', () => {
-      const acc = createAccumulator();
-
-      acc.handlePart(
-        part({ type: 'tool-error', toolCallId: 'call_1', toolName: 'bash', input: {}, error: 'something went wrong' }),
-      );
-
-      const failedCalls = getEmittedCalls('tool.failed');
-      expect(failedCalls).toHaveLength(1);
-      expect(failedCalls[0]).toMatchObject({ toolName: 'bash' });
-    });
   });
 
   // ─── Error parts ────────────────────────────────────────────────────
 
   describe('error parts', () => {
-    test('throws StreamPartError for error parts with Error cause', () => {
+    test('throws StreamPartError for error parts with Error cause and broadcasts stream.failed', () => {
       const acc = createAccumulator();
 
       expect(() => acc.handlePart(part({ type: 'error', error: new Error('stream broke') }))).toThrow(StreamPartError);
+
+      const errorCalls = getEmittedCalls('stream.failed');
+      expect(errorCalls).toHaveLength(1);
+      expect(errorCalls[0]).toMatchObject({ sessionId: 'ses_1', messageId: 'msg_1' });
     });
 
     test('throws StreamPartError for non-Error error parts', () => {
       const acc = createAccumulator();
 
       expect(() => acc.handlePart(part({ type: 'error', error: 'string error message' }))).toThrow(StreamPartError);
-    });
-
-    test('broadcasts stream.failed for error parts', () => {
-      const acc = createAccumulator();
-
-      try {
-        acc.handlePart(part({ type: 'error', error: new Error('provider error') }));
-      } catch {
-        // expected to throw
-      }
-
-      const errorCalls = getEmittedCalls('stream.failed');
-      expect(errorCalls).toHaveLength(1);
-      expect(errorCalls[0]).toMatchObject({ sessionId: 'ses_1', messageId: 'msg_1' });
     });
   });
 
@@ -406,58 +375,6 @@ describe('StreamAccumulator', () => {
       acc.handlePart(part({ type: 'tool-input-end', id: 'call_1' }));
 
       expect(parts).toHaveLength(0);
-    });
-  });
-
-  // ─── SSE broadcasting ──────────────────────────────────────────────
-
-  describe('SSE broadcasting', () => {
-    test('broadcasts stream-part-update on text-start and text-end', () => {
-      const acc = createAccumulator();
-
-      acc.handlePart(part({ type: 'text-start', id: 'id1' }));
-      acc.handlePart(part({ type: 'text-delta', id: 'id1', text: 'Hi' }));
-      acc.handlePart(part({ type: 'text-end', id: 'id1' }));
-
-      const updateCalls = getEmittedCalls('part.update');
-      expect(updateCalls).toHaveLength(2);
-    });
-
-    test('broadcasts stream-part-delta for each text-delta', () => {
-      const acc = createAccumulator();
-
-      acc.handlePart(part({ type: 'text-start', id: 'id1' }));
-      acc.handlePart(part({ type: 'text-delta', id: 'id1', text: 'A' }));
-      acc.handlePart(part({ type: 'text-delta', id: 'id1', text: 'B' }));
-
-      const deltaCalls = getEmittedCalls('part.delta');
-      expect(deltaCalls).toHaveLength(2);
-    });
-
-    test('flush() broadcasts text-end signal for buffered text parts', () => {
-      const acc = createAccumulator();
-
-      acc.handlePart(part({ type: 'text-start', id: 'id1' }));
-      acc.handlePart(part({ type: 'text-delta', id: 'id1', text: 'Partial' }));
-      acc.flush();
-
-      const updateCalls = getEmittedCalls('part.update');
-      // text-start + text-end (from flush)
-      expect(updateCalls).toHaveLength(2);
-      expect(updateCalls[1]).toMatchObject({ part: { type: 'text-end' } });
-    });
-
-    test('flush() broadcasts reasoning-end signal for buffered reasoning parts', () => {
-      const acc = createAccumulator();
-
-      acc.handlePart(part({ type: 'reasoning-start', id: 'id1' }));
-      acc.handlePart(part({ type: 'reasoning-delta', id: 'id1', text: 'Thinking' }));
-      acc.flush();
-
-      const updateCalls = getEmittedCalls('part.update');
-      // reasoning-start + reasoning-end (from flush)
-      expect(updateCalls).toHaveLength(2);
-      expect(updateCalls[1]).toMatchObject({ part: { type: 'reasoning-end' } });
     });
   });
 
