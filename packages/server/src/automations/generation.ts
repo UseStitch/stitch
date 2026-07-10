@@ -211,15 +211,12 @@ export async function generateAutomationDraft(sessionId: string): Promise<Servic
   const usage = result.usage ?? null;
 
   const { costUsd } = await recordLlmUsage({
-    runId: generationMessageId,
     source: 'automation_generation',
     status: 'succeeded',
-    sessionId: session.id,
-    messageId: generationMessageId,
     providerId: resolved.providerId,
     modelId: resolved.modelId,
     usage,
-    metadata: { phase: 'automation-generation' },
+    metadata: { source: 'automation_generation', sessionId: session.id, messageId: generationMessageId },
     startedAt: start,
     endedAt: Date.now(),
     durationMs: Date.now() - start,

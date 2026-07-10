@@ -112,7 +112,8 @@ describe('title generation adapter', () => {
     expect(titleMessages).toHaveLength(1);
     expect(titleMessages[0].parts[0]).toMatchObject({ type: 'session-title', title: 'Title: Chat Content' });
     expect(usageRows).toHaveLength(1);
-    expect(usageRows[0]).toMatchObject({ sessionId, providerId: 'openai', modelId: 'gpt-5' });
+    expect(usageRows[0]).toMatchObject({ providerId: 'openai', modelId: 'gpt-5' });
+    expect(usageRows[0].metadata).toMatchObject({ sessionId, target: 'chat' });
     expect(emitted).toEqual([{ sessionId, title: 'Title: Chat Content' }]);
   });
 
@@ -154,7 +155,12 @@ describe('title generation adapter', () => {
   test('increments recording analysis cost by generated title cost', async () => {
     await seedRecordingAnalysis();
     registerTitleGenerationAdapter({
-      generateTitle: async () => ({ title: 'Generated Recording Title', providerId: 'openai', modelId: 'gpt-5', usage: ZERO_USAGE }),
+      generateTitle: async () => ({
+        title: 'Generated Recording Title',
+        providerId: 'openai',
+        modelId: 'gpt-5',
+        usage: ZERO_USAGE,
+      }),
       recordTitleUsage: async () => ({ costUsd: 0.25 }),
     });
 

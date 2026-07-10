@@ -314,7 +314,6 @@ async function runRecordingAnalysis(
     broadcastRecordingAnalysisUpdated({ recordingId: input.recordingId, status: 'processing', title: null });
 
     const analysisModel = deps.createProvider(input.analysisCredentials)(input.analysisModelId);
-    const analysisRunId = `${analysisId}:analysis`;
     const analysisStart = Date.now();
     const analysisResult = await generateText({
       model: analysisModel,
@@ -333,12 +332,11 @@ async function runRecordingAnalysis(
     const analysisUsage = analysisResult.usage ?? ZERO_USAGE;
 
     const { costUsd: analysisCost } = await recordLlmUsage({
-      runId: analysisRunId,
       source: 'recording_analysis',
       providerId: input.analysisProviderId,
       modelId: input.analysisModelId,
       usage: analysisUsage,
-      metadata: { recordingId: input.recordingId, analysisId, phase: 'analysis' },
+      metadata: { source: 'recording_analysis', recordingId: input.recordingId, analysisId },
       startedAt: analysisStart,
       endedAt: Date.now(),
       durationMs: Date.now() - analysisStart,

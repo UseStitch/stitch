@@ -1,7 +1,7 @@
 import { generateText, Output } from 'ai';
-import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
@@ -14,11 +14,9 @@ import {
   updateSemanticMemory,
 } from '@/memory/service.js';
 import type { MemorySource, SemanticMemory } from '@/memory/types.js';
-import { recordLlmUsage } from '@/usage/ledger.js';
 
 const log = Log.create({ service: 'memory-consolidation' });
 
-const MEMORY_SOURCE = 'memory_extraction' as const;
 const MAX_GROUPS = 5;
 const MAX_MEMORIES_PER_GROUP = 8;
 const SIMILARITY_THRESHOLD = 0.82;
@@ -125,27 +123,6 @@ function addCounts(result: ConsolidationResult, delta: ConsolidationResult): voi
   result.skipped += delta.skipped;
 }
 
-async function recordUsage(input: {
-  runId: string;
-  providerId: string;
-  modelId: string;
-  usage: NonNullable<Awaited<ReturnType<typeof generateText>>['usage']>;
-  startedAt: number;
-  endedAt: number;
-}): Promise<void> {
-  await recordLlmUsage({
-    runId: input.runId,
-    source: MEMORY_SOURCE,
-    status: 'succeeded',
-    providerId: input.providerId,
-    modelId: input.modelId,
-    usage: input.usage,
-    metadata: { phase: 'consolidation' },
-    startedAt: input.startedAt,
-    endedAt: input.endedAt,
-  }).catch((err) => log.warn({ error: err }, 'failed to record consolidation usage event'));
-}
-
 async function findCandidateGroups(): Promise<ConsolidationMemory[][]> {
   const allResult = await getAllSemanticMemories({ page: 1, pageSize: 1000 });
   if (allResult.error || allResult.data.memories.length < MIN_GROUP_SIZE) return [];
@@ -230,7 +207,6 @@ export async function consolidateMemories(): Promise<ConsolidationResult> {
   }
 
   const model = createProvider(resolved.credentials)(resolved.modelId);
-  const runId = randomUUID();
   const totals = emptyResult();
 
   for (const group of groups) {
@@ -245,11 +221,11 @@ export async function consolidateMemories(): Promise<ConsolidationResult> {
       const endedAt = Date.now();
 
       if (output.usage) {
-        void recordUsage({
-          runId,
+        internalBus.emit('usage.memory.completed', {
           providerId: resolved.providerId,
           modelId: resolved.modelId,
           usage: output.usage,
+          phase: 'consolidation',
           startedAt,
           endedAt,
         });
