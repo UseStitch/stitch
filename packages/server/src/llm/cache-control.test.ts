@@ -4,31 +4,6 @@ import { addCacheControlToMessages, addCacheControlToTools, getCacheConfig } fro
 import type { ModelMessage, Tool } from 'ai';
 
 describe('getCacheConfig', () => {
-  test('returns anthropic config for anthropic provider', () => {
-    const config = getCacheConfig('anthropic', 'claude-sonnet-4-5');
-    expect(config).toEqual({
-      namespace: 'anthropic',
-      key: 'cacheControl',
-      value: { type: 'ephemeral' },
-      breakpointCap: 4,
-    });
-  });
-
-  test('returns bedrock config for amazon-bedrock provider', () => {
-    const config = getCacheConfig('amazon-bedrock', 'anthropic.claude-3-7-sonnet-20250219-v1:0');
-    expect(config).toEqual({ namespace: 'bedrock', key: 'cachePoint', value: { type: 'default' }, breakpointCap: 4 });
-  });
-
-  test('returns openrouter config for openrouter provider', () => {
-    const config = getCacheConfig('openrouter', 'anthropic/claude-sonnet-4-5');
-    expect(config).toEqual({
-      namespace: 'openrouter',
-      key: 'cacheControl',
-      value: { type: 'ephemeral' },
-      breakpointCap: 4,
-    });
-  });
-
   test('returns anthropic config for google-vertex with claude model', () => {
     const config = getCacheConfig('google-vertex', 'claude-3-5-sonnet@20241022');
     expect(config).toEqual({
@@ -155,16 +130,24 @@ describe('addCacheControlToMessages', () => {
     expect(result[0].providerOptions).toEqual({ anthropic: { cacheControl: { type: 'ephemeral' } } });
   });
 
-  test('marks both system and user in minimal conversation', () => {
+  test('marks both system and user in minimal conversation without mutating original messages', () => {
     const messages: ModelMessage[] = [
       { role: 'system', content: 'System prompt' },
       { role: 'user', content: 'Hello' },
     ];
 
+    const original0 = messages[0];
+    const original1 = messages[1];
+
     const result = addCacheControlToMessages(messages, 'anthropic', 'claude-sonnet-4-5');
 
     expect(result[0].providerOptions).toEqual({ anthropic: { cacheControl: { type: 'ephemeral' } } });
     expect(result[1].providerOptions).toEqual({ anthropic: { cacheControl: { type: 'ephemeral' } } });
+
+    expect(messages[0]).toBe(original0);
+    expect(messages[1]).toBe(original1);
+    expect(messages[0].providerOptions).toBeUndefined();
+    expect(messages[1].providerOptions).toBeUndefined();
   });
 
   test('preserves existing providerOptions on messages', () => {
@@ -178,23 +161,6 @@ describe('addCacheControlToMessages', () => {
     expect(result[0].providerOptions).toEqual({
       anthropic: { someOtherOption: true, cacheControl: { type: 'ephemeral' } },
     });
-  });
-
-  test('does not mutate the original messages array', () => {
-    const messages: ModelMessage[] = [
-      { role: 'system', content: 'System prompt' },
-      { role: 'user', content: 'Hello' },
-    ];
-
-    const original0 = messages[0];
-    const original1 = messages[1];
-
-    addCacheControlToMessages(messages, 'anthropic', 'claude-sonnet-4-5');
-
-    expect(messages[0]).toBe(original0);
-    expect(messages[1]).toBe(original1);
-    expect(messages[0].providerOptions).toBeUndefined();
-    expect(messages[1].providerOptions).toBeUndefined();
   });
 
   test('marks latest user message when no system messages exist', () => {

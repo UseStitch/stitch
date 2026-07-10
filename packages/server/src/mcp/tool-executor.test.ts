@@ -24,22 +24,6 @@ describe('refreshMcpToolsets', () => {
     clearToolsets();
   });
 
-  test('registers MCP toolsets using stable server id', async () => {
-    await refreshMcpToolsets(
-      { refreshTools: true },
-      {
-        getMcpServersWithCachedTools: async () => [TEST_SERVER],
-        fetchMcpTools: async () => ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
-        fetchServerInfo: async () => null,
-        fetchServerPrompts: async () => [],
-        findRegistryServer: async () => null,
-        buildServerPresentation: async () => ({ serverId: TEST_SERVER.id, name: TEST_SERVER.name, tools: {} }),
-      },
-    );
-
-    expect(listToolsetIds()).toContain('mcp:mcp_test_server');
-  });
-
   test('removes stale mcp toolsets that no longer exist', async () => {
     registerToolset({
       id: 'mcp:stale-server',
@@ -122,7 +106,7 @@ describe('refreshMcpToolsets', () => {
     expect(getToolset('mcp:mcp_test_server')?.name).toBe('Exa');
   });
 
-  test('attaches presentation to the toolset and reads it back through the registry', async () => {
+  test('attaches presentation to the toolset, registers it under a stable server id, and reads it back through the registry', async () => {
     await refreshMcpToolsets(
       { refreshTools: true },
       {
@@ -140,6 +124,7 @@ describe('refreshMcpToolsets', () => {
       },
     );
 
+    expect(listToolsetIds()).toContain('mcp:mcp_test_server');
     expect(getToolset('mcp:mcp_test_server')?.presentation).toMatchObject({
       serverId: TEST_SERVER.id,
       iconPath: '/mcp/icons/test',

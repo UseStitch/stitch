@@ -49,7 +49,6 @@ describe('runPendingMigrations', () => {
       expect(row?.id).toBe(migration0001AddPinnedColumn.id);
       expect(row?.prevId).toBe(migration0001AddPinnedColumn.prevId);
       expect(row?.name).toBe('add_pinned_column');
-      expect(typeof row?.checksum).toBe('string');
       expect(row?.checksum?.startsWith('sha256:')).toBe(true);
     });
   });

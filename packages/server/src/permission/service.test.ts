@@ -82,7 +82,6 @@ describe('permission service interactions', () => {
     await waitForEvents(1);
 
     const requestedEvent = emittedEvents.find(([name]) => name === 'permission.requested');
-    expect(requestedEvent).toBeDefined();
     const requestedData = requestedEvent![1] as InternalEventMap['permission.requested'];
     expect(requestedData.permissionResponse).toMatchObject({
       sessionId,
@@ -97,7 +96,6 @@ describe('permission service interactions', () => {
     expect(promise).resolves.toEqual({ decision: 'allow' });
 
     const resolvedEvent = emittedEvents.find(([name]) => name === 'permission.resolved');
-    expect(resolvedEvent).toBeDefined();
     expect(resolvedEvent![1]).toEqual({ permissionResponseId, sessionId });
   });
 

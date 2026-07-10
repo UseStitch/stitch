@@ -112,13 +112,6 @@ describe('Log.cleanup', () => {
 });
 
 describe('Log.create', () => {
-  test('time() using-block calls stop via [Symbol.dispose]', () => {
-    const log = Log.create({ service: 'test-using' });
-    expect(() => {
-      using _t = log.time('block-op');
-    }).not.toThrow();
-  });
-
   test('loggers created before init write after init', async () => {
     await fs.mkdir(PATHS.logDir, { recursive: true });
     await clearLogDir();

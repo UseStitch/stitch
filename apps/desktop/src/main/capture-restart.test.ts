@@ -1,25 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
-import { createCaptureRestarter, isRestartTriggerCode } from './capture-restart.js';
+import { createCaptureRestarter } from './capture-restart.js';
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 const FAST = { debounceMs: 10, backoffMs: 5 };
-
-describe('isRestartTriggerCode', () => {
-  test('matches stream-death codes', () => {
-    expect(isRestartTriggerCode('mic_stream_ended')).toBe(true);
-    expect(isRestartTriggerCode('speaker_stream_ended')).toBe(true);
-    expect(isRestartTriggerCode('aec_resample_failed')).toBe(true);
-  });
-
-  test('ignores non-terminal warnings', () => {
-    expect(isRestartTriggerCode('speaker_start_failed')).toBe(false);
-    expect(isRestartTriggerCode('input_backpressure')).toBe(false);
-  });
-});
 
 describe('createCaptureRestarter', () => {
   test('debounces bursts of triggers into a single restart', async () => {

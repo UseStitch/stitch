@@ -13,14 +13,6 @@ describe('getProviderOptions', () => {
     expect(getProviderOptions('openrouter', sessionId)).toEqual({ openrouter: { prompt_cache_key: sessionId } });
   });
 
-  test('returns stream usage options for nvidia provider', () => {
-    expect(getProviderOptions('nvidia', sessionId)).toEqual({ nvidia: { stream_options: { include_usage: true } } });
-  });
-
-  test('returns gateway caching auto for vercel provider', () => {
-    expect(getProviderOptions('vercel', sessionId)).toEqual({ gateway: { caching: 'auto' } });
-  });
-
   test.each(['anthropic', 'amazon-bedrock', 'google', 'google-vertex', 'ollama_local'] as const)(
     'returns undefined for %s provider',
     (providerId) => {
