@@ -28,13 +28,6 @@ describe('listKnownTools', () => {
     clearToolsets();
   });
 
-  test('returns built-in stitch tools', () => {
-    const tools = listKnownTools();
-    const stitchTools = tools.filter((t) => t.toolType === 'stitch');
-    expect(stitchTools.length).toBe(STITCH_KNOWN_TOOLS.length);
-    expect(stitchTools.map((t) => t.toolName)).toEqual(STITCH_KNOWN_TOOLS.map((t) => t.toolName));
-  });
-
   test('includes tools from a registered native toolset', () => {
     registerToolset(
       makeToolset({

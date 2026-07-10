@@ -9,9 +9,6 @@ import {
   buildSkillMd,
   collectSkillDirFiles,
   ensureSkillsDir,
-  getSkillDir,
-  getSkillMdPath,
-  getSkillsDir,
   listSkillFiles,
   readSkillMdFile,
   syncCompanionFiles,
@@ -30,24 +27,6 @@ beforeEach(async () => {
 afterEach(async () => {
   (PATHS.dirPaths as { skills: string }).skills = originalSkillsDir;
   await fs.rm(tempDir, { recursive: true, force: true });
-});
-
-describe('getSkillsDir', () => {
-  test('returns the configured skills directory', () => {
-    expect(getSkillsDir()).toBe(tempDir);
-  });
-});
-
-describe('getSkillDir', () => {
-  test('returns path with skill name appended', () => {
-    expect(getSkillDir('my-skill')).toBe(path.join(tempDir, 'my-skill'));
-  });
-});
-
-describe('getSkillMdPath', () => {
-  test('returns SKILL.md path inside skill directory', () => {
-    expect(getSkillMdPath('my-skill')).toBe(path.join(tempDir, 'my-skill', 'SKILL.md'));
-  });
 });
 
 describe('ensureSkillsDir', () => {

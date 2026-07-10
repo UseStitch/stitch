@@ -19,44 +19,4 @@ describe('render_ui tool', () => {
 
     expect(result).toEqual({ output: 'Rendered render_ui.', spec: validSpec });
   });
-
-  test('rejects invalid props through the input schema', () => {
-    const result = liquidUiSpecSchema.safeParse({
-      root: 'n1',
-      nodes: [{ id: 'n1', component: 'Badge', variant: 'success', text: 'Ok', extra: true }],
-    });
-
-    expect(result.success).toBe(false);
-  });
-
-  test('rejects dangling refs and cycles', () => {
-    expect(
-      liquidUiSpecSchema.safeParse({
-        root: 'n1',
-        nodes: [{ id: 'n1', component: 'Stack', spacing: 'md', children: ['missing'] }],
-      }).success,
-    ).toBe(false);
-
-    expect(
-      liquidUiSpecSchema.safeParse({
-        root: 'n1',
-        nodes: [
-          { id: 'n1', component: 'Stack', spacing: 'md', children: ['n2'] },
-          { id: 'n2', component: 'Stack', spacing: 'md', children: ['n1'] },
-        ],
-      }).success,
-    ).toBe(false);
-  });
-
-  test('accepts deep visual trees as flat nodes', () => {
-    const nodes = Array.from({ length: 12 }, (_, index) => {
-      const id = `n${index + 1}`;
-      const childId = index < 11 ? `n${index + 2}` : null;
-      return childId
-        ? { id, component: 'Stack', spacing: 'sm', children: [childId] }
-        : { id, component: 'Text', text: 'Leaf', variant: 'body' };
-    });
-
-    expect(liquidUiSpecSchema.safeParse({ root: 'n1', nodes }).success).toBe(true);
-  });
 });

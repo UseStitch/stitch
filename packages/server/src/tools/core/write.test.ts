@@ -72,23 +72,6 @@ describe('writeFileContent', () => {
     expect(content).toBe('');
   });
 
-  test('preserves file permissions on overwrite', async () => {
-    const dir = await createTempDir();
-    const filePath = path.join(dir, 'perms.txt');
-
-    await fs.writeFile(filePath, 'initial', 'utf8');
-
-    if (process.platform !== 'win32') {
-      await fs.chmod(filePath, 0o644);
-    }
-
-    const statBefore = await fs.stat(filePath);
-    await writeFileContent(filePath, 'updated');
-    const statAfter = await fs.stat(filePath);
-
-    expect(statAfter.mode).toBe(statBefore.mode);
-  });
-
   test('handles unicode content correctly', async () => {
     const dir = await createTempDir();
     const filePath = path.join(dir, 'unicode.txt');

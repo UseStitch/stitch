@@ -13,7 +13,7 @@ const log = Log.create({ service: 'usage-ledger' });
 
 type UsageEventStatus = 'succeeded' | 'failed' | 'aborted';
 
-export async function recordUsageEvent(input: {
+async function recordUsageEvent(input: {
   runId: string;
   source: string;
   status?: UsageEventStatus;

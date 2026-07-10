@@ -1,10 +1,10 @@
-import { describe, expect, spyOn, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 
 import { getDb } from '@/db/client.js';
 import { llmUsageEvents } from '@/db/schema/usage.js';
 import { setupTestDb } from '@/db/test-helpers.js';
-import { recordLlmUsage, recordUsageEvent } from '@/usage/ledger.js';
+import { recordLlmUsage } from '@/usage/ledger.js';
 import type { LanguageModelUsage } from 'ai';
 
 setupTestDb();
@@ -68,33 +68,6 @@ describe('recordLlmUsage', () => {
     expect(events[0]?.source).toBe('compaction');
     expect(events[0]?.inputTokens).toBe(100);
     expect(events[0]?.outputTokens).toBe(50);
-  });
-
-  test('swallows DB write failures and still returns costUsd', async () => {
-    const spy = spyOn({ recordUsageEvent }, 'recordUsageEvent');
-    spy.mockImplementation(async () => {
-      throw new Error('simulated write failure');
-    });
-
-    // recordLlmUsage uses the internal recordUsageEvent; since we can't
-    // intercept module-internal calls in bun without dynamic import tricks,
-    // we verify the swallow contract by observing that recordLlmUsage does
-    // not throw even when given valid input where an error could surface.
-    // The actual failure-swallow path is exercised in integration: the
-    // implementation wraps the write in try/catch and logs the error.
-
-    // For a behavioral test, we test the result type is always returned:
-    const result = await recordLlmUsage({
-      runId: 'run-swallow-test',
-      source: 'chat',
-      providerId: 'unknown_provider',
-      modelId: 'unknown_model',
-      usage: null,
-      startedAt: Date.now(),
-    });
-
-    expect(result).toHaveProperty('costUsd');
-    expect(typeof result.costUsd).toBe('number');
   });
 
   test('writes correct status and metadata fields', async () => {

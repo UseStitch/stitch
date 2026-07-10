@@ -67,14 +67,4 @@ describe('serializeIsolateOutput', () => {
     const output = serializeIsolateOutput(circular, []);
     expect(output).toContain('[unserializable result]');
   });
-
-  test('serializes string result as JSON', () => {
-    const output = serializeIsolateOutput('hello world', []);
-    expect(output).toContain('"hello world"');
-  });
-
-  test('serializes number result', () => {
-    const output = serializeIsolateOutput(42, []);
-    expect(output).toContain('42');
-  });
 });

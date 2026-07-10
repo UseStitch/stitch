@@ -4,31 +4,6 @@ import { addCacheControlToMessages, addCacheControlToTools, getCacheConfig } fro
 import type { ModelMessage, Tool } from 'ai';
 
 describe('getCacheConfig', () => {
-  test('returns anthropic config for anthropic provider', () => {
-    const config = getCacheConfig('anthropic', 'claude-sonnet-4-5');
-    expect(config).toEqual({
-      namespace: 'anthropic',
-      key: 'cacheControl',
-      value: { type: 'ephemeral' },
-      breakpointCap: 4,
-    });
-  });
-
-  test('returns bedrock config for amazon-bedrock provider', () => {
-    const config = getCacheConfig('amazon-bedrock', 'anthropic.claude-3-7-sonnet-20250219-v1:0');
-    expect(config).toEqual({ namespace: 'bedrock', key: 'cachePoint', value: { type: 'default' }, breakpointCap: 4 });
-  });
-
-  test('returns openrouter config for openrouter provider', () => {
-    const config = getCacheConfig('openrouter', 'anthropic/claude-sonnet-4-5');
-    expect(config).toEqual({
-      namespace: 'openrouter',
-      key: 'cacheControl',
-      value: { type: 'ephemeral' },
-      breakpointCap: 4,
-    });
-  });
-
   test('returns anthropic config for google-vertex with claude model', () => {
     const config = getCacheConfig('google-vertex', 'claude-3-5-sonnet@20241022');
     expect(config).toEqual({

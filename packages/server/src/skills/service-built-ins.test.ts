@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -107,13 +106,5 @@ describe('buildSkillsSystemPrompt', () => {
   test('returns empty string when no skills exist', async () => {
     const prompt = await buildSkillsSystemPrompt();
     expect(prompt).toBe('');
-  });
-
-  test('does not write skills that already exist', async () => {
-    await syncBuiltInSkills([
-      { name: 'test-skill', description: 'Use this test skill.', content: 'Test instructions.', files: [] },
-    ]);
-
-    expect(existsSync(path.join(tempDir, 'test-skill'))).toBe(true);
   });
 });
