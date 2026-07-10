@@ -1,8 +1,8 @@
 import { APICallError } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
-import { beforeEach, describe, expect, test, mock } from 'bun:test';
+import { beforeEach, describe, expect, mock, test } from 'bun:test';
 
-import { generateTitle } from '@/llm/title-generator.js';
+import { generateTitleFromContent } from '@/title-generation/generator.js';
 
 const RESOLVED_MODEL = {
   providerId: 'openai' as const,
@@ -24,7 +24,7 @@ function makeMockModel(text: string): MockLanguageModelV3 {
   });
 }
 
-describe('generateTitle', () => {
+describe('generateTitleFromContent', () => {
   beforeEach(() => {
     mock.restore();
   });
@@ -32,7 +32,7 @@ describe('generateTitle', () => {
   test('returns trimmed title from model response', async () => {
     const model = makeMockModel('  Project Setup  ');
 
-    const result = await generateTitle('Help me set up my project', 'openai', 'gpt-5', undefined, {
+    const result = await generateTitleFromContent('Generate a title for setup help', 'openai', 'gpt-5', {
       resolveModel: async () => RESOLVED_MODEL,
       getModel: () => model,
     });
@@ -45,7 +45,7 @@ describe('generateTitle', () => {
 
   test('strips surrounding quotes from title', async () => {
     const model = makeMockModel('"Debug Auth Flow"');
-    const result = await generateTitle('I have a bug in my auth', 'openai', 'gpt-5', undefined, {
+    const result = await generateTitleFromContent('Generate a title for auth debugging', 'openai', 'gpt-5', {
       resolveModel: async () => RESOLVED_MODEL,
       getModel: () => model,
     });
@@ -54,20 +54,9 @@ describe('generateTitle', () => {
     expect(result!.title).toBe('Debug Auth Flow');
   });
 
-  test('strips single quotes from title', async () => {
-    const model = makeMockModel("'Fix Login Bug'");
-    const result = await generateTitle('Login is broken', 'openai', 'gpt-5', undefined, {
-      resolveModel: async () => RESOLVED_MODEL,
-      getModel: () => model,
-    });
-
-    expect(result).not.toBeNull();
-    expect(result!.title).toBe('Fix Login Bug');
-  });
-
   test('returns null when model returns empty text', async () => {
     const model = makeMockModel('   ');
-    const result = await generateTitle('Hello', 'openai', 'gpt-5', undefined, {
+    const result = await generateTitleFromContent('Generate a title', 'openai', 'gpt-5', {
       resolveModel: async () => RESOLVED_MODEL,
       getModel: () => model,
     });
@@ -76,14 +65,16 @@ describe('generateTitle', () => {
   });
 
   test('returns null when no cheap model can be resolved', async () => {
-    const result = await generateTitle('Hello', 'openai', 'gpt-5', undefined, { resolveModel: async () => null });
+    const result = await generateTitleFromContent('Generate a title', 'openai', 'gpt-5', {
+      resolveModel: async () => null,
+    });
 
     expect(result).toBeNull();
   });
 
   test('returns usage data from the model response', async () => {
     const model = makeMockModel('Chat Title');
-    const result = await generateTitle('Tell me about AI', 'openai', 'gpt-5', undefined, {
+    const result = await generateTitleFromContent('Generate a title for AI discussion', 'openai', 'gpt-5', {
       resolveModel: async () => RESOLVED_MODEL,
       getModel: () => model,
     });
@@ -107,7 +98,7 @@ describe('generateTitle', () => {
       },
     });
 
-    const result = await generateTitle('Hello', 'openai', 'gpt-5', undefined, {
+    const result = await generateTitleFromContent('Generate a title', 'openai', 'gpt-5', {
       resolveModel: async () => RESOLVED_MODEL,
       getModel: () => model,
     });
@@ -115,25 +106,11 @@ describe('generateTitle', () => {
     expect(result).toBeNull();
   });
 
-  test('returns null on unexpected errors and does not throw', async () => {
-    const model = new MockLanguageModelV3({
-      doGenerate: async () => {
-        throw new Error('unexpected network failure');
-      },
-    });
-
-    const result = await generateTitle('Hello', 'openai', 'gpt-5', undefined, {
-      resolveModel: async () => RESOLVED_MODEL,
-      getModel: () => model,
-    });
-
-    expect(result).toBeNull();
-  });
-
-  test('passes first message to model as part of the prompt', async () => {
+  test('passes caller-provided content to the model unchanged', async () => {
     const model = makeMockModel('Test Title');
+    const content = 'Caller prepared content with auth-service.ts and meeting notes';
 
-    await generateTitle('My specific first message', 'openai', 'gpt-5', undefined, {
+    await generateTitleFromContent(content, 'openai', 'gpt-5', {
       resolveModel: async () => RESOLVED_MODEL,
       getModel: () => model,
     });
@@ -144,25 +121,6 @@ describe('generateTitle', () => {
     expect(userMessage).toBeDefined();
 
     const textContent = userMessage!.content.find((c): c is { type: 'text'; text: string } => c.type === 'text');
-    expect(textContent?.text).toContain('My specific first message');
-  });
-
-  test('includes attachment filenames in the title prompt when provided', async () => {
-    const model = makeMockModel('Test Title');
-
-    await generateTitle('Please review this code', 'openai', 'gpt-5', ['auth-service.ts', 'README.md'], {
-      resolveModel: async () => RESOLVED_MODEL,
-      getModel: () => model,
-    });
-
-    expect(model.doGenerateCalls).toHaveLength(1);
-    const messages = model.doGenerateCalls[0].prompt;
-    const userMessage = messages.find((m) => m.role === 'user');
-    expect(userMessage).toBeDefined();
-
-    const textContent = userMessage!.content.find((c): c is { type: 'text'; text: string } => c.type === 'text');
-    expect(textContent?.text).toContain('Attached filenames:');
-    expect(textContent?.text).toContain('auth-service.ts');
-    expect(textContent?.text).toContain('README.md');
+    expect(textContent?.text).toBe(content);
   });
 });

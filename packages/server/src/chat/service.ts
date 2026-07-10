@@ -8,7 +8,6 @@ import type { SessionStats } from '@stitch/shared/chat/messages';
 import { createMessageId, createPartId, createSessionId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 
-import { saveTitleMessage } from '@/chat/message-store.js';
 import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema/providers.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
@@ -21,13 +20,11 @@ import { buildSessionLlmMessages } from '@/llm/session-history.js';
 import { compact } from '@/llm/session-summary.js';
 import { cancelDecision, resolveDecision, type DoomLoopResponse } from '@/llm/stream/doom-loop.js';
 import { runStream } from '@/llm/stream/runner.js';
-import { generateTitle } from '@/llm/title-generator.js';
 import * as Models from '@/models/llm/registry.js';
 import { abortPermissionResponses } from '@/permission/service.js';
 import { isLlmProviderCredentials } from '@/provider/config/schema.js';
 import { listProvidersWithCapabilities, type ProviderWithCapabilities } from '@/provider/service.js';
 import { abortQuestions } from '@/question/service.js';
-import { recordLlmUsage } from '@/usage/ledger.js';
 import { normalizeUsage } from '@/utils/usage.js';
 
 const log = Log.create({ service: 'chat-service' });
@@ -103,6 +100,24 @@ async function buildUserMessageParts(input: {
   return [userPart, ...(input.existingAttachmentParts ?? []), ...attachmentParts];
 }
 
+function buildChatTitleContent(firstMessage: string, filenames: string[] = []): string {
+  const normalizedFilenames = filenames.map((name) => name.trim()).filter(Boolean);
+  const filenameContext =
+    normalizedFilenames.length > 0
+      ? `\nAttached filenames:\n${normalizedFilenames.map((name) => `- ${name}`).join('\n')}`
+      : '';
+
+  return `
+Generate a short, descriptive title (30 chars max) for a conversation.
+If attached filenames are provided, prefer using them when they add useful context.
+
+First message:
+"${firstMessage}"${filenameContext}
+
+Return only the title.
+`;
+}
+
 async function maybeGenerateTitle(input: {
   sessionId: PrefixedString<'ses'>;
   userText: string;
@@ -121,58 +136,12 @@ async function maybeGenerateTitle(input: {
     return;
   }
 
-  generateTitle(input.userText, input.providerId, input.modelId, input.attachmentFilenames)
-    .then(async (generatedTitle) => {
-      if (!generatedTitle) {
-        return;
-      }
-
-      const now = Date.now();
-      const titleMessageId = createMessageId();
-      const titlePart: StoredPart = {
-        type: 'session-title',
-        id: createPartId(),
-        title: generatedTitle.title,
-        startedAt: now,
-        endedAt: now,
-      };
-
-      const { costUsd } = await recordLlmUsage({
-        runId: titleMessageId,
-        source: 'title_generation',
-        status: 'succeeded',
-        sessionId: input.sessionId,
-        messageId: titleMessageId,
-        providerId: generatedTitle.providerId,
-        modelId: generatedTitle.modelId,
-        usage: generatedTitle.usage ?? null,
-        metadata: { phase: 'title-generation' },
-        startedAt: now,
-        endedAt: now,
-        durationMs: 0,
-      });
-
-      await saveTitleMessage({
-        sessionId: input.sessionId,
-        messageId: titleMessageId,
-        modelId: generatedTitle.modelId,
-        providerId: generatedTitle.providerId,
-        parts: [titlePart],
-        usage: generatedTitle.usage ?? undefined,
-        costUsd,
-        createdAt: now,
-      });
-
-      await db
-        .update(sessions)
-        .set({ title: generatedTitle.title, updatedAt: Date.now() })
-        .where(eq(sessions.id, input.sessionId));
-
-      internalBus.emit('session.title.updated', { sessionId: input.sessionId, title: generatedTitle.title });
-    })
-    .catch((error) => {
-      log.error({ sessionId: input.sessionId, error }, 'title generation failed');
-    });
+  internalBus.emit('title.generation.chat.requested', {
+    sessionId: input.sessionId,
+    content: buildChatTitleContent(input.userText, input.attachmentFilenames),
+    fallbackProviderId: input.providerId,
+    fallbackModelId: input.modelId,
+  });
 }
 
 export async function sendMessage(

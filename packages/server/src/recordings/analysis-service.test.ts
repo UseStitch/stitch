@@ -1,5 +1,5 @@
 import { MockLanguageModelV3 } from 'ai/test';
-import { beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
@@ -7,6 +7,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { getDb } from '@/db/client.js';
 import { meetingNoteTemplates, recordingAnalyses, recordings } from '@/db/schema/recordings.js';
 import { setupTestDb } from '@/db/test-helpers.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import { ok } from '@/lib/service-result.js';
 import { cancelRecordingAnalysis, startRecordingAnalysis } from '@/recordings/analysis-service.js';
 import { readRecordingAnalysis, writeRecordingAnalysis, writeRecordingTranscript } from '@/recordings/file-store.js';
@@ -100,8 +101,13 @@ async function waitForAnalysisModelCall(): Promise<void> {
 
 describe('recording analysis reruns', () => {
   beforeEach(async () => {
+    internalBus.clear();
     generateTextCalls = 0;
     await seedCompletedAnalysis();
+  });
+
+  afterEach(() => {
+    internalBus.clear();
   });
 
   test('keeps completed analysis while a forced rerun is cancelled', async () => {
