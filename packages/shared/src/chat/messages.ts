@@ -44,7 +44,7 @@ export type CompactionPart = { type: 'compaction'; auto: boolean; overflow?: boo
 
 export type SessionTitlePart = { type: 'session-title'; title: string };
 
-export type StreamErrorPart = { type: 'stream-error'; error: string; details?: StreamErrorDetails };
+export type StreamErrorPart = { type: 'stream.error'; error: string; details?: StreamErrorDetails };
 
 export type AutomationGenerationPart = {
   type: 'automation-generation';

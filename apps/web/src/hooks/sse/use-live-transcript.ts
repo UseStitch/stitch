@@ -45,7 +45,7 @@ export function useLiveTranscript(recordingId: string, isRecording: boolean) {
 
   // Keep subscribing with the recordingId so we receive post-stop flush events
   useRecordingEvents(recordingId, {
-    'recording-transcript-entry': (data) => {
+    'recording.transcript.entry': (data) => {
       setEntries((prev) => {
         // Find existing partial from same source to replace
         const partialIdx = prev.findLastIndex((e) => e.source === data.source && e.kind === 'partial');

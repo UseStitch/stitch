@@ -10,10 +10,10 @@ export function useCompactionUpdates(sessionId: string): { isCompacting: boolean
   const [isCompacting, setIsCompacting] = React.useState(false);
 
   useSessionEvents(sessionId, {
-    'compaction-start': () => {
+    'session.compaction.started': () => {
       setIsCompacting(true);
     },
-    'compaction-complete': () => {
+    'session.compaction.completed': () => {
       setIsCompacting(false);
       void queryClient.resetQueries({ queryKey: sessionKeys.messages(sessionId) });
     },

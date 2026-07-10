@@ -9,15 +9,15 @@ export type CompactionStartPayload = { sessionId: PrefixedString<'ses'>; message
 export type CompactionCompletePayload = { sessionId: PrefixedString<'ses'>; summaryMessageId: PrefixedString<'msg'> };
 
 export const SESSION_EVENT_NAMES = [
-  'session-title-update',
-  'session-todos-updated',
-  'compaction-start',
-  'compaction-complete',
+  'session.title.updated',
+  'session.todos.updated',
+  'session.compaction.started',
+  'session.compaction.completed',
 ] as const;
 
 export type SessionEvents = {
-  'session-title-update': SessionTitleUpdatePayload;
-  'session-todos-updated': SessionTodosUpdatedPayload;
-  'compaction-start': CompactionStartPayload;
-  'compaction-complete': CompactionCompletePayload;
+  'session.title.updated': SessionTitleUpdatePayload;
+  'session.todos.updated': SessionTodosUpdatedPayload;
+  'session.compaction.started': CompactionStartPayload;
+  'session.compaction.completed': CompactionCompletePayload;
 };

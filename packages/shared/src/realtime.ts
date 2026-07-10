@@ -38,6 +38,13 @@ export const SSE_EVENT_NAMES = [
 
 export type SseEventName = (typeof SSE_EVENT_NAMES)[number];
 
+// Compile-time exhaustiveness check: ensures every key in SseEventPayloadMap
+// is present in SSE_EVENT_NAMES. A type error here means a payload was added
+// to SseEventPayloadMap without a corresponding entry in the event names array.
+type _AssertExhaustive = keyof SseEventPayloadMap extends SseEventName ? true : never;
+const _exhaustiveCheck: _AssertExhaustive = true;
+void _exhaustiveCheck;
+
 export type SseHandlers = {
   [K in SseEventName]?: (data: SseEventPayloadMap[K]) => void;
 };

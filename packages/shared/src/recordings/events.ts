@@ -32,21 +32,21 @@ export type RecordingTranscriptEntryPayload = {
 };
 
 export const RECORDING_EVENT_NAMES = [
-  'recording-analysis-updated',
-  'recording-analysis-completed',
-  'recording-analysis-failed',
-  'recording-transcript-entry',
-  'recording-started',
-  'recording-stopped',
-  'recording-unrecoverable',
+  'recording.analysis.updated',
+  'recording.analysis.completed',
+  'recording.analysis.failed',
+  'recording.transcript.entry',
+  'recording.started',
+  'recording.stopped',
+  'recording.unrecoverable',
 ] as const;
 
 export type RecordingEvents = {
-  'recording-analysis-updated': RecordingAnalysisUpdatedPayload;
-  'recording-analysis-completed': RecordingAnalysisCompletedPayload;
-  'recording-analysis-failed': RecordingAnalysisFailedPayload;
-  'recording-transcript-entry': RecordingTranscriptEntryPayload;
-  'recording-started': RecordingStartedPayload;
-  'recording-stopped': RecordingStoppedPayload;
-  'recording-unrecoverable': RecordingUnrecoverablePayload;
+  'recording.analysis.updated': RecordingAnalysisUpdatedPayload;
+  'recording.analysis.completed': RecordingAnalysisCompletedPayload;
+  'recording.analysis.failed': RecordingAnalysisFailedPayload;
+  'recording.transcript.entry': RecordingTranscriptEntryPayload;
+  'recording.started': RecordingStartedPayload;
+  'recording.stopped': RecordingStoppedPayload;
+  'recording.unrecoverable': RecordingUnrecoverablePayload;
 };
