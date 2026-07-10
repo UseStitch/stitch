@@ -150,6 +150,17 @@ export type SessionCompactionCompletedEvent = {
   summaryMessageId: PrefixedString<'msg'>;
 };
 
+// ─── Title Generation ────────────────────────────────────────────────────────
+
+type BaseTitleGenerationRequest = { content: string; fallbackProviderId: string; fallbackModelId: string };
+
+export type ChatTitleGenerationRequestedEvent = BaseTitleGenerationRequest & { sessionId: PrefixedString<'ses'> };
+
+export type RecordingAnalysisTitleGenerationRequestedEvent = BaseTitleGenerationRequest & {
+  recordingId: PrefixedString<'rec'>;
+  analysisId: PrefixedString<'recan'>;
+};
+
 // ─── Error / Recovery ────────────────────────────────────────────────────────
 
 export type StreamRetryEvent = {
@@ -333,6 +344,10 @@ export type InternalEventMap = {
   'session.todos.updated': SessionTodosUpdatedEvent;
   'session.compaction.started': SessionCompactionStartedEvent;
   'session.compaction.completed': SessionCompactionCompletedEvent;
+
+  // Title generation
+  'title.generation.chat.requested': ChatTitleGenerationRequestedEvent;
+  'title.generation.recording_analysis.requested': RecordingAnalysisTitleGenerationRequestedEvent;
 
   // Error / Recovery
   'stream.retry': StreamRetryEvent;
