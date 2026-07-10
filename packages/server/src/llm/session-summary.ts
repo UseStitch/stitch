@@ -426,23 +426,14 @@ export async function compact(input: {
       details: toStreamErrorDetails(mappedError),
     });
 
-    const failedAt = Date.now();
-    await recordLlmUsage({
-      source: 'compaction',
-      status: 'failed',
+    internalBus.emit('usage.compaction.failed', {
+      sessionId,
+      messageId: summaryMessageId,
       providerId: input.providerId,
       modelId: input.modelId,
       errorCode: mappedError.category,
-      metadata: {
-        source: 'compaction',
-        sessionId,
-        messageId: summaryMessageId,
-        auto: input.auto,
-        overflow: input.overflow ?? false,
-      },
-      startedAt: failedAt,
-      endedAt: failedAt,
-      durationMs: 0,
+      auto: input.auto,
+      overflow: input.overflow ?? false,
     });
 
     return 'error';

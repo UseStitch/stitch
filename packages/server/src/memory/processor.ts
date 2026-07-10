@@ -5,7 +5,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { sessions } from '@/db/schema/sessions.js';
-import type { MemoryExtractionLlmUsageMetadata } from '@/db/schema/usage.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
@@ -24,11 +24,8 @@ import {
   pruneStaleMemories,
 } from '@/memory/service.js';
 import type { MemorySource } from '@/memory/types.js';
-import { recordLlmUsage } from '@/usage/ledger.js';
 
 const log = Log.create({ service: 'memory-processor' });
-
-const MEMORY_SOURCE = 'memory_extraction' as const;
 
 // ---------------------------------------------------------------------------
 // Per-session write budget tracking (in-process, resets on server restart).
@@ -58,26 +55,6 @@ function recordWrite(sessionId: string, count: number): void {
   const state = getSessionState(sessionId);
   state.factsWritten += count;
   state.lastWriteTurn = state.turnCount;
-}
-
-function recordUsageFireAndForget(params: {
-  providerId: string;
-  modelId: string;
-  usage: NonNullable<Awaited<ReturnType<typeof generateText>>['usage']>;
-  metadata: MemoryExtractionLlmUsageMetadata;
-  startedAt: number;
-  endedAt: number;
-}): void {
-  recordLlmUsage({
-    source: MEMORY_SOURCE,
-    status: 'succeeded',
-    providerId: params.providerId,
-    modelId: params.modelId,
-    usage: params.usage,
-    metadata: params.metadata,
-    startedAt: params.startedAt,
-    endedAt: params.endedAt,
-  }).catch((err) => log.warn({ error: err }, 'failed to record memory usage event'));
 }
 
 /**
@@ -162,11 +139,11 @@ export async function processMemories(input: {
     const extractionEnd = Date.now();
 
     if (extractionResult.usage) {
-      recordUsageFireAndForget({
+      internalBus.emit('usage.memory.completed', {
         providerId: resolved.providerId,
         modelId: resolved.modelId,
         usage: extractionResult.usage,
-        metadata: { source: 'memory_extraction', phase: 'extraction' },
+        phase: 'extraction',
         startedAt: extractionStart,
         endedAt: extractionEnd,
       });
@@ -273,11 +250,11 @@ export async function processMemories(input: {
       const dedupEnd = Date.now();
 
       if (dedupResult.usage) {
-        recordUsageFireAndForget({
+        internalBus.emit('usage.memory.completed', {
           providerId: resolved.providerId,
           modelId: resolved.modelId,
           usage: dedupResult.usage,
-          metadata: { source: 'memory_extraction', phase: 'deduplication' },
+          phase: 'deduplication',
           startedAt: dedupStart,
           endedAt: dedupEnd,
         });

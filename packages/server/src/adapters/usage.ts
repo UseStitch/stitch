@@ -1,8 +1,10 @@
 import type {
   ChatFailedLlmUsageMetadata,
   ChatLlmUsageMetadata,
+  CompactionLlmUsageMetadata,
   DoomLoopFailedLlmUsageMetadata,
   DoomLoopSummaryLlmUsageMetadata,
+  MemoryExtractionLlmUsageMetadata,
 } from '@/db/schema/usage.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
@@ -96,6 +98,44 @@ export function registerUsageAdapter(): void {
       usage: event.usage,
       metadata,
       startedAt: Date.now(),
+    });
+  });
+
+  internalBus.on('usage.memory.completed', async (event) => {
+    const metadata: MemoryExtractionLlmUsageMetadata = { source: 'memory_extraction', phase: event.phase };
+
+    await recordLlmUsage({
+      source: 'memory_extraction',
+      status: 'succeeded',
+      providerId: event.providerId,
+      modelId: event.modelId,
+      usage: event.usage,
+      metadata,
+      startedAt: event.startedAt,
+      endedAt: event.endedAt,
+    });
+  });
+
+  internalBus.on('usage.compaction.failed', async (event) => {
+    const metadata: CompactionLlmUsageMetadata = {
+      source: 'compaction',
+      sessionId: event.sessionId,
+      messageId: event.messageId,
+      auto: event.auto,
+      overflow: event.overflow,
+    };
+
+    const now = Date.now();
+    await recordLlmUsage({
+      source: 'compaction',
+      status: 'failed',
+      providerId: event.providerId,
+      modelId: event.modelId,
+      errorCode: event.errorCode,
+      metadata,
+      startedAt: now,
+      endedAt: now,
+      durationMs: 0,
     });
   });
 }

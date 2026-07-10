@@ -187,6 +187,25 @@ export type StreamPermissionRejectedEvent = {
 
 // ─── Usage (emitted by runner for adapter consumption) ───────────────────────
 
+export type UsageMemoryCompletedEvent = {
+  providerId: string;
+  modelId: string;
+  usage: LanguageModelUsage;
+  phase: 'extraction' | 'deduplication' | 'consolidation';
+  startedAt: number;
+  endedAt: number;
+};
+
+export type UsageCompactionFailedEvent = {
+  sessionId: PrefixedString<'ses'>;
+  messageId: PrefixedString<'msg'>;
+  providerId: string;
+  modelId: string;
+  errorCode: string | undefined;
+  auto: boolean;
+  overflow: boolean;
+};
+
 export type UsageStepFailedEvent = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
@@ -355,6 +374,8 @@ export type InternalEventMap = {
   'stream.permission.rejected': StreamPermissionRejectedEvent;
 
   // Usage (emitted by runner for adapter consumption)
+  'usage.memory.completed': UsageMemoryCompletedEvent;
+  'usage.compaction.failed': UsageCompactionFailedEvent;
   'usage.step.failed': UsageStepFailedEvent;
   'usage.doom_loop.failed': UsageDoomLoopFailedEvent;
   'usage.doom_loop.summary': UsageDoomLoopSummaryEvent;

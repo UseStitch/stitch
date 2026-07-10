@@ -1,7 +1,7 @@
 import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
-import type { MemoryExtractionLlmUsageMetadata } from '@/db/schema/usage.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
@@ -14,7 +14,6 @@ import {
   updateSemanticMemory,
 } from '@/memory/service.js';
 import type { MemorySource, SemanticMemory } from '@/memory/types.js';
-import { recordLlmUsage } from '@/usage/ledger.js';
 
 const log = Log.create({ service: 'memory-consolidation' });
 
@@ -124,26 +123,6 @@ function addCounts(result: ConsolidationResult, delta: ConsolidationResult): voi
   result.skipped += delta.skipped;
 }
 
-async function recordUsage(input: {
-  providerId: string;
-  modelId: string;
-  usage: NonNullable<Awaited<ReturnType<typeof generateText>>['usage']>;
-  startedAt: number;
-  endedAt: number;
-}): Promise<void> {
-  const metadata: MemoryExtractionLlmUsageMetadata = { source: 'memory_extraction', phase: 'consolidation' };
-  await recordLlmUsage({
-    source: 'memory_extraction',
-    status: 'succeeded',
-    providerId: input.providerId,
-    modelId: input.modelId,
-    usage: input.usage,
-    metadata,
-    startedAt: input.startedAt,
-    endedAt: input.endedAt,
-  }).catch((err) => log.warn({ error: err }, 'failed to record consolidation usage event'));
-}
-
 async function findCandidateGroups(): Promise<ConsolidationMemory[][]> {
   const allResult = await getAllSemanticMemories({ page: 1, pageSize: 1000 });
   if (allResult.error || allResult.data.memories.length < MIN_GROUP_SIZE) return [];
@@ -242,10 +221,11 @@ export async function consolidateMemories(): Promise<ConsolidationResult> {
       const endedAt = Date.now();
 
       if (output.usage) {
-        void recordUsage({
+        internalBus.emit('usage.memory.completed', {
           providerId: resolved.providerId,
           modelId: resolved.modelId,
           usage: output.usage,
+          phase: 'consolidation',
           startedAt,
           endedAt,
         });
