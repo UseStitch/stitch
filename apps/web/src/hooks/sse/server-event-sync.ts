@@ -158,9 +158,11 @@ function useServerEventSync(): void {
     },
     'recording-analysis-updated': ({ recordingId }) => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.detail(recordingId) });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.lists() });
     },
     'recording-analysis-completed': ({ recordingId }) => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.detail(recordingId) });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.lists() });
     },
     'recording-analysis-failed': ({ recordingId }) => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.detail(recordingId) });

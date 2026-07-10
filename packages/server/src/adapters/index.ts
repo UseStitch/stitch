@@ -2,6 +2,7 @@ import { registerAutomationsAdapter } from './automations.js';
 import { registerConnectorEventsAdapter } from './connectors.js';
 import { registerMemoryAdapter } from './memory.js';
 import { registerSseAdapter } from './sse.js';
+import { registerTitleGenerationAdapter } from './title-generation.js';
 import { registerUsageAdapter } from './usage.js';
 
 /**
@@ -13,5 +14,6 @@ export function registerAdapters(): void {
   registerAutomationsAdapter();
   registerConnectorEventsAdapter();
   registerUsageAdapter();
+  registerTitleGenerationAdapter();
   registerMemoryAdapter();
 }
