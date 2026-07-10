@@ -35,7 +35,7 @@ describe('sse adapter', () => {
   const sessionId = 'ses_test123' as PrefixedString<'ses'>;
   const messageId = 'msg_test456' as PrefixedString<'msg'>;
 
-  test('forward: narrows internal event to lean SSE payload (stream.started -> stream-start)', () => {
+  test('forward: narrows internal event to lean SSE payload (stream.started)', () => {
     const { stream, captured } = createMockStream();
     registerSseConnection(stream);
 
@@ -47,7 +47,7 @@ describe('sse adapter', () => {
       streamRunId: 'run_abc',
     });
 
-    const events = parseCaptured(captured, 'stream-start');
+    const events = parseCaptured(captured, 'stream.started');
     expect(events).toHaveLength(1);
     expect(events[0]).toEqual({ sessionId, messageId });
     // Internal-only fields must NOT leak
@@ -58,7 +58,7 @@ describe('sse adapter', () => {
     unregisterSseConnection(stream);
   });
 
-  test('forward: projects stream-error with error details', () => {
+  test('forward: projects stream.error with error details', () => {
     const { stream, captured } = createMockStream();
     registerSseConnection(stream);
 
@@ -75,7 +75,7 @@ describe('sse adapter', () => {
       details,
     });
 
-    const events = parseCaptured(captured, 'stream-error');
+    const events = parseCaptured(captured, 'stream.error');
     expect(events).toHaveLength(1);
     expect(events[0]).toEqual({ sessionId, messageId, error: 'rate_limit', details });
     expect(events[0]).not.toHaveProperty('streamRunId');
@@ -84,7 +84,7 @@ describe('sse adapter', () => {
     unregisterSseConnection(stream);
   });
 
-  test('passthrough: forwards identical payload (question.asked -> question-asked)', () => {
+  test('passthrough: forwards identical payload (question.asked)', () => {
     const { stream, captured } = createMockStream();
     registerSseConnection(stream);
 
@@ -102,14 +102,14 @@ describe('sse adapter', () => {
 
     internalBus.emit('question.asked', { question });
 
-    const events = parseCaptured(captured, 'question-asked');
+    const events = parseCaptured(captured, 'question.asked');
     expect(events).toHaveLength(1);
     expect(events[0]).toEqual({ question });
 
     unregisterSseConnection(stream);
   });
 
-  test('tool lifecycle: maps five internal events to discriminated stream-tool-state', () => {
+  test('tool lifecycle: maps five internal events to discriminated tool.state', () => {
     const { stream, captured } = createMockStream();
     registerSseConnection(stream);
 
@@ -129,7 +129,7 @@ describe('sse adapter', () => {
     });
     internalBus.emit('tool.failed', { sessionId, messageId, toolCallId, toolName, error: 'ENOENT' });
 
-    const events = parseCaptured(captured, 'stream-tool-state');
+    const events = parseCaptured(captured, 'tool.state');
     expect(events).toHaveLength(5);
 
     expect(events[0]).toEqual({ sessionId, messageId, toolCallId, toolName, status: 'pending' });
@@ -163,7 +163,7 @@ describe('sse adapter', () => {
     unregisterSseConnection(stream);
   });
 
-  test('session.message.saved maps to stream-finish', () => {
+  test('session.message.saved maps to stream.finish', () => {
     const { stream, captured } = createMockStream();
     registerSseConnection(stream);
 
@@ -185,7 +185,7 @@ describe('sse adapter', () => {
       finishReason: 'stop',
     });
 
-    const events = parseCaptured(captured, 'stream-finish');
+    const events = parseCaptured(captured, 'stream.finish');
     expect(events).toHaveLength(1);
     expect(events[0]).toEqual({ sessionId, messageId, finishReason: 'stop', usage });
     expect(events[0]).not.toHaveProperty('modelId');
@@ -218,8 +218,8 @@ describe('sse adapter', () => {
     internalBus.emit('recording.started', { recordingId });
     internalBus.emit('recording.stopped', { recordingId });
 
-    const started = parseCaptured(captured, 'recording-started');
-    const stopped = parseCaptured(captured, 'recording-stopped');
+    const started = parseCaptured(captured, 'recording.started');
+    const stopped = parseCaptured(captured, 'recording.stopped');
     expect(started).toHaveLength(1);
     expect(started[0]).toEqual({ recordingId });
     expect(stopped).toHaveLength(1);

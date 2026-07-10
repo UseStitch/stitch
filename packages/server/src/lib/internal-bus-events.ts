@@ -235,8 +235,8 @@ export type InternalEventMap = {
   'stream.aborted': StreamAbortedEvent;
 
   // Part streaming
-  'part.update': StreamEvents['stream-part-update'];
-  'part.delta': StreamEvents['stream-part-delta'];
+  'part.update': StreamEvents['part.update'];
+  'part.delta': StreamEvents['part.delta'];
 
   // Tool lifecycle
   'tool.pending': ToolPendingEvent;
@@ -247,18 +247,18 @@ export type InternalEventMap = {
 
   // Session lifecycle
   'session.message.saved': SessionMessageSavedEvent;
-  'session.title.updated': SessionEvents['session-title-update'];
-  'session.todos.updated': SessionEvents['session-todos-updated'];
-  'session.compaction.started': SessionEvents['compaction-start'];
-  'session.compaction.completed': SessionEvents['compaction-complete'];
+  'session.title.updated': SessionEvents['session.title.updated'];
+  'session.todos.updated': SessionEvents['session.todos.updated'];
+  'session.compaction.started': SessionEvents['session.compaction.started'];
+  'session.compaction.completed': SessionEvents['session.compaction.completed'];
 
   // Title generation
   'title.generation.chat.requested': ChatTitleGenerationRequestedEvent;
   'title.generation.recording_analysis.requested': RecordingAnalysisTitleGenerationRequestedEvent;
 
   // Error / Recovery
-  'stream.retry': StreamEvents['stream-retry'];
-  'stream.doom_loop.detected': StreamEvents['doom-loop-detected'];
+  'stream.retry': StreamEvents['stream.retry'];
+  'stream.doom_loop.detected': StreamEvents['stream.doom_loop.detected'];
   'stream.permission.rejected': StreamPermissionRejectedEvent;
 
   // Usage (emitted by runner for adapter consumption)
@@ -269,22 +269,22 @@ export type InternalEventMap = {
   'usage.doom_loop.summary': UsageDoomLoopSummaryEvent;
 
   // Questions
-  'question.asked': QuestionEvents['question-asked'];
-  'question.replied': QuestionEvents['question-replied'];
-  'question.rejected': QuestionEvents['question-rejected'];
+  'question.asked': QuestionEvents['question.asked'];
+  'question.replied': QuestionEvents['question.replied'];
+  'question.rejected': QuestionEvents['question.rejected'];
 
   // Permissions
-  'permission.requested': PermissionEvents['permission-response-requested'];
-  'permission.resolved': PermissionEvents['permission-response-resolved'];
+  'permission.requested': PermissionEvents['permission.requested'];
+  'permission.resolved': PermissionEvents['permission.resolved'];
 
   // Recordings
-  'recording.started': RecordingEvents['recording-started'];
-  'recording.stopped': RecordingEvents['recording-stopped'];
-  'recording.unrecoverable': RecordingEvents['recording-unrecoverable'];
-  'recording.analysis.updated': RecordingEvents['recording-analysis-updated'];
-  'recording.analysis.completed': RecordingEvents['recording-analysis-completed'];
-  'recording.analysis.failed': RecordingEvents['recording-analysis-failed'];
-  'recording.transcript.entry': RecordingEvents['recording-transcript-entry'];
+  'recording.started': RecordingEvents['recording.started'];
+  'recording.stopped': RecordingEvents['recording.stopped'];
+  'recording.unrecoverable': RecordingEvents['recording.unrecoverable'];
+  'recording.analysis.updated': RecordingEvents['recording.analysis.updated'];
+  'recording.analysis.completed': RecordingEvents['recording.analysis.completed'];
+  'recording.analysis.failed': RecordingEvents['recording.analysis.failed'];
+  'recording.transcript.entry': RecordingEvents['recording.transcript.entry'];
 
   // MCP
   'mcp.tools.list_changed': McpToolsChangedEvent;
@@ -292,15 +292,15 @@ export type InternalEventMap = {
   'mcp.auth.status_changed': McpAuthStatusChangedEvent;
 
   // Skills
-  'skill.created': SkillEvents['skill-created'];
-  'skill.updated': SkillEvents['skill-updated'];
-  'skill.deleted': SkillEvents['skill-deleted'];
+  'skill.created': SkillEvents['skill.created'];
+  'skill.updated': SkillEvents['skill.updated'];
+  'skill.deleted': SkillEvents['skill.deleted'];
 
   // Connectors
-  'connector.token.refreshed': ConnectorEvents['connector-token-refreshed'];
-  'connector.auth.failed': ConnectorEvents['connector-auth-failed'];
-  'connector.authorized': ConnectorEvents['connector-authorized'];
-  'connector.removed': ConnectorEvents['connector-removed'];
+  'connector.token.refreshed': ConnectorEvents['connector.token.refreshed'];
+  'connector.auth.failed': ConnectorEvents['connector.auth.failed'];
+  'connector.authorized': ConnectorEvents['connector.authorized'];
+  'connector.removed': ConnectorEvents['connector.removed'];
 
   // Settings
   'settings.changed': SettingsChangedEvent;

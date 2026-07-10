@@ -63,7 +63,7 @@ function getSessionIdFromPayload(eventName: SseEventName, payload: unknown): str
   }
 
   if (
-    eventName === 'question-asked' &&
+    eventName === 'question.asked' &&
     'question' in payload &&
     payload.question &&
     typeof payload.question === 'object' &&
@@ -74,7 +74,7 @@ function getSessionIdFromPayload(eventName: SseEventName, payload: unknown): str
   }
 
   if (
-    eventName === 'permission-response-requested' &&
+    eventName === 'permission.requested' &&
     'permissionResponse' in payload &&
     payload.permissionResponse &&
     typeof payload.permissionResponse === 'object' &&
