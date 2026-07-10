@@ -1,11 +1,11 @@
 import { generateText, Output } from 'ai';
 import { eq } from 'drizzle-orm';
-import { randomUUID } from 'node:crypto';
 
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { sessions } from '@/db/schema/sessions.js';
+import type { MemoryExtractionLlmUsageMetadata } from '@/db/schema/usage.js';
 import * as Log from '@/lib/log.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
@@ -61,16 +61,14 @@ function recordWrite(sessionId: string, count: number): void {
 }
 
 function recordUsageFireAndForget(params: {
-  runId: string;
   providerId: string;
   modelId: string;
   usage: NonNullable<Awaited<ReturnType<typeof generateText>>['usage']>;
-  metadata: Record<string, unknown>;
+  metadata: MemoryExtractionLlmUsageMetadata;
   startedAt: number;
   endedAt: number;
 }): void {
   recordLlmUsage({
-    runId: params.runId,
     source: MEMORY_SOURCE,
     status: 'succeeded',
     providerId: params.providerId,
@@ -153,7 +151,6 @@ export async function processMemories(input: {
     }
 
     const model = createProvider(resolved.credentials)(resolved.modelId);
-    const runId = randomUUID();
 
     const extractionPrompt = buildExtractionPrompt(input.userMessage, input.assistantMessage);
     const extractionStart = Date.now();
@@ -166,11 +163,10 @@ export async function processMemories(input: {
 
     if (extractionResult.usage) {
       recordUsageFireAndForget({
-        runId,
         providerId: resolved.providerId,
         modelId: resolved.modelId,
         usage: extractionResult.usage,
-        metadata: { phase: 'extraction' },
+        metadata: { source: 'memory_extraction', phase: 'extraction' },
         startedAt: extractionStart,
         endedAt: extractionEnd,
       });
@@ -278,11 +274,10 @@ export async function processMemories(input: {
 
       if (dedupResult.usage) {
         recordUsageFireAndForget({
-          runId,
           providerId: resolved.providerId,
           modelId: resolved.modelId,
           usage: dedupResult.usage,
-          metadata: { phase: 'deduplication', factContent: fact.content },
+          metadata: { source: 'memory_extraction', phase: 'deduplication' },
           startedAt: dedupStart,
           endedAt: dedupEnd,
         });

@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, isNotNull, lt } from 'drizzle-orm';
+import { and, asc, eq, gte, isNotNull, lt, sql } from 'drizzle-orm';
 
 import {
   USAGE_SOURCES,
@@ -310,7 +310,6 @@ export async function getUsageDashboard(input: GetUsageDashboardInput): Promise<
   const eventConditions = [
     gte(llmUsageEvents.startedAt, window.from),
     lt(llmUsageEvents.startedAt, window.to),
-    eq(llmUsageEvents.isAttributable, true),
     eq(llmUsageEvents.status, 'succeeded'),
   ];
   if (input.providerId) {
@@ -332,7 +331,7 @@ export async function getUsageDashboard(input: GetUsageDashboardInput): Promise<
       sessionType: sessions.type,
     })
     .from(llmUsageEvents)
-    .leftJoin(sessions, eq(llmUsageEvents.sessionId, sessions.id))
+    .leftJoin(sessions, eq(sessions.id, sql`json_extract(${llmUsageEvents.metadata}, '$.sessionId')`))
     .where(and(...eventConditions));
 
   const usedProviderIds = new Set<string>();

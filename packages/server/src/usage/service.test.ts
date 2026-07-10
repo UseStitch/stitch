@@ -55,26 +55,20 @@ describe('usageServiceInternals.buildBucketRanges', () => {
 });
 
 async function insertEvent(opts: {
-  runId?: string;
   source: string;
   providerId: string;
   modelId: string;
   costUsd: number;
   startedAt: number;
   status?: string;
-  isAttributable?: boolean;
 }): Promise<void> {
   const db = getDb();
   await db
     .insert(llmUsageEvents)
     .values({
       id: randomUUID(),
-      runId: opts.runId ?? randomUUID(),
       source: opts.source,
       status: opts.status ?? 'succeeded',
-      isAttributable: opts.isAttributable ?? true,
-      sessionId: null,
-      messageId: null,
       providerId: opts.providerId,
       modelId: opts.modelId,
       inputTokens: 100,
@@ -161,27 +155,6 @@ describe('getUsageDashboard', () => {
       modelId: 'gpt-4',
       costUsd: 5.0,
       startedAt: now - 60_000, // outside range
-    });
-
-    const result = await getUsageDashboard({ from, to: now });
-
-    expect(result.error).toBeNull();
-    if (result.error) return;
-
-    expect(result.data.totals.costUsd).toBe(0);
-  });
-
-  test('excludes non-attributable events from totals', async () => {
-    const now = Date.now();
-    const from = now - 10_000;
-
-    await insertEvent({
-      source: 'chat',
-      providerId: 'openai',
-      modelId: 'gpt-4',
-      costUsd: 9.99,
-      startedAt: from + 1_000,
-      isAttributable: false,
     });
 
     const result = await getUsageDashboard({ from, to: now });

@@ -1,12 +1,13 @@
 import { and, eq, sql } from 'drizzle-orm';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
+import { createMessageId, createPartId } from '@stitch/shared/id';
 
 import { saveTitleMessage } from '@/chat/message-store.js';
 import { getDb } from '@/db/client.js';
 import { recordingAnalyses } from '@/db/schema/recordings.js';
 import { sessions } from '@/db/schema/sessions.js';
-import { createMessageId, createPartId } from '@stitch/shared/id';
+import type { TitleGenerationLlmUsageMetadata } from '@/db/schema/usage.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { generateTitleFromContent } from '@/title-generation/generator.js';
@@ -21,22 +22,16 @@ type TitleGenerationAdapterDeps = {
 };
 
 async function recordTitleUsage(input: {
-  runId: string;
   providerId: string;
   modelId: string;
   usage: LanguageModelUsage | null;
-  metadata: Record<string, unknown>;
-  sessionId?: Parameters<typeof recordLlmUsage>[0]['sessionId'];
-  messageId?: Parameters<typeof recordLlmUsage>[0]['messageId'];
+  metadata: TitleGenerationLlmUsageMetadata;
 }): Promise<{ costUsd: number }> {
   const now = Date.now();
 
   return recordLlmUsage({
-    runId: input.runId,
     source: 'title_generation',
     status: 'succeeded',
-    sessionId: input.sessionId,
-    messageId: input.messageId,
     providerId: input.providerId,
     modelId: input.modelId,
     usage: input.usage,
@@ -68,13 +63,10 @@ export function registerTitleGenerationAdapter(deps: TitleGenerationAdapterDeps 
       };
 
       const { costUsd } = await recordUsage({
-        runId: titleMessageId,
         providerId: generatedTitle.providerId,
         modelId: generatedTitle.modelId,
         usage: generatedTitle.usage,
-        sessionId: event.sessionId,
-        messageId: titleMessageId,
-        metadata: { phase: 'title-generation', target: 'chat' },
+        metadata: { source: 'title_generation', target: 'chat', sessionId: event.sessionId, messageId: titleMessageId },
       });
 
       await saveTitleMessage({
@@ -88,7 +80,10 @@ export function registerTitleGenerationAdapter(deps: TitleGenerationAdapterDeps 
         createdAt: now,
       });
 
-      await db.update(sessions).set({ title: generatedTitle.title, updatedAt: Date.now() }).where(eq(sessions.id, event.sessionId));
+      await db
+        .update(sessions)
+        .set({ title: generatedTitle.title, updatedAt: Date.now() })
+        .where(eq(sessions.id, event.sessionId));
 
       internalBus.emit('session.title.updated', { sessionId: event.sessionId, title: generatedTitle.title });
     } catch (error) {
@@ -102,15 +97,14 @@ export function registerTitleGenerationAdapter(deps: TitleGenerationAdapterDeps 
       if (!generatedTitle) return;
 
       const { costUsd } = await recordUsage({
-        runId: `${event.analysisId}:title`,
         providerId: generatedTitle.providerId,
         modelId: generatedTitle.modelId,
         usage: generatedTitle.usage,
         metadata: {
+          source: 'title_generation',
+          target: 'recording-analysis',
           recordingId: event.recordingId,
           analysisId: event.analysisId,
-          phase: 'title-generation',
-          target: 'recording-analysis',
         },
       });
 
@@ -132,7 +126,10 @@ export function registerTitleGenerationAdapter(deps: TitleGenerationAdapterDeps 
         title: generatedTitle.title,
       });
     } catch (error) {
-      log.error({ recordingId: event.recordingId, analysisId: event.analysisId, error }, 'recording title generation failed');
+      log.error(
+        { recordingId: event.recordingId, analysisId: event.analysisId, error },
+        'recording title generation failed',
+      );
     }
   });
 }

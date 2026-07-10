@@ -1,9 +1,8 @@
 import { randomUUID } from 'node:crypto';
 
-import type { PrefixedString } from '@stitch/shared/id';
-
 import { getDb } from '@/db/client.js';
 import { embeddingUsageEvents, llmUsageEvents } from '@/db/schema/usage.js';
+import type { LlmUsageMetadata } from '@/db/schema/usage.js';
 import * as Log from '@/lib/log.js';
 import { calculateEmbeddingCostUsd, calculateMessageCostUsd } from '@/usage/cost.js';
 import { normalizeUsage } from '@/utils/usage.js';
@@ -14,18 +13,12 @@ const log = Log.create({ service: 'usage-ledger' });
 type UsageEventStatus = 'succeeded' | 'failed' | 'aborted';
 
 async function recordUsageEvent(input: {
-  runId: string;
   source: string;
   status?: UsageEventStatus;
-  isAttributable?: boolean;
-  sessionId?: PrefixedString<'ses'> | null;
-  messageId?: PrefixedString<'msg'> | null;
-  stepIndex?: number;
-  attemptIndex?: number;
   providerId: string;
   modelId: string;
   usage?: LanguageModelUsage | null;
-  metadata?: Record<string, unknown>;
+  metadata?: LlmUsageMetadata;
   costUsd?: number;
   errorCode?: string | null;
   startedAt: number;
@@ -42,14 +35,8 @@ async function recordUsageEvent(input: {
     .insert(llmUsageEvents)
     .values({
       id: randomUUID(),
-      runId: input.runId,
       source: input.source,
       status: input.status ?? 'succeeded',
-      isAttributable: input.isAttributable ?? true,
-      sessionId: input.sessionId ?? null,
-      messageId: input.messageId ?? null,
-      stepIndex: input.stepIndex,
-      attemptIndex: input.attemptIndex,
       providerId: input.providerId,
       modelId: input.modelId,
       usage: input.usage ?? undefined,
@@ -69,19 +56,13 @@ async function recordUsageEvent(input: {
 }
 
 export async function recordLlmUsage(input: {
-  runId: string;
   source: string;
   providerId: string;
   modelId: string;
   usage?: LanguageModelUsage | null;
   status?: UsageEventStatus;
-  isAttributable?: boolean;
-  sessionId?: PrefixedString<'ses'> | null;
-  messageId?: PrefixedString<'msg'> | null;
-  stepIndex?: number;
-  attemptIndex?: number;
   errorCode?: string | null;
-  metadata?: Record<string, unknown>;
+  metadata?: LlmUsageMetadata;
   startedAt: number;
   endedAt?: number;
   durationMs?: number;
@@ -93,7 +74,7 @@ export async function recordLlmUsage(input: {
   try {
     await recordUsageEvent({ ...input, costUsd });
   } catch (error) {
-    log.warn({ error, source: input.source, runId: input.runId }, 'usage event write failed');
+    log.warn({ error, source: input.source }, 'usage event write failed');
   }
 
   return { costUsd };
