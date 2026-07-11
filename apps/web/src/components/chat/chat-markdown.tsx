@@ -34,6 +34,28 @@ interface ChatMarkdownProps {
   isStreaming?: boolean;
 }
 
+interface MarkdownNode {
+  type: string;
+  value?: string;
+  children?: MarkdownNode[];
+  data?: unknown;
+}
+
+interface MarkdownTextNode extends MarkdownNode {
+  type: 'text';
+  value: string;
+}
+
+interface SingleDollarLatexCommand {
+  math: string;
+  streamingText: string;
+}
+
+const SINGLE_DOLLAR_LATEX_COMMANDS: Record<string, SingleDollarLatexCommand> = {
+  rightarrow: { math: '\\rightarrow', streamingText: '\u2192' },
+};
+const LATEX_COMMAND_SPAN_REGEX = /\$\\{1,2}([a-zA-Z]+)\$/g;
+
 interface CodeBlockErrorBoundaryProps {
   fallback: React.ReactNode;
   children: React.ReactNode;
@@ -188,6 +210,89 @@ function extractCodeBlock(children: React.ReactNode): { className: string | unde
   return { className: onlyChild.props.className, code: nodeToPlainText(onlyChild.props.children) };
 }
 
+function createInlineMathNode(value: string): MarkdownNode {
+  return {
+    type: 'inlineMath',
+    value,
+    data: {
+      hName: 'code',
+      hProperties: { className: ['language-math', 'math-inline'] },
+      hChildren: [{ type: 'text', value }],
+    },
+  };
+}
+
+function splitLatexCommandSpans(
+  node: MarkdownTextNode,
+  createCommandNode: (command: SingleDollarLatexCommand) => MarkdownNode,
+): MarkdownNode[] {
+  const nodes: MarkdownNode[] = [];
+  let lastIndex = 0;
+
+  for (const match of node.value.matchAll(LATEX_COMMAND_SPAN_REGEX)) {
+    const index = match.index;
+    if (index === undefined) continue;
+
+    const command = SINGLE_DOLLAR_LATEX_COMMANDS[match[1] ?? ''];
+    if (!command) continue;
+
+    if (index > lastIndex) {
+      nodes.push({ type: 'text', value: node.value.slice(lastIndex, index) });
+    }
+
+    nodes.push(createCommandNode(command));
+    lastIndex = index + match[0].length;
+  }
+
+  if (nodes.length === 0) {
+    return [node];
+  }
+
+  if (lastIndex < node.value.length) {
+    nodes.push({ type: 'text', value: node.value.slice(lastIndex) });
+  }
+
+  return nodes;
+}
+
+function createSingleDollarLatexCommandTransformer(renderAsText: boolean) {
+  const createCommandNode = renderAsText
+    ? (command: SingleDollarLatexCommand): MarkdownNode => ({ type: 'text', value: command.streamingText })
+    : (command: SingleDollarLatexCommand): MarkdownNode => createInlineMathNode(command.math);
+
+  return function transform(tree: MarkdownNode) {
+    transformLatexCommandTextNodes(tree, createCommandNode);
+  };
+}
+
+function remarkSingleDollarLatexCommands() {
+  return createSingleDollarLatexCommandTransformer(false);
+}
+
+function remarkStreamingSingleDollarLatexCommands() {
+  return createSingleDollarLatexCommandTransformer(true);
+}
+
+function transformLatexCommandTextNodes(
+  node: MarkdownNode,
+  createCommandNode: (command: SingleDollarLatexCommand) => MarkdownNode,
+) {
+  if (!node.children) return;
+
+  const transformedChildren: MarkdownNode[] = [];
+  for (const child of node.children) {
+    if (child.type === 'text' && typeof child.value === 'string') {
+      transformedChildren.push(...splitLatexCommandSpans(child as MarkdownTextNode, createCommandNode));
+      continue;
+    }
+
+    transformLatexCommandTextNodes(child, createCommandNode);
+    transformedChildren.push(child);
+  }
+
+  node.children = transformedChildren;
+}
+
 function MarkdownAnchor({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -260,13 +365,13 @@ function ChatMarkdown({ text, className, isStreaming = false }: ChatMarkdownProp
 
   // During streaming: use remarkGfm only — skip remark-math + rehype-katex (heavy)
   const remarkPlugins = useMemo(() => {
-    if (isStreaming) return [remarkGfm];
+    if (isStreaming) return [remarkGfm, remarkStreamingSingleDollarLatexCommands];
 
     const remarkMathWithoutSingleDollar = [remarkMath, { singleDollarTextMath: false }] as [
       typeof remarkMath,
       { singleDollarTextMath: false },
     ];
-    return [remarkGfm, remarkMathWithoutSingleDollar];
+    return [remarkGfm, remarkSingleDollarLatexCommands, remarkMathWithoutSingleDollar];
   }, [isStreaming]);
   const rehypePlugins = useMemo(() => (isStreaming ? [] : [rehypeKatex]), [isStreaming]);
 
