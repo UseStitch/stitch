@@ -43,4 +43,11 @@ describe('ChatMarkdown', () => {
     expect(html).toContain('katex');
     expect(html).not.toContain('$\\rightarrow$');
   });
+
+  test('leaves unsupported single-dollar LaTeX command spans as text', () => {
+    const html = renderToStaticMarkup(<ChatMarkdown text={'Unsupported $\\notarealcommand$ stays literal.'} />);
+
+    expect(html).toContain('$\\notarealcommand$');
+    expect(html).not.toContain('katex');
+  });
 });

@@ -46,14 +46,15 @@ interface MarkdownTextNode extends MarkdownNode {
   value: string;
 }
 
-interface MarkdownInlineMathNode extends MarkdownNode {
-  type: 'inlineMath';
-  value: string;
-  data: { hName: 'code'; hProperties: { className: string[] }; hChildren: [{ type: 'text'; value: string }] };
+interface SingleDollarLatexCommand {
+  math: string;
+  streamingText: string;
 }
 
-const LATEX_COMMAND_SPAN_REGEX = /\$\\{1,2}[a-zA-Z]+(?:\s*[-+*/=<>()[\]{}.,:;|\\\w]+)*\$/g;
-const STREAMING_LATEX_COMMAND_TEXT: Record<string, string> = { '\\rightarrow': '\u2192' };
+const SINGLE_DOLLAR_LATEX_COMMANDS: Record<string, SingleDollarLatexCommand> = {
+  rightarrow: { math: '\\rightarrow', streamingText: '\u2192' },
+};
+const LATEX_COMMAND_SPAN_REGEX = /\$\\{1,2}([a-zA-Z]+)\$/g;
 
 interface CodeBlockErrorBoundaryProps {
   fallback: React.ReactNode;
@@ -209,7 +210,22 @@ function extractCodeBlock(children: React.ReactNode): { className: string | unde
   return { className: onlyChild.props.className, code: nodeToPlainText(onlyChild.props.children) };
 }
 
-function splitLatexCommandSpans(node: MarkdownTextNode, renderAsText: boolean): MarkdownNode[] {
+function createInlineMathNode(value: string): MarkdownNode {
+  return {
+    type: 'inlineMath',
+    value,
+    data: {
+      hName: 'code',
+      hProperties: { className: ['language-math', 'math-inline'] },
+      hChildren: [{ type: 'text', value }],
+    },
+  };
+}
+
+function splitLatexCommandSpans(
+  node: MarkdownTextNode,
+  createCommandNode: (command: SingleDollarLatexCommand) => MarkdownNode,
+): MarkdownNode[] {
   const nodes: MarkdownNode[] = [];
   let lastIndex = 0;
 
@@ -217,26 +233,14 @@ function splitLatexCommandSpans(node: MarkdownTextNode, renderAsText: boolean): 
     const index = match.index;
     if (index === undefined) continue;
 
+    const command = SINGLE_DOLLAR_LATEX_COMMANDS[match[1] ?? ''];
+    if (!command) continue;
+
     if (index > lastIndex) {
       nodes.push({ type: 'text', value: node.value.slice(lastIndex, index) });
     }
 
-    const value = match[0].slice(1, -1).replace(/^\\\\/, '\\');
-    if (renderAsText) {
-      nodes.push({ type: 'text', value: STREAMING_LATEX_COMMAND_TEXT[value] ?? match[0] });
-      lastIndex = index + match[0].length;
-      continue;
-    }
-
-    nodes.push({
-      type: 'inlineMath',
-      value,
-      data: {
-        hName: 'code',
-        hProperties: { className: ['language-math', 'math-inline'] },
-        hChildren: [{ type: 'text', value }],
-      },
-    } satisfies MarkdownInlineMathNode);
+    nodes.push(createCommandNode(command));
     lastIndex = index + match[0].length;
   }
 
@@ -251,29 +255,38 @@ function splitLatexCommandSpans(node: MarkdownTextNode, renderAsText: boolean): 
   return nodes;
 }
 
+function createSingleDollarLatexCommandTransformer(renderAsText: boolean) {
+  const createCommandNode = renderAsText
+    ? (command: SingleDollarLatexCommand): MarkdownNode => ({ type: 'text', value: command.streamingText })
+    : (command: SingleDollarLatexCommand): MarkdownNode => createInlineMathNode(command.math);
+
+  return function transform(tree: MarkdownNode) {
+    transformLatexCommandTextNodes(tree, createCommandNode);
+  };
+}
+
 function remarkSingleDollarLatexCommands() {
-  return function transform(tree: MarkdownNode) {
-    transformLatexCommandTextNodes(tree, false);
-  };
+  return createSingleDollarLatexCommandTransformer(false);
 }
 
-function remarkStreamingLatexCommandText() {
-  return function transform(tree: MarkdownNode) {
-    transformLatexCommandTextNodes(tree, true);
-  };
+function remarkStreamingSingleDollarLatexCommands() {
+  return createSingleDollarLatexCommandTransformer(true);
 }
 
-function transformLatexCommandTextNodes(node: MarkdownNode, renderAsText: boolean) {
+function transformLatexCommandTextNodes(
+  node: MarkdownNode,
+  createCommandNode: (command: SingleDollarLatexCommand) => MarkdownNode,
+) {
   if (!node.children) return;
 
   const transformedChildren: MarkdownNode[] = [];
   for (const child of node.children) {
     if (child.type === 'text' && typeof child.value === 'string') {
-      transformedChildren.push(...splitLatexCommandSpans(child as MarkdownTextNode, renderAsText));
+      transformedChildren.push(...splitLatexCommandSpans(child as MarkdownTextNode, createCommandNode));
       continue;
     }
 
-    transformLatexCommandTextNodes(child, renderAsText);
+    transformLatexCommandTextNodes(child, createCommandNode);
     transformedChildren.push(child);
   }
 
@@ -352,7 +365,7 @@ function ChatMarkdown({ text, className, isStreaming = false }: ChatMarkdownProp
 
   // During streaming: use remarkGfm only — skip remark-math + rehype-katex (heavy)
   const remarkPlugins = useMemo(() => {
-    if (isStreaming) return [remarkGfm, remarkStreamingLatexCommandText];
+    if (isStreaming) return [remarkGfm, remarkStreamingSingleDollarLatexCommands];
 
     const remarkMathWithoutSingleDollar = [remarkMath, { singleDollarTextMath: false }] as [
       typeof remarkMath,
