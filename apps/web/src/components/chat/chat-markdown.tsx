@@ -34,6 +34,27 @@ interface ChatMarkdownProps {
   isStreaming?: boolean;
 }
 
+interface MarkdownNode {
+  type: string;
+  value?: string;
+  children?: MarkdownNode[];
+  data?: unknown;
+}
+
+interface MarkdownTextNode extends MarkdownNode {
+  type: 'text';
+  value: string;
+}
+
+interface MarkdownInlineMathNode extends MarkdownNode {
+  type: 'inlineMath';
+  value: string;
+  data: { hName: 'code'; hProperties: { className: string[] }; hChildren: [{ type: 'text'; value: string }] };
+}
+
+const LATEX_COMMAND_SPAN_REGEX = /\$\\{1,2}[a-zA-Z]+(?:\s*[-+*/=<>()[\]{}.,:;|\\\w]+)*\$/g;
+const STREAMING_LATEX_COMMAND_TEXT: Record<string, string> = { '\\rightarrow': '\u2192' };
+
 interface CodeBlockErrorBoundaryProps {
   fallback: React.ReactNode;
   children: React.ReactNode;
@@ -188,6 +209,77 @@ function extractCodeBlock(children: React.ReactNode): { className: string | unde
   return { className: onlyChild.props.className, code: nodeToPlainText(onlyChild.props.children) };
 }
 
+function splitLatexCommandSpans(node: MarkdownTextNode, renderAsText: boolean): MarkdownNode[] {
+  const nodes: MarkdownNode[] = [];
+  let lastIndex = 0;
+
+  for (const match of node.value.matchAll(LATEX_COMMAND_SPAN_REGEX)) {
+    const index = match.index;
+    if (index === undefined) continue;
+
+    if (index > lastIndex) {
+      nodes.push({ type: 'text', value: node.value.slice(lastIndex, index) });
+    }
+
+    const value = match[0].slice(1, -1).replace(/^\\\\/, '\\');
+    if (renderAsText) {
+      nodes.push({ type: 'text', value: STREAMING_LATEX_COMMAND_TEXT[value] ?? match[0] });
+      lastIndex = index + match[0].length;
+      continue;
+    }
+
+    nodes.push({
+      type: 'inlineMath',
+      value,
+      data: {
+        hName: 'code',
+        hProperties: { className: ['language-math', 'math-inline'] },
+        hChildren: [{ type: 'text', value }],
+      },
+    } satisfies MarkdownInlineMathNode);
+    lastIndex = index + match[0].length;
+  }
+
+  if (nodes.length === 0) {
+    return [node];
+  }
+
+  if (lastIndex < node.value.length) {
+    nodes.push({ type: 'text', value: node.value.slice(lastIndex) });
+  }
+
+  return nodes;
+}
+
+function remarkSingleDollarLatexCommands() {
+  return function transform(tree: MarkdownNode) {
+    transformLatexCommandTextNodes(tree, false);
+  };
+}
+
+function remarkStreamingLatexCommandText() {
+  return function transform(tree: MarkdownNode) {
+    transformLatexCommandTextNodes(tree, true);
+  };
+}
+
+function transformLatexCommandTextNodes(node: MarkdownNode, renderAsText: boolean) {
+  if (!node.children) return;
+
+  const transformedChildren: MarkdownNode[] = [];
+  for (const child of node.children) {
+    if (child.type === 'text' && typeof child.value === 'string') {
+      transformedChildren.push(...splitLatexCommandSpans(child as MarkdownTextNode, renderAsText));
+      continue;
+    }
+
+    transformLatexCommandTextNodes(child, renderAsText);
+    transformedChildren.push(child);
+  }
+
+  node.children = transformedChildren;
+}
+
 function MarkdownAnchor({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -260,13 +352,13 @@ function ChatMarkdown({ text, className, isStreaming = false }: ChatMarkdownProp
 
   // During streaming: use remarkGfm only — skip remark-math + rehype-katex (heavy)
   const remarkPlugins = useMemo(() => {
-    if (isStreaming) return [remarkGfm];
+    if (isStreaming) return [remarkGfm, remarkStreamingLatexCommandText];
 
     const remarkMathWithoutSingleDollar = [remarkMath, { singleDollarTextMath: false }] as [
       typeof remarkMath,
       { singleDollarTextMath: false },
     ];
-    return [remarkGfm, remarkMathWithoutSingleDollar];
+    return [remarkGfm, remarkSingleDollarLatexCommands, remarkMathWithoutSingleDollar];
   }, [isStreaming]);
   const rehypePlugins = useMemo(() => (isStreaming ? [] : [rehypeKatex]), [isStreaming]);
 
