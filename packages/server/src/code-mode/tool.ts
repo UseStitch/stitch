@@ -5,6 +5,7 @@ import { createProcessSandbox } from '@stitch/sandbox';
 import type { IsolateDriver, IsolateOptions } from '@stitch/sandbox';
 
 import { toolsToBindings, toolsToTypeInfo } from '@/code-mode/bindings/tool-binding.js';
+import { SandboxExecPathMissingError } from '@/code-mode/errors.js';
 import { applyToolFilter } from '@/code-mode/filter.js';
 import type { CodeModeToolFilter } from '@/code-mode/filter.js';
 import { stripTypeScript } from '@/code-mode/strip-typescript.js';
@@ -20,10 +21,7 @@ function getDefaultDriver(): IsolateDriver {
   if (!sandboxExecPath) {
     return {
       async createContext() {
-        throw new Error(
-          'SANDBOX_EXEC_PATH environment variable is required. ' +
-            'Set it to the path of the compiled sandbox process binary.',
-        );
+        throw new SandboxExecPathMissingError();
       },
     };
   }

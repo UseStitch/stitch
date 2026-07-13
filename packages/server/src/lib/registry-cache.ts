@@ -3,6 +3,15 @@ import path from 'node:path';
 
 import * as Log from '@/lib/log.js';
 
+class RegistryCacheHttpError extends Error {
+  readonly statusCode: number;
+  constructor(statusCode: number) {
+    super(`HTTP ${statusCode}`);
+    this.name = 'RegistryCacheHttpError';
+    this.statusCode = statusCode;
+  }
+}
+
 const log = Log.create({ service: 'registry-cache' });
 const DEFAULT_TIMEOUT_MS = 10_000;
 const DEFAULT_VERSION = '0.0.0';
@@ -86,7 +95,7 @@ export function createRegistryCache<T>(options: RegistryCacheOptions<T>) {
       headers: resolvedUserAgent ? { 'User-Agent': resolvedUserAgent } : undefined,
       signal: AbortSignal.timeout(timeoutMs),
     });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) throw new RegistryCacheHttpError(response.status);
     return parse(await response.json());
   }
 

@@ -15,6 +15,7 @@ import { isAppEnabled } from '@/apps/service.js';
 import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
 import { refreshAccessToken, requiresOAuthReauth } from '@/connectors/auth/oauth2.js';
 import { withRefreshLock } from '@/connectors/auth/refresh-lock.js';
+import { GoogleAccountNoAccessTokenError, GoogleAccountNotAuthorizedError } from '@/connectors/errors.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema/connectors.js';
@@ -118,7 +119,7 @@ async function getGoogleAccessToken(connectorInstanceId: string, forceRefresh: b
     .from(connectorInstances)
     .where(eq(connectorInstances.id, connectorInstanceId as ConnectorInstanceId));
 
-  if (!latest) throw new Error('Google account is not authorized.');
+  if (!latest) throw new GoogleAccountNotAuthorizedError('google', connectorInstanceId);
 
   const shouldRefresh =
     Boolean(latest.refreshToken) &&
@@ -179,6 +180,6 @@ async function getGoogleAccessToken(connectorInstanceId: string, forceRefresh: b
     }
   }
 
-  if (!latest.accessToken) throw new Error('Google account has no usable access token. Re-authorize this account.');
+  if (!latest.accessToken) throw new GoogleAccountNoAccessTokenError('google', connectorInstanceId);
   return latest.accessToken;
 }

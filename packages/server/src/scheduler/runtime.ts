@@ -11,6 +11,7 @@ import { runMemoryMaintenance } from '@/memory/maintenance.js';
 import * as EmbeddingRegistry from '@/models/embedding/registry.js';
 import * as ModelsDev from '@/models/llm/registry.js';
 import * as SttRegistry from '@/models/stt/registry.js';
+import { SchedulerNotStartedError } from '@/scheduler/errors.js';
 import { createSchedulerStore } from '@/scheduler/store.js';
 import * as ToolTruncation from '@/tools/runtime/truncation.js';
 
@@ -122,7 +123,7 @@ export async function stopScheduler(): Promise<void> {
 
 export async function registerSchedulerJob(input: RegisteredJob): Promise<void> {
   if (!scheduler) {
-    throw new Error('Scheduler is not started');
+    throw new SchedulerNotStartedError();
   }
 
   await scheduler.registerJob(input);

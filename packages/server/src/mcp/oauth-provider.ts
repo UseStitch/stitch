@@ -7,6 +7,7 @@ import { getDb } from '@/db/client.js';
 import { mcpOAuthSessions, mcpServers } from '@/db/schema/mcp.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
+import { McpOAuthMissingVerifierError } from '@/mcp/errors.js';
 import { getMcpOAuthRedirectUri } from '@/mcp/oauth-callback.js';
 import type { OAuthClientProvider, OAuthDiscoveryState } from '@modelcontextprotocol/sdk/client/auth.js';
 import type {
@@ -120,7 +121,7 @@ export class McpOAuthProvider implements OAuthClientProvider {
   async codeVerifier(): Promise<string> {
     const session = await this.getSession();
     if (!session?.codeVerifier) {
-      throw new Error('No PKCE code verifier saved for MCP OAuth session');
+      throw new McpOAuthMissingVerifierError();
     }
     return session.codeVerifier;
   }

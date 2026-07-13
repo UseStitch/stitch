@@ -5,6 +5,7 @@ import { createScheduledJobId, createScheduledJobRunId } from '@stitch/shared/id
 
 import { getDb } from '@/db/client.js';
 import { scheduledJobs, scheduledJobRuns } from '@/db/schema/scheduler.js';
+import { SchedulerJobUpsertError } from '@/scheduler/errors.js';
 
 type ScheduledJobRunId = (typeof scheduledJobRuns.$inferSelect)['id'];
 
@@ -37,7 +38,7 @@ export function createSchedulerStore(): SchedulerStore {
             .returning()
             .get();
 
-          if (!updated) throw new Error(`failed to update scheduled job ${input.key}`);
+          if (!updated) throw new SchedulerJobUpsertError(input.key);
           return updated;
         });
       }
@@ -62,7 +63,7 @@ export function createSchedulerStore(): SchedulerStore {
         .returning()
         .get();
 
-      if (!inserted) throw new Error(`failed to insert scheduled job ${input.key}`);
+      if (!inserted) throw new SchedulerJobUpsertError(input.key);
       return inserted;
     },
 

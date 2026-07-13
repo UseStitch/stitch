@@ -20,6 +20,7 @@ import type { ServiceResult } from '@/lib/service-result.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveModel } from '@/llm/resolve-model.js';
 import type { LlmProviderCredentials } from '@/provider/config/schema.js';
+import { RecordingAnalysisEmptyResponseError } from '@/recordings/errors.js';
 import { readRecordingAnalysis, readRecordingTranscript, writeRecordingAnalysis } from '@/recordings/file-store.js';
 import { getMeetingNoteTemplate } from '@/recordings/meeting-note-templates.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
@@ -326,7 +327,7 @@ async function runRecordingAnalysis(
 
     const summary = analysisResult.text.trim();
     if (!summary) {
-      throw new Error('Analysis did not return markdown notes');
+      throw new RecordingAnalysisEmptyResponseError();
     }
 
     const analysisUsage = analysisResult.usage ?? ZERO_USAGE;

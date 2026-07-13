@@ -1,5 +1,7 @@
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
 import type { ScrollDirection } from '@/lib/browser/types.js';
+import { ToolError } from '@/tools/errors.js';
+import { BrowserInvalidOpError, BrowserMissingFieldError } from '@/tools/toolsets/browser/errors.js';
 import {
   formatDropdownOptionsSummary,
   formatExtractContent,
@@ -12,7 +14,7 @@ import { serializeBrowserSnapshot } from '@/tools/toolsets/browser/snapshot-seri
 
 function getRequiredOp(action: BatchAction): string {
   if (!action.op) {
-    throw new Error(`Missing required field: op for tool ${action.tool}`);
+    throw new BrowserMissingFieldError(action.tool, 'op');
   }
   return action.op;
 }
@@ -64,11 +66,11 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
     const op = getRequiredOp(input);
     switch (op) {
       case 'navigate': {
-        if (!input.url) throw new Error('Missing required field: url');
+        if (!input.url) throw new BrowserMissingFieldError('navigate', 'url');
         return { output: await browser.navigate(input.url, signal, input.timeoutMs) };
       }
       case 'search': {
-        if (!input.query) throw new Error('Missing required field: query');
+        if (!input.query) throw new BrowserMissingFieldError('navigate', 'query');
         return { output: await browser.search(input.query, input.engine ?? 'google', signal, input.timeoutMs) };
       }
       case 'go_back': {
@@ -86,7 +88,7 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
         return { output: formatTabsOutput(tabs) };
       }
       case 'tab_focus': {
-        if (!input.tabId) throw new Error('Missing required field: tabId');
+        if (!input.tabId) throw new BrowserMissingFieldError('navigate', 'tabId');
         await browser.focusTab(input.tabId, { signal, timeoutMs: input.timeoutMs });
         return { output: `Focused tab: ${input.tabId}` };
       }
@@ -95,7 +97,7 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
         return { output: `Closed tab: ${input.tabId ?? 'active'}` };
       }
       default:
-        throw new Error(`Invalid op for navigate tool: ${op}`);
+        throw new BrowserInvalidOpError('navigate', op);
     }
   }
 
@@ -103,7 +105,7 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
     const op = getRequiredOp(input);
     switch (op) {
       case 'click': {
-        if (!input.ref) throw new Error('Missing required field: ref');
+        if (!input.ref) throw new BrowserMissingFieldError('interact', 'ref');
         return {
           output: await browser.click(input.ref, {
             doubleClick: input.doubleClick,
@@ -115,8 +117,8 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
         };
       }
       case 'type': {
-        if (!input.ref) throw new Error('Missing required field: ref');
-        if (!input.text) throw new Error('Missing required field: text');
+        if (!input.ref) throw new BrowserMissingFieldError('interact', 'ref');
+        if (!input.text) throw new BrowserMissingFieldError('interact', 'text');
         return {
           output: await browser.type(input.ref, input.text, {
             slowly: input.slowly,
@@ -127,49 +129,49 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
         };
       }
       case 'press': {
-        if (!input.key) throw new Error('Missing required field: key');
+        if (!input.key) throw new BrowserMissingFieldError('interact', 'key');
         return { output: await browser.press(input.key, signal, input.timeoutMs) };
       }
       case 'hover': {
-        if (!input.ref) throw new Error('Missing required field: ref');
+        if (!input.ref) throw new BrowserMissingFieldError('interact', 'ref');
         return { output: await browser.hover(input.ref, signal) };
       }
       case 'select': {
-        if (!input.ref) throw new Error('Missing required field: ref');
-        if (!input.values) throw new Error('Missing required field: values');
+        if (!input.ref) throw new BrowserMissingFieldError('interact', 'ref');
+        if (!input.values) throw new BrowserMissingFieldError('interact', 'values');
         return { output: await browser.select(input.ref, input.values, signal) };
       }
       case 'get_dropdown_options': {
-        if (!input.ref) throw new Error('Missing required field: ref');
+        if (!input.ref) throw new BrowserMissingFieldError('interact', 'ref');
         const result = await browser.getDropdownOptions(input.ref, signal);
         return { output: formatDropdownOptionsSummary(input.ref, result), options: result.options };
       }
       case 'select_dropdown': {
-        if (!input.ref) throw new Error('Missing required field: ref');
-        if (!input.text) throw new Error('Missing required field: text');
+        if (!input.ref) throw new BrowserMissingFieldError('interact', 'ref');
+        if (!input.text) throw new BrowserMissingFieldError('interact', 'text');
         return { output: await browser.selectDropdown(input.ref, input.text, signal, input.timeoutMs) };
       }
       case 'scroll': {
-        if (!input.direction) throw new Error('Missing required field: direction');
+        if (!input.direction) throw new BrowserMissingFieldError('interact', 'direction');
         return { output: await browser.scroll(input.ref, input.direction as ScrollDirection, signal) };
       }
       case 'evaluate': {
-        if (!input.fn) throw new Error('Missing required field: fn');
+        if (!input.fn) throw new BrowserMissingFieldError('interact', 'fn');
         const result = await browser.evaluate(input.fn, signal);
         return { output: typeof result === 'string' ? result : JSON.stringify(result, null, 2) };
       }
       default:
-        throw new Error(`Invalid op for interact tool: ${op}`);
+        throw new BrowserInvalidOpError('interact', op);
     }
   }
 
   if (input.tool === 'wait') {
     const mode = input.mode ?? input.op ?? 'time';
     if (mode === 'time') {
-      if (input.timeMs === undefined) throw new Error('Missing required field: timeMs');
+      if (input.timeMs === undefined) throw new BrowserMissingFieldError('wait', 'timeMs');
       return { output: await browser.wait(input.timeMs, undefined, signal) };
     }
-    if (!input.selector) throw new Error('Missing required field: selector');
+    if (!input.selector) throw new BrowserMissingFieldError('wait', 'selector');
     return { output: await browser.wait(input.timeoutMs, input.selector, signal) };
   }
 
@@ -199,10 +201,10 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
       return { output: `Dialog/popup state: ${status} (${state.type})${message}${url}${disposition}${defaultPrompt}` };
     }
     if (op === 'handle') {
-      if (!input.dialogAction) throw new Error('Missing required field: dialogAction');
+      if (!input.dialogAction) throw new BrowserMissingFieldError('dialog', 'dialogAction');
       return { output: await browser.handleDialog(input.dialogAction, input.promptText, signal) };
     }
-    throw new Error(`Invalid op for dialog tool: ${op}`);
+    throw new BrowserInvalidOpError('dialog', op);
   }
 
   if (input.tool === 'content') {
@@ -220,7 +222,7 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
         return { output: `${formatExtractContent(input.query, content)}${selectorNote}` };
       }
       case 'search_page': {
-        if (!input.pattern) throw new Error('Missing required field: pattern');
+        if (!input.pattern) throw new BrowserMissingFieldError('content', 'pattern');
         const result = await browser.searchPage(
           {
             pattern: input.pattern,
@@ -235,7 +237,7 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
         return { output: formatSearchPageSummary(input.pattern, result) };
       }
       case 'find_elements': {
-        if (!input.selector) throw new Error('Missing required field: selector');
+        if (!input.selector) throw new BrowserMissingFieldError('content', 'selector');
         const result = await browser.findElements(
           {
             selector: input.selector,
@@ -248,9 +250,9 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
         return { output: formatFindElementsSummary(input.selector, result) };
       }
       default:
-        throw new Error(`Invalid op for content tool: ${op}`);
+        throw new BrowserInvalidOpError('content', op);
     }
   }
 
-  throw new Error('Unsupported batch tool.');
+  throw new ToolError('Unsupported batch tool.');
 }

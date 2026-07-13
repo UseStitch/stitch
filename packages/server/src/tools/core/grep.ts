@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import { z } from 'zod';
 
 import * as Glob from '@/lib/glob.js';
+import { ToolPathValidationError, ToolValidationError } from '@/tools/errors.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import { isTextFileBuffer, truncateLine, validateAbsoluteDirectoryPath } from '@/tools/runtime/shared.js';
 
@@ -39,14 +40,14 @@ export async function grepContent(input: z.infer<typeof grepInputSchema>): Promi
   const searchPath = validateAbsoluteDirectoryPath(parsed.path);
   const stats = await fs.stat(searchPath);
   if (!stats.isDirectory()) {
-    throw new Error('path must point to a directory');
+    throw new ToolPathValidationError(parsed.path, 'path must point to a directory');
   }
 
   let regex: RegExp;
   try {
     regex = new RegExp(parsed.pattern);
   } catch {
-    throw new Error('Invalid regex pattern');
+    throw new ToolValidationError('Invalid regex pattern', 'grep', 'pattern');
   }
 
   const candidateFiles = await Glob.scan(parsed.include ?? '**/*', { cwd: searchPath, absolute: true, dot: true });

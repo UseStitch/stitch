@@ -3,6 +3,7 @@ import { isToolDataResult, isToolErrorResult } from '@stitch/shared/tools/types'
 import * as Log from '@/lib/log.js';
 import { PermissionRejectedError, StreamProtocolViolationError } from '@/llm/stream/errors.js';
 import { getPermissionDecision, requestPermissionResponse } from '@/permission/service.js';
+import { ToolError } from '@/tools/errors.js';
 import type { ToolExecutionInput, ToolMiddleware } from '@/tools/runtime/runtime.js';
 import { truncateOutput } from '@/tools/runtime/truncation.js';
 
@@ -40,7 +41,7 @@ export function resultNormalizationMiddleware(): ToolMiddleware {
     const result = await next(input);
 
     if (isToolErrorResult(result)) {
-      throw new Error(result.error);
+      throw new ToolError(result.error);
     }
 
     if (isToolDataResult(result)) {

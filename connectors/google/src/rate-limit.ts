@@ -1,3 +1,4 @@
+import { RateLimitExceedsCapacityError, RateLimitQueueTimeoutError } from './errors.js';
 import { sleep } from './utils.js';
 
 type RateLimitBucket = { capacity: number; windowMs: number };
@@ -204,9 +205,7 @@ class SlidingWindowLimiter {
 
   async acquire(weight: number, options: AcquireOptions): Promise<number> {
     if (weight > this.capacity) {
-      throw new Error(
-        `Requested quota cost (${weight}) exceeds limiter capacity (${this.capacity}) for ${this.windowMs}ms window`,
-      );
+      throw new RateLimitExceedsCapacityError(weight, this.capacity, this.windowMs);
     }
 
     const run = this.pending.then(async () => this.acquireInternal(weight, options));
@@ -258,7 +257,7 @@ class SlidingWindowLimiter {
 
       const waitForMs = Math.max(1, oldest.timestamp + this.windowMs - now);
       if (waitedMs + waitForMs > options.maxWaitMs) {
-        throw new Error(`Rate limiter queue wait exceeded ${options.maxWaitMs}ms`);
+        throw new RateLimitQueueTimeoutError(options.maxWaitMs);
       }
 
       await sleep(waitForMs, options.signal);

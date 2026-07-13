@@ -1,6 +1,15 @@
 import os from 'node:os';
 import path from 'node:path';
 
+class UnsafeFilenameError extends Error {
+  readonly filename: string;
+  constructor(filename: string) {
+    super(`Unsafe filename: ${JSON.stringify(filename)}`);
+    this.name = 'UnsafeFilenameError';
+    this.filename = filename;
+  }
+}
+
 const homedir = os.homedir();
 const tmpdir = os.tmpdir();
 
@@ -58,7 +67,7 @@ function isSafeFilename(filename: string): boolean {
 
 function assertSafeFilename(filename: string): void {
   if (!isSafeFilename(filename)) {
-    throw new Error(`Unsafe filename: ${JSON.stringify(filename)}`);
+    throw new UnsafeFilenameError(filename);
   }
 }
 

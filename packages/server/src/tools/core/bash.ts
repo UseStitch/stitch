@@ -6,6 +6,7 @@ import { z } from 'zod';
 import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
 
 import { resolvePreferredShell } from '@/lib/shell.js';
+import { ToolValidationError } from '@/tools/errors.js';
 import { deriveCommandFamilies, getCommandFamilySuggestion } from '@/tools/runtime/bash-families.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import { validateExistingDirectoryPath } from '@/tools/runtime/shared.js';
@@ -33,7 +34,7 @@ const bashInputSchema = z.object({
 function normalizeTimeout(timeout: number | undefined): number {
   if (timeout === undefined) return DEFAULT_TIMEOUT_MS;
   if (!Number.isFinite(timeout) || timeout < 1) {
-    throw new Error('timeout must be a positive number');
+    throw new ToolValidationError('timeout must be a positive number', 'bash', 'timeout');
   }
   return Math.min(Math.trunc(timeout), MAX_TIMEOUT_MS);
 }

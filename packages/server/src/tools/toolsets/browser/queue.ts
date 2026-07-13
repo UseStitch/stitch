@@ -1,4 +1,5 @@
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
+import { ToolError } from '@/tools/errors.js';
 
 let queueTail: Promise<void> = Promise.resolve();
 
@@ -35,7 +36,7 @@ export async function runBrowserTool<TInput>(
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') throw error;
       const message = error instanceof Error ? error.message : String(error);
-      throw new Error(message);
+      throw new ToolError(message);
     }
   });
 }

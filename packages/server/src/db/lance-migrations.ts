@@ -1,3 +1,12 @@
+import {
+  LanceMigrationChainBrokenError,
+  LanceMigrationChecksumMismatchError,
+  LanceMigrationDuplicateIdError,
+  LanceMigrationDuplicateVersionError,
+  LanceMigrationGapError,
+  LanceMigrationRootError,
+  LanceMigrationUnknownVersionError,
+} from '@/db/errors.js';
 import { MIGRATIONS } from '@/db/lance-migrations/manifest.js';
 import type { LanceMigrationDefinition } from '@/db/lance-migrations/types.js';
 import { lanceMigrations } from '@/db/schema/lance-migrations.js';
@@ -17,25 +26,23 @@ function ensureMigrationsAreValid(migrations: LanceMigrationDefinition[]): void 
 
   for (const migration of migrations) {
     if (versions.has(migration.version)) {
-      throw new Error(`Duplicate Lance migration version: ${migration.version}`);
+      throw new LanceMigrationDuplicateVersionError(migration.version);
     }
 
     if (ids.has(migration.id)) {
-      throw new Error(`Duplicate Lance migration id: ${migration.id}`);
+      throw new LanceMigrationDuplicateIdError(migration.id);
     }
 
     if (previous) {
       if (migration.version !== previous.version + 1) {
-        throw new Error(`Lance migration version gap detected between v${previous.version} and v${migration.version}`);
+        throw new LanceMigrationGapError(previous.version, migration.version);
       }
 
       if (migration.prevId !== previous.id) {
-        throw new Error(
-          `Lance migration chain broken at v${migration.version}: expected prevId ${previous.id}, found ${migration.prevId}`,
-        );
+        throw new LanceMigrationChainBrokenError(migration.version, previous.id, migration.prevId);
       }
     } else if (migration.prevId !== null) {
-      throw new Error(`First Lance migration must have prevId=null (v${migration.version})`);
+      throw new LanceMigrationRootError(migration.version);
     }
 
     versions.add(migration.version);
@@ -77,24 +84,26 @@ function assertChecksumMatches(
   if (!existing) return;
 
   if (existing.id && existing.id !== migration.id) {
-    throw new Error(
-      `Lance migration id mismatch for v${migration.version} (${migration.name}). ` +
-        `Expected ${migration.id}, found ${existing.id}.`,
-    );
+    throw new LanceMigrationChecksumMismatchError(migration.version, migration.name, 'id', migration.id, existing.id);
   }
 
   if (existing.prevId !== null && existing.prevId !== migration.prevId) {
-    throw new Error(
-      `Lance migration prevId mismatch for v${migration.version} (${migration.name}). ` +
-        `Expected ${migration.prevId}, found ${existing.prevId}.`,
+    throw new LanceMigrationChecksumMismatchError(
+      migration.version,
+      migration.name,
+      'prevId',
+      migration.prevId,
+      existing.prevId,
     );
   }
 
   if (existing.checksum && existing.checksum !== migration.checksum) {
-    throw new Error(
-      `Lance migration checksum mismatch for v${migration.version} (${migration.name}). ` +
-        `Expected ${migration.checksum}, found ${existing.checksum}. ` +
-        'This usually means an already-applied migration file was edited.',
+    throw new LanceMigrationChecksumMismatchError(
+      migration.version,
+      migration.name,
+      'checksum',
+      migration.checksum,
+      existing.checksum,
     );
   }
 }
@@ -111,10 +120,7 @@ export async function runPendingMigrations(db: Db, deps?: { getConnection?: type
 
   for (const row of existingRows) {
     if (row.status === 'applied' && !definedVersions.has(row.version)) {
-      throw new Error(
-        `Lance migration history contains unknown applied version: v${row.version}. ` +
-          'Migration files may be missing or reordered.',
-      );
+      throw new LanceMigrationUnknownVersionError(row.version);
     }
   }
 

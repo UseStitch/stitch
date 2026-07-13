@@ -7,6 +7,11 @@ import { getEmbeddingModelDimensions } from '@/llm/provider/service.js';
 import { getMemoryConfig, hasConfiguredEmbeddingModel, invalidateMemoryConfig } from '@/memory/config.js';
 import type { Embedder } from '@/models/embedding/embedder.js';
 import { ProviderEmbedder } from '@/models/embedding/provider-embedder.js';
+import {
+  EmbeddingModelNotConfiguredError,
+  EmbeddingProviderUnavailableError,
+  ProviderNotEmbeddingCapableError,
+} from '@/models/errors.js';
 import { isEmbeddingProviderCredentials } from '@/provider/config/schema.js';
 
 const log = Log.create({ service: 'embedder' });
@@ -33,7 +38,7 @@ export async function createEmbedder(): Promise<Embedder> {
 
   const config = await getMemoryConfig();
   if (!hasConfiguredEmbeddingModel(config)) {
-    throw new Error('Memory embedding model is not configured');
+    throw new EmbeddingModelNotConfiguredError();
   }
 
   const providerId = config.embeddingProviderId;
@@ -47,10 +52,10 @@ export async function createEmbedder(): Promise<Embedder> {
 
   const config_ = configs.find((c) => c.providerId === providerId);
   if (!config_) {
-    throw new Error(`Configured embedding provider is unavailable: ${providerId}`);
+    throw new EmbeddingProviderUnavailableError(providerId);
   }
   if (config_.credentials.providerId !== providerId || !isEmbeddingProviderCredentials(config_.credentials)) {
-    throw new Error(`Configured provider is not available for embeddings: ${providerId}`);
+    throw new ProviderNotEmbeddingCapableError(providerId);
   }
 
   const dimensions = (await getEmbeddingModelDimensions(providerId, modelId)) ?? DEFAULT_DIMENSIONS;

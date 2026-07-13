@@ -2,6 +2,7 @@ import { tool } from 'ai';
 import TurndownService from 'turndown';
 import { z } from 'zod';
 
+import { WebFetchHttpError, WebFetchResponseTooLargeError, WebFetchUrlValidationError } from '@/tools/errors.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 
 const MAX_RESPONSE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -31,7 +32,7 @@ function validateAndNormalizeUrl(input: string): string {
   const withHttps = input.startsWith('http://') ? `https://${input.slice('http://'.length)}` : input;
   const parsed = new URL(withHttps);
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
-    throw new Error('URL must start with http:// or https://');
+    throw new WebFetchUrlValidationError(input);
   }
   return parsed.toString();
 }
@@ -165,17 +166,17 @@ Parameter sourcing:
             : firstResponse;
 
         if (!response.ok) {
-          throw new Error(`Request failed with status code: ${response.status}`);
+          throw new WebFetchHttpError(normalizedUrl, response.status);
         }
 
         const contentLength = response.headers.get('content-length');
         if (contentLength && Number.parseInt(contentLength, 10) > MAX_RESPONSE_SIZE_BYTES) {
-          throw new Error('Response too large (exceeds 5MB limit)');
+          throw new WebFetchResponseTooLargeError(normalizedUrl);
         }
 
         const arrayBuffer = await response.arrayBuffer();
         if (arrayBuffer.byteLength > MAX_RESPONSE_SIZE_BYTES) {
-          throw new Error('Response too large (exceeds 5MB limit)');
+          throw new WebFetchResponseTooLargeError(normalizedUrl);
         }
 
         const { mime, full } = parseContentType(response.headers.get('content-type'));
