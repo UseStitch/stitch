@@ -36,15 +36,13 @@ function formatDate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-function formatError(error: Error, depth = 0): string {
-  const message = error.message;
-  return error.cause instanceof Error && depth < 10
-    ? `${message} Caused by: ${formatError(error.cause, depth + 1)}`
-    : message;
-}
-
 function formatValue(value: unknown): string {
-  if (value instanceof Error) return formatError(value);
+  if (value instanceof Error) {
+    const { message, cause, name, ...rest } = value as Error & Record<string, unknown>;
+    const obj: Record<string, unknown> = { name, message, ...rest };
+    if (cause !== undefined) obj['cause'] = cause instanceof Error ? cause.message : cause;
+    return JSON.stringify(obj);
+  }
   if (typeof value === 'string') return value;
   if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
     return value.toString();
