@@ -1,5 +1,6 @@
 import type { ConnectorModule } from '@stitch-connectors/sdk';
 
+import { ConnectorApiError, ConnectorMissingCredentialsError } from './errors.js';
 import {
   GOOGLE_DEFAULT_SCOPES,
   GOOGLE_SCOPE_CALENDAR,
@@ -199,7 +200,7 @@ export const googleConnectorModule: ConnectorModule = {
     },
     testConnection: async ({ instance }) => {
       if (!instance.accessToken) {
-        throw new Error('Connector has no credentials to test');
+        throw new ConnectorMissingCredentialsError();
       }
       const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
         headers: { Authorization: `Bearer ${instance.accessToken}` },
@@ -207,7 +208,7 @@ export const googleConnectorModule: ConnectorModule = {
       if (!res.ok) {
         const tokenRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${instance.accessToken}`);
         if (!tokenRes.ok) {
-          throw new Error(`Google API returned ${tokenRes.status}`);
+          throw new ConnectorApiError(tokenRes.status);
         }
       }
     },

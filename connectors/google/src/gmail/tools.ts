@@ -1,6 +1,7 @@
 import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 
+import { GmailMissingTempPathError } from '../errors.js';
 import * as GmailApi from './api.js';
 
 import type { GoogleClient } from '../client.js';
@@ -249,7 +250,7 @@ export function createGmailTools(
       inputSchema: gmailDownloadAttachmentsSchema,
       execute: async (input: z.infer<typeof gmailDownloadAttachmentsSchema>) => {
         if (!config?.tempPath) {
-          throw new Error('Gmail attachment downloads require a configured temp path.');
+          throw new GmailMissingTempPathError();
         }
 
         const { client, usedAccount } = await resolveClient(input.account);

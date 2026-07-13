@@ -1,6 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { GmailAttachmentMissingDataError, GmailFilterNoCriteriaError } from '../errors.js';
+
 import type { GoogleClient } from '../client.js';
 
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
@@ -317,7 +319,7 @@ export async function downloadAttachments(
       `${GMAIL_API}/messages/${encodeURIComponent(raw.id)}/attachments/${encodeURIComponent(attachmentId)}`,
     );
     if (!response.data) {
-      throw new Error(`Gmail attachment ${attachmentId} did not include download data`);
+      throw new GmailAttachmentMissingDataError(attachmentId);
     }
 
     const filePath = uniquePath(outputDir, attachment.filename, usedFilenames);
@@ -552,7 +554,7 @@ export async function createFilter(client: GoogleClient, input: GmailFilterInput
 
   const hasCriteria = Object.values(criteria).some((v) => v !== undefined);
   if (!hasCriteria) {
-    throw new Error('A filter must have at least one criteria field (e.g. from, to, subject, query, hasAttachment).');
+    throw new GmailFilterNoCriteriaError();
   }
 
   const raw = await client.request<GmailFilterRaw>(`${GMAIL_API}/settings/filters`, {
