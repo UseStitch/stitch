@@ -1,8 +1,16 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { RegistryCacheHttpError } from '@/lib/errors.js';
 import * as Log from '@/lib/log.js';
+
+class RegistryCacheHttpError extends Error {
+  readonly statusCode: number;
+  constructor(statusCode: number) {
+    super(`HTTP ${statusCode}`);
+    this.name = 'RegistryCacheHttpError';
+    this.statusCode = statusCode;
+  }
+}
 
 const log = Log.create({ service: 'registry-cache' });
 const DEFAULT_TIMEOUT_MS = 10_000;

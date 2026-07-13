@@ -47,17 +47,3 @@ export class MailMissingScopesError extends MailError {
     this.missingScopes = missingScopes;
   }
 }
-
-export class MailAccountNotAuthorizedError extends MailError {
-  constructor(accountEmail?: string) {
-    super('Google account is not authorized.', accountEmail);
-    this.name = 'MailAccountNotAuthorizedError';
-  }
-}
-
-export class MailNoAccessTokenError extends MailError {
-  constructor(accountEmail?: string) {
-    super('Google account has no usable access token. Re-authorize this account.', accountEmail);
-    this.name = 'MailNoAccessTokenError';
-  }
-}

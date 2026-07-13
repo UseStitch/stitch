@@ -15,13 +15,13 @@ import { isAppEnabled } from '@/apps/service.js';
 import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
 import { refreshAccessToken, requiresOAuthReauth } from '@/connectors/auth/oauth2.js';
 import { withRefreshLock } from '@/connectors/auth/refresh-lock.js';
+import { GoogleAccountNoAccessTokenError, GoogleAccountNotAuthorizedError } from '@/connectors/errors.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema/connectors.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
-import { MailAccountNotAuthorizedError, MailNoAccessTokenError } from '@/mail/errors.js';
 
 const log = Log.create({ service: 'mail' });
 const REFRESH_BUFFER_MS = 60_000;
@@ -119,7 +119,7 @@ async function getGoogleAccessToken(connectorInstanceId: string, forceRefresh: b
     .from(connectorInstances)
     .where(eq(connectorInstances.id, connectorInstanceId as ConnectorInstanceId));
 
-  if (!latest) throw new MailAccountNotAuthorizedError();
+  if (!latest) throw new GoogleAccountNotAuthorizedError('google', connectorInstanceId);
 
   const shouldRefresh =
     Boolean(latest.refreshToken) &&
@@ -180,6 +180,6 @@ async function getGoogleAccessToken(connectorInstanceId: string, forceRefresh: b
     }
   }
 
-  if (!latest.accessToken) throw new MailNoAccessTokenError();
+  if (!latest.accessToken) throw new GoogleAccountNoAccessTokenError('google', connectorInstanceId);
   return latest.accessToken;
 }

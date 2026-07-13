@@ -1,7 +1,14 @@
 import os from 'node:os';
 import path from 'node:path';
 
-import { UnsafeFilenameError } from '@/lib/errors.js';
+class UnsafeFilenameError extends Error {
+  readonly filename: string;
+  constructor(filename: string) {
+    super(`Unsafe filename: ${JSON.stringify(filename)}`);
+    this.name = 'UnsafeFilenameError';
+    this.filename = filename;
+  }
+}
 
 const homedir = os.homedir();
 const tmpdir = os.tmpdir();

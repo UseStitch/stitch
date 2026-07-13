@@ -1,6 +1,7 @@
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
 import type { ScrollDirection } from '@/lib/browser/types.js';
-import { BrowserInvalidOpError, BrowserMissingFieldError, ToolError } from '@/tools/errors.js';
+import { ToolError } from '@/tools/errors.js';
+import { BrowserInvalidOpError, BrowserMissingFieldError } from '@/tools/toolsets/browser/errors.js';
 import {
   formatDropdownOptionsSummary,
   formatExtractContent,

@@ -6,6 +6,11 @@ import type {
   ElectronBrowserResultMessage,
 } from '@stitch/shared/browser/electron';
 
+import {
+  BrowserBridgeNotConfiguredError,
+  BrowserBridgeNotConnectedError,
+  BrowserSessionNotSetError,
+} from '@/lib/browser/errors.js';
 import type {
   BrowserTab,
   DropdownOptionsResult,
@@ -16,11 +21,6 @@ import type {
   ScrollDirection,
   SearchPageResult,
 } from '@/lib/browser/types.js';
-import {
-  BrowserBridgeNotConfiguredError,
-  BrowserBridgeNotConnectedError,
-  BrowserSessionNotSetError,
-} from '@/tools/errors.js';
 
 const BRIDGE_HOST = '127.0.0.1';
 const REQUEST_TIMEOUT_MS = 30_000;
