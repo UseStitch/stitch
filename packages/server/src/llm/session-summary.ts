@@ -11,6 +11,7 @@ import { messages, sessions } from '@/db/schema/sessions.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { addCacheControlToMessages } from '@/llm/cache-control.js';
+import { CompactionModelNotFoundError } from '@/llm/errors.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { getPromptUserContext } from '@/llm/prompt/builder.js';
 import { getProviderOptions } from '@/llm/provider-options.js';
@@ -203,7 +204,7 @@ async function resolveCompactionModel(
   });
 
   if (!resolved) {
-    throw new Error(`No configured provider found for compaction`);
+    throw new CompactionModelNotFoundError();
   }
 
   const providers = await Models.get();

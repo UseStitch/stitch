@@ -1,3 +1,11 @@
+import {
+  MailConnectorInstanceNotFoundError,
+  MailConnectorNotConnectedError,
+  MailConnectorNotGoogleError,
+  MailMissingAccountEmailError,
+  MailMissingScopesError,
+} from '@/mail/errors.js';
+
 const REQUIRED_GMAIL_SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/gmail.modify',
@@ -33,14 +41,14 @@ export function filterEligibleMailAccounts(
     .map((instance) => ({ connectorInstanceId: instance.id, email: instance.accountEmail! }));
 }
 
-export function assertCanEnrollMailAccount(instance: EligibleConnectorInstance | undefined): asserts instance is EligibleConnectorInstance & {
-  accountEmail: string;
-} {
-  if (!instance) throw new Error('Connector instance not found');
-  if (instance.connectorId !== 'google') throw new Error('Only Google connector instances can be enrolled for mail');
-  if (instance.status !== 'connected') throw new Error('Google connector instance must be connected before mail enrollment');
-  if (!instance.accountEmail) throw new Error('Google connector instance is missing an account email');
+export function assertCanEnrollMailAccount(
+  instance: EligibleConnectorInstance | undefined,
+): asserts instance is EligibleConnectorInstance & { accountEmail: string } {
+  if (!instance) throw new MailConnectorInstanceNotFoundError();
+  if (instance.connectorId !== 'google') throw new MailConnectorNotGoogleError(instance.connectorId);
+  if (instance.status !== 'connected') throw new MailConnectorNotConnectedError(instance.status);
+  if (!instance.accountEmail) throw new MailMissingAccountEmailError();
   if (!hasRequiredGmailScopes(instance.scopes)) {
-    throw new Error('Google connector instance is missing required Gmail scopes: gmail.readonly, gmail.modify');
+    throw new MailMissingScopesError();
   }
 }

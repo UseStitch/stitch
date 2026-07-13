@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { RegistryCacheHttpError } from '@/lib/errors.js';
 import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'registry-cache' });
@@ -86,7 +87,7 @@ export function createRegistryCache<T>(options: RegistryCacheOptions<T>) {
       headers: resolvedUserAgent ? { 'User-Agent': resolvedUserAgent } : undefined,
       signal: AbortSignal.timeout(timeoutMs),
     });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) throw new RegistryCacheHttpError(response.status);
     return parse(await response.json());
   }
 

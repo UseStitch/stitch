@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import { z } from 'zod';
 
 import * as Glob from '@/lib/glob.js';
+import { ToolPathValidationError } from '@/tools/errors.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import { validateAbsoluteDirectoryPath } from '@/tools/runtime/shared.js';
 
@@ -34,7 +35,7 @@ export async function globPaths(input: z.infer<typeof globInputSchema>): Promise
   const searchPath = validateAbsoluteDirectoryPath(parsed.path);
   const stats = await fs.stat(searchPath);
   if (!stats.isDirectory()) {
-    throw new Error('path must point to a directory');
+    throw new ToolPathValidationError(parsed.path, 'path must point to a directory');
   }
 
   const matches = await Glob.scan(parsed.pattern, { cwd: searchPath, absolute: true, dot: true });

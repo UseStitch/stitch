@@ -1,6 +1,8 @@
 import os from 'node:os';
 import path from 'node:path';
 
+import { UnsafeFilenameError } from '@/lib/errors.js';
+
 const homedir = os.homedir();
 const tmpdir = os.tmpdir();
 
@@ -58,7 +60,7 @@ function isSafeFilename(filename: string): boolean {
 
 function assertSafeFilename(filename: string): void {
   if (!isSafeFilename(filename)) {
-    throw new Error(`Unsafe filename: ${JSON.stringify(filename)}`);
+    throw new UnsafeFilenameError(filename);
   }
 }
 

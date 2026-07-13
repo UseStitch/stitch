@@ -2,6 +2,7 @@ import type { Message, StoredPart } from '@stitch/shared/chat/messages';
 
 import * as Log from '@/lib/log.js';
 import { compactToolResultOutput, isToolResultError } from '@/llm/context-budget.js';
+import { HistoryMessagesEmptyError } from '@/llm/errors.js';
 import { buildSystemPromptLayers } from '@/llm/prompt/builder.js';
 import type { PromptConfig } from '@/llm/prompt/builder.js';
 import type { ModelMessage } from 'ai';
@@ -32,7 +33,7 @@ export function buildHistoryMessages(
   promptConfig: PromptConfig,
 ): ModelMessage[] {
   if (msgs.length === 0) {
-    throw new Error('buildHistoryMessages requires at least one message');
+    throw new HistoryMessagesEmptyError();
   }
 
   const llmMessages: ModelMessage[] = [];

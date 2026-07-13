@@ -21,6 +21,7 @@ import { connectorInstances } from '@/db/schema/connectors.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
+import { MailAccountNotAuthorizedError, MailNoAccessTokenError } from '@/mail/errors.js';
 
 const log = Log.create({ service: 'mail' });
 const REFRESH_BUFFER_MS = 60_000;
@@ -118,7 +119,7 @@ async function getGoogleAccessToken(connectorInstanceId: string, forceRefresh: b
     .from(connectorInstances)
     .where(eq(connectorInstances.id, connectorInstanceId as ConnectorInstanceId));
 
-  if (!latest) throw new Error('Google account is not authorized.');
+  if (!latest) throw new MailAccountNotAuthorizedError();
 
   const shouldRefresh =
     Boolean(latest.refreshToken) &&
@@ -179,6 +180,6 @@ async function getGoogleAccessToken(connectorInstanceId: string, forceRefresh: b
     }
   }
 
-  if (!latest.accessToken) throw new Error('Google account has no usable access token. Re-authorize this account.');
+  if (!latest.accessToken) throw new MailNoAccessTokenError();
   return latest.accessToken;
 }

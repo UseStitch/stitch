@@ -12,6 +12,7 @@ import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { QuestionAbortedError } from '@/llm/stream/errors.js';
+import { QuestionNotFoundAfterCreateError } from '@/question/errors.js';
 
 const log = Log.create({ service: 'question-service' });
 
@@ -117,7 +118,7 @@ export async function askQuestion(opts: {
     .returning();
 
   if (!row) {
-    throw new Error(`Question not found after create: ${id}`);
+    throw new QuestionNotFoundAfterCreateError(id);
   }
 
   internalBus.emit('question.asked', { question: toQuestionRequest(row) });

@@ -2,6 +2,7 @@ import { tool } from 'ai';
 import fs from 'node:fs/promises';
 import { z } from 'zod';
 
+import { ToolEditMultipleMatchesError, ToolEditNoMatchError, ToolFileTypeError } from '@/tools/errors.js';
 import { getFilePathPatternTargets, getParentDirPermissionSuggestion } from '@/tools/runtime/file-permissions.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import { isTextFileBuffer, validateAbsoluteFilePath } from '@/tools/runtime/shared.js';
@@ -38,18 +39,18 @@ export async function editFileContent(input: z.infer<typeof editInputSchema>): P
   const targetPath = validateAbsoluteFilePath(parsed.filePath);
   const buffer = await fs.readFile(targetPath);
   if (!isTextFileBuffer(buffer)) {
-    throw new Error('Only text files are supported');
+    throw new ToolFileTypeError(targetPath);
   }
 
   const content = new TextDecoder('utf-8', { fatal: true }).decode(buffer);
   const matchCount = countOccurrences(content, parsed.oldString);
 
   if (matchCount === 0) {
-    throw new Error('oldString not found in content');
+    throw new ToolEditNoMatchError();
   }
 
   if (!parsed.replaceAll && matchCount > 1) {
-    throw new Error(MULTIPLE_MATCHES_ERROR);
+    throw new ToolEditMultipleMatchesError();
   }
 
   const nextContent = parsed.replaceAll

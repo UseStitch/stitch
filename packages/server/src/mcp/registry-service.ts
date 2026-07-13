@@ -9,6 +9,7 @@ import { PATHS } from '@/lib/paths.js';
 import { getStitchRegistryUserAgent } from '@/lib/registry-cache.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
+import { McpRegistryFetchError } from '@/mcp/errors.js';
 
 const log = Log.create({ service: 'mcp-registry' });
 const DEFAULT_MCP_REGISTRY_URL = 'https://usestitch.ai/mcp-registry.json';
@@ -97,7 +98,7 @@ async function fetchRegistryPayload(fetchImpl: FetchLike): Promise<McpRegistryPa
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+    throw new McpRegistryFetchError(response.status);
   }
   const text = await response.text();
   return parseRegistryPayload(JSON.parse(text));

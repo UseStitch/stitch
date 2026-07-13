@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { SETTINGS_DEFAULTS } from '@stitch/shared/settings/types';
 import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 
+import { DatabaseNotInitializedError } from '@/db/errors.js';
 import { keyboardShortcuts, userSettings } from '@/db/schema/settings.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
@@ -62,7 +63,7 @@ function seedSettings(db: Db): void {
 }
 
 export function getDb(): Db {
-  if (!_db) throw new Error('Database not initialized - call initDb() first');
+  if (!_db) throw new DatabaseNotInitializedError();
   return _db;
 }
 

@@ -2,6 +2,7 @@ import { tool } from 'ai';
 import fs from 'node:fs/promises';
 import { z } from 'zod';
 
+import { ToolFileTypeError, ToolPathValidationError } from '@/tools/errors.js';
 import { getFilePathPatternTargets, getParentDirPermissionSuggestion } from '@/tools/runtime/file-permissions.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import {
@@ -77,11 +78,11 @@ export async function readPathContent(input: z.infer<typeof readInputSchema>): P
   }
 
   if (!stats.isFile()) {
-    throw new Error('Path must point to a file or directory');
+    throw new ToolPathValidationError(parsed.filePath, 'Path must point to a file or directory');
   }
 
   if (isKnownBinaryFilePath(targetPath)) {
-    throw new Error('Only text files are supported');
+    throw new ToolFileTypeError(targetPath);
   }
 
   const buffer = await fs.readFile(targetPath);
