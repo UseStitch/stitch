@@ -10,12 +10,12 @@ const config: KnipConfig = {
       ignore: ['src/components/ui/**'],
     },
     'apps/website': {
-      entry: ['src/main.ts', 'functions/**/*.ts'],
+      entry: ['functions/**/*.ts'],
       project: ['src/**/*.ts', 'functions/**/*.ts'],
       ignore: ['functions/**/*.ts'],
     },
     'apps/desktop': {
-      entry: ['src/main/index.ts', 'src/preload/index.ts', 'src/**/*.test.{ts,tsx}'],
+      entry: ['src/**/*.test.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
     },
     'packages/shared': { entry: ['src/**/*.ts', 'src/**/*.test.{ts,tsx}'], project: ['src/**/*.ts'] },
@@ -25,13 +25,13 @@ const config: KnipConfig = {
       project: ['src/**/*.{ts,tsx}'],
     },
     'packages/audio-capture': {
-      entry: ['src/index.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
+      entry: ['src/index.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
     },
     'packages/mail': {
       entry: ['src/**/*.test.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
-      ignore: ['src/providers/gmail/api.ts', 'src/providers/gmail/batch.ts', 'src/providers/gmail/parse.ts'],
+      ignore: ['src/providers/gmail/api.ts', 'src/providers/gmail/parse.ts'],
     },
     'connectors/*': { entry: ['src/index.{ts,tsx}', 'src/**/*.test.{ts,tsx}'], project: ['src/**/*.{ts,tsx}'] },
     'connectors/sdk': { entry: ['src/index.{ts,tsx}'], project: ['src/**/*.{ts,tsx}'] },
@@ -47,7 +47,7 @@ const config: KnipConfig = {
     'tailwindcss',
     '@tailwindcss/typography',
   ],
-  ignoreBinaries: [],
+  ignoreBinaries: ['tasklist', 'pgrep', 'taskkill'],
 };
 
 export default config;
