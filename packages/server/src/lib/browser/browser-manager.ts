@@ -6,6 +6,11 @@ import type {
   ElectronBrowserResultMessage,
 } from '@stitch/shared/browser/electron';
 
+import {
+  BrowserBridgeNotConfiguredError,
+  BrowserBridgeNotConnectedError,
+  BrowserSessionNotSetError,
+} from '@/lib/browser/errors.js';
 import type {
   BrowserTab,
   DropdownOptionsResult,
@@ -35,7 +40,7 @@ class DesktopBrowserBridge {
     await this.connect();
     const socket = this.socket;
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-      throw new Error('Desktop browser bridge is not connected. Browser tools require the Stitch desktop app.');
+      throw new BrowserBridgeNotConnectedError();
     }
 
     const id = crypto.randomUUID();
@@ -83,7 +88,7 @@ class DesktopBrowserBridge {
 
     const port = process.env.STITCH_BROWSER_BRIDGE_PORT;
     if (!port) {
-      throw new Error('Browser tools require the Stitch desktop app. No desktop browser bridge is configured.');
+      throw new BrowserBridgeNotConfiguredError();
     }
 
     this.connectPromise = new Promise<void>((resolve, reject) => {
@@ -142,7 +147,7 @@ class BrowserManager {
   }
 
   private getSessionId(): string {
-    if (!this._sessionId) throw new Error('Browser sessionId must be set before executing commands.');
+    if (!this._sessionId) throw new BrowserSessionNotSetError();
     return this._sessionId;
   }
 

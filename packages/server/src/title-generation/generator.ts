@@ -7,33 +7,21 @@ import type { ResolvedModel } from '@/llm/resolve-model.js';
 import { mapAIError } from '@/llm/stream/ai-error-mapper.js';
 import type { LanguageModelUsage } from 'ai';
 
-const log = Log.create({ service: 'recording-title-generator' });
+const log = Log.create({ service: 'title-generation' });
 
-type GeneratedRecordingTitle = { title: string; usage: LanguageModelUsage | null; providerId: string; modelId: string };
+type GeneratedTitle = { title: string; usage: LanguageModelUsage | null; providerId: string; modelId: string };
 
-type RecordingTitleGeneratorDeps = {
+type TitleGeneratorDeps = {
   resolveModel?: typeof resolveCheapModel;
   getModel?: (resolved: ResolvedModel) => ReturnType<ReturnType<typeof createProvider>>;
 };
 
-function buildRecordingTitlePrompt(analysis: string): string {
-  return `
-Generate a short, descriptive title (60 chars max) for these meeting notes.
-Use neutral language and do not invent details.
-
-Meeting notes:
-${analysis}
-
-Return only the title.
-`;
-}
-
-export async function generateRecordingTitle(
-  analysis: string,
+export async function generateTitleFromContent(
+  content: string,
   fallbackProviderId: string,
   fallbackModelId: string,
-  deps?: RecordingTitleGeneratorDeps,
-): Promise<GeneratedRecordingTitle | null> {
+  deps?: TitleGeneratorDeps,
+): Promise<GeneratedTitle | null> {
   const resolved = await (deps?.resolveModel ?? resolveCheapModel)({
     providerIdKey: 'model.title.providerId',
     modelIdKey: 'model.title.modelId',
@@ -44,10 +32,7 @@ export async function generateRecordingTitle(
 
   try {
     const model = deps?.getModel ? deps.getModel(resolved) : createProvider(resolved.credentials)(resolved.modelId);
-    const result = await generateText({
-      model,
-      messages: [{ role: 'user', content: buildRecordingTitlePrompt(analysis) }],
-    });
+    const result = await generateText({ model, messages: [{ role: 'user', content }] });
 
     const title = result.text.trim().replace(/^["']|["']$/g, '');
     if (!title) return null;
@@ -57,7 +42,7 @@ export async function generateRecordingTitle(
     const mappedError = mapAIError(error, resolved.providerId);
     log.error(
       { error: mappedError.message, errorCategory: mappedError.category, aiErrorName: mappedError.aiErrorName },
-      'recording title generation failed',
+      'title generation failed',
     );
     return null;
   }

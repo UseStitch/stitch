@@ -1,4 +1,4 @@
-import { BrainIcon, SearchIcon, Trash2Icon } from 'lucide-react';
+import { BrainIcon, Trash2Icon } from 'lucide-react';
 import { PinIcon } from 'lucide-react';
 import * as React from 'react';
 
@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
-import { Input } from '@/components/ui/input';
 import {
   Page,
   PageContent,
@@ -29,6 +28,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import { SearchInput } from '@/components/ui/search-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table } from '@/components/ui/table';
 import type { MemoryCategory, MemorySource, SemanticMemory } from '@/lib/queries/memories';
@@ -219,13 +219,11 @@ export function MemoriesPage() {
 
         {/* Toolbar */}
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <div className="relative w-64">
-            <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
+          <div className="w-64">
+            <SearchInput
               placeholder="Search memories…"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-8"
             />
           </div>
 
@@ -284,27 +282,17 @@ export function MemoriesPage() {
               </Table.Header>
               <Table.Body>
                 {isLoading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <Table.Row key={i} className="hover:bg-transparent">
-                      <Table.Cell className="w-14" />
-                      <Table.Cell className="w-10" />
-                      <Table.Cell className="w-full max-w-0 min-w-0 overflow-hidden">
-                        <div className="h-4 animate-pulse rounded bg-muted" />
-                      </Table.Cell>
-                      <Table.Cell className="w-28">
-                        <div className="mx-auto h-5 w-24 animate-pulse rounded-full bg-muted" />
-                      </Table.Cell>
-                      <Table.Cell className="w-28">
-                        <div className="mx-auto h-4 w-20 animate-pulse rounded bg-muted" />
-                      </Table.Cell>
-                      <Table.Cell className="w-24">
-                        <div className="mx-auto h-5 w-20 animate-pulse rounded-full bg-muted" />
-                      </Table.Cell>
-                      <Table.Cell className="w-24">
-                        <div className="ml-auto h-4 w-20 animate-pulse rounded bg-muted" />
-                      </Table.Cell>
-                    </Table.Row>
-                  ))
+                  <Table.SkeletonRows
+                    columns={[
+                      { className: 'w-14' },
+                      { className: 'w-10' },
+                      { className: 'w-full max-w-0 min-w-0 overflow-hidden', skeletonClassName: 'h-4' },
+                      { className: 'w-28', skeletonClassName: 'mx-auto h-5 w-24 rounded-full' },
+                      { className: 'w-28', skeletonClassName: 'mx-auto h-4 w-20' },
+                      { className: 'w-24', skeletonClassName: 'mx-auto h-5 w-20 rounded-full' },
+                      { className: 'w-24', skeletonClassName: 'ml-auto h-4 w-20' },
+                    ]}
+                  />
                 ) : memories.length === 0 ? (
                   <Table.EmptyRow colSpan={7}>
                     <Empty>

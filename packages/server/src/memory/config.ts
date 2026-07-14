@@ -14,9 +14,13 @@ type MemoryConfig = {
   maxMemories: number;
   staleDays: number;
   autoprune: boolean;
+  dedupThreshold: number;
   retrievalMaxResults: number;
   retrievalMinScore: number;
   retrievalRecencyBoost: boolean;
+  retrievalContextAwareQuery: boolean;
+  retrievalSkipLowSignal: boolean;
+  extractFromAutomations: boolean;
 };
 
 export function hasConfiguredEmbeddingModel(
@@ -54,12 +58,16 @@ export async function getMemoryConfig(): Promise<MemoryConfig> {
     'memory.extraction.importanceMinScore',
     'memory.extraction.maxFactsPerSession',
     'memory.extraction.minTurnsBetweenWrites',
+    'memory.extraction.fromAutomations',
     'memory.retention.maxMemories',
     'memory.retention.staleDays',
     'memory.retention.autoprune',
+    'memory.retention.dedupThreshold',
     'memory.retrieval.maxResults',
     'memory.retrieval.minScore',
     'memory.retrieval.recencyBoost',
+    'memory.retrieval.contextAwareQuery',
+    'memory.retrieval.skipLowSignal',
   ] as const);
 
   cachedConfig = {
@@ -73,12 +81,16 @@ export async function getMemoryConfig(): Promise<MemoryConfig> {
     importanceMinScore: s['memory.extraction.importanceMinScore'],
     maxFactsPerSession: s['memory.extraction.maxFactsPerSession'],
     minTurnsBetweenWrites: s['memory.extraction.minTurnsBetweenWrites'],
+    extractFromAutomations: s['memory.extraction.fromAutomations'],
     maxMemories: s['memory.retention.maxMemories'],
     staleDays: s['memory.retention.staleDays'],
     autoprune: s['memory.retention.autoprune'],
+    dedupThreshold: s['memory.retention.dedupThreshold'],
     retrievalMaxResults: s['memory.retrieval.maxResults'],
     retrievalMinScore: s['memory.retrieval.minScore'],
     retrievalRecencyBoost: s['memory.retrieval.recencyBoost'],
+    retrievalContextAwareQuery: s['memory.retrieval.contextAwareQuery'],
+    retrievalSkipLowSignal: s['memory.retrieval.skipLowSignal'],
   };
   cacheExpiresAt = now + CACHE_TTL_MS;
 

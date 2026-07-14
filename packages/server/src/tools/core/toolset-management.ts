@@ -11,6 +11,7 @@ import {
   type SessionToolsetScope,
 } from '@/llm/stream/session-toolsets.js';
 import { isToolEnabled } from '@/tools/enabled-service.js';
+import { ToolsetDisabledError, ToolsetNotFoundError, ToolsetNotInCatalogError } from '@/tools/errors.js';
 import type { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 import { getToolsetSettings } from '@/tools/toolsets/settings.js';
@@ -89,21 +90,17 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
       }
 
       if (manager.isExcluded(toolsetId)) {
-        throw new Error(
-          `Toolset "${toolsetId}" is not in the catalog. Use list_toolsets with no arguments to see available IDs.`,
-        );
+        throw new ToolsetNotInCatalogError(toolsetId);
       }
 
       const toolset = getToolset(toolsetId);
       if (!toolset) {
-        throw new Error(`Unknown toolset: "${toolsetId}". Use list_toolsets with no arguments to see available IDs.`);
+        throw new ToolsetNotFoundError(toolsetId);
       }
 
       const enabled = await isToolEnabled({ scope: 'toolset', identifier: toolsetId });
       if (!enabled) {
-        throw new Error(
-          `Toolset "${toolsetId}" is not in the catalog. Use list_toolsets with no arguments to see available IDs.`,
-        );
+        throw new ToolsetNotInCatalogError(toolsetId);
       }
 
       return {
@@ -155,12 +152,10 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
 
       const result = await manager.activate(toolsetId, activationState);
       if (result.status === 'not_found') {
-        throw new Error(`Unknown toolset: "${toolsetId}". Use list_toolsets with no arguments to see available IDs.`);
+        throw new ToolsetNotFoundError(toolsetId);
       }
       if (result.status === 'disabled') {
-        throw new Error(
-          `Toolset "${toolsetId}" has been disabled by the user. Do not attempt to activate it or search for alternatives.`,
-        );
+        throw new ToolsetDisabledError(toolsetId);
       }
 
       persistManagerState();

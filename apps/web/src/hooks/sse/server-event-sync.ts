@@ -9,11 +9,13 @@ import type { PartDelta } from '@stitch/shared/chat/stream-events';
 
 import { useSSE } from '@/hooks/sse/sse-context';
 import { sessionKeys } from '@/lib/queries/chat';
+import { connectorKeys } from '@/lib/queries/connectors';
 import { mcpKeys } from '@/lib/queries/mcp';
 import { permissionResponseKeys } from '@/lib/queries/permissions';
 import { questionKeys } from '@/lib/queries/questions';
 import { recordingsKeys } from '@/lib/queries/recordings';
 import { settingsQueryOptions } from '@/lib/queries/settings';
+import { skillKeys } from '@/lib/queries/skills';
 import { todoKeys } from '@/lib/queries/todos';
 import { toolKeys } from '@/lib/queries/tools';
 import { playNotificationSound } from '@/lib/sounds';
@@ -99,13 +101,13 @@ function useServerEventSync(): void {
 
   useSSE({
     // Stream Events
-    'stream-start': ({ sessionId, messageId }) => {
+    'stream.started': ({ sessionId, messageId }) => {
       applyStreamStart(sessionId, messageId);
     },
-    'stream-part-update': ({ sessionId, messageId, partId, part }) => {
+    'part.update': ({ sessionId, messageId, partId, part }) => {
       applyPartUpdate(sessionId, messageId, partId, part);
     },
-    'stream-part-delta': ({ sessionId, messageId, partId, delta }) => {
+    'part.delta': ({ sessionId, messageId, partId, delta }) => {
       pendingDeltasRef.current.push({ sessionId, messageId, partId, delta });
 
       if (rafIdRef.current === null) {
@@ -115,10 +117,10 @@ function useServerEventSync(): void {
         });
       }
     },
-    'stream-tool-state': ({ sessionId, messageId, toolCallId, toolName, status, input, output, error }) => {
+    'tool.state': ({ sessionId, messageId, toolCallId, toolName, status, input, output, error }) => {
       applyToolState(sessionId, messageId, toolCallId, toolName, status, input, output, error);
     },
-    'stream-finish': ({ sessionId, messageId, finishReason, usage }) => {
+    'stream.finish': ({ sessionId, messageId, finishReason, usage }) => {
       if (rafIdRef.current !== null) {
         cancelAnimationFrame(rafIdRef.current);
         rafIdRef.current = null;
@@ -133,33 +135,82 @@ function useServerEventSync(): void {
         useStreamStore.getState().resetSession(sessionId);
       });
     },
-    'stream-error': ({ sessionId, messageId, error, details }) => {
+    'stream.error': ({ sessionId, messageId, error, details }) => {
       errorStream(sessionId, messageId, error, details);
     },
-    'stream-retry': ({ sessionId, messageId, attempt, maxRetries, delayMs, message }) => {
+    'stream.retry': ({ sessionId, messageId, attempt, maxRetries, delayMs, message }) => {
       retryStream(sessionId, messageId, { attempt, maxRetries, delayMs, message, nextRetryAt: Date.now() + delayMs });
     },
-    'doom-loop-detected': ({ sessionId, messageId, toolName, consecutiveCount }) => {
+    'stream.doom_loop.detected': ({ sessionId, messageId, toolName, consecutiveCount }) => {
       doomLoopDetected(sessionId, messageId, toolName, consecutiveCount);
     },
 
     // Recording Events
-    'recording-started': () => {
+    'recording.started': () => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.lists() });
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.details() });
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.active() });
     },
-    'recording-stopped': () => {
+    'recording.stopped': () => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.lists() });
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.details() });
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.active() });
     },
-    'recording-analysis-updated': ({ recordingId }) => {
+    'recording.analysis.updated': ({ recordingId }) => {
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.detail(recordingId) });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.lists() });
+    },
+    'recording.analysis.completed': ({ recordingId }) => {
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.detail(recordingId) });
+      void queryClient.invalidateQueries({ queryKey: recordingsKeys.lists() });
+    },
+    'recording.analysis.failed': ({ recordingId }) => {
       void queryClient.invalidateQueries({ queryKey: recordingsKeys.detail(recordingId) });
     },
 
+    // Skill Events
+    'skill.created': () => {
+      void queryClient.invalidateQueries({ queryKey: skillKeys.all });
+    },
+    'skill.updated': () => {
+      void queryClient.invalidateQueries({ queryKey: skillKeys.all });
+    },
+    'skill.deleted': () => {
+      void queryClient.invalidateQueries({ queryKey: skillKeys.all });
+    },
+
+    // Connector Events
+    'connector.token.refreshed': ({ instanceId }) => {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: connectorKeys.instances() }),
+        queryClient.invalidateQueries({ queryKey: connectorKeys.instance(instanceId) }),
+      ]);
+    },
+    'connector.auth.failed': ({ instanceId }) => {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: connectorKeys.instances() }),
+        queryClient.invalidateQueries({ queryKey: connectorKeys.instance(instanceId) }),
+      ]);
+    },
+    'connector.authorized': ({ instanceId }) => {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: connectorKeys.instances() }),
+        queryClient.invalidateQueries({ queryKey: connectorKeys.instance(instanceId) }),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownTools() }),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownToolsets() }),
+      ]);
+    },
+    'connector.removed': ({ instanceId }) => {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: connectorKeys.all }),
+        ...(instanceId ? [queryClient.invalidateQueries({ queryKey: connectorKeys.instance(instanceId) })] : []),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownTools() }),
+        queryClient.invalidateQueries({ queryKey: toolKeys.knownToolsets() }),
+      ]);
+    },
+
     // Session Events
-    'session-title-update': ({ sessionId, title }) => {
+    'session.title.updated': ({ sessionId, title }) => {
       queryClient.setQueriesData<InfiniteData<SessionsPage>>(
         { queryKey: sessionKeys.infiniteLists() },
         (prev: InfiniteData<SessionsPage> | undefined) => {
@@ -177,38 +228,38 @@ function useServerEventSync(): void {
         prev ? { ...prev, title } : prev,
       );
     },
-    'session-todos-updated': ({ sessionId }) => {
+    'session.todos.updated': ({ sessionId }) => {
       void queryClient.invalidateQueries({ queryKey: todoKeys.list(sessionId) });
     },
-    'compaction-complete': ({ sessionId }) => {
+    'session.compaction.completed': ({ sessionId }) => {
       void queryClient.resetQueries({ queryKey: sessionKeys.messages(sessionId) });
     },
 
     // Question Events
-    'question-asked': ({ question }) => {
+    'question.asked': ({ question }) => {
       void queryClient.invalidateQueries({ queryKey: questionKeys.list(question.sessionId) });
       markSessionUnread(queryClient, question.sessionId, currentSessionId);
       if (isSoundEnabled(queryClient)) playNotificationSound();
     },
-    'question-replied': ({ sessionId }) => {
+    'question.replied': ({ sessionId }) => {
       void queryClient.invalidateQueries({ queryKey: questionKeys.list(sessionId) });
     },
-    'question-rejected': ({ sessionId }) => {
+    'question.rejected': ({ sessionId }) => {
       void queryClient.invalidateQueries({ queryKey: questionKeys.list(sessionId) });
     },
 
     // Permission Events
-    'permission-response-requested': ({ permissionResponse }) => {
+    'permission.requested': ({ permissionResponse }) => {
       void queryClient.invalidateQueries({ queryKey: permissionResponseKeys.list(permissionResponse.sessionId) });
       markSessionUnread(queryClient, permissionResponse.sessionId, currentSessionId);
       if (isSoundEnabled(queryClient)) playNotificationSound();
     },
-    'permission-response-resolved': ({ sessionId }) => {
+    'permission.resolved': ({ sessionId }) => {
       void queryClient.invalidateQueries({ queryKey: permissionResponseKeys.list(sessionId) });
     },
 
     // MCP Events
-    'mcp-tools-changed': ({ serverId }) => {
+    'mcp.tools.changed': ({ serverId }) => {
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: mcpKeys.tools(serverId) }),
         queryClient.invalidateQueries({ queryKey: toolKeys.knownTools() }),
@@ -216,7 +267,7 @@ function useServerEventSync(): void {
         queryClient.invalidateQueries({ queryKey: toolKeys.knownToolsets() }),
       ]);
     },
-    'mcp-auth-status-changed': () => {
+    'mcp.auth.status_changed': () => {
       void queryClient.invalidateQueries({ queryKey: mcpKeys.list() });
     },
   });

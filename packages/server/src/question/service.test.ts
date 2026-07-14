@@ -68,7 +68,6 @@ describe('question service interactions', () => {
     await waitForEvents(1);
 
     const askedEvent = emittedEvents.find(([name]) => name === 'question.asked');
-    expect(askedEvent).toBeDefined();
     const askedData = askedEvent![1] as InternalEventMap['question.asked'];
     expect(askedData.question).toMatchObject({ sessionId, messageId, toolCallId: 'call_question', status: 'pending' });
 
@@ -80,7 +79,6 @@ describe('question service interactions', () => {
     expect(promise).resolves.toEqual([['A']]);
 
     const repliedEvent = emittedEvents.find(([name]) => name === 'question.replied');
-    expect(repliedEvent).toBeDefined();
     expect(repliedEvent![1]).toEqual({ questionId, sessionId, answers: [['A']] });
 
     const db = getDb();
@@ -112,7 +110,6 @@ describe('question service interactions', () => {
     expect(promise).rejects.toThrow('Question rejected by user');
 
     const rejectedEvent = emittedEvents.find(([name]) => name === 'question.rejected');
-    expect(rejectedEvent).toBeDefined();
     expect(rejectedEvent![1]).toEqual({ questionId, sessionId });
 
     const db = getDb();

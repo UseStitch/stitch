@@ -4,7 +4,7 @@ import * as React from 'react';
 import { MicLevelMeter } from './mic-level-meter';
 
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { StatusDot } from '@/components/ui/status-dot';
 
 type RecordingBarProps = {
   audioLevel: number;
@@ -44,7 +44,7 @@ export function RecordingBar({ audioLevel, startedAt, isStopping, onCancel, onSt
 
   return (
     <div className="flex w-full items-center gap-2" role="status" aria-live="polite">
-      <span className={cn('size-2 shrink-0 rounded-full bg-destructive', !isStopping && 'animate-pulse')} />
+      <StatusDot color="destructive" pulse={!isStopping} />
       <span className="text-xs font-medium text-destructive">{isStopping ? 'Transcribing…' : 'Recording'}</span>
       <MicLevelMeter level={isStopping ? 0 : audioLevel} />
       <span className="ml-auto text-xs font-medium text-muted-foreground tabular-nums">{formatElapsed(elapsedMs)}</span>

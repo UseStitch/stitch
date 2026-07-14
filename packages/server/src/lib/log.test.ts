@@ -112,13 +112,6 @@ describe('Log.cleanup', () => {
 });
 
 describe('Log.create', () => {
-  test('time() using-block calls stop via [Symbol.dispose]', () => {
-    const log = Log.create({ service: 'test-using' });
-    expect(() => {
-      using _t = log.time('block-op');
-    }).not.toThrow();
-  });
-
   test('loggers created before init write after init', async () => {
     await fs.mkdir(PATHS.logDir, { recursive: true });
     await clearLogDir();
@@ -189,6 +182,71 @@ describe('Log.close', () => {
 
   test('resolves when called before init', async () => {
     await Log.close();
+  });
+});
+
+describe('Log.create error serialization', () => {
+  beforeEach(async () => {
+    await fs.mkdir(PATHS.logDir, { recursive: true });
+    await clearLogDir();
+  });
+
+  afterEach(async () => {
+    await clearLogDir();
+  });
+
+  test('logs error message and name for a plain Error', async () => {
+    const log = Log.create({ service: 'test-error-plain' });
+    await Log.init({});
+
+    log.error({ error: new Error('something went wrong') }, 'plain error');
+
+    const output = await waitForLogOutput('plain error');
+    expect(output).toContain('"name":"Error"');
+    expect(output).toContain('"message":"something went wrong"');
+  });
+
+  test('logs custom fields from an Error subclass', async () => {
+    class ConnectorVersionMismatchError extends Error {
+      readonly connectorId: string;
+      readonly currentVersion: number;
+      readonly highestVersion: number;
+
+      constructor(connectorId: string, currentVersion: number, highestVersion: number) {
+        super(
+          `Connector ${connectorId} currentVersion (${currentVersion}) must match highest versionHistory entry (${highestVersion})`,
+        );
+        this.name = 'ConnectorVersionMismatchError';
+        this.connectorId = connectorId;
+        this.currentVersion = currentVersion;
+        this.highestVersion = highestVersion;
+      }
+    }
+
+    const log = Log.create({ service: 'test-error-custom' });
+    await Log.init({});
+
+    log.error({ error: new ConnectorVersionMismatchError('google', 1, 2) }, 'version mismatch');
+
+    const output = await waitForLogOutput('version mismatch');
+    expect(output).toContain('"name":"ConnectorVersionMismatchError"');
+    expect(output).toContain('"connectorId":"google"');
+    expect(output).toContain('"currentVersion":1');
+    expect(output).toContain('"highestVersion":2');
+  });
+
+  test('includes cause message when present', async () => {
+    const cause = new Error('root cause');
+    const error = new Error('outer error', { cause });
+
+    const log = Log.create({ service: 'test-error-cause' });
+    await Log.init({});
+
+    log.error({ error }, 'caused error');
+
+    const output = await waitForLogOutput('caused error');
+    expect(output).toContain('"message":"outer error"');
+    expect(output).toContain('"cause":"root cause"');
   });
 });
 

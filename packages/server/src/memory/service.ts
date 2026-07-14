@@ -316,10 +316,9 @@ export async function pruneStaleMemories(config: {
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
 
-  const count = await table.countRows();
-  if (count <= config.maxMemories) return ok(undefined);
-
   const rows = await table.query().toArray();
+  const count = rows.length;
+  if (count === 0) return ok(undefined);
 
   // Calculate value score for each memory
   const scored = rows.map((r) => {
@@ -344,20 +343,22 @@ export async function pruneStaleMemories(config: {
 
   const toDelete = new Set<string>();
 
-  // First, delete lowest value memories until we are under the cap
-  let currentTotal = count;
+  // First, delete any unpinned memory that is stale AND never accessed
   for (const item of scored) {
-    if (currentTotal <= config.maxMemories) break;
-    if (!item.pinned) {
+    if (!item.pinned && item.daysSince > config.staleDays && item.accessCount === 0) {
       toDelete.add(item.id);
-      currentTotal--;
     }
   }
 
-  // Second, delete any unpinned memory that is stale AND never accessed
-  for (const item of scored) {
-    if (!item.pinned && !toDelete.has(item.id) && item.daysSince > config.staleDays && item.accessCount === 0) {
-      toDelete.add(item.id);
+  // Second, if still over the cap, delete lowest value memories until under
+  let currentTotal = count - toDelete.size;
+  if (currentTotal > config.maxMemories) {
+    for (const item of scored) {
+      if (currentTotal <= config.maxMemories) break;
+      if (!item.pinned && !toDelete.has(item.id)) {
+        toDelete.add(item.id);
+        currentTotal--;
+      }
     }
   }
 
@@ -372,7 +373,7 @@ export async function pruneStaleMemories(config: {
   return ok(undefined);
 }
 
-export async function deduplicateMemories(similarityThreshold = 0.92): Promise<number> {
+export async function deduplicateMemories(similarityThreshold = 0.85): Promise<number> {
   const embedder = await getEmbedder();
   const table = await getSemanticTable(embedder.dimensions);
 

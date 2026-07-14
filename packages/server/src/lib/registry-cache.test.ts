@@ -36,15 +36,22 @@ function errorFetch(status: number): FetchLike {
 }
 
 describe('createRegistryCache', () => {
-  test('fetches from network and writes disk cache on first get', async () => {
+  test('fetches from network and writes disk cache on first get, without a user agent unless configured', async () => {
     const cacheFilePath = await createTempCacheFilePath();
     const cache = createRegistryCache({ cacheFilePath, url: 'https://example.com', parse });
 
-    const result = await cache.get(okFetch(PAYLOAD));
+    const captured = { userAgent: 'unexpected' as string | null };
+    const fetchImpl: FetchLike = async (_input, init) => {
+      captured.userAgent = new Headers(init?.headers).get('User-Agent');
+      return new Response(JSON.stringify(PAYLOAD), { status: 200, headers: { 'content-type': 'application/json' } });
+    };
+
+    const result = await cache.get(fetchImpl);
 
     expect(result).toEqual(PAYLOAD);
     const written = JSON.parse(await fs.readFile(cacheFilePath, 'utf8'));
     expect(written).toEqual(PAYLOAD);
+    expect(captured.userAgent).toBeNull();
   });
 
   test('sends configured user agent when fetching from network', async () => {
@@ -60,21 +67,6 @@ describe('createRegistryCache', () => {
     await cache.get(fetchImpl);
 
     expect(captured.userAgent).toBe('stitch');
-  });
-
-  test('does not send user agent unless configured', async () => {
-    const cacheFilePath = await createTempCacheFilePath();
-    const cache = createRegistryCache({ cacheFilePath, url: 'https://example.com', parse });
-
-    const captured = { userAgent: 'unexpected' as string | null };
-    const fetchImpl: FetchLike = async (_input, init) => {
-      captured.userAgent = new Headers(init?.headers).get('User-Agent');
-      return new Response(JSON.stringify(PAYLOAD), { status: 200, headers: { 'content-type': 'application/json' } });
-    };
-
-    await cache.get(fetchImpl);
-
-    expect(captured.userAgent).toBeNull();
   });
 
   test('returns in-memory cache on second get without fetching', async () => {

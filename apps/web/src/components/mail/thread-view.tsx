@@ -14,6 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { getServerUrl } from '@/lib/api';
 import { getErrorMessage } from '@/lib/errors';
+import { formatDateTime } from '@/lib/format';
 import { useModifyMailMessage, useTrashMailThread, useUntrashMailThread } from '@/lib/mutations/mail';
 import { mailLabelsQueryOptions, mailThreadQueryOptions } from '@/lib/queries/mail';
 
@@ -22,10 +23,6 @@ type ThreadViewProps = { accountId: MailAccountId; threadId: MailThreadId; onClo
 function formatAddress(message: MailMessageView): string {
   if (!message.from) return 'Unknown sender';
   return message.from.name ? `${message.from.name} <${message.from.email}>` : message.from.email;
-}
-
-function formatMessageDate(value: number): string {
-  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
 function LabelCombobox({
@@ -108,7 +105,7 @@ function MessageCard({
             To: {message.to.map((address) => address.email).join(', ') || 'Undisclosed'}
           </div>
         </div>
-        <div className="shrink-0 text-xs text-muted-foreground">{formatMessageDate(message.internalDate)}</div>
+        <div className="shrink-0 text-xs text-muted-foreground">{formatDateTime(message.internalDate)}</div>
       </button>
       {open ? (
         <div className={fillAvailableHeight ? 'mt-4 flex min-h-0 flex-1 flex-col space-y-3' : 'mt-4 space-y-3'}>

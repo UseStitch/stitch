@@ -62,26 +62,7 @@ afterEach(async () => {
 });
 
 describe('mcp registry service', () => {
-  test('downloads and caches registry payload', async () => {
-    const cacheFilePath = await createTempCacheFilePath();
-    const fetchImpl: FetchLike = async () =>
-      new Response(JSON.stringify(REGISTRY_PAYLOAD), { status: 200, headers: { 'content-type': 'application/json' } });
-
-    const refreshResult = await refreshMcpRegistryCache({ cacheFilePath, fetchImpl, force: true });
-    expect(refreshResult.error).toBeNull();
-
-    const listResult = await listMcpRegistryServers({ cacheFilePath });
-    expect(listResult.error).toBeNull();
-    if (listResult.error) return;
-
-    expect(listResult.data.map((server) => server.name)).toEqual(['Alpha Server', 'Zulu Server']);
-
-    const cachedText = await fs.readFile(cacheFilePath, 'utf8');
-    const cachedPayload = JSON.parse(cachedText) as { servers: { id: string }[] };
-    expect(cachedPayload.servers).toHaveLength(2);
-  });
-
-  test('sends Stitch user agent when fetching registry payload', async () => {
+  test('downloads and caches registry payload, sending the Stitch user agent', async () => {
     const cacheFilePath = await createTempCacheFilePath();
     const captured = { userAgent: null as string | null };
     const fetchImpl: FetchLike = async (_input, init) => {
@@ -92,11 +73,20 @@ describe('mcp registry service', () => {
       });
     };
 
-    const result = await refreshMcpRegistryCache({ cacheFilePath, fetchImpl, force: true });
-
-    expect(result.error).toBeNull();
+    const refreshResult = await refreshMcpRegistryCache({ cacheFilePath, fetchImpl, force: true });
+    expect(refreshResult.error).toBeNull();
     expect(captured.userAgent?.startsWith('Stitch/')).toBe(true);
     expect(captured.userAgent).toContain('RegistryClient/1');
+
+    const listResult = await listMcpRegistryServers({ cacheFilePath });
+    expect(listResult.error).toBeNull();
+    if (listResult.error) return;
+
+    expect(listResult.data.map((server) => server.name)).toEqual(['Alpha Server', 'Zulu Server']);
+
+    const cachedText = await fs.readFile(cacheFilePath, 'utf8');
+    const cachedPayload = JSON.parse(cachedText) as { servers: { id: string }[] };
+    expect(cachedPayload.servers).toHaveLength(2);
   });
 
   test('uses disk cache when present', async () => {

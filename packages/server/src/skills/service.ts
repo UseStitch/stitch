@@ -12,6 +12,7 @@ import type {
 } from '@stitch/shared/skills/types';
 
 import { getDisabledAppSkillNames } from '@/apps/service.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
@@ -100,13 +101,17 @@ export async function createSkill(input: SkillCreateInput): Promise<ServiceResul
 
   await writeSkillMdFile(value.name, buildSkillMd(value));
 
-  return ok({
+  const skill = {
     name: value.name,
     description: value.description.trim(),
     content: value.content.trim(),
     location: getSkillMdPath(value.name),
     files: [],
-  });
+  };
+
+  internalBus.emit('skill.created', { name: skill.name });
+
+  return ok(skill);
 }
 
 export async function syncBuiltInSkills(builtInSkills: BuiltInSkill[]): Promise<void> {
@@ -147,13 +152,17 @@ export async function updateSkill(name: string, input: SkillUpdateInput): Promis
   const targetDir = getSkillDir(value.name);
   const files = await listSkillFiles(targetDir);
 
-  return ok({
+  const skill = {
     name: value.name,
     description: value.description.trim(),
     content: value.content.trim(),
     location: getSkillMdPath(value.name),
     files,
-  });
+  };
+
+  internalBus.emit('skill.updated', { name: skill.name, previousName: name });
+
+  return ok(skill);
 }
 
 export async function deleteSkill(name: string): Promise<ServiceResult<null>> {
@@ -165,6 +174,7 @@ export async function deleteSkill(name: string): Promise<ServiceResult<null>> {
   }
 
   await rm(skillDir, { recursive: true, force: true });
+  internalBus.emit('skill.deleted', { name });
   return ok(null);
 }
 
@@ -276,13 +286,17 @@ export async function importSkillFromDirectory(input: SkillImportInput): Promise
 
     const skillFiles = await listSkillFiles(skillDir);
 
-    return ok({
+    const skill = {
       name: value.name,
       description: value.description.trim(),
       content: value.content.trim(),
       location: getSkillMdPath(value.name),
       files: skillFiles,
-    });
+    };
+
+    internalBus.emit('skill.created', { name: skill.name });
+
+    return ok(skill);
   } catch (error) {
     if (error instanceof SkillNameCollisionError) {
       return err(error.message, 409);

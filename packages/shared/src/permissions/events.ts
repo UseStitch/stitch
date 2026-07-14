@@ -8,9 +8,9 @@ export type PermissionResponseResolvedPayload = {
   sessionId: PrefixedString<'ses'>;
 };
 
-export const PERMISSION_EVENT_NAMES = ['permission-response-requested', 'permission-response-resolved'] as const;
+export const PERMISSION_EVENT_NAMES = ['permission.requested', 'permission.resolved'] as const;
 
 export type PermissionEvents = {
-  'permission-response-requested': PermissionResponseRequestedPayload;
-  'permission-response-resolved': PermissionResponseResolvedPayload;
+  'permission.requested': PermissionResponseRequestedPayload;
+  'permission.resolved': PermissionResponseResolvedPayload;
 };

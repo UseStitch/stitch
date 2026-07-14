@@ -25,22 +25,106 @@ export const embeddingUsageEvents = sqliteTable(
   ],
 );
 
+export type ChatLlmUsageMetadata = {
+  source: 'chat';
+  eventType: 'step-success';
+  sessionId: PrefixedString<'ses'>;
+  messageId: PrefixedString<'msg'>;
+  stepIndex: number;
+  attemptIndex: number;
+  finishReason: string;
+};
+
+export type ChatFailedLlmUsageMetadata = {
+  source: 'chat';
+  eventType: 'attempt-failure';
+  sessionId: PrefixedString<'ses'>;
+  messageId: PrefixedString<'msg'>;
+  stepIndex: number;
+  attemptIndex: number;
+  streamRunId: string;
+  isRetryable: boolean;
+};
+
+export type CompactionLlmUsageMetadata = {
+  source: 'compaction';
+  sessionId: PrefixedString<'ses'>;
+  messageId: PrefixedString<'msg'>;
+  auto: boolean;
+  overflow: boolean;
+};
+
+export type DoomLoopFailedLlmUsageMetadata = {
+  source: 'doom_loop_summary';
+  eventType: 'attempt-failure';
+  sessionId: PrefixedString<'ses'>;
+  messageId: PrefixedString<'msg'>;
+  streamRunId: string;
+  isRetryable: boolean;
+};
+
+export type DoomLoopSummaryLlmUsageMetadata = {
+  source: 'doom_loop_summary';
+  eventType: 'summary-after-stop';
+  sessionId: PrefixedString<'ses'>;
+  messageId: PrefixedString<'msg'>;
+};
+
+export type ChatTitleGenerationLlmUsageMetadata = {
+  source: 'title_generation';
+  target: 'chat';
+  sessionId: PrefixedString<'ses'>;
+  messageId: PrefixedString<'msg'>;
+};
+
+export type RecordingTitleGenerationLlmUsageMetadata = {
+  source: 'title_generation';
+  target: 'recording-analysis';
+  recordingId: string;
+  analysisId: string;
+};
+
+export type TitleGenerationLlmUsageMetadata =
+  | ChatTitleGenerationLlmUsageMetadata
+  | RecordingTitleGenerationLlmUsageMetadata;
+
+export type AutomationGenerationLlmUsageMetadata = {
+  source: 'automation_generation';
+  sessionId: PrefixedString<'ses'>;
+  messageId: PrefixedString<'msg'>;
+};
+
+export type RecordingAnalysisLlmUsageMetadata = {
+  source: 'recording_analysis';
+  recordingId: string;
+  analysisId: string;
+};
+
+export type MemoryExtractionPhase = 'extraction' | 'deduplication' | 'consolidation';
+
+export type MemoryExtractionLlmUsageMetadata = { source: 'memory_extraction'; phase: MemoryExtractionPhase };
+
+export type LlmUsageMetadata =
+  | ChatLlmUsageMetadata
+  | ChatFailedLlmUsageMetadata
+  | CompactionLlmUsageMetadata
+  | DoomLoopFailedLlmUsageMetadata
+  | DoomLoopSummaryLlmUsageMetadata
+  | TitleGenerationLlmUsageMetadata
+  | AutomationGenerationLlmUsageMetadata
+  | RecordingAnalysisLlmUsageMetadata
+  | MemoryExtractionLlmUsageMetadata;
+
 export const llmUsageEvents = sqliteTable(
   'llm_usage_events',
   {
     id: text('id').primaryKey(),
-    runId: text('run_id').notNull(),
     source: text('source').notNull(),
     status: text('status').notNull().default('succeeded'),
-    isAttributable: integer('is_attributable', { mode: 'boolean' }).notNull().default(true),
-    sessionId: text('session_id').$type<PrefixedString<'ses'> | null>(),
-    messageId: text('message_id').$type<PrefixedString<'msg'> | null>(),
-    stepIndex: integer('step_index'),
-    attemptIndex: integer('attempt_index'),
     providerId: text('provider_id').notNull(),
     modelId: text('model_id').notNull(),
     usage: blob('usage', { mode: 'json' }).$type<LanguageModelUsage>(),
-    metadata: blob('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
+    metadata: blob('metadata', { mode: 'json' }).$type<LlmUsageMetadata>(),
     inputTokens: integer('input_tokens').notNull().default(0),
     outputTokens: integer('output_tokens').notNull().default(0),
     reasoningTokens: integer('reasoning_tokens').notNull().default(0),
@@ -57,7 +141,6 @@ export const llmUsageEvents = sqliteTable(
       .$defaultFn(() => Date.now()),
   },
   (table) => [
-    index('llm_usage_events_run_id_idx').on(table.runId),
     index('llm_usage_events_source_idx').on(table.source),
     index('llm_usage_events_created_at_idx').on(table.createdAt),
     index('llm_usage_events_provider_model_idx').on(table.providerId, table.modelId),

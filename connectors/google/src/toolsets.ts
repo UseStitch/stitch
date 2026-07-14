@@ -11,6 +11,7 @@ import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
 import { createCalendarTools } from './calendar/tools.js';
 import { createDocsTools } from './docs/tools.js';
 import { createDriveTools } from './drive/tools.js';
+import { SummaryResolverCalledError } from './errors.js';
 import { createGmailTools } from './gmail/tools.js';
 import {
   hasGmailModifyAccess,
@@ -59,7 +60,7 @@ export type GoogleToolsetDefinition = {
 type Resolver = (account?: string) => Promise<{ client: GoogleClient; usedAccount: string | null }>;
 
 const SUMMARY_RESOLVER: Resolver = async () => {
-  throw new Error('Summary resolver should not be executed.');
+  throw new SummaryResolverCalledError();
 };
 
 function summarizeTools(tools: Record<string, Tool>): { name: string; description: string }[] {

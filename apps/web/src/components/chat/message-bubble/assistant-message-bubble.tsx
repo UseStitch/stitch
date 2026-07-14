@@ -42,8 +42,8 @@ export function AssistantMessageBubble({ parts, finishReason, onAbortTool }: Ass
   const hadError = finishReason === 'error';
 
   const streamErrorPart = hadError
-    ? (parts.find((part) => part.type === 'stream-error') as
-        | (StoredPart & { type: 'stream-error'; error: string; details?: StreamErrorDetails })
+    ? (parts.find((part) => part.type === 'stream.error') as
+        | (StoredPart & { type: 'stream.error'; error: string; details?: StreamErrorDetails })
         | undefined)
     : undefined;
 

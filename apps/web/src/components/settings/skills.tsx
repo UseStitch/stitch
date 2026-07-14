@@ -15,6 +15,7 @@ import {
 } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
+import { Empty, EmptyDescription, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -230,12 +231,12 @@ export function SkillsSettings() {
         </ButtonGroup>
       }>
       {skills.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/10 px-6 py-12 text-center">
-          <p className="text-sm font-medium">No skills yet</p>
-          <p className="max-w-sm text-xs text-muted-foreground">
+        <Empty surface="muted">
+          <EmptyTitle>No skills yet</EmptyTitle>
+          <EmptyDescription>
             Create a skill with a trigger-focused description and Markdown instructions.
-          </p>
-        </div>
+          </EmptyDescription>
+        </Empty>
       ) : (
         <SettingSection title="My Skills">
           <SettingRows>

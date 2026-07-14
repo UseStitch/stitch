@@ -9,6 +9,9 @@ import type { MemoryStats } from '@/memory/service.js';
 
 const log = Log.create({ service: 'memory-maintenance' });
 
+// Manual "Maintainece" sweeps use a lower dedup threshold than the automatic
+const MANUAL_SWEEP_DEDUP_THRESHOLD = 0.8;
+
 type MaintenanceResult = {
   pruned: number;
   deduplicated: number;
@@ -16,7 +19,9 @@ type MaintenanceResult = {
   stats: MemoryStats | null;
 };
 
-export async function runMemoryMaintenance(): Promise<ServiceResult<MaintenanceResult>> {
+export async function runMemoryMaintenance(
+  options: { manual?: boolean } = {},
+): Promise<ServiceResult<MaintenanceResult>> {
   const config = await getMemoryConfig();
 
   if (!isMemoryActive(config)) {
@@ -44,8 +49,9 @@ export async function runMemoryMaintenance(): Promise<ServiceResult<MaintenanceR
   }
 
   // Phase 2: Dedup sweep — remove near-duplicate memories
-  const deduplicated = await deduplicateMemories();
-  log.info({ deduplicated }, 'memory maintenance: dedup sweep complete');
+  const dedupThreshold = options.manual ? MANUAL_SWEEP_DEDUP_THRESHOLD : config.dedupThreshold;
+  const deduplicated = await deduplicateMemories(dedupThreshold);
+  log.info({ deduplicated, dedupThreshold }, 'memory maintenance: dedup sweep complete');
 
   // Phase 3: Reflective consolidation of related semantic memories
   const consolidated = await consolidateMemories();

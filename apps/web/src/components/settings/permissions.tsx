@@ -1,4 +1,3 @@
-import { SearchIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -23,7 +22,7 @@ import {
   SettingSection,
 } from '@/components/settings/settings-ui';
 import { NativeToolsetIcon, ToolNameIcon } from '@/components/tools/tool-icons';
-import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/search-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getErrorMessage } from '@/lib/errors';
@@ -171,10 +170,8 @@ function ToolsContent() {
     <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
       <div className="space-y-5">
         {scope !== 'settings' && (
-          <div className="relative">
-            <SearchIcon className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-8"
+          <div>
+            <SearchInput
               placeholder="Search by tool, toolset, or MCP server..."
               value={search}
               onChange={(event) => setSearch(event.target.value)}

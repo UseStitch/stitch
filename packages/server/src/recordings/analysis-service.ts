@@ -20,9 +20,9 @@ import type { ServiceResult } from '@/lib/service-result.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveModel } from '@/llm/resolve-model.js';
 import type { LlmProviderCredentials } from '@/provider/config/schema.js';
+import { RecordingAnalysisEmptyResponseError } from '@/recordings/errors.js';
 import { readRecordingAnalysis, readRecordingTranscript, writeRecordingAnalysis } from '@/recordings/file-store.js';
 import { getMeetingNoteTemplate } from '@/recordings/meeting-note-templates.js';
-import { generateRecordingTitle } from '@/recordings/title-generator.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
 import { ZERO_USAGE } from '@/utils/usage.js';
 import type { LanguageModel } from 'ai';
@@ -57,6 +57,18 @@ function buildAnalysisPrompt(template: string): string {
 
 function formatTranscriptForAnalysis(entries: RecordingTranscriptEntry[]): string {
   return entries.map((entry, index) => `[${index}] ${entry.speaker}: ${entry.content}`).join('\n');
+}
+
+function buildRecordingTitleContent(analysis: string): string {
+  return `
+Generate a short, descriptive title (60 chars max) for these meeting notes.
+Use neutral language and do not invent details.
+
+Meeting notes:
+${analysis}
+
+Return only the title.
+`;
 }
 
 export async function toRecordingAnalysis(row: typeof recordingAnalyses.$inferSelect): Promise<RecordingAnalysis> {
@@ -261,7 +273,7 @@ export async function cancelRecordingAnalysis(recordingId: PrefixedString<'rec'>
     .where(eq(recordingAnalyses.id, existing.id))
     .returning();
 
-  broadcastRecordingAnalysisUpdated({ recordingId, status: 'failed', title: null });
+  internalBus.emit('recording.analysis.failed', { recordingId });
 
   if (!updated) {
     return err('Failed to cancel recording analysis', 400);
@@ -303,7 +315,6 @@ async function runRecordingAnalysis(
     broadcastRecordingAnalysisUpdated({ recordingId: input.recordingId, status: 'processing', title: null });
 
     const analysisModel = deps.createProvider(input.analysisCredentials)(input.analysisModelId);
-    const analysisRunId = `${analysisId}:analysis`;
     const analysisStart = Date.now();
     const analysisResult = await generateText({
       model: analysisModel,
@@ -316,42 +327,24 @@ async function runRecordingAnalysis(
 
     const summary = analysisResult.text.trim();
     if (!summary) {
-      throw new Error('Analysis did not return markdown notes');
+      throw new RecordingAnalysisEmptyResponseError();
     }
 
     const analysisUsage = analysisResult.usage ?? ZERO_USAGE;
 
     const { costUsd: analysisCost } = await recordLlmUsage({
-      runId: analysisRunId,
       source: 'recording_analysis',
       providerId: input.analysisProviderId,
       modelId: input.analysisModelId,
       usage: analysisUsage,
-      metadata: { recordingId: input.recordingId, analysisId, phase: 'analysis' },
+      metadata: { source: 'recording_analysis', recordingId: input.recordingId, analysisId },
       startedAt: analysisStart,
       endedAt: Date.now(),
       durationMs: Date.now() - analysisStart,
     });
 
-    const titleStart = Date.now();
-    const titleResult = await generateRecordingTitle(summary, input.analysisProviderId, input.analysisModelId);
-    const titleCost = titleResult
-      ? (
-          await recordLlmUsage({
-            runId: `${analysisId}:title`,
-            source: 'title_generation',
-            providerId: titleResult.providerId,
-            modelId: titleResult.modelId,
-            usage: titleResult.usage ?? ZERO_USAGE,
-            metadata: { recordingId: input.recordingId, analysisId, phase: 'title-generation' },
-            startedAt: titleStart,
-            endedAt: Date.now(),
-            durationMs: Date.now() - titleStart,
-          })
-        ).costUsd
-      : 0;
     const endedAt = Date.now();
-    const title = titleResult?.title ?? 'Recording analysis';
+    const title = 'Recording analysis';
 
     if (activeRuns.get(analysisId)?.controller !== abortController) {
       return;
@@ -376,7 +369,7 @@ async function runRecordingAnalysis(
         analysisProviderId: input.analysisProviderId,
         analysisModelId: input.analysisModelId,
         usage: analysisUsage,
-        costUsd: transcriptionCost + analysisCost + titleCost,
+        costUsd: transcriptionCost + analysisCost,
         startedAt,
         endedAt,
         durationMs: endedAt - startedAt,
@@ -384,7 +377,14 @@ async function runRecordingAnalysis(
       })
       .where(eq(recordingAnalyses.id, analysisId));
 
-    broadcastRecordingAnalysisUpdated({ recordingId: input.recordingId, status: 'completed', title });
+    internalBus.emit('recording.analysis.completed', { recordingId: input.recordingId, title });
+    internalBus.emit('title.generation.recording_analysis.requested', {
+      recordingId: input.recordingId,
+      analysisId,
+      content: buildRecordingTitleContent(summary),
+      fallbackProviderId: input.analysisProviderId,
+      fallbackModelId: input.analysisModelId,
+    });
 
     log.info({ analysisId, recordingId: input.recordingId }, 'recording analysis completed');
   } catch (error) {
@@ -406,7 +406,7 @@ async function runRecordingAnalysis(
       .set({ status: 'failed', error: message, endedAt, durationMs: endedAt - startedAt, updatedAt: endedAt })
       .where(eq(recordingAnalyses.id, analysisId));
 
-    broadcastRecordingAnalysisUpdated({ recordingId: input.recordingId, status: 'failed', title: null });
+    internalBus.emit('recording.analysis.failed', { recordingId: input.recordingId });
 
     log.error({ analysisId, recordingId: input.recordingId, error: message }, 'recording analysis failed');
   } finally {

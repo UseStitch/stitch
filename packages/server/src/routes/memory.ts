@@ -139,7 +139,7 @@ memoryRouter.post('/maintenance', async (c) => {
   const inactiveResponse = await ensureMemoryActive(c);
   if (inactiveResponse) return inactiveResponse;
 
-  const result = await runMemoryMaintenance();
+  const result = await runMemoryMaintenance({ manual: true });
   return unwrapResult(c, result);
 });
 

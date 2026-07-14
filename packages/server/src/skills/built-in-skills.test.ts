@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { fileURLToPath } from 'node:url';
 
-import { getBuiltInSkillSource, loadBuiltInSkills } from '@/skills/built-in-skills.js';
+import { loadBuiltInSkills } from '@/skills/built-in-skills.js';
 
 const TEST_BUILT_INS_DIR = fileURLToPath(new URL('./__test__', import.meta.url));
 
@@ -20,11 +20,5 @@ describe('loadBuiltInSkills', () => {
   test('returns empty array for nonexistent directory', async () => {
     const skills = await loadBuiltInSkills('/nonexistent/path');
     expect(skills).toEqual([]);
-  });
-});
-
-describe('getBuiltInSkillSource', () => {
-  test('builds stable source keys', () => {
-    expect(getBuiltInSkillSource('test-skill')).toBe('builtin:test-skill');
   });
 });

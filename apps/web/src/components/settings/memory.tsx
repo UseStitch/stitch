@@ -241,6 +241,12 @@ function ExtractionSettings() {
         min={0}
         max={20}
       />
+      <SwitchSettingRow
+        settingKey="memory.extraction.fromAutomations"
+        label="Extract From Automations"
+        description="Allow automation sessions to extract and store new memories. When off, only chat sessions write memories."
+        checked={settings['memory.extraction.fromAutomations'] === 'true'}
+      />
     </SettingRows>
   );
 }
@@ -271,6 +277,15 @@ function RetentionSettings() {
         label="Auto-prune"
         description="Run automatic pruning after extraction to stay within limits."
         checked={settings['memory.retention.autoprune'] === 'true'}
+      />
+      <SliderSettingRow
+        settingKey="memory.retention.dedupThreshold"
+        label="Dedup Similarity Threshold"
+        description="How similar two memories must be to count as duplicates. Lower = more aggressive dedup."
+        currentValue={Number(settings['memory.retention.dedupThreshold'])}
+        min={0.5}
+        max={1}
+        step={0.01}
       />
     </SettingRows>
   );
@@ -305,6 +320,18 @@ function RetrievalSettings() {
         label="Recency Boost"
         description="Boost recently-accessed memories in ranking."
         checked={settings['memory.retrieval.recencyBoost'] === 'true'}
+      />
+      <SwitchSettingRow
+        settingKey="memory.retrieval.contextAwareQuery"
+        label="Context-Aware Query"
+        description="Include the preceding assistant message when building the memory search query, so vague follow-ups resolve to the conversation topic."
+        checked={settings['memory.retrieval.contextAwareQuery'] === 'true'}
+      />
+      <SwitchSettingRow
+        settingKey="memory.retrieval.skipLowSignal"
+        label="Skip Low-Signal Messages"
+        description={`Skip memory retrieval for short, low-content messages (e.g. "continue", "ok do that") and reuse the previous turn's memories instead.`}
+        checked={settings['memory.retrieval.skipLowSignal'] === 'true'}
       />
     </SettingRows>
   );

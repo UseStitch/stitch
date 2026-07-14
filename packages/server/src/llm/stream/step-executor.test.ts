@@ -76,7 +76,7 @@ describe('executeStepWithRetry', () => {
     captureAllEvents();
   });
 
-  test('completes a simple text stream and returns stop finish reason', async () => {
+  test('completes a simple text stream, returns stop finish reason, and broadcasts SSE events', async () => {
     const model = createMockModel(async () =>
       makeStreamResult([
         { type: 'text-start', id: 'text-1' },
@@ -94,6 +94,10 @@ describe('executeStepWithRetry', () => {
     expect(opts.accumulatedParts).toEqual(
       expect.arrayContaining([expect.objectContaining({ type: 'text-delta', text: 'Hello, world!' })]),
     );
+
+    const eventTypes = emittedEvents.map(([name]) => name);
+    expect(eventTypes).toContain('part.update');
+    expect(eventTypes).toContain('part.delta');
   });
 
   test('flushes buffered text when stream ends without text-end', async () => {
@@ -248,24 +252,6 @@ describe('executeStepWithRetry', () => {
     expect(callCount).toBe(1);
     expect(result.finishReason).toBe('tool-calls');
     expect(result.toolCalls).toEqual(expect.arrayContaining([expect.objectContaining({ toolName: 'bash' })]));
-  });
-
-  test('broadcasts SSE events during streaming', async () => {
-    const model = createMockModel(async () =>
-      makeStreamResult([
-        { type: 'text-start', id: 'text-1' },
-        { type: 'text-delta', id: 'text-1', delta: 'Hi' },
-        { type: 'text-end', id: 'text-1' },
-        FINISH_STOP,
-      ]),
-    );
-
-    const opts = getDefaultOpts(model);
-    await executeStepWithRetry(opts);
-
-    const eventTypes = emittedEvents.map(([name]) => name);
-    expect(eventTypes).toContain('part.update');
-    expect(eventTypes).toContain('part.delta');
   });
 
   test('handles abort signal during streaming', async () => {

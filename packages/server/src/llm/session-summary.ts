@@ -11,6 +11,7 @@ import { messages, sessions } from '@/db/schema/sessions.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { addCacheControlToMessages } from '@/llm/cache-control.js';
+import { CompactionModelNotFoundError } from '@/llm/errors.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { getPromptUserContext } from '@/llm/prompt/builder.js';
 import { getProviderOptions } from '@/llm/provider-options.js';
@@ -203,7 +204,7 @@ async function resolveCompactionModel(
   });
 
   if (!resolved) {
-    throw new Error(`No configured provider found for compaction`);
+    throw new CompactionModelNotFoundError();
   }
 
   const providers = await Models.get();
@@ -350,15 +351,18 @@ export async function compact(input: {
     } as StoredPart;
 
     const { costUsd } = await recordLlmUsage({
-      runId: summaryMessageId,
       source: 'compaction',
       status: 'succeeded',
-      sessionId,
-      messageId: summaryMessageId,
       providerId: resolved.providerId,
       modelId: resolved.modelId,
       usage,
-      metadata: { phase: 'compaction', auto: input.auto, overflow: input.overflow ?? false },
+      metadata: {
+        source: 'compaction',
+        sessionId,
+        messageId: summaryMessageId,
+        auto: input.auto,
+        overflow: input.overflow ?? false,
+      },
       startedAt: now,
       endedAt: summaryNow,
       durationMs: summaryNow - now,
@@ -423,20 +427,14 @@ export async function compact(input: {
       details: toStreamErrorDetails(mappedError),
     });
 
-    const failedAt = Date.now();
-    await recordLlmUsage({
-      runId: summaryMessageId,
-      source: 'compaction',
-      status: 'failed',
+    internalBus.emit('usage.compaction.failed', {
       sessionId,
       messageId: summaryMessageId,
       providerId: input.providerId,
       modelId: input.modelId,
       errorCode: mappedError.category,
-      metadata: { phase: 'compaction', auto: input.auto, overflow: input.overflow ?? false },
-      startedAt: failedAt,
-      endedAt: failedAt,
-      durationMs: 0,
+      auto: input.auto,
+      overflow: input.overflow ?? false,
     });
 
     return 'error';

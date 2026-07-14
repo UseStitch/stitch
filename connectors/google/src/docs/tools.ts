@@ -1,6 +1,7 @@
 import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 
+import { DocsEditMultipleMatchesError, DocsEditNoMatchError } from '../errors.js';
 import * as DocsApi from './api.js';
 
 import type { GoogleClient } from '../client.js';
@@ -66,9 +67,6 @@ const docsEditSchema = z
     message: 'newString must be different from oldString',
     path: ['newString'],
   });
-
-const MULTIPLE_MATCHES_ERROR =
-  'Found multiple matches for oldString. Provide more surrounding lines in oldString to identify the correct match.';
 
 function countOccurrences(content: string, oldString: string): number {
   let count = 0;
@@ -141,11 +139,11 @@ export function createDocsTools(
         const matchCount = countOccurrences(document.text, input.oldString);
 
         if (matchCount === 0) {
-          throw new Error('oldString not found in content');
+          throw new DocsEditNoMatchError();
         }
 
         if (!input.replaceAll && matchCount > 1) {
-          throw new Error(MULTIPLE_MATCHES_ERROR);
+          throw new DocsEditMultipleMatchesError();
         }
 
         const nextContent = input.replaceAll

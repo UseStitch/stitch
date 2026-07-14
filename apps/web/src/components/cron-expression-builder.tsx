@@ -399,7 +399,7 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
               <p className="text-xs text-muted-foreground italic">No upcoming runs scheduled</p>
             )}
           </div>
-          <div className="text-right text-[10px] text-muted-foreground">Timezone: {timezone}</div>
+          <div className="text-right text-2xs text-muted-foreground">Timezone: {timezone}</div>
         </div>
       </div>
     </div>

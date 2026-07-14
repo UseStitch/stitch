@@ -51,14 +51,9 @@ describe('LiquidUi', () => {
     expect(html).toContain('animate-pulse');
   });
 
-  test('renders nothing for a totally invalid spec', () => {
-    const html = renderToStaticMarkup(<LiquidUi spec={{ bad: true }} />);
-    expect(html).toBe('');
-  });
-
-  test('renders nothing for null spec', () => {
-    const html = renderToStaticMarkup(<LiquidUi spec={null} />);
-    expect(html).toBe('');
+  test('renders nothing for a totally invalid spec or null spec', () => {
+    expect(renderToStaticMarkup(<LiquidUi spec={{ bad: true }} />)).toBe('');
+    expect(renderToStaticMarkup(<LiquidUi spec={null} />)).toBe('');
   });
 
   test('repairs common missing layout props', () => {

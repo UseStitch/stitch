@@ -43,7 +43,7 @@ export function RecordingEventListener() {
     const unsubscribeWarning = window.api?.recording?.onWarning((payload) => {
       if (payload.code === UNRECOVERABLE_WARNING_CODE) {
         toast.error('Audio capture could not be recovered — stopping the recording.', {
-          id: 'recording-unrecoverable',
+          id: 'recording.unrecoverable',
         });
         void stopRecordingRef.current.mutateAsync().catch(() => {
           toast.error('Failed to finalize the recording.', { id: 'recording-finalize-error' });
@@ -65,8 +65,8 @@ export function RecordingEventListener() {
   }, []);
 
   useRecordingEvents(activeRecordingId, {
-    'recording-unrecoverable': ({ reason }) => {
-      toast.error(reason, { id: 'recording-unrecoverable' });
+    'recording.unrecoverable': ({ reason }) => {
+      toast.error(reason, { id: 'recording.unrecoverable' });
       void stopRecording.mutateAsync().catch(() => {
         toast.error('Failed to finalize the recording.', { id: 'recording-finalize-error' });
       });

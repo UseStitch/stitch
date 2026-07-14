@@ -65,7 +65,6 @@ describe('connector upgrade helpers', () => {
       capabilities: ['example.read'],
     });
 
-    expect(upgrade).not.toBeNull();
     expect(upgrade?.actions).toEqual(['reauthorize', 'rotate_api_key']);
     expect(upgrade?.missingScopes).toEqual(['scope:write']);
     expect(upgrade?.newCapabilities).toEqual(['example.write', 'example.admin']);
@@ -106,7 +105,6 @@ describe('connector upgrade helpers', () => {
       capabilities: ['google.drive.read'],
     });
 
-    expect(upgrade).not.toBeNull();
     expect(upgrade?.actions).toEqual(['reauthorize']);
     expect(upgrade?.missingScopes).toEqual(['https://www.googleapis.com/auth/documents']);
     expect(upgrade?.newCapabilities).toEqual(['google.docs.read', 'google.docs.write']);

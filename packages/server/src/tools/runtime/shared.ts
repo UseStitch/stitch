@@ -1,6 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { ToolFileTypeError, ToolPathValidationError } from '@/tools/errors.js';
+
 const MAX_LINE_LENGTH = 2000;
 const NON_PRINTABLE_RATIO_LIMIT = 0.3;
 
@@ -106,7 +108,7 @@ export function isTextFileBuffer(buffer: Buffer): boolean {
 export function decodeTextFileBuffer(buffer: Buffer): string {
   const encoding = detectTextEncoding(buffer);
   if (encoding === null) {
-    throw new Error('Only text files are supported');
+    throw new ToolFileTypeError();
   }
 
   if (encoding === 'utf-16be') {
@@ -116,18 +118,18 @@ export function decodeTextFileBuffer(buffer: Buffer): string {
       swapped[i + 1] = buffer[i];
     }
     const content = swapped.toString('utf16le');
-    if (!isMostlyPrintableText(content)) throw new Error('Only text files are supported');
+    if (!isMostlyPrintableText(content)) throw new ToolFileTypeError();
     return content;
   }
 
   const content = encoding === 'utf-16le' ? buffer.toString('utf16le') : buffer.toString('utf8');
-  if (!isMostlyPrintableText(content)) throw new Error('Only text files are supported');
+  if (!isMostlyPrintableText(content)) throw new ToolFileTypeError();
   return content;
 }
 
 export function validateAbsoluteFilePath(filePath: string): string {
   if (!path.isAbsolute(filePath)) {
-    throw new Error('filePath must be an absolute path');
+    throw new ToolPathValidationError(filePath, 'filePath must be an absolute path');
   }
 
   return path.resolve(filePath);
@@ -135,7 +137,7 @@ export function validateAbsoluteFilePath(filePath: string): string {
 
 export function validateAbsoluteDirectoryPath(dirPath: string): string {
   if (!path.isAbsolute(dirPath)) {
-    throw new Error('path must be an absolute directory path');
+    throw new ToolPathValidationError(dirPath, 'path must be an absolute directory path');
   }
 
   return path.resolve(dirPath);
@@ -145,7 +147,7 @@ export async function validateExistingDirectoryPath(dirPath: string): Promise<st
   const resolved = validateAbsoluteDirectoryPath(dirPath);
   const stat = await fs.stat(resolved);
   if (!stat.isDirectory()) {
-    throw new Error('workdir must point to an existing directory');
+    throw new ToolPathValidationError(dirPath, 'workdir must point to an existing directory');
   }
 
   return resolved;

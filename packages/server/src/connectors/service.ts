@@ -23,9 +23,10 @@ import {
 import type { startOAuthFlow as StartOAuthFlowFn } from '@/connectors/auth/oauth2.js';
 import { withRefreshLock } from '@/connectors/auth/refresh-lock.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
-import { getConnectorModule, refreshConnectorToolsetsFor } from '@/connectors/runtime.js';
+import { getConnectorModule } from '@/connectors/runtime.js';
 import { getDb } from '@/db/client.js';
 import { connectorInstances, connectors } from '@/db/schema/connectors.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
@@ -148,7 +149,7 @@ export async function deleteConnector(connectorRefId: string): Promise<ServiceRe
   if (!existing) return err('Connector not found', 404);
 
   await db.delete(connectors).where(eq(connectors.id, typedConnectorRefId));
-  await refreshConnectorToolsetsFor(existing.connectorId);
+  internalBus.emit('connector.removed', { instanceId: null, connectorId: existing.connectorId });
 
   log.info(
     { event: 'connector.credentials.deleted', connectorRefId, connectorId: existing.connectorId },
@@ -360,8 +361,7 @@ export async function authorizeOAuthInstance(
         .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
 
       log.info({ event: 'connector.authorized', instanceId, accountEmail }, `Connector authorized: ${instance.label}`);
-
-      await refreshConnectorToolsetsFor(instance.connectorId);
+      internalBus.emit('connector.authorized', { instanceId, connectorId: instance.connectorId });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await db
@@ -369,6 +369,7 @@ export async function authorizeOAuthInstance(
         .set({ status: 'error' as ConnectorStatus, authIssue: 'temporary_failure', updatedAt: Date.now() })
         .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
       log.warn({ event: 'connector.authorize.failed', instanceId, error: message }, 'connector authorization failed');
+      internalBus.emit('connector.auth.failed', { instanceId });
       throw error;
     }
   };
@@ -440,6 +441,7 @@ export async function upgradeConnectorInstance(
         updatedAt: now,
       })
       .where(eq(connectorInstances.id, typedInstanceId));
+    internalBus.emit('connector.authorized', { instanceId, connectorId: instance.connectorId });
     return ok({ type: 'updated' });
   }
 
@@ -466,6 +468,8 @@ export async function upgradeConnectorInstance(
         updatedAt: now,
       })
       .where(eq(connectorInstances.id, typedInstanceId));
+
+    internalBus.emit('connector.authorized', { instanceId, connectorId: instance.connectorId });
 
     return ok({ type: 'updated' });
   }
@@ -534,7 +538,7 @@ export async function deleteConnectorInstance(instanceId: string): Promise<Servi
   if (module?.hooks?.onDeleted) {
     await module.hooks.onDeleted({ instance: existing, logger: log });
   }
-  await refreshConnectorToolsetsFor(existing.connectorId);
+  internalBus.emit('connector.removed', { instanceId, connectorId: existing.connectorId });
 
   log.info({ event: 'connector.deleted', instanceId }, `Connector instance deleted: ${existing.label}`);
 
@@ -582,6 +586,7 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
             updatedAt: now,
           })
           .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
+        internalBus.emit('connector.token.refreshed', { instanceId });
         testedInstance = {
           ...instance,
           accessToken: refreshed.accessToken,
@@ -616,6 +621,7 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
         .update(connectorInstances)
         .set({ status: 'error' as ConnectorStatus, authIssue: 'reauthorization_required', updatedAt: Date.now() })
         .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
+      internalBus.emit('connector.auth.failed', { instanceId });
     }
 
     return err(

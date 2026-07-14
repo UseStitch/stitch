@@ -3,6 +3,8 @@ import type { Automation, AutomationSchedule } from '@stitch/shared/automations/
 
 import { listAutomations, runAutomation } from './service.js';
 
+import { AutomationCallbackError, AutomationSyncError } from '@/automations/errors.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import { registerSchedulerJob, unregisterSchedulerJob } from '@/scheduler/runtime.js';
 import { getSettings } from '@/settings/service.js';
 
@@ -41,10 +43,14 @@ async function registerAutomationJob(automation: Automation, timezone: string): 
     key: getAutomationJobKey(automation.id),
     schedule: toSchedulerSchedule(automation.schedule, timezone),
     callback: async () => {
+      const key = getAutomationJobKey(automation.id);
+      internalBus.emit('schedule.job.fired', { key, automationId: automation.id });
       const result = await runAutomation(automation.id);
       if (result.error) {
-        throw new Error(result.error.message);
+        internalBus.emit('schedule.job.failed', { key, automationId: automation.id, error: result.error.message });
+        throw new AutomationCallbackError(result.error.message, automation.id);
       }
+      internalBus.emit('schedule.job.succeeded', { key, automationId: automation.id });
     },
     maxConcurrency: 1,
     catchup: 'one',
@@ -74,7 +80,7 @@ export async function syncAllAutomationSchedules(): Promise<void> {
 
   while (true) {
     const result = await listAutomations({ page, pageSize });
-    if (result.error) throw new Error(result.error.message);
+    if (result.error) throw new AutomationSyncError(result.error.message);
 
     automationList.push(...result.data.automations);
 

@@ -1,11 +1,11 @@
 import { generateText, Output } from 'ai';
 import { eq } from 'drizzle-orm';
-import { randomUUID } from 'node:crypto';
 
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { sessions } from '@/db/schema/sessions.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
@@ -24,11 +24,8 @@ import {
   pruneStaleMemories,
 } from '@/memory/service.js';
 import type { MemorySource } from '@/memory/types.js';
-import { recordLlmUsage } from '@/usage/ledger.js';
 
 const log = Log.create({ service: 'memory-processor' });
-
-const MEMORY_SOURCE = 'memory_extraction' as const;
 
 // ---------------------------------------------------------------------------
 // Per-session write budget tracking (in-process, resets on server restart).
@@ -58,28 +55,6 @@ function recordWrite(sessionId: string, count: number): void {
   const state = getSessionState(sessionId);
   state.factsWritten += count;
   state.lastWriteTurn = state.turnCount;
-}
-
-function recordUsageFireAndForget(params: {
-  runId: string;
-  providerId: string;
-  modelId: string;
-  usage: NonNullable<Awaited<ReturnType<typeof generateText>>['usage']>;
-  metadata: Record<string, unknown>;
-  startedAt: number;
-  endedAt: number;
-}): void {
-  recordLlmUsage({
-    runId: params.runId,
-    source: MEMORY_SOURCE,
-    status: 'succeeded',
-    providerId: params.providerId,
-    modelId: params.modelId,
-    usage: params.usage,
-    metadata: params.metadata,
-    startedAt: params.startedAt,
-    endedAt: params.endedAt,
-  }).catch((err) => log.warn({ error: err }, 'failed to record memory usage event'));
 }
 
 /**
@@ -147,13 +122,17 @@ export async function processMemories(input: {
       resolveMemorySource(input.sessionId, input.memorySource),
     ]);
 
+    if (memorySource === 'automation' && !config.extractFromAutomations) {
+      log.debug({ sessionId: input.sessionId }, 'skipping extraction: automation session extraction disabled');
+      return;
+    }
+
     if (!resolved) {
       log.warn('no model available for memory extraction');
       return;
     }
 
     const model = createProvider(resolved.credentials)(resolved.modelId);
-    const runId = randomUUID();
 
     const extractionPrompt = buildExtractionPrompt(input.userMessage, input.assistantMessage);
     const extractionStart = Date.now();
@@ -165,12 +144,11 @@ export async function processMemories(input: {
     const extractionEnd = Date.now();
 
     if (extractionResult.usage) {
-      recordUsageFireAndForget({
-        runId,
+      internalBus.emit('usage.memory.completed', {
         providerId: resolved.providerId,
         modelId: resolved.modelId,
         usage: extractionResult.usage,
-        metadata: { phase: 'extraction' },
+        phase: 'extraction',
         startedAt: extractionStart,
         endedAt: extractionEnd,
       });
@@ -277,12 +255,11 @@ export async function processMemories(input: {
       const dedupEnd = Date.now();
 
       if (dedupResult.usage) {
-        recordUsageFireAndForget({
-          runId,
+        internalBus.emit('usage.memory.completed', {
           providerId: resolved.providerId,
           modelId: resolved.modelId,
           usage: dedupResult.usage,
-          metadata: { phase: 'deduplication', factContent: fact.content },
+          phase: 'deduplication',
           startedAt: dedupStart,
           endedAt: dedupEnd,
         });

@@ -86,23 +86,23 @@ export type DoomLoopDetectedPayload = {
 };
 
 export const STREAM_EVENT_NAMES = [
-  'stream-start',
-  'stream-part-update',
-  'stream-part-delta',
-  'stream-finish',
-  'stream-error',
-  'stream-retry',
-  'stream-tool-state',
-  'doom-loop-detected',
+  'stream.started',
+  'part.update',
+  'part.delta',
+  'stream.finish',
+  'stream.error',
+  'stream.retry',
+  'tool.state',
+  'stream.doom_loop.detected',
 ] as const;
 
 export type StreamEvents = {
-  'stream-start': StreamStartPayload;
-  'stream-part-update': StreamPartUpdatePayload;
-  'stream-part-delta': StreamPartDeltaPayload;
-  'stream-finish': StreamFinishPayload;
-  'stream-error': StreamErrorPayload;
-  'stream-retry': StreamRetryPayload;
-  'stream-tool-state': StreamToolStatePayload;
-  'doom-loop-detected': DoomLoopDetectedPayload;
+  'stream.started': StreamStartPayload;
+  'part.update': StreamPartUpdatePayload;
+  'part.delta': StreamPartDeltaPayload;
+  'stream.finish': StreamFinishPayload;
+  'stream.error': StreamErrorPayload;
+  'stream.retry': StreamRetryPayload;
+  'tool.state': StreamToolStatePayload;
+  'stream.doom_loop.detected': DoomLoopDetectedPayload;
 };

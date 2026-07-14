@@ -19,9 +19,16 @@ import type { OAuthConfig } from '@stitch/shared/connectors/types';
 import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
 import { refreshAccessToken, requiresOAuthReauth } from '@/connectors/auth/oauth2.js';
 import { withRefreshLock } from '@/connectors/auth/refresh-lock.js';
+import {
+  GoogleAccountInsufficientScopesError,
+  GoogleAccountNoAccessTokenError,
+  GoogleAccountNotAuthorizedError,
+  GoogleAccountNotFoundError,
+} from '@/connectors/errors.js';
 import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema/connectors.js';
+import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 import { registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
@@ -70,7 +77,7 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
 
         const connected = rows.filter((row) => row.status === 'connected' && Boolean(row.accessToken));
         if (connected.length === 0) {
-          throw new Error('No connected Google accounts found. Connect and authorize Google first.');
+          throw new GoogleAccountNotFoundError('google');
         }
 
         const normalized = account?.trim().toLowerCase();
@@ -84,14 +91,11 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
           : connected[0];
 
         if (!chosen) {
-          const available = connected.map((row) => row.accountEmail ?? row.label).join(', ');
-          throw new Error(`Unknown Google account "${account}". Available accounts: ${available}`);
+          throw new GoogleAccountNotFoundError('google', account ?? undefined);
         }
 
         if (!canActivateToolset(def.id, (chosen.scopes as string[]) ?? [], chosen.capabilities ?? [])) {
-          throw new Error(
-            `Google account ${chosen.accountEmail ?? chosen.label} does not have the permissions required for ${def.name}. Re-authorize this account with the required scopes.`,
-          );
+          throw new GoogleAccountInsufficientScopesError('google', chosen.accountEmail ?? chosen.label, def.name);
         }
 
         const client = new GoogleClient({
@@ -112,7 +116,7 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
               .where(eq(connectorInstances.id, chosen.id));
 
             if (!latest) {
-              throw new Error(`Google account ${chosen.accountEmail ?? chosen.label} is not authorized.`);
+              throw new GoogleAccountNotAuthorizedError('google', chosen.accountEmail ?? chosen.label);
             }
 
             const shouldRefresh =
@@ -145,6 +149,8 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
                       })
                       .where(eq(connectorInstances.id, chosen.id));
 
+                    internalBus.emit('connector.token.refreshed', { instanceId: chosen.id });
+
                     return refreshed.accessToken;
                   } catch (error) {
                     const message = error instanceof Error ? error.message : String(error);
@@ -167,6 +173,7 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
                         .update(connectorInstances)
                         .set({ status: 'error', authIssue: 'reauthorization_required', updatedAt: Date.now() })
                         .where(eq(connectorInstances.id, chosen.id));
+                      internalBus.emit('connector.auth.failed', { instanceId: chosen.id });
                     }
                     throw error;
                   }
@@ -175,9 +182,7 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
             }
 
             if (!latest.accessToken) {
-              throw new Error(
-                `Google account ${chosen.accountEmail ?? chosen.label} has no usable access token. Re-authorize this account.`,
-              );
+              throw new GoogleAccountNoAccessTokenError('google', chosen.accountEmail ?? chosen.label);
             }
 
             return latest.accessToken;

@@ -10,6 +10,7 @@ import type { Automation } from '@stitch/shared/automations/types';
 import { AutomationDialog } from '@/components/automations/automation-dialog';
 import { AutomationRunsTable } from '@/components/automations/automation-runs-table';
 import { AutomationsTable } from '@/components/automations/automations-table';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -188,11 +189,9 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
                     <span className="text-xs text-muted-foreground">Schedule: {selectedScheduleLabel}</span>
                     {upcomingRuns.length > 0 && <span className="text-xs text-muted-foreground">· Next runs:</span>}
                     {upcomingRuns.map((run) => (
-                      <span
-                        key={run}
-                        className="rounded-md bg-muted/60 px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                      <Badge key={run} variant="soft" size="xs">
                         {run}
-                      </span>
+                      </Badge>
                     ))}
                   </div>
                 </div>

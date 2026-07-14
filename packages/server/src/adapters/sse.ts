@@ -1,7 +1,10 @@
-import type { SseEventName, SseEventPayloadMap } from '@stitch/shared/realtime';
+import { SSE_EVENT_NAMES, type SseEventName, type SseEventPayloadMap } from '@stitch/shared/realtime';
 
+import type { InternalEventMap } from '@/lib/internal-bus-events.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import type { SSEStreamingApi } from 'hono/streaming';
+
+type InternalEventName = keyof InternalEventMap;
 
 const connections = new Set<SSEStreamingApi>();
 
@@ -19,234 +22,115 @@ function broadcast<K extends SseEventName>(event: K, data: SseEventPayloadMap[K]
 }
 
 /**
+ * Typed forwarding helper. Subscribes to an internal bus event and broadcasts
+ * a projected payload to all SSE clients. The projection function narrows
+ * the richer internal event into the lean client-facing SSE payload.
+ */
+function forward<I extends InternalEventName, S extends SseEventName>(
+  internalName: I,
+  sseName: S,
+  project: (event: InternalEventMap[I]) => SseEventPayloadMap[S],
+): void {
+  internalBus.onSync(internalName, (event) => {
+    broadcast(sseName, project(event));
+  });
+}
+
+/**
+ * SSE events that are NOT passthroughs — they either don't exist on the
+ * internal bus, or require payload transformation before broadcasting.
+ * Everything else in SSE_EVENT_NAMES is forwarded as-is from the internal bus.
+ */
+const NON_PASSTHROUGH = new Set<SseEventName>([
+  'heartbeat',
+  'connected',
+  'stream.started',
+  'stream.error',
+  'stream.finish',
+  'tool.state',
+]);
+
+type PassthroughEventName = InternalEventName & SseEventName;
+
+const PASSTHROUGH_EVENTS = SSE_EVENT_NAMES.filter((name): name is PassthroughEventName => !NON_PASSTHROUGH.has(name));
+
+/**
  * Registers SSE adapter subscriptions on the internal bus.
  * Maps internal lifecycle events to lean client-facing SSE payloads.
  */
 export function registerSseAdapter(): void {
-  // ─── Stream Lifecycle ────────────────────────────────────────────────────
-
-  internalBus.onSync('stream.started', (event) => {
-    broadcast('stream-start', { sessionId: event.sessionId, messageId: event.messageId });
-  });
-
-  internalBus.onSync('stream.failed', (event) => {
-    broadcast('stream-error', {
-      sessionId: event.sessionId,
-      messageId: event.messageId,
-      error: event.error,
-      details: event.details,
+  // ─── Passthrough: same name, same payload ───────────────────────────────
+  for (const name of PASSTHROUGH_EVENTS) {
+    internalBus.onSync(name, (event) => {
+      broadcast(name, event as SseEventPayloadMap[typeof name]);
     });
-  });
+  }
 
-  internalBus.onSync('stream.retry', (event) => {
-    broadcast('stream-retry', {
-      sessionId: event.sessionId,
-      messageId: event.messageId,
-      attempt: event.attempt,
-      maxRetries: event.maxRetries,
-      delayMs: event.delayMs,
-      message: event.message,
-    });
-  });
+  // ─── Stream Lifecycle (projected) ───────────────────────────────────────
 
-  internalBus.onSync('stream.doom_loop.detected', (event) => {
-    broadcast('doom-loop-detected', {
-      sessionId: event.sessionId,
-      messageId: event.messageId,
-      toolName: event.toolName,
-      consecutiveCount: event.consecutiveCount,
-    });
-  });
+  forward('stream.started', 'stream.started', ({ sessionId, messageId }) => ({ sessionId, messageId }));
 
-  // ─── Part Streaming ──────────────────────────────────────────────────────
-
-  internalBus.onSync('part.update', (event) => {
-    broadcast('stream-part-update', {
-      sessionId: event.sessionId,
-      messageId: event.messageId,
-      partId: event.partId,
-      part: event.part,
-    });
-  });
-
-  internalBus.onSync('part.delta', (event) => {
-    broadcast('stream-part-delta', {
-      sessionId: event.sessionId,
-      messageId: event.messageId,
-      partId: event.partId,
-      delta: event.delta,
-    });
-  });
+  forward('stream.failed', 'stream.error', ({ sessionId, messageId, error, details }) => ({
+    sessionId,
+    messageId,
+    error,
+    details,
+  }));
 
   // ─── Tool Lifecycle ──────────────────────────────────────────────────────
+  // Five internal events collapse into one discriminated SSE event.
 
-  internalBus.onSync('tool.pending', (event) => {
-    broadcast('stream-tool-state', {
-      sessionId: event.sessionId,
-      messageId: event.messageId,
-      toolCallId: event.toolCallId,
-      toolName: event.toolName,
-      status: 'pending',
-    });
-  });
+  forward('tool.pending', 'tool.state', ({ sessionId, messageId, toolCallId, toolName }) => ({
+    sessionId,
+    messageId,
+    toolCallId,
+    toolName,
+    status: 'pending',
+  }));
 
-  internalBus.onSync('tool.started', (event) => {
-    broadcast('stream-tool-state', {
-      sessionId: event.sessionId,
-      messageId: event.messageId,
-      toolCallId: event.toolCallId,
-      toolName: event.toolName,
-      status: 'in-progress',
-      input: event.input,
-    });
-  });
+  forward('tool.started', 'tool.state', ({ sessionId, messageId, toolCallId, toolName, input }) => ({
+    sessionId,
+    messageId,
+    toolCallId,
+    toolName,
+    status: 'in-progress',
+    input,
+  }));
 
-  internalBus.onSync('tool.completed', (event) => {
-    broadcast('stream-tool-state', {
-      sessionId: event.sessionId,
-      messageId: event.messageId,
-      toolCallId: event.toolCallId,
-      toolName: event.toolName,
-      status: 'completed',
-      input: event.input,
-      output: event.output,
-    });
-  });
+  forward('tool.completed', 'tool.state', ({ sessionId, messageId, toolCallId, toolName, input, output }) => ({
+    sessionId,
+    messageId,
+    toolCallId,
+    toolName,
+    status: 'completed',
+    input,
+    output,
+  }));
 
-  internalBus.onSync('tool.failed', (event) => {
-    broadcast('stream-tool-state', {
-      sessionId: event.sessionId,
-      messageId: event.messageId,
-      toolCallId: event.toolCallId,
-      toolName: event.toolName,
-      status: 'error',
-      error: event.error,
-    });
-  });
+  forward('tool.failed', 'tool.state', ({ sessionId, messageId, toolCallId, toolName, error }) => ({
+    sessionId,
+    messageId,
+    toolCallId,
+    toolName,
+    status: 'error',
+    error,
+  }));
 
-  internalBus.onSync('tool.progress', (event) => {
-    broadcast('stream-tool-state', {
-      sessionId: event.sessionId,
-      messageId: event.messageId,
-      toolCallId: event.toolCallId,
-      toolName: event.toolName,
-      status: 'in-progress',
-      output: event.output,
-    });
-  });
+  forward('tool.progress', 'tool.state', ({ sessionId, messageId, toolCallId, toolName, output }) => ({
+    sessionId,
+    messageId,
+    toolCallId,
+    toolName,
+    status: 'in-progress',
+    output,
+  }));
 
-  // ─── Session Lifecycle ───────────────────────────────────────────────────
+  // ─── Session → Stream Finish ────────────────────────────────────────────
 
-  internalBus.onSync('session.message.saved', (event) => {
-    broadcast('stream-finish', {
-      sessionId: event.sessionId,
-      messageId: event.messageId,
-      finishReason: event.finishReason,
-      usage: event.usage,
-    });
-  });
-
-  internalBus.onSync('session.title.updated', (event) => {
-    broadcast('session-title-update', { sessionId: event.sessionId, title: event.title });
-  });
-
-  internalBus.onSync('session.todos.updated', (event) => {
-    broadcast('session-todos-updated', { sessionId: event.sessionId });
-  });
-
-  internalBus.onSync('session.compaction.started', (event) => {
-    broadcast('compaction-start', { sessionId: event.sessionId, messageId: event.messageId });
-  });
-
-  internalBus.onSync('session.compaction.completed', (event) => {
-    broadcast('compaction-complete', { sessionId: event.sessionId, summaryMessageId: event.summaryMessageId });
-  });
-
-  // ─── Questions ────────────────────────────────────────────────────────────
-
-  internalBus.onSync('question.asked', (event) => {
-    broadcast('question-asked', { question: event.question });
-  });
-
-  internalBus.onSync('question.replied', (event) => {
-    broadcast('question-replied', { questionId: event.questionId, sessionId: event.sessionId, answers: event.answers });
-  });
-
-  internalBus.onSync('question.rejected', (event) => {
-    broadcast('question-rejected', { questionId: event.questionId, sessionId: event.sessionId });
-  });
-
-  // ─── Permissions ──────────────────────────────────────────────────────────
-
-  internalBus.onSync('permission.requested', (event) => {
-    broadcast('permission-response-requested', { permissionResponse: event.permissionResponse });
-  });
-
-  internalBus.onSync('permission.resolved', (event) => {
-    broadcast('permission-response-resolved', {
-      permissionResponseId: event.permissionResponseId,
-      sessionId: event.sessionId,
-    });
-  });
-
-  // ─── MCP ───────────────────────────────────────────────────────────────────
-
-  internalBus.onSync('mcp.tools.changed', (event) => {
-    broadcast('mcp-tools-changed', {
-      serverId: event.serverId,
-      serverName: event.serverName,
-      toolCount: event.toolCount,
-    });
-  });
-
-  internalBus.onSync('mcp.auth.status_changed', (event) => {
-    broadcast('mcp-auth-status-changed', { serverId: event.serverId, authStatus: event.authStatus });
-  });
-
-  // ─── Recordings ─────────────────────────────────────────────────────────────
-
-  internalBus.onSync('recording.started', (event) => {
-    broadcast('recording-started', { recordingId: event.recordingId });
-  });
-
-  internalBus.onSync('recording.stopped', (event) => {
-    broadcast('recording-stopped', { recordingId: event.recordingId });
-  });
-
-  internalBus.onSync('recording.unrecoverable', (event) => {
-    broadcast('recording-unrecoverable', { recordingId: event.recordingId, reason: event.reason });
-  });
-
-  internalBus.onSync('recording.analysis.updated', (event) => {
-    broadcast('recording-analysis-updated', {
-      recordingId: event.recordingId,
-      status: event.status,
-      title: event.title,
-    });
-  });
-
-  internalBus.onSync('recording.transcript.entry', (event) => {
-    broadcast('recording-transcript-entry', {
-      recordingId: event.recordingId,
-      kind: event.kind,
-      source: event.source,
-      speaker: event.speaker,
-      content: event.content,
-      offsetMs: event.offsetMs,
-    });
-  });
-
-  // ─── Mail ───────────────────────────────────────────────────────────────────
-
-  internalBus.onSync('mail.sync.progress', (event) => {
-    broadcast('mail.sync.progress', event);
-  });
-
-  internalBus.onSync('mail.account.updated', (event) => {
-    broadcast('mail.account.updated', event);
-  });
-
-  internalBus.onSync('mail.threads.changed', (event) => {
-    broadcast('mail.threads.changed', event);
-  });
+  forward('session.message.saved', 'stream.finish', ({ sessionId, messageId, finishReason, usage }) => ({
+    sessionId,
+    messageId,
+    finishReason,
+    usage,
+  }));
 }

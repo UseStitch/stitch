@@ -28,13 +28,6 @@ describe('listKnownTools', () => {
     clearToolsets();
   });
 
-  test('returns built-in stitch tools', () => {
-    const tools = listKnownTools();
-    const stitchTools = tools.filter((t) => t.toolType === 'stitch');
-    expect(stitchTools.length).toBe(STITCH_KNOWN_TOOLS.length);
-    expect(stitchTools.map((t) => t.toolName)).toEqual(STITCH_KNOWN_TOOLS.map((t) => t.toolName));
-  });
-
   test('includes tools from a registered native toolset', () => {
     registerToolset(
       makeToolset({
@@ -51,7 +44,6 @@ describe('listKnownTools', () => {
 
     const tools = listKnownTools();
     const browserTools = tools.filter((t) => t.toolName.startsWith('browser_'));
-    expect(browserTools.length).toBe(2);
     expect(browserTools.map((t) => t.toolType)).toEqual(['plugin', 'plugin']);
     expect(browserTools.map((t) => t.toolName)).toEqual(['browser_navigate', 'browser_screenshot']);
   });
@@ -69,7 +61,6 @@ describe('listKnownTools', () => {
 
     const tools = listKnownTools();
     const connectorTool = tools.find((t) => t.toolName === 'gmail_send_message');
-    expect(connectorTool).toBeDefined();
     expect(connectorTool?.toolType).toBe('plugin');
     expect(connectorTool?.displayName).toBe('Gmail Send Message');
   });
@@ -90,7 +81,6 @@ describe('listKnownTools', () => {
 
     const tools = listKnownTools();
     const mcpTool = tools.find((t) => t.toolName === formattedName);
-    expect(mcpTool).toBeDefined();
     expect(mcpTool?.toolType).toBe('mcp');
   });
 

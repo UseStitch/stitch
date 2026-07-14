@@ -1,4 +1,3 @@
-import { LoaderIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
@@ -8,6 +7,7 @@ import { SettingPage, SettingSection } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 import type { ServerMode } from '@/lib/api';
 import { serverConfigQueryOptions, useSaveServerConfig, useTestRemoteConnection } from '@/lib/queries/connection';
 import { cn } from '@/lib/utils';
@@ -121,7 +121,7 @@ function ConnectionContent() {
               disabled={!remoteSelected || testing || saving}>
               {testing ? (
                 <>
-                  <LoaderIcon className="size-3.5 animate-spin" />
+                  <Spinner size="sm" />
                   Testing...
                 </>
               ) : (
@@ -143,7 +143,7 @@ function ConnectionContent() {
           <Button type="button" onClick={handleSave} disabled={!hasChanges || saving}>
             {saving ? (
               <>
-                <LoaderIcon className="size-3.5 animate-spin" />
+                <Spinner size="sm" />
                 Saving...
               </>
             ) : (

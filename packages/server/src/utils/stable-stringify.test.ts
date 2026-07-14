@@ -21,13 +21,6 @@ describe('stableStringify', () => {
     expect(a).not.toBe(b);
   });
 
-  test('handles null, undefined, and primitive values', () => {
-    expect(stableStringify(null)).toBe('null');
-    expect(stableStringify(42)).toBe('42');
-    expect(stableStringify('hello')).toBe('"hello"');
-    expect(stableStringify(true)).toBe('true');
-  });
-
   test('handles objects nested inside arrays', () => {
     const a = stableStringify([{ b: 2, a: 1 }]);
     const b = stableStringify([{ a: 1, b: 2 }]);

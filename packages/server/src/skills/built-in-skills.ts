@@ -17,10 +17,6 @@ export type BuiltInSkill = {
 
 const SKILL_MD_FILENAME = 'SKILL.md';
 
-export function getBuiltInSkillSource(name: string): string {
-  return `builtin:${name}`;
-}
-
 export async function loadBuiltInSkills(builtInsDir?: string): Promise<BuiltInSkill[]> {
   const dir = builtInsDir ?? resolveBuiltInsDir();
   if (!existsSync(dir)) return [];

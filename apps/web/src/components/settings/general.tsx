@@ -1,4 +1,3 @@
-import { LoaderIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
@@ -16,6 +15,7 @@ import {
 } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
+import { Spinner } from '@/components/ui/spinner';
 import { sttProviderModelsQueryOptions, visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { deleteSettingMutationOptions, saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 import { useUpdaterStore } from '@/stores/updater-store';
@@ -201,7 +201,7 @@ function AutoUpdatesContent() {
           <Button type="button" variant="outline" size="sm" onClick={handleCheckUpdates} disabled={!canCheck}>
             {checkPending ? (
               <>
-                <LoaderIcon className="size-3.5 animate-spin" />
+                <Spinner size="sm" />
                 Checking...
               </>
             ) : (

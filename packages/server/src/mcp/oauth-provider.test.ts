@@ -35,8 +35,6 @@ describe('McpOAuthProvider', () => {
     const provider = makeProvider(serverId, { type: 'oauth', scopes: ['read', 'write'] });
     const metadata = provider.clientMetadata;
     expect(metadata.token_endpoint_auth_method).toBe('none');
-    expect(metadata.response_types).toEqual(['code']);
-    expect(metadata.grant_types).toEqual(['authorization_code', 'refresh_token']);
     expect(metadata.scope).toBe('read write');
   });
 

@@ -27,10 +27,13 @@ async function seedSession(id: string): Promise<void> {
 }
 
 describe('saveAssistantMessage', () => {
-  test('inserts an assistant message row with correct fields', async () => {
+  test('inserts an assistant message row and emits session.message.saved event', async () => {
     const sessionId = 'ses_test_save_1' as never;
     const assistantMessageId = 'msg_test_save_1' as never;
     await seedSession(sessionId);
+
+    const emitted: InternalEventMap['session.message.saved'][] = [];
+    const cleanup = internalBus.onSync('session.message.saved', (data) => emitted.push(data));
 
     const startedAt = Date.now() - 500;
     await saveAssistantMessage({
@@ -44,6 +47,8 @@ describe('saveAssistantMessage', () => {
       startedAt,
     });
 
+    cleanup();
+
     const rows = await getDb().select().from(messages).where(eq(messages.id, assistantMessageId));
 
     expect(rows).toHaveLength(1);
@@ -54,34 +59,10 @@ describe('saveAssistantMessage', () => {
     expect(row.providerId).toBe('test-provider');
     expect(row.finishReason).toBe('stop');
     expect(row.startedAt).toBe(startedAt);
-    expect(typeof row.duration).toBe('number');
     expect(row.duration).toBeGreaterThanOrEqual(0);
-  });
-
-  test('emits session.message.saved event with correct payload', async () => {
-    const sessionId = 'ses_test_save_2' as never;
-    const assistantMessageId = 'msg_test_save_2' as never;
-    await seedSession(sessionId);
-
-    const emitted: InternalEventMap['session.message.saved'][] = [];
-    const cleanup = internalBus.onSync('session.message.saved', (data) => emitted.push(data));
-
-    const startedAt = Date.now();
-    await saveAssistantMessage({
-      sessionId,
-      assistantMessageId,
-      modelId: 'test-model',
-      providerId: 'test-provider',
-      accumulatedParts: [],
-      totalUsage: { ...ZERO_USAGE, inputTokens: 1, outputTokens: 1, totalTokens: 2 },
-      finalFinishReason: 'error',
-      startedAt,
-    });
-
-    cleanup();
 
     expect(emitted).toHaveLength(1);
-    expect(emitted[0]).toMatchObject({ sessionId, messageId: assistantMessageId, finishReason: 'error' });
+    expect(emitted[0]).toMatchObject({ sessionId, messageId: assistantMessageId, finishReason: 'stop' });
   });
 });
 

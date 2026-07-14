@@ -9,6 +9,7 @@ import { TranscriptSidebar } from './analysis/transcript-sidebar';
 import { DeleteRecordingDialog } from './shared/delete-recording-dialog';
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
+import { Empty, EmptyDescription } from '@/components/ui/empty';
 import { Page, PageContent } from '@/components/ui/page';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getErrorMessage } from '@/lib/errors';
@@ -124,11 +125,13 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
                     <ChatMarkdown text={analysis.summary} />
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-dashed bg-muted/20 p-6 text-sm text-muted-foreground">
-                    {isRunning
-                      ? 'Analysis is running. Meeting notes will appear here.'
-                      : 'No analysis yet. Choose a template and run analysis to generate meeting notes.'}
-                  </div>
+                  <Empty surface="muted">
+                    <EmptyDescription>
+                      {isRunning
+                        ? 'Analysis is running. Meeting notes will appear here.'
+                        : 'No analysis yet. Choose a template and run analysis to generate meeting notes.'}
+                    </EmptyDescription>
+                  </Empty>
                 )}
               </div>
             </ScrollArea>

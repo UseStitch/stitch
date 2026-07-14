@@ -1,335 +1,302 @@
 import { z } from 'zod';
 
-export const SETTINGS_KEYS = [
-  'model.default.providerId',
-  'model.default.modelId',
-  'model.compaction.providerId',
-  'model.compaction.modelId',
-  'model.title.providerId',
-  'model.title.modelId',
-  'compaction.auto',
-  'compaction.prune',
-  'compaction.reserved',
-  'toolsets.defaultScope',
-  'toolsets.ttlTurns',
-  'appearance.mode',
-  'appearance.theme',
-  'onboarding.status',
-  'onboarding.version',
-  'profile.name',
-  'profile.timezone',
-  'notifications.sound.enabled',
-  'browser.profileImported',
-  'browser.activeProfile',
-  'shortcuts.leaderKey',
-  'memory.enabled',
-  'memory.autoExtract',
-  'memory.embedding.providerId',
-  'memory.embedding.modelId',
-  'memory.extraction.maxFactsPerTurn',
-  'memory.extraction.minMessageLength',
-  'memory.extraction.confidenceFilter',
-  'memory.extraction.importanceMinScore',
-  'memory.extraction.maxFactsPerSession',
-  'memory.extraction.minTurnsBetweenWrites',
-  'memory.retention.maxMemories',
-  'memory.retention.staleDays',
-  'memory.retention.autoprune',
-  'memory.retrieval.maxResults',
-  'memory.retrieval.minScore',
-  'memory.retrieval.recencyBoost',
-  'agents.customInstructions',
-  'recordings.autoAnalyze',
-  'recordings.inputDeviceId',
-  'recordings.outputDeviceId',
-  'recordings.transcription.providerId',
-  'recordings.transcription.modelId',
-  'recordings.analysis.providerId',
-  'recordings.analysis.modelId',
-  'recordings.analysis.defaultTemplateId',
-  'stt.default.providerId',
-  'stt.default.modelId',
-  'stt.holdToTalk',
-  'mail.alwaysLoadRemoteImages',
-] as const;
-
-export type SettingsKey = (typeof SETTINGS_KEYS)[number];
-
 const booleanSetting = z.enum(['true', 'false']).transform((value) => value === 'true');
 
-export const SETTINGS_SCHEMAS = {
-  'model.default.providerId': z.string(),
-  'model.default.modelId': z.string(),
-  'model.compaction.providerId': z.string(),
-  'model.compaction.modelId': z.string(),
-  'model.title.providerId': z.string(),
-  'model.title.modelId': z.string(),
-  'compaction.auto': booleanSetting,
-  'compaction.prune': booleanSetting,
-  'compaction.reserved': z.coerce.number().int().min(0),
-  'toolsets.defaultScope': z.enum(['current_run', 'ttl_turns', 'until_deactivated']),
-  'toolsets.ttlTurns': z.coerce.number().int().min(1),
-  'appearance.mode': z.enum(['light', 'dark', 'system']),
-  'appearance.theme': z.enum(['default', 'dracula', 'solarized', 'tokyonight']),
-  'onboarding.status': z.enum(['pending', 'completed']),
-  'onboarding.version': z.string().regex(/^\d+$/),
-  'profile.name': z.string().max(80),
-  'profile.timezone': z.string().max(120),
-  'notifications.sound.enabled': booleanSetting,
-  'browser.profileImported': z.string(),
-  'browser.activeProfile': z.string(),
-  'shortcuts.leaderKey': z.string().regex(/^Mod\+[A-Za-z0-9]$/),
-  'memory.enabled': booleanSetting,
-  'memory.autoExtract': booleanSetting,
-  'memory.embedding.providerId': z.string(),
-  'memory.embedding.modelId': z.string(),
-  'memory.extraction.maxFactsPerTurn': z.coerce.number().int().min(1),
-  'memory.extraction.minMessageLength': z.coerce.number().int().min(0),
-  'memory.extraction.confidenceFilter': z.enum(['stated', 'all', 'stated+confirmed']),
-  'memory.extraction.importanceMinScore': z.coerce.number().min(0).max(1),
-  'memory.extraction.maxFactsPerSession': z.coerce.number().int().min(1),
-  'memory.extraction.minTurnsBetweenWrites': z.coerce.number().int().min(0),
-  'memory.retention.maxMemories': z.coerce.number().int().min(10),
-  'memory.retention.staleDays': z.coerce.number().int().min(1),
-  'memory.retention.autoprune': booleanSetting,
-  'memory.retrieval.maxResults': z.coerce.number().int().min(1),
-  'memory.retrieval.minScore': z.coerce.number().min(0).max(1),
-  'memory.retrieval.recencyBoost': booleanSetting,
-  'agents.customInstructions': z.string().max(20_000),
-  'recordings.autoAnalyze': booleanSetting,
-  'recordings.inputDeviceId': z.string(),
-  'recordings.outputDeviceId': z.string(),
-  'recordings.transcription.providerId': z.string(),
-  'recordings.transcription.modelId': z.string(),
-  'recordings.analysis.providerId': z.string(),
-  'recordings.analysis.modelId': z.string(),
-  'recordings.analysis.defaultTemplateId': z.string(),
-  'stt.default.providerId': z.string(),
-  'stt.default.modelId': z.string(),
-  'stt.holdToTalk': booleanSetting,
-  'mail.alwaysLoadRemoteImages': booleanSetting,
+/**
+ * Single source of truth for all settings.
+ * Each key maps to its Zod schema, default value, and description.
+ */
+const SETTINGS_REGISTRY = {
+  'model.default.providerId': {
+    schema: z.string(),
+    default: '',
+    description: 'Provider ID for the default model used for general conversations and assistance tasks.',
+  },
+  'model.default.modelId': {
+    schema: z.string(),
+    default: '',
+    description: 'Model ID for the default model used for general conversations and assistance tasks.',
+  },
+  'model.compaction.providerId': {
+    schema: z.string(),
+    default: '',
+    description: 'Provider ID for the preferred model for conversation compaction summaries.',
+  },
+  'model.compaction.modelId': {
+    schema: z.string(),
+    default: '',
+    description: 'Model ID for the preferred model for conversation compaction summaries.',
+  },
+  'model.title.providerId': {
+    schema: z.string(),
+    default: '',
+    description: 'Provider ID for the preferred model for generating session titles.',
+  },
+  'model.title.modelId': {
+    schema: z.string(),
+    default: '',
+    description: 'Model ID for the preferred model for generating session titles.',
+  },
+  'compaction.auto': {
+    schema: booleanSetting,
+    default: 'true',
+    description: 'Enable automatic context compaction when token usage reaches the configured threshold.',
+  },
+  'compaction.prune': {
+    schema: booleanSetting,
+    default: 'true',
+    description: 'Prune old tool outputs before generating a compaction summary.',
+  },
+  'compaction.reserved': {
+    schema: z.coerce.number().int().min(0),
+    default: '20000',
+    description: 'Reserved token headroom used when deciding whether to compact.',
+  },
+  'toolsets.defaultScope': {
+    schema: z.enum(['current_run', 'ttl_turns', 'until_deactivated']),
+    default: 'ttl_turns',
+    description: 'Default activation lifetime when activate_toolset omits a scope.',
+  },
+  'toolsets.ttlTurns': {
+    schema: z.coerce.number().int().min(1),
+    default: '3',
+    description: 'Turns of inactivity before a TTL-scoped toolset expires.',
+  },
+  'appearance.mode': {
+    schema: z.enum(['light', 'dark', 'system']),
+    default: 'system',
+    description: 'Preferred appearance mode: light, dark, or system.',
+  },
+  'appearance.theme': {
+    schema: z.enum(['default', 'dracula', 'solarized', 'tokyonight']),
+    default: 'default',
+    description: 'Selected application theme name.',
+  },
+  'onboarding.status': {
+    schema: z.enum(['pending', 'completed']),
+    default: 'pending',
+    description: 'Tracks whether onboarding is pending or completed.',
+  },
+  'onboarding.version': {
+    schema: z.string().regex(/^\d+$/),
+    default: '1',
+    description: 'Tracks which onboarding step version has been completed.',
+  },
+  'profile.name': {
+    schema: z.string().max(80),
+    default: '',
+    description: 'Preferred user display name used in prompts and transcripts.',
+  },
+  'profile.timezone': {
+    schema: z.string().max(120),
+    default: '',
+    description: 'Preferred IANA timezone used for time-aware prompts and tools.',
+  },
+  'notifications.sound.enabled': {
+    schema: booleanSetting,
+    default: 'true',
+    description: 'Play an attention sound when the AI needs your input (question or permission).',
+  },
+  'browser.profileImported': {
+    schema: z.string(),
+    default: '',
+    description: 'Tracks the last Chrome profile import (name and timestamp), or "skipped" if the user declined.',
+  },
+  'browser.activeProfile': {
+    schema: z.string(),
+    default: '',
+    description: 'Active browser profile path in "<browser>/<profileId>" format (e.g. "chrome/Default").',
+  },
+  'shortcuts.leaderKey': {
+    schema: z.string().regex(/^Mod\+[A-Za-z0-9]$/),
+    default: 'Mod+X',
+    description: 'Leader key prefix for key sequences. Shortcuts using LEADER+ are prefixed with this key.',
+  },
+  'memory.enabled': {
+    schema: booleanSetting,
+    default: 'false',
+    description: 'Enable persistent memory system that learns user preferences and facts across sessions.',
+  },
+  'memory.autoExtract': {
+    schema: booleanSetting,
+    default: 'true',
+    description: 'Automatically extract and store memories from conversations after each response.',
+  },
+  'memory.embedding.providerId': {
+    schema: z.string(),
+    default: '',
+    description: 'Provider ID for the embedding model used by the memory system.',
+  },
+  'memory.embedding.modelId': {
+    schema: z.string(),
+    default: '',
+    description: 'Embedding model ID from the selected provider used by the memory system.',
+  },
+  'memory.extraction.maxFactsPerTurn': {
+    schema: z.coerce.number().int().min(1),
+    default: '1',
+    description: 'Max facts extracted and persisted per conversation turn.',
+  },
+  'memory.extraction.minMessageLength': {
+    schema: z.coerce.number().int().min(0),
+    default: '100',
+    description: 'Skip extraction if user message is shorter than this (in characters).',
+  },
+  'memory.extraction.confidenceFilter': {
+    schema: z.enum(['stated', 'all', 'stated+confirmed']),
+    default: 'stated',
+    description: 'Which confidences to auto-persist: stated, all, or stated+confirmed.',
+  },
+  'memory.extraction.importanceMinScore': {
+    schema: z.coerce.number().min(0).max(1),
+    default: '0.7',
+    description: 'Minimum importance score (0-1) a fact must have to be persisted. Lower scores are discarded.',
+  },
+  'memory.extraction.maxFactsPerSession': {
+    schema: z.coerce.number().int().min(1),
+    default: '20',
+    description: 'Hard cap on total auto-extracted facts written per session. Prevents burst over-capture.',
+  },
+  'memory.extraction.minTurnsBetweenWrites': {
+    schema: z.coerce.number().int().min(0),
+    default: '3',
+    description: 'Minimum user turns between consecutive auto-memory writes for the same session. Acts as a cooldown.',
+  },
+  'memory.extraction.fromAutomations': {
+    schema: booleanSetting,
+    default: 'false',
+    description:
+      'Allow automation sessions to extract and store new memories. When off, only chat sessions write memories.',
+  },
+  'memory.retention.maxMemories': {
+    schema: z.coerce.number().int().min(10),
+    default: '150',
+    description: 'Hard cap on total stored memories. Oldest low-value memories pruned first.',
+  },
+  'memory.retention.staleDays': {
+    schema: z.coerce.number().int().min(1),
+    default: '30',
+    description: 'Memories not accessed in this many days are candidates for pruning.',
+  },
+  'memory.retention.autoprune': {
+    schema: booleanSetting,
+    default: 'true',
+    description: 'Run automatic pruning after extraction to stay within limits.',
+  },
+  'memory.retention.dedupThreshold': {
+    schema: z.coerce.number().min(0.5).max(1),
+    default: '0.85',
+    description: 'Cosine similarity threshold (0.5-1.0) for deduplication. Lower catches more duplicates.',
+  },
+  'memory.retrieval.maxResults': {
+    schema: z.coerce.number().int().min(1),
+    default: '3',
+    description: 'Max memories injected into context per turn.',
+  },
+  'memory.retrieval.minScore': {
+    schema: z.coerce.number().min(0).max(1),
+    default: '0.6',
+    description: 'Minimum relevance score to include a memory in context.',
+  },
+  'memory.retrieval.recencyBoost': {
+    schema: booleanSetting,
+    default: 'true',
+    description: 'Boost recently-accessed memories in ranking.',
+  },
+  'memory.retrieval.contextAwareQuery': {
+    schema: booleanSetting,
+    default: 'true',
+    description:
+      'Include the preceding assistant message when building the memory search query, so vague follow-ups resolve to the conversation topic.',
+  },
+  'memory.retrieval.skipLowSignal': {
+    schema: booleanSetting,
+    default: 'true',
+    description:
+      'Skip memory retrieval for short, low-content messages (e.g. "continue", "ok do that") and reuse the previous turn\'s memories instead.',
+  },
+  'agents.customInstructions': {
+    schema: z.string().max(20_000),
+    default: '',
+    description: 'Custom Markdown instructions appended to the system prompt for every conversation.',
+  },
+  'recordings.autoAnalyze': {
+    schema: booleanSetting,
+    default: 'false',
+    description: 'Automatically run transcription and LLM analysis when a recording is completed.',
+  },
+  'recordings.inputDeviceId': {
+    schema: z.string(),
+    default: '',
+    description: 'Preferred microphone device name. Empty string uses the system default.',
+  },
+  'recordings.outputDeviceId': {
+    schema: z.string(),
+    default: '',
+    description: 'Preferred speaker device name for system audio capture. Empty string uses the system default.',
+  },
+  'recordings.transcription.providerId': {
+    schema: z.string(),
+    default: '',
+    description: 'Preferred provider ID used for recording transcription.',
+  },
+  'recordings.transcription.modelId': {
+    schema: z.string(),
+    default: '',
+    description: 'Preferred model ID used for recording transcription.',
+  },
+  'recordings.analysis.providerId': {
+    schema: z.string(),
+    default: '',
+    description: 'Preferred provider ID used for recording analysis and summaries.',
+  },
+  'recordings.analysis.modelId': {
+    schema: z.string(),
+    default: '',
+    description: 'Preferred model ID used for recording analysis and summaries.',
+  },
+  'recordings.analysis.defaultTemplateId': {
+    schema: z.string(),
+    default: 'mnt_prebuilt_executive_summary',
+    description: 'Default meeting note template used for recording analysis.',
+  },
+  'stt.default.providerId': {
+    schema: z.string(),
+    default: '',
+    description: 'Provider ID for the default STT model used for live speech-to-text in the chat input.',
+  },
+  'stt.default.modelId': {
+    schema: z.string(),
+    default: '',
+    description: 'Model ID for the default STT model used for live speech-to-text in the chat input.',
+  },
+  'stt.holdToTalk': {
+    schema: booleanSetting,
+    default: 'false',
+    description:
+      'When enabled, the dictation shortcut records only while held and finalizes on release (push-to-talk). When disabled, the shortcut toggles recording on and off.',
+  },
+  'mail.alwaysLoadRemoteImages': {
+    schema: booleanSetting,
+    default: 'true',
+    description: 'Always load remote images in Mail message bodies.',
+  },
 } as const;
+
+export type SettingsKey = keyof typeof SETTINGS_REGISTRY;
+
+export const SETTINGS_SCHEMAS: { [K in SettingsKey]: (typeof SETTINGS_REGISTRY)[K]['schema'] } = Object.fromEntries(
+  Object.entries(SETTINGS_REGISTRY).map(([key, entry]) => [key, entry.schema]),
+) as { [K in SettingsKey]: (typeof SETTINGS_REGISTRY)[K]['schema'] };
+
+type SettingDefault = { key: SettingsKey; value: string; description: string };
+
+export const SETTINGS_DEFAULTS: SettingDefault[] = Object.entries(SETTINGS_REGISTRY).map(([key, entry]) => ({
+  key: key as SettingsKey,
+  value: entry.default,
+  description: entry.description,
+}));
 
 export function isValidLeaderKeyHotkey(value: string): boolean {
   return SETTINGS_SCHEMAS['shortcuts.leaderKey'].safeParse(value).success;
 }
-
-type SettingDefault = { key: SettingsKey; value: string; description: string };
-
-export const SETTINGS_DEFAULTS: SettingDefault[] = [
-  {
-    key: 'model.default.providerId',
-    value: '',
-    description: 'Provider ID for the default model used for general conversations and assistance tasks.',
-  },
-  {
-    key: 'model.default.modelId',
-    value: '',
-    description: 'Model ID for the default model used for general conversations and assistance tasks.',
-  },
-  {
-    key: 'model.compaction.providerId',
-    value: '',
-    description: 'Provider ID for the preferred model for conversation compaction summaries.',
-  },
-  {
-    key: 'model.compaction.modelId',
-    value: '',
-    description: 'Model ID for the preferred model for conversation compaction summaries.',
-  },
-  {
-    key: 'model.title.providerId',
-    value: '',
-    description: 'Provider ID for the preferred model for generating session titles.',
-  },
-  {
-    key: 'model.title.modelId',
-    value: '',
-    description: 'Model ID for the preferred model for generating session titles.',
-  },
-  {
-    key: 'compaction.auto',
-    value: 'true',
-    description: 'Enable automatic context compaction when token usage reaches the configured threshold.',
-  },
-  {
-    key: 'compaction.prune',
-    value: 'true',
-    description: 'Prune old tool outputs before generating a compaction summary.',
-  },
-  {
-    key: 'compaction.reserved',
-    value: '20000',
-    description: 'Reserved token headroom used when deciding whether to compact.',
-  },
-  {
-    key: 'toolsets.defaultScope',
-    value: 'ttl_turns',
-    description: 'Default activation lifetime when activate_toolset omits a scope.',
-  },
-  { key: 'toolsets.ttlTurns', value: '3', description: 'Turns of inactivity before a TTL-scoped toolset expires.' },
-  { key: 'appearance.mode', value: 'system', description: 'Preferred appearance mode: light, dark, or system.' },
-  { key: 'appearance.theme', value: 'default', description: 'Selected application theme name.' },
-  { key: 'onboarding.status', value: 'pending', description: 'Tracks whether onboarding is pending or completed.' },
-  { key: 'onboarding.version', value: '1', description: 'Tracks which onboarding step version has been completed.' },
-  { key: 'profile.name', value: '', description: 'Preferred user display name used in prompts and transcripts.' },
-  { key: 'profile.timezone', value: '', description: 'Preferred IANA timezone used for time-aware prompts and tools.' },
-  {
-    key: 'notifications.sound.enabled',
-    value: 'true',
-    description: 'Play an attention sound when the AI needs your input (question or permission).',
-  },
-  {
-    key: 'browser.profileImported',
-    value: '',
-    description: 'Tracks the last Chrome profile import (name and timestamp), or "skipped" if the user declined.',
-  },
-  {
-    key: 'browser.activeProfile',
-    value: '',
-    description: 'Active browser profile path in "<browser>/<profileId>" format (e.g. "chrome/Default").',
-  },
-  {
-    key: 'shortcuts.leaderKey',
-    value: 'Mod+X',
-    description: 'Leader key prefix for key sequences. Shortcuts using LEADER+ are prefixed with this key.',
-  },
-  {
-    key: 'memory.enabled',
-    value: 'false',
-    description: 'Enable persistent memory system that learns user preferences and facts across sessions.',
-  },
-  {
-    key: 'memory.autoExtract',
-    value: 'true',
-    description: 'Automatically extract and store memories from conversations after each response.',
-  },
-  {
-    key: 'memory.embedding.providerId',
-    value: '',
-    description: 'Provider ID for the embedding model used by the memory system.',
-  },
-  {
-    key: 'memory.embedding.modelId',
-    value: '',
-    description: 'Embedding model ID from the selected provider used by the memory system.',
-  },
-  {
-    key: 'memory.extraction.maxFactsPerTurn',
-    value: '1',
-    description: 'Max facts extracted and persisted per conversation turn.',
-  },
-  {
-    key: 'memory.extraction.minMessageLength',
-    value: '100',
-    description: 'Skip extraction if user message is shorter than this (in characters).',
-  },
-  {
-    key: 'memory.extraction.confidenceFilter',
-    value: 'stated',
-    description: 'Which confidences to auto-persist: stated, all, or stated+confirmed.',
-  },
-  {
-    key: 'memory.extraction.importanceMinScore',
-    value: '0.7',
-    description: 'Minimum importance score (0–1) a fact must have to be persisted. Lower scores are discarded.',
-  },
-  {
-    key: 'memory.extraction.maxFactsPerSession',
-    value: '20',
-    description: 'Hard cap on total auto-extracted facts written per session. Prevents burst over-capture.',
-  },
-  {
-    key: 'memory.extraction.minTurnsBetweenWrites',
-    value: '3',
-    description: 'Minimum user turns between consecutive auto-memory writes for the same session. Acts as a cooldown.',
-  },
-  {
-    key: 'memory.retention.maxMemories',
-    value: '150',
-    description: 'Hard cap on total stored memories. Oldest low-value memories pruned first.',
-  },
-  {
-    key: 'memory.retention.staleDays',
-    value: '30',
-    description: 'Memories not accessed in this many days are candidates for pruning.',
-  },
-  {
-    key: 'memory.retention.autoprune',
-    value: 'true',
-    description: 'Run automatic pruning after extraction to stay within limits.',
-  },
-  { key: 'memory.retrieval.maxResults', value: '3', description: 'Max memories injected into context per turn.' },
-  {
-    key: 'memory.retrieval.minScore',
-    value: '0.6',
-    description: 'Minimum relevance score to include a memory in context.',
-  },
-  { key: 'memory.retrieval.recencyBoost', value: 'true', description: 'Boost recently-accessed memories in ranking.' },
-  {
-    key: 'agents.customInstructions',
-    value: '',
-    description: 'Custom Markdown instructions appended to the system prompt for every conversation.',
-  },
-  {
-    key: 'recordings.autoAnalyze',
-    value: 'false',
-    description: 'Automatically run transcription and LLM analysis when a recording is completed.',
-  },
-  {
-    key: 'recordings.inputDeviceId',
-    value: '',
-    description: 'Preferred microphone device name. Empty string uses the system default.',
-  },
-  {
-    key: 'recordings.outputDeviceId',
-    value: '',
-    description: 'Preferred speaker device name for system audio capture. Empty string uses the system default.',
-  },
-  {
-    key: 'recordings.transcription.providerId',
-    value: '',
-    description: 'Preferred provider ID used for recording transcription.',
-  },
-  {
-    key: 'recordings.transcription.modelId',
-    value: '',
-    description: 'Preferred model ID used for recording transcription.',
-  },
-  {
-    key: 'recordings.analysis.providerId',
-    value: '',
-    description: 'Preferred provider ID used for recording analysis and summaries.',
-  },
-  {
-    key: 'recordings.analysis.modelId',
-    value: '',
-    description: 'Preferred model ID used for recording analysis and summaries.',
-  },
-  {
-    key: 'recordings.analysis.defaultTemplateId',
-    value: 'mnt_prebuilt_executive_summary',
-    description: 'Default meeting note template used for recording analysis.',
-  },
-  {
-    key: 'stt.default.providerId',
-    value: '',
-    description: 'Provider ID for the default STT model used for live speech-to-text in the chat input.',
-  },
-  {
-    key: 'stt.default.modelId',
-    value: '',
-    description: 'Model ID for the default STT model used for live speech-to-text in the chat input.',
-  },
-  {
-    key: 'stt.holdToTalk',
-    value: 'false',
-    description:
-      'When enabled, the dictation shortcut records only while held and finalizes on release (push-to-talk). When disabled, the shortcut toggles recording on and off.',
-  },
-  {
-    key: 'mail.alwaysLoadRemoteImages',
-    value: 'true',
-    description: 'Always load remote images in Mail message bodies.',
-  },
-];

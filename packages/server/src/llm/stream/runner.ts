@@ -712,7 +712,7 @@ class StreamRunner {
 
     const errorDetails = toStreamErrorDetails(mappedError);
     this.state.accumulatedParts.push({
-      type: 'stream-error',
+      type: 'stream.error',
       id: createPartId(),
       error: mappedError.message,
       details: errorDetails,

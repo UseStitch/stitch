@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from '@tanstack/react-router';
 
 import { InternalSidebar } from '@/components/navigation/internal-sidebar';
+import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { automationsSidebarListQueryOptions } from '@/lib/queries/automations';
 import { useAutomationStore } from '@/stores/automation-store';
 
@@ -50,11 +51,13 @@ export function AutomationsSidebarContent() {
             </InternalSidebar.List>
           </InternalSidebar.Group>
         ) : (
-          <InternalSidebar.EmptyState
-            icon={BotIcon}
-            title="No automations yet"
-            description="Create one to prefill and start sessions faster."
-          />
+          <Empty size="compact">
+            <EmptyMedia>
+              <BotIcon className="size-8 text-muted-foreground/40" />
+            </EmptyMedia>
+            <EmptyTitle>No automations yet</EmptyTitle>
+            <EmptyDescription>Create one to prefill and start sessions faster.</EmptyDescription>
+          </Empty>
         )}
       </InternalSidebar.Content>
     </>

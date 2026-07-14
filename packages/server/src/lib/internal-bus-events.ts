@@ -1,16 +1,21 @@
 import type { StreamErrorDetails } from '@stitch/shared/chat/errors';
-import type { PartId, StoredPart } from '@stitch/shared/chat/messages';
-import type { PartDelta, PartUpdate } from '@stitch/shared/chat/stream-events';
+import type { StoredPart } from '@stitch/shared/chat/messages';
+import type { SessionEvents } from '@stitch/shared/chat/session-events';
+import type { StreamEvents } from '@stitch/shared/chat/stream-events';
+import type { ConnectorEvents } from '@stitch/shared/connectors/events';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { MailEvents } from '@stitch/shared/mail/events';
 import type { McpAuthStatus } from '@stitch/shared/mcp/types';
-import type { PermissionResponse } from '@stitch/shared/permissions/types';
-import type { QuestionRequest } from '@stitch/shared/questions/types';
-import type { RecordingAnalysisStatus } from '@stitch/shared/recordings/types';
+import type { PermissionEvents } from '@stitch/shared/permissions/events';
+import type { QuestionEvents } from '@stitch/shared/questions/events';
+import type { RecordingEvents } from '@stitch/shared/recordings/events';
+import type { SettingsKey } from '@stitch/shared/settings/types';
+import type { SkillEvents } from '@stitch/shared/skills/events';
 
 import type { LanguageModelUsage } from 'ai';
 
 // ─── Stream Lifecycle ────────────────────────────────────────────────────────
+// These internal events carry extra metadata not exposed to clients.
 
 export type StreamStartedEvent = {
   sessionId: PrefixedString<'ses'>;
@@ -68,22 +73,6 @@ export type StreamAbortedEvent = {
   streamRunId: string;
 };
 
-// ─── Part Streaming ──────────────────────────────────────────────────────────
-
-export type PartUpdateEvent = {
-  sessionId: PrefixedString<'ses'>;
-  messageId: PrefixedString<'msg'>;
-  partId: PartId;
-  part: PartUpdate;
-};
-
-export type PartDeltaEvent = {
-  sessionId: PrefixedString<'ses'>;
-  messageId: PrefixedString<'msg'>;
-  partId: PartId;
-  delta: PartDelta;
-};
-
 // ─── Tool Lifecycle ──────────────────────────────────────────────────────────
 
 export type ToolPendingEvent = {
@@ -138,34 +127,18 @@ export type SessionMessageSavedEvent = {
   finishReason: string;
 };
 
-export type SessionTitleUpdatedEvent = { sessionId: PrefixedString<'ses'>; title: string };
+// ─── Title Generation ────────────────────────────────────────────────────────
 
-export type SessionTodosUpdatedEvent = { sessionId: PrefixedString<'ses'> };
+type BaseTitleGenerationRequest = { content: string; fallbackProviderId: string; fallbackModelId: string };
 
-export type SessionCompactionStartedEvent = { sessionId: PrefixedString<'ses'>; messageId: PrefixedString<'msg'> };
+export type ChatTitleGenerationRequestedEvent = BaseTitleGenerationRequest & { sessionId: PrefixedString<'ses'> };
 
-export type SessionCompactionCompletedEvent = {
-  sessionId: PrefixedString<'ses'>;
-  summaryMessageId: PrefixedString<'msg'>;
+export type RecordingAnalysisTitleGenerationRequestedEvent = BaseTitleGenerationRequest & {
+  recordingId: PrefixedString<'rec'>;
+  analysisId: PrefixedString<'recan'>;
 };
 
 // ─── Error / Recovery ────────────────────────────────────────────────────────
-
-export type StreamRetryEvent = {
-  sessionId: PrefixedString<'ses'>;
-  messageId: PrefixedString<'msg'>;
-  attempt: number;
-  maxRetries: number;
-  delayMs: number;
-  message: string;
-};
-
-export type StreamDoomLoopDetectedEvent = {
-  sessionId: PrefixedString<'ses'>;
-  messageId: PrefixedString<'msg'>;
-  toolName: string;
-  consecutiveCount: number;
-};
 
 export type StreamPermissionRejectedEvent = {
   sessionId: PrefixedString<'ses'>;
@@ -174,6 +147,25 @@ export type StreamPermissionRejectedEvent = {
 };
 
 // ─── Usage (emitted by runner for adapter consumption) ───────────────────────
+
+export type UsageMemoryCompletedEvent = {
+  providerId: string;
+  modelId: string;
+  usage: LanguageModelUsage;
+  phase: 'extraction' | 'deduplication' | 'consolidation';
+  startedAt: number;
+  endedAt: number;
+};
+
+export type UsageCompactionFailedEvent = {
+  sessionId: PrefixedString<'ses'>;
+  messageId: PrefixedString<'msg'>;
+  providerId: string;
+  modelId: string;
+  errorCode: string | undefined;
+  auto: boolean;
+  overflow: boolean;
+};
 
 export type UsageStepFailedEvent = {
   sessionId: PrefixedString<'ses'>;
@@ -207,63 +199,30 @@ export type UsageDoomLoopSummaryEvent = {
   usage: LanguageModelUsage;
 };
 
-// ─── Questions ───────────────────────────────────────────────────────────────
-
-export type QuestionAskedEvent = { question: QuestionRequest };
-
-export type QuestionRepliedEvent = {
-  questionId: PrefixedString<'quest'>;
-  sessionId: PrefixedString<'ses'>;
-  answers: string[][];
-};
-
-export type QuestionRejectedEvent = { questionId: PrefixedString<'quest'>; sessionId: PrefixedString<'ses'> };
-
-// ─── Permissions ─────────────────────────────────────────────────────────────
-
-export type PermissionRequestedEvent = { permissionResponse: PermissionResponse };
-
-export type PermissionResolvedEvent = {
-  permissionResponseId: PrefixedString<'permres'>;
-  sessionId: PrefixedString<'ses'>;
-};
-
-// ─── Recordings ──────────────────────────────────────────────────────────────
-
-export type RecordingStartedEvent = { recordingId: PrefixedString<'rec'> };
-
-export type RecordingStoppedEvent = { recordingId: PrefixedString<'rec'> };
-
-export type RecordingUnrecoverableEvent = { recordingId: PrefixedString<'rec'>; reason: string };
-
-export type RecordingAnalysisUpdatedEvent = {
-  recordingId: PrefixedString<'rec'>;
-  status: RecordingAnalysisStatus;
-  title: string | null;
-};
-
-export type RecordingTranscriptEntryEvent = {
-  recordingId: string;
-  kind: 'partial' | 'final';
-  source: 'mic' | 'speaker';
-  speaker: string;
-  content: string;
-  offsetMs: number;
-};
-
 // ─── MCP ─────────────────────────────────────────────────────────────────────
+// Internal uses PrefixedString<'mcp'> for serverId (narrower than shared string).
 
 export type McpToolsChangedEvent = { serverId: PrefixedString<'mcp'>; serverName: string; toolCount: number | null };
 
 export type McpAuthStatusChangedEvent = { serverId: PrefixedString<'mcp'>; authStatus: McpAuthStatus };
 
-// ─── Mail ────────────────────────────────────────────────────────────────────
+// ─── Settings ────────────────────────────────────────────────────────────────
 
-export type MailSyncProgressEvent = MailEvents['mail.sync.progress'];
+export type SettingsChangedEvent = { key: SettingsKey };
 
-export type MailAccountUpdatedEvent = MailEvents['mail.account.updated'];
+// ─── Automations / Schedules ─────────────────────────────────────────────────
 
-export type MailThreadsChangedEvent = MailEvents['mail.threads.changed'];
+export type AutomationRunStartedEvent = { automationId: PrefixedString<'auto'>; sessionId: PrefixedString<'ses'> };
+
+export type AutomationRunCompletedEvent = { automationId: PrefixedString<'auto'>; sessionId: PrefixedString<'ses'> };
+
+export type AutomationRunFailedEvent = { automationId: PrefixedString<'auto'>; error: string };
+
+export type ScheduleJobFiredEvent = { key: string; automationId: PrefixedString<'auto'> };
+
+export type ScheduleJobSucceededEvent = { key: string; automationId: PrefixedString<'auto'> };
+
+export type ScheduleJobFailedEvent = { key: string; automationId: PrefixedString<'auto'>; error: string };
 
 // ─── Event Map ───────────────────────────────────────────────────────────────
 
@@ -276,8 +235,8 @@ export type InternalEventMap = {
   'stream.aborted': StreamAbortedEvent;
 
   // Part streaming
-  'part.update': PartUpdateEvent;
-  'part.delta': PartDeltaEvent;
+  'part.update': StreamEvents['part.update'];
+  'part.delta': StreamEvents['part.delta'];
 
   // Tool lifecycle
   'tool.pending': ToolPendingEvent;
@@ -288,44 +247,74 @@ export type InternalEventMap = {
 
   // Session lifecycle
   'session.message.saved': SessionMessageSavedEvent;
-  'session.title.updated': SessionTitleUpdatedEvent;
-  'session.todos.updated': SessionTodosUpdatedEvent;
-  'session.compaction.started': SessionCompactionStartedEvent;
-  'session.compaction.completed': SessionCompactionCompletedEvent;
+  'session.title.updated': SessionEvents['session.title.updated'];
+  'session.todos.updated': SessionEvents['session.todos.updated'];
+  'session.compaction.started': SessionEvents['session.compaction.started'];
+  'session.compaction.completed': SessionEvents['session.compaction.completed'];
+
+  // Title generation
+  'title.generation.chat.requested': ChatTitleGenerationRequestedEvent;
+  'title.generation.recording_analysis.requested': RecordingAnalysisTitleGenerationRequestedEvent;
 
   // Error / Recovery
-  'stream.retry': StreamRetryEvent;
-  'stream.doom_loop.detected': StreamDoomLoopDetectedEvent;
+  'stream.retry': StreamEvents['stream.retry'];
+  'stream.doom_loop.detected': StreamEvents['stream.doom_loop.detected'];
   'stream.permission.rejected': StreamPermissionRejectedEvent;
 
   // Usage (emitted by runner for adapter consumption)
+  'usage.memory.completed': UsageMemoryCompletedEvent;
+  'usage.compaction.failed': UsageCompactionFailedEvent;
   'usage.step.failed': UsageStepFailedEvent;
   'usage.doom_loop.failed': UsageDoomLoopFailedEvent;
   'usage.doom_loop.summary': UsageDoomLoopSummaryEvent;
 
   // Questions
-  'question.asked': QuestionAskedEvent;
-  'question.replied': QuestionRepliedEvent;
-  'question.rejected': QuestionRejectedEvent;
+  'question.asked': QuestionEvents['question.asked'];
+  'question.replied': QuestionEvents['question.replied'];
+  'question.rejected': QuestionEvents['question.rejected'];
 
   // Permissions
-  'permission.requested': PermissionRequestedEvent;
-  'permission.resolved': PermissionResolvedEvent;
+  'permission.requested': PermissionEvents['permission.requested'];
+  'permission.resolved': PermissionEvents['permission.resolved'];
 
   // Recordings
-  'recording.started': RecordingStartedEvent;
-  'recording.stopped': RecordingStoppedEvent;
-  'recording.unrecoverable': RecordingUnrecoverableEvent;
-  'recording.analysis.updated': RecordingAnalysisUpdatedEvent;
-  'recording.transcript.entry': RecordingTranscriptEntryEvent;
+  'recording.started': RecordingEvents['recording.started'];
+  'recording.stopped': RecordingEvents['recording.stopped'];
+  'recording.unrecoverable': RecordingEvents['recording.unrecoverable'];
+  'recording.analysis.updated': RecordingEvents['recording.analysis.updated'];
+  'recording.analysis.completed': RecordingEvents['recording.analysis.completed'];
+  'recording.analysis.failed': RecordingEvents['recording.analysis.failed'];
+  'recording.transcript.entry': RecordingEvents['recording.transcript.entry'];
 
   // MCP
   'mcp.tools.list_changed': McpToolsChangedEvent;
   'mcp.tools.changed': McpToolsChangedEvent;
   'mcp.auth.status_changed': McpAuthStatusChangedEvent;
 
+  // Skills
+  'skill.created': SkillEvents['skill.created'];
+  'skill.updated': SkillEvents['skill.updated'];
+  'skill.deleted': SkillEvents['skill.deleted'];
+
+  // Connectors
+  'connector.token.refreshed': ConnectorEvents['connector.token.refreshed'];
+  'connector.auth.failed': ConnectorEvents['connector.auth.failed'];
+  'connector.authorized': ConnectorEvents['connector.authorized'];
+  'connector.removed': ConnectorEvents['connector.removed'];
+
+  // Settings
+  'settings.changed': SettingsChangedEvent;
+
+  // Automations / Schedules
+  'automation.run.started': AutomationRunStartedEvent;
+  'automation.run.completed': AutomationRunCompletedEvent;
+  'automation.run.failed': AutomationRunFailedEvent;
+  'schedule.job.fired': ScheduleJobFiredEvent;
+  'schedule.job.succeeded': ScheduleJobSucceededEvent;
+  'schedule.job.failed': ScheduleJobFailedEvent;
+
   // Mail
-  'mail.sync.progress': MailSyncProgressEvent;
-  'mail.account.updated': MailAccountUpdatedEvent;
-  'mail.threads.changed': MailThreadsChangedEvent;
+  'mail.sync.progress': MailEvents['mail.sync.progress'];
+  'mail.account.updated': MailEvents['mail.account.updated'];
+  'mail.threads.changed': MailEvents['mail.threads.changed'];
 };

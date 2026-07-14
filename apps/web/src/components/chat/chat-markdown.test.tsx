@@ -19,4 +19,35 @@ describe('ChatMarkdown', () => {
 
     expect(html).toContain('katex');
   });
+
+  test('renders single-dollar LaTeX command spans', () => {
+    const html = renderToStaticMarkup(<ChatMarkdown text={'Standard AI Routing Proxy $\\rightarrow$ NO-GO.'} />);
+
+    expect(html).toContain('katex');
+    expect(html).not.toContain('$\\rightarrow$');
+  });
+
+  test('renders arrow command text while streaming', () => {
+    const html = renderToStaticMarkup(
+      <ChatMarkdown text={'Standard AI Routing Proxy $\\rightarrow$ NO-GO.'} isStreaming />,
+    );
+
+    expect(html).toContain('→');
+    expect(html).not.toContain('$\\rightarrow$');
+    expect(html).not.toContain('katex');
+  });
+
+  test('renders double-escaped single-dollar LaTeX command spans', () => {
+    const html = renderToStaticMarkup(<ChatMarkdown text={'Standard AI Routing Proxy $\\\\rightarrow$ NO-GO.'} />);
+
+    expect(html).toContain('katex');
+    expect(html).not.toContain('$\\rightarrow$');
+  });
+
+  test('leaves unsupported single-dollar LaTeX command spans as text', () => {
+    const html = renderToStaticMarkup(<ChatMarkdown text={'Unsupported $\\notarealcommand$ stays literal.'} />);
+
+    expect(html).toContain('$\\notarealcommand$');
+    expect(html).not.toContain('katex');
+  });
 });

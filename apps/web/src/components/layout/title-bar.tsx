@@ -2,6 +2,7 @@ import { Copy, Minus, PanelLeftClose, PanelLeftOpen, Square, X } from 'lucide-re
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 
 import { ServerStatus } from '@/components/layout/server-status';
+import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useFullScreen } from '@/hooks/ui/use-fullscreen';
 import { cn } from '@/lib/utils';
@@ -49,16 +50,13 @@ function SidebarToggleButton() {
   const { open, toggleSidebar } = useSidebar();
 
   return (
-    <button
-      type="button"
-      onClick={toggleSidebar}
-      className="flex h-full w-9 items-center justify-center transition-colors hover:bg-muted">
+    <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-full w-9 rounded-none">
       {open ? (
         <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
       ) : (
         <PanelLeftOpen className="h-4 w-4 text-muted-foreground" />
       )}
-    </button>
+    </Button>
   );
 }
 
@@ -91,28 +89,23 @@ function WindowsControls() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={handleMinimize}
-        className="flex h-full w-12 items-center justify-center transition-colors hover:bg-muted">
+      <Button variant="ghost" size="icon" onClick={handleMinimize} className="h-full w-12 rounded-none">
         <Minus className="h-4 w-4 text-muted-foreground" />
-      </button>
-      <button
-        type="button"
-        onClick={handleMaximize}
-        className="flex h-full w-12 items-center justify-center transition-colors hover:bg-muted">
+      </Button>
+      <Button variant="ghost" size="icon" onClick={handleMaximize} className="h-full w-12 rounded-none">
         {isMaximized ? (
           <Copy className="h-3.5 w-3.5 text-muted-foreground" />
         ) : (
           <Square className="h-3.5 w-3.5 text-muted-foreground" />
         )}
-      </button>
-      <button
-        type="button"
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={handleClose}
-        className="group flex h-full w-12 items-center justify-center transition-colors hover:bg-destructive hover:text-destructive-foreground">
-        <X className="h-4 w-4 text-muted-foreground group-hover:text-white" />
-      </button>
+        className="group h-full w-12 rounded-none hover:bg-destructive hover:text-destructive-foreground">
+        <X className="h-4 w-4 text-muted-foreground group-hover:text-destructive-foreground" />
+      </Button>
     </>
   );
 }
