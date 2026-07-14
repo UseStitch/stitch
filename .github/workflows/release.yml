@@ -264,7 +264,7 @@ jobs:
         run: bun run ${{ matrix.package_script || 'package' }}
 
       - name: Upload desktop artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: desktop-${{ matrix.os }}-${{ matrix.arch || 'x64' }}
           if-no-files-found: error
@@ -301,7 +301,7 @@ jobs:
         run: bun run build
 
       - name: Upload Linux server artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: server-linux-x64
           if-no-files-found: error
@@ -330,14 +330,14 @@ jobs:
           bot-email: stitch[bot]@users.noreply.github.com
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: desktop-*
           path: release-assets
           merge-multiple: true
 
       - name: Download Linux server artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: server-linux-x64
           path: release-assets/server-linux-x64
