@@ -3,15 +3,8 @@ import * as React from 'react';
 import type { EmbeddingUsageDashboardResponse } from '@stitch/shared/usage/types';
 
 import { StackedBarChart } from '@/components/usage/charts/stacked-bar-chart';
-import { getStackSegmentRadius, hashString, resolveCssVar } from '@/components/usage/charts/usage-chart-utils';
-
-const FALLBACK_COLORS = ['#f97316', '#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#14b8a6'];
-
-function getModelColor(modelKey: string, index: number): string {
-  const cssVar = `--chart-${(index % 6) + 1}`;
-  const fallback = FALLBACK_COLORS[hashString(modelKey) % FALLBACK_COLORS.length] ?? '#6b7280';
-  return resolveCssVar(cssVar, fallback);
-}
+import { getStackSegmentRadius } from '@/components/usage/charts/usage-chart-utils';
+import { getChartColor } from '@/lib/chart-colors';
 
 function labelForModelKey(modelKey: string): string {
   const separator = modelKey.indexOf('::');
@@ -39,7 +32,7 @@ export function EmbeddingUsageCostChart({ usageData }: EmbeddingUsageCostChartPr
       modelKeys.map((key, i) => ({
         label: labelForModelKey(key),
         data: usageData?.buckets.map((b) => b.costUsdByModel[key] ?? 0) ?? [],
-        backgroundColor: getModelColor(key, i),
+        backgroundColor: getChartColor(i),
         borderRadius: (ctx: import('chart.js').ScriptableContext<'bar'>) => getStackSegmentRadius(ctx),
         borderSkipped: false as const,
         inflateAmount: 0,

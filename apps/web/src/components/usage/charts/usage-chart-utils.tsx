@@ -1,21 +1,8 @@
 import { BarChart3Icon } from 'lucide-react';
 import * as React from 'react';
 
+import { getChartGridColor, getChartTickColor } from '@/lib/chart-colors';
 import type { ScriptableContext } from 'chart.js';
-
-export function resolveCssVar(varName: string, fallback: string): string {
-  if (typeof window === 'undefined') return fallback;
-  const value = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-  return value.length > 0 ? value : fallback;
-}
-
-export function hashString(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i += 1) {
-    hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
-  }
-  return hash;
-}
 
 function getNumericValue(value: unknown): number {
   if (typeof value === 'number') return value;
@@ -35,11 +22,7 @@ export function getStackSegmentRadius(ctx: ScriptableContext<'bar'>, radius = 5)
 }
 
 export function useChartTheme() {
-  return React.useMemo(() => {
-    const tickColor = resolveCssVar('--muted-foreground', '#71717a');
-    const gridColor = resolveCssVar('--border', '#27272a');
-    return { tickColor, gridColor };
-  }, []);
+  return React.useMemo(() => ({ tickColor: getChartTickColor(), gridColor: getChartGridColor() }), []);
 }
 
 export function EmptyChart({ message }: { message: string }) {

@@ -3,21 +3,17 @@ import * as React from 'react';
 import type { SttUsageDashboardResponse } from '@stitch/shared/usage/types';
 
 import { StackedBarChart } from '@/components/usage/charts/stacked-bar-chart';
-import { getStackSegmentRadius, hashString, resolveCssVar } from '@/components/usage/charts/usage-chart-utils';
+import { getStackSegmentRadius } from '@/components/usage/charts/usage-chart-utils';
+import { getChartColor, getChartColorForKey } from '@/lib/chart-colors';
 
-const FALLBACK_COLORS = ['#f97316', '#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#14b8a6'];
-
-const SERVICE_COLOR_CONFIG: Record<string, { cssVar: string; fallback: string }> = {
-  'chat-input': { cssVar: '--chart-1', fallback: '#f97316' },
-  'meeting-recording': { cssVar: '--chart-2', fallback: '#10b981' },
-};
+const SERVICE_COLOR_INDEX: Record<string, number> = { 'chat-input': 0, 'meeting-recording': 1 };
 
 const SERVICE_LABELS: Record<string, string> = { 'chat-input': 'Chat Input', 'meeting-recording': 'Meeting Recording' };
 
 function getServiceColor(service: string): string {
-  const configured = SERVICE_COLOR_CONFIG[service];
-  if (configured) return resolveCssVar(configured.cssVar, configured.fallback);
-  return FALLBACK_COLORS[hashString(service) % FALLBACK_COLORS.length] ?? '#6b7280';
+  const index = SERVICE_COLOR_INDEX[service];
+  if (index !== undefined) return getChartColor(index);
+  return getChartColorForKey(service);
 }
 
 function getServiceLabel(service: string): string {

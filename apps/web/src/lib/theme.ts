@@ -36,6 +36,7 @@ export const THEME_TOKEN_KEYS = [
   'chart-3',
   'chart-4',
   'chart-5',
+  'chart-6',
   'sidebar',
   'sidebar-foreground',
   'sidebar-primary',

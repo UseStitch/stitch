@@ -3,24 +3,23 @@ import * as React from 'react';
 import type { UsageDashboardResponse } from '@stitch/shared/usage/types';
 
 import { StackedBarChart } from '@/components/usage/charts/stacked-bar-chart';
-import { getStackSegmentRadius, hashString, resolveCssVar } from '@/components/usage/charts/usage-chart-utils';
+import { getStackSegmentRadius } from '@/components/usage/charts/usage-chart-utils';
 import { getSourceLabel, useSourceOrder } from '@/components/usage/utils/usage-dashboard-utils';
+import { getChartColor, getChartColorForKey } from '@/lib/chart-colors';
 
-const FALLBACK_COLORS = ['#f97316', '#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#14b8a6'];
-
-const SOURCE_COLOR_CONFIG: Record<string, { cssVar: string; fallback: string }> = {
-  chat: { cssVar: '--chart-1', fallback: '#f97316' },
-  automation: { cssVar: '--chart-2', fallback: '#10b981' },
-  automation_generation: { cssVar: '--chart-5', fallback: '#8b5cf6' },
-  title_generation: { cssVar: '--chart-3', fallback: '#3b82f6' },
-  memory_extraction: { cssVar: '--chart-4', fallback: '#ec4899' },
-  recording_analysis: { cssVar: '--chart-5', fallback: '#14b8a6' },
+const SOURCE_COLOR_INDEX: Record<string, number> = {
+  chat: 0,
+  automation: 1,
+  automation_generation: 4,
+  title_generation: 2,
+  memory_extraction: 3,
+  recording_analysis: 4,
 };
 
 function getSourceColor(source: string): string {
-  const configured = SOURCE_COLOR_CONFIG[source];
-  if (configured) return resolveCssVar(configured.cssVar, configured.fallback);
-  return FALLBACK_COLORS[hashString(source) % FALLBACK_COLORS.length] ?? '#6b7280';
+  const index = SOURCE_COLOR_INDEX[source];
+  if (index !== undefined) return getChartColor(index);
+  return getChartColorForKey(source);
 }
 
 type UsageDashboardCostChartProps = { usageData: UsageDashboardResponse | undefined };
