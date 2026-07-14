@@ -3,6 +3,7 @@ import * as React from 'react';
 
 import { RemoteImageIcon } from '@/components/icons/remote-icon';
 import { Button } from '@/components/ui/button';
+import { Empty, EmptyDescription, EmptyMedia } from '@/components/ui/empty';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 
@@ -138,9 +139,11 @@ export function SectionCard({
 
 export function EmptyState() {
   return (
-    <div className="rounded-lg border border-dashed border-border/70 px-4 py-8 text-center">
-      <WrenchIcon className="mx-auto mb-2 size-4 text-muted-foreground" />
-      <p className="text-sm text-muted-foreground">No tools match your current filters.</p>
-    </div>
+    <Empty surface="bordered" size="compact">
+      <EmptyMedia>
+        <WrenchIcon className="size-4 text-muted-foreground" />
+      </EmptyMedia>
+      <EmptyDescription>No tools match your current filters.</EmptyDescription>
+    </Empty>
   );
 }

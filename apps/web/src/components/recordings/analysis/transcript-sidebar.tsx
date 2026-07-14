@@ -5,6 +5,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 
 import type { RecordingAnalysis } from '@stitch/shared/recordings/types';
 
+import { Empty, EmptyDescription } from '@/components/ui/empty';
 import { useLiveTranscript } from '@/hooks/sse/use-live-transcript';
 
 function occurrenceKey(value: string, counts: Map<string, number>): string {
@@ -119,13 +120,15 @@ export function TranscriptSidebar({ analysis, isRunning, recordingId, isRecordin
           </div>
         ) : (
           <div className="p-5">
-            <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-border/60 text-sm text-muted-foreground">
-              {isRecording
-                ? 'Waiting for transcription...'
-                : isRunning
-                  ? 'Analyzing recording...'
-                  : 'No transcript generated yet.'}
-            </div>
+            <Empty surface="bordered" size="compact" className="h-32">
+              <EmptyDescription>
+                {isRecording
+                  ? 'Waiting for transcription...'
+                  : isRunning
+                    ? 'Analyzing recording...'
+                    : 'No transcript generated yet.'}
+              </EmptyDescription>
+            </Empty>
           </div>
         )}
       </div>
