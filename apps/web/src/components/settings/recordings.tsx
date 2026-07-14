@@ -160,7 +160,7 @@ function AudioDeviceSettings() {
   return (
     <SettingRows>
       <SettingRow label="Input Device" description="Microphone used for recording.">
-        <SettingRowControl size="lg">
+        <SettingRowControl>
           <Select value={currentInputDevice || SYSTEM_DEFAULT_VALUE} onValueChange={handleInputDeviceChange}>
             <SelectTrigger className="w-full">
               <SelectValue>{currentInputDevice || 'System Default'}</SelectValue>
@@ -178,7 +178,7 @@ function AudioDeviceSettings() {
       </SettingRow>
 
       <SettingRow label="Output Device" description="Speaker or system audio source for recording.">
-        <SettingRowControl size="lg">
+        <SettingRowControl>
           <Select value={currentOutputDevice || SYSTEM_DEFAULT_VALUE} onValueChange={handleOutputDeviceChange}>
             <SelectTrigger className="w-full">
               <SelectValue>{currentOutputDevice || 'System Default'}</SelectValue>

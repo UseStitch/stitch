@@ -146,17 +146,13 @@ export function SettingRow({ label, description, htmlFor, className, children }:
 }
 
 // ---------------------------------------------------------------------------
-// SettingRowControl — right-hand slot with standardised widths
+// SettingRowControl — right-hand slot with a fixed standard width
 // ---------------------------------------------------------------------------
 
-type SettingRowControlSize = 'sm' | 'md' | 'lg';
+type SettingRowControlProps = { className?: string; children: React.ReactNode };
 
-const CONTROL_WIDTH: Record<SettingRowControlSize, string> = { sm: 'w-32', md: 'w-52', lg: 'w-64' };
-
-type SettingRowControlProps = { size?: SettingRowControlSize; className?: string; children: React.ReactNode };
-
-export function SettingRowControl({ size = 'md', className, children }: SettingRowControlProps) {
-  return <div className={cn('shrink-0', CONTROL_WIDTH[size], className)}>{children}</div>;
+export function SettingRowControl({ className, children }: SettingRowControlProps) {
+  return <div className={cn('w-60 shrink-0', className)}>{children}</div>;
 }
 
 // ---------------------------------------------------------------------------
@@ -178,7 +174,7 @@ export function NumberSettingRow({ settingKey, label, description, currentValue,
 
   return (
     <SettingRow label={label} description={description}>
-      <SettingRowControl size="sm">
+      <SettingRowControl>
         <Input
           type="number"
           min={String(min)}
