@@ -44,7 +44,7 @@ export async function runMemoryMaintenance(): Promise<ServiceResult<MaintenanceR
   }
 
   // Phase 2: Dedup sweep — remove near-duplicate memories
-  const deduplicated = await deduplicateMemories();
+  const deduplicated = await deduplicateMemories(config.dedupThreshold);
   log.info({ deduplicated }, 'memory maintenance: dedup sweep complete');
 
   // Phase 3: Reflective consolidation of related semantic memories

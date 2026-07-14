@@ -272,6 +272,15 @@ function RetentionSettings() {
         description="Run automatic pruning after extraction to stay within limits."
         checked={settings['memory.retention.autoprune'] === 'true'}
       />
+      <SliderSettingRow
+        settingKey="memory.retention.dedupThreshold"
+        label="Dedup Similarity Threshold"
+        description="How similar two memories must be to count as duplicates. Lower = more aggressive dedup."
+        currentValue={Number(settings['memory.retention.dedupThreshold'])}
+        min={0.5}
+        max={1}
+        step={0.01}
+      />
     </SettingRows>
   );
 }

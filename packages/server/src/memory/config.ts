@@ -14,6 +14,7 @@ type MemoryConfig = {
   maxMemories: number;
   staleDays: number;
   autoprune: boolean;
+  dedupThreshold: number;
   retrievalMaxResults: number;
   retrievalMinScore: number;
   retrievalRecencyBoost: boolean;
@@ -57,6 +58,7 @@ export async function getMemoryConfig(): Promise<MemoryConfig> {
     'memory.retention.maxMemories',
     'memory.retention.staleDays',
     'memory.retention.autoprune',
+    'memory.retention.dedupThreshold',
     'memory.retrieval.maxResults',
     'memory.retrieval.minScore',
     'memory.retrieval.recencyBoost',
@@ -76,6 +78,7 @@ export async function getMemoryConfig(): Promise<MemoryConfig> {
     maxMemories: s['memory.retention.maxMemories'],
     staleDays: s['memory.retention.staleDays'],
     autoprune: s['memory.retention.autoprune'],
+    dedupThreshold: s['memory.retention.dedupThreshold'],
     retrievalMaxResults: s['memory.retrieval.maxResults'],
     retrievalMinScore: s['memory.retrieval.minScore'],
     retrievalRecencyBoost: s['memory.retrieval.recencyBoost'],
