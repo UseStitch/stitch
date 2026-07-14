@@ -6,6 +6,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import type { RecordingAnalysis } from '@stitch/shared/recordings/types';
 
 import { Empty, EmptyDescription } from '@/components/ui/empty';
+import { StatusDot } from '@/components/ui/status-dot';
 import { useLiveTranscript } from '@/hooks/sse/use-live-transcript';
 
 function occurrenceKey(value: string, counts: Map<string, number>): string {
@@ -79,7 +80,7 @@ export function TranscriptSidebar({ analysis, isRunning, recordingId, isRecordin
         <h2 className="flex items-center text-sm font-semibold tracking-wide text-foreground">
           <MessageSquareIcon className="mr-2 size-4 text-muted-foreground" />
           {isRecording ? 'Live Transcript' : 'Full Transcript'}
-          {showLive ? <span className="ml-2 inline-flex size-2 animate-pulse rounded-full bg-destructive" /> : null}
+          {showLive ? <StatusDot color="destructive" pulse className="ml-2" /> : null}
         </h2>
       </div>
 
