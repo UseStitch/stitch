@@ -4,7 +4,6 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage, SettingSection } from '@/components/settings/settings-ui';
-import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 
@@ -35,16 +34,8 @@ export function AgentsSettings() {
     <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
       <SettingSection
         title="Custom instructions"
-        description="Write Markdown instructions that Stitch should follow in chat and agent sessions."
+        description="Write Markdown instructions that Stitch should follow in chat and agent sessions. Click outside textarea to save."
         className="flex min-h-0 flex-1 flex-col">
-        <div className="flex items-center justify-end">
-          <Button
-            size="sm"
-            onClick={saveInstructions}
-            disabled={instructions === savedInstructions || saveMutation.isPending}>
-            Save
-          </Button>
-        </div>
         <Textarea
           value={instructions}
           onChange={(event) => setInstructions(event.target.value)}
