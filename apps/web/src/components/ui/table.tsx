@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { Badge, type badgeVariants } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { formatUsdCost } from '@/lib/format-cost';
 import { cn } from '@/lib/utils';
 import type { VariantProps } from 'class-variance-authority';
@@ -85,6 +86,24 @@ function TableEmptyRow({ colSpan, children }: { colSpan: number; children: React
   );
 }
 
+type TableSkeletonColumn = { className?: string; skeletonClassName?: string };
+
+function TableSkeletonRows({ rows = 5, columns }: { rows?: number; columns: TableSkeletonColumn[] }) {
+  return (
+    <>
+      {Array.from({ length: rows }).map((_, rowIndex) => (
+        <TableRow key={rowIndex} className="hover:bg-transparent">
+          {columns.map((column, columnIndex) => (
+            <TableCell key={columnIndex} className={column.className}>
+              {column.skeletonClassName ? <Skeleton className={column.skeletonClassName} /> : null}
+            </TableCell>
+          ))}
+        </TableRow>
+      ))}
+    </>
+  );
+}
+
 function TableTitle({ className, ...props }: React.HTMLAttributes<HTMLSpanElement>) {
   return <span className={cn('truncate text-sm font-medium', className)} {...props} />;
 }
@@ -154,6 +173,7 @@ export const Table = {
   Root: TableRoot,
   Row: TableRow,
   Scroller: TableScroller,
+  SkeletonRows: TableSkeletonRows,
   Status: TableStatus,
   Text: TableText,
   Time: TableTime,

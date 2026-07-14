@@ -421,25 +421,17 @@ export function AgendaPage({ listId }: { listId?: string }) {
                 }}
                 onDrop={handleRowDrop}>
                 {isLoading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <Table.Row key={i} className="hover:bg-transparent">
-                      <Table.Cell className="w-8" />
-                      <Table.Cell className="w-10" />
-                      <Table.Cell className="w-full max-w-0 min-w-0 overflow-hidden">
-                        <div className="h-4 animate-pulse rounded bg-muted" />
-                      </Table.Cell>
-                      <Table.Cell className="w-24">
-                        <div className="mx-auto h-5 w-16 animate-pulse rounded-full bg-muted" />
-                      </Table.Cell>
-                      <Table.Cell className="w-20">
-                        <div className="mx-auto h-5 w-14 animate-pulse rounded-full bg-muted" />
-                      </Table.Cell>
-                      {!listId && <Table.Cell className="w-24" />}
-                      <Table.Cell className="w-24">
-                        <div className="ml-auto h-4 w-16 animate-pulse rounded bg-muted" />
-                      </Table.Cell>
-                    </Table.Row>
-                  ))
+                  <Table.SkeletonRows
+                    columns={[
+                      { className: 'w-8' },
+                      { className: 'w-10' },
+                      { className: 'w-full max-w-0 min-w-0 overflow-hidden', skeletonClassName: 'h-4' },
+                      { className: 'w-24', skeletonClassName: 'mx-auto h-5 w-16 rounded-full' },
+                      { className: 'w-20', skeletonClassName: 'mx-auto h-5 w-14 rounded-full' },
+                      ...(!listId ? [{ className: 'w-24' }] : []),
+                      { className: 'w-24', skeletonClassName: 'ml-auto h-4 w-16' },
+                    ]}
+                  />
                 ) : items.length === 0 ? (
                   <Table.EmptyRow colSpan={listId ? 6 : 7}>
                     <Empty>
