@@ -2,6 +2,7 @@ import { formatForDisplay } from '@tanstack/react-hotkeys';
 
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Kbd } from '@/components/ui/kbd';
 import { useDialogContext } from '@/context/dialog-context';
 import type { Action } from '@/lib/actions';
 import { useShortcuts } from '@/lib/shortcuts';
@@ -42,7 +43,7 @@ export function CommandPalette({ actions }: CommandPaletteProps) {
                     <CommandItem key={action.id} onSelect={() => handleSelect(action)}>
                       <span className="flex-1">{action.label}</span>
                       {hotkey && (
-                        <span className="ml-auto flex items-center gap-0.5 text-xs text-muted-foreground">
+                        <span className="ml-auto flex items-center gap-1.5">
                           {isLeaderShortcut
                             ? [
                                 'Leader',
@@ -50,30 +51,24 @@ export function CommandPalette({ actions }: CommandPaletteProps) {
                                   .split('+')
                                   .filter(Boolean),
                               ].map((key, i) => (
-                                <kbd
-                                  key={i}
-                                  className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] leading-none font-medium">
+                                <Kbd key={i} size="sm">
                                   {key}
-                                </kbd>
+                                </Kbd>
                               ))
                             : info?.isSequence
                               ? [...formatForDisplay(hotkey).split('+'), ...formatForDisplay(hotkey).split('+')].map(
                                   (key, i) => (
-                                    <kbd
-                                      key={i}
-                                      className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] leading-none font-medium">
+                                    <Kbd key={i} size="sm">
                                       {key}
-                                    </kbd>
+                                    </Kbd>
                                   ),
                                 )
                               : formatForDisplay(hotkey)
                                   .split('+')
                                   .map((key, i) => (
-                                    <kbd
-                                      key={i}
-                                      className="inline-flex items-center justify-center rounded border border-foreground/15 bg-foreground/10 px-1.5 py-0.5 text-[11px] leading-none font-medium">
+                                    <Kbd key={i} size="sm">
                                       {key}
-                                    </kbd>
+                                    </Kbd>
                                   ))}
                         </span>
                       )}

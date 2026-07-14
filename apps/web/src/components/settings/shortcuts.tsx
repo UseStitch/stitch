@@ -11,7 +11,9 @@ import { SHORTCUT_CATEGORIES, SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage, SettingSection, SettingRows, SettingRow } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
+import { Empty, EmptyDescription } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
+import { Kbd } from '@/components/ui/kbd';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 import {
@@ -45,9 +47,6 @@ function groupByCategory(entries: ShortcutEntry[]): Map<string, ShortcutEntry[]>
   return groups;
 }
 
-const KBD_CLASS =
-  'inline-flex items-center justify-center rounded-md border border-border/60 bg-background px-1.5 py-0.5 text-xs font-semibold text-foreground shadow-sm';
-
 const defaultLeaderKey = SETTINGS_DEFAULTS.find((s) => s.key === 'shortcuts.leaderKey')!.value;
 
 function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence: boolean }) {
@@ -62,12 +61,10 @@ function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence
 
     return (
       <span className="inline-flex items-center gap-1.5">
-        <kbd className={KBD_CLASS}>Leader</kbd>
+        <Kbd>Leader</Kbd>
         <span className="text-[11px] font-semibold tracking-widest text-muted-foreground uppercase">then</span>
         {suffixDisplayKeys.map((key, i) => (
-          <kbd key={`suffix-${i}`} className={KBD_CLASS}>
-            {key}
-          </kbd>
+          <Kbd key={`suffix-${i}`}>{key}</Kbd>
         ))}
       </span>
     );
@@ -79,14 +76,10 @@ function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence
     return (
       <span className="inline-flex gap-1.5">
         {displayKeys.map((key, i) => (
-          <kbd key={`first-${i}`} className={KBD_CLASS}>
-            {key}
-          </kbd>
+          <Kbd key={`first-${i}`}>{key}</Kbd>
         ))}
         {displayKeys.map((key, i) => (
-          <kbd key={`second-${i}`} className={KBD_CLASS}>
-            {key}
-          </kbd>
+          <Kbd key={`second-${i}`}>{key}</Kbd>
         ))}
       </span>
     );
@@ -95,9 +88,7 @@ function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence
   return (
     <span className="inline-flex gap-1.5">
       {displayKeys.map((key, i) => (
-        <kbd key={i} className={KBD_CLASS}>
-          {key}
-        </kbd>
+        <Kbd key={i}>{key}</Kbd>
       ))}
     </span>
   );
@@ -340,9 +331,11 @@ function ShortcutsContent() {
                   ))}
                 </SettingRows>
               ) : (
-                <p className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-8 text-center text-sm font-medium text-muted-foreground">
-                  No {category.toLowerCase()} shortcuts match "{search}"
-                </p>
+                <Empty surface="muted" size="compact">
+                  <EmptyDescription className="font-medium">
+                    No {category.toLowerCase()} shortcuts match "{search}"
+                  </EmptyDescription>
+                </Empty>
               )}
             </TabsContent>
           );
