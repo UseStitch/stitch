@@ -31,12 +31,13 @@ export function UpdaterSync() {
       setUpdaterState(payload);
       if (payload.status === previousStatus.current) return;
 
-      if (payload.status === 'available') {
-        toast.info(`Update available${payload.version ? `: v${payload.version}` : ''}`, { id: 'update-available' });
-      }
-
       if (payload.status === 'downloaded') {
-        toast.success('Update ready. Open Settings > General to restart and install.', { id: 'update-ready' });
+        toast.success(`Update ready${payload.version ? `: v${payload.version}` : ''}. Restart to install.`, {
+          id: 'update-ready',
+          duration: Infinity,
+          action: { label: 'Install & Restart', onClick: () => window.api?.updater?.install() },
+          cancel: { label: 'Not now', onClick: () => toast.dismiss('update-ready') },
+        });
       }
 
       if (payload.status === 'error') {
