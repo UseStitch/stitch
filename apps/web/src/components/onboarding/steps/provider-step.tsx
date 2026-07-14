@@ -1,4 +1,4 @@
-import { PlusIcon, SearchIcon } from 'lucide-react';
+import { PlusIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useQuery } from '@tanstack/react-query';
@@ -9,7 +9,7 @@ import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 import { ProviderConfig } from '@/components/settings/providers/provider-config';
 import { ProviderLogo } from '@/components/settings/providers/provider-logo';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/search-input';
 import { providersQueryOptions, type ProviderSummary } from '@/lib/queries/providers';
 
 type Props = { onConnected: () => void };
@@ -87,15 +87,7 @@ export function ProviderStep({ onConnected }: Props) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <div className="relative">
-          <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search providers..."
-            className="pl-8"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+        <SearchInput placeholder="Search providers..." value={search} onChange={(e) => setSearch(e.target.value)} />
 
         <div className="thin-scrollbar flex max-h-96 flex-col overflow-y-auto">
           {filteredProviders.length === 0 ? (

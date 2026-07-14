@@ -13,6 +13,7 @@ import {
   ComboboxSeparator,
 } from '@/components/ui/combobox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
 import type { ModelOption, ProviderOption } from '@/components/usage/hooks/use-usage-dashboard-data';
 import { ALL_FILTER, encodeModelFilter, RANGE_LABELS } from '@/components/usage/utils/usage-dashboard-utils';
 
@@ -143,9 +144,7 @@ export function UsageDashboardFilters({
             </SelectContent>
           </Select>
 
-          {isFetching ? (
-            <div className="size-4 shrink-0 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
-          ) : null}
+          {isFetching ? <Spinner className="shrink-0 text-muted-foreground" /> : null}
         </div>
       </div>
     </div>
