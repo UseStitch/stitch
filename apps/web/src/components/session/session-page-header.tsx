@@ -12,6 +12,7 @@ import {
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -64,10 +65,10 @@ export function SessionPageHeader({
           ) : null}
           <h1 className="flex min-w-0 items-center gap-2 truncate text-base font-medium">
             {isChildSession ? (
-              <span className="inline-flex items-center gap-1 rounded-sm border border-border/50 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              <Badge variant="soft" size="xs">
                 <BotIcon className="size-2.5" />
                 Child session
-              </span>
+              </Badge>
             ) : null}
             <span className="truncate">{session.title ?? 'New conversation'}</span>
           </h1>

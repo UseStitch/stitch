@@ -1,4 +1,4 @@
-import { PlugIcon, SearchIcon } from 'lucide-react';
+import { PlugIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
@@ -9,7 +9,7 @@ import { ConnectorCard } from '@/components/connectors/connector-card';
 import { ConnectorInstanceList } from '@/components/connectors/connector-instance-list';
 import { SetupWizard } from '@/components/connectors/setup-wizard';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { Empty, EmptyDescription, EmptyTitle } from '@/components/ui/empty';
 import {
   Page,
   PageContent,
@@ -19,6 +19,8 @@ import {
   PageIcon,
   PageTitle,
 } from '@/components/ui/page';
+import { SearchInput } from '@/components/ui/search-input';
+import { StatusDot } from '@/components/ui/status-dot';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   connectorDefinitionsQueryOptions,
@@ -64,26 +66,20 @@ export function ConnectorsPage() {
             <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
             <TabsTrigger value="connected" className="gap-2">
               Connected
-              <Badge variant="secondary" className="h-5 rounded-full px-2 text-[11px]">
+              <Badge variant="secondary" size="sm" className="rounded-full">
                 {instances.length}
               </Badge>
-              {pendingUpdates > 0 ? (
-                <span className="size-2 rounded-full bg-warning" aria-label="Upgrades available" />
-              ) : null}
+              {pendingUpdates > 0 ? <StatusDot color="warning" aria-label="Upgrades available" /> : null}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="marketplace" className="space-y-3">
             <h2 className="text-sm font-medium text-muted-foreground">Available Connectors</h2>
-            <div className="relative">
-              <SearchIcon className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="pl-8"
-                placeholder="Search connectors"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </div>
+            <SearchInput
+              placeholder="Search connectors"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
 
             {filteredDefinitions.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -100,10 +96,10 @@ export function ConnectorsPage() {
                 })}
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-8 text-center">
-                <p className="text-sm font-medium">No connectors match your search</p>
-                <p className="mt-1 text-xs text-muted-foreground">Try a different name or clear the search query.</p>
-              </div>
+              <Empty surface="muted" size="compact">
+                <EmptyTitle>No connectors match your search</EmptyTitle>
+                <EmptyDescription>Try a different name or clear the search query.</EmptyDescription>
+              </Empty>
             )}
           </TabsContent>
 
@@ -112,10 +108,10 @@ export function ConnectorsPage() {
             {instances.length > 0 ? (
               <ConnectorInstanceList instances={instances} definitions={definitions} />
             ) : (
-              <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-8 text-center">
-                <p className="text-sm font-medium">No connected instances yet</p>
-                <p className="mt-1 text-xs text-muted-foreground">Open Marketplace to connect your first service.</p>
-              </div>
+              <Empty surface="muted" size="compact">
+                <EmptyTitle>No connected instances yet</EmptyTitle>
+                <EmptyDescription>Open Marketplace to connect your first service.</EmptyDescription>
+              </Empty>
             )}
           </TabsContent>
         </Tabs>

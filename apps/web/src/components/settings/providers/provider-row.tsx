@@ -44,9 +44,9 @@ export function ProviderRow({ provider, onSelect }: Props) {
           <ProviderLogo providerId={provider.id} providerName={meta.displayName} />
         </div>
         <div className="flex min-w-0 flex-col gap-1">
-          <span className="text-[13px] font-semibold text-foreground">{meta.displayName}</span>
+          <span className="text-sm font-semibold text-foreground">{meta.displayName}</span>
           {!provider.enabled && meta.description && (
-            <span className="truncate text-[12px] text-muted-foreground">{meta.description}</span>
+            <span className="truncate text-xs text-muted-foreground">{meta.description}</span>
           )}
         </div>
       </div>
@@ -70,7 +70,7 @@ export function ProviderRow({ provider, onSelect }: Props) {
             <Button
               variant="destructive"
               size="sm"
-              className="h-7 px-3 text-[13px] font-semibold"
+              className="h-7 px-3 text-sm font-semibold"
               onClick={handleDisconnect}
               disabled={deleteMutation.isPending}>
               {deleteMutation.isPending ? 'Disconnecting...' : 'Disconnect'}
@@ -80,7 +80,7 @@ export function ProviderRow({ provider, onSelect }: Props) {
           <Button
             variant="outline"
             size="sm"
-            className="h-7 rounded-[6px] border-border/60 bg-transparent px-2.5 text-[12px] font-semibold text-foreground/90 transition-colors hover:bg-muted/50"
+            className="h-7 rounded-md border-border/60 bg-transparent px-2.5 text-xs font-semibold text-foreground/90 transition-colors hover:bg-muted/50"
             onClick={(e) => {
               e.stopPropagation();
               onSelect();

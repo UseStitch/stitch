@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { StatusDot } from '@/components/ui/status-dot';
 import { useSSE } from '@/hooks/sse/sse-context';
 import { serverFetch, type ServerConnectionConfig } from '@/lib/api';
 
@@ -48,8 +49,9 @@ export function ServerStatus() {
         className="relative flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-muted/50"
         aria-label="Server status">
         <HardDrive className="h-3.75 w-3.75 text-muted-foreground" />
-        <div
-          className={`absolute top-1 right-1 h-2 w-2 rounded-full border-[1.5px] border-background transition-colors ${overallHealthy ? 'bg-success' : 'bg-destructive'}`}
+        <StatusDot
+          color={overallHealthy ? 'success' : 'destructive'}
+          className="absolute top-1 right-1 border-[1.5px] border-background transition-colors"
         />
       </PopoverTrigger>
       <PopoverContent
@@ -57,7 +59,7 @@ export function ServerStatus() {
         align="start"
         className="w-70 overflow-hidden rounded-xl border-border p-0 shadow-lg">
         {/* Header Tabs */}
-        <div className="flex items-center gap-5 border-b border-border bg-muted/30 px-4 pt-3 text-[13px]">
+        <div className="flex items-center gap-5 border-b border-border bg-muted/30 px-4 pt-3 text-sm">
           <TabButton label="Servers" active={activeTab === 'servers'} onClick={() => setActiveTab('servers')} />
           <TabButton label="Info" active={activeTab === 'info'} onClick={() => setActiveTab('info')} />
         </div>
@@ -88,14 +90,10 @@ function StatusItem({ active, label, subtitle }: StatusItemProps) {
   return (
     <div className="flex cursor-default items-center justify-between">
       <div className="flex items-center gap-3">
-        <div
-          className={`h-2 w-2 shrink-0 rounded-full ${active ? 'shadow-success-glow bg-success' : 'shadow-destructive-glow bg-destructive'}`}
-        />
+        <StatusDot color={active ? 'success' : 'destructive'} glow className="shrink-0" />
         <div className="flex flex-col gap-0.5">
-          <span className={`text-[13px] ${active ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
-            {label}
-          </span>
-          {subtitle && <span className="text-[11px] text-muted-foreground">{subtitle}</span>}
+          <span className={`text-sm ${active ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>{label}</span>
+          {subtitle && <span className="text-2xs text-muted-foreground">{subtitle}</span>}
         </div>
       </div>
       {active && <Check className="h-3.5 w-3.5 text-muted-foreground" />}
@@ -140,8 +138,8 @@ type InfoRowProps = { label: string; value: string };
 function InfoRow({ label, value }: InfoRowProps) {
   return (
     <div className="flex cursor-default items-center justify-between">
-      <span className="text-[13px] text-muted-foreground">{label}</span>
-      <span className="text-[13px] font-medium text-foreground">{value}</span>
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium text-foreground">{value}</span>
     </div>
   );
 }

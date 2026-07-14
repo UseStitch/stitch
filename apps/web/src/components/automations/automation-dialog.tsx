@@ -216,9 +216,7 @@ export function AutomationDialog({
             </div>
 
             <div className="rounded-lg border border-border/60 bg-card/70 px-3 py-2.5">
-              <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-                Current schedule
-              </p>
+              <p className="text-2xs font-semibold tracking-wide text-muted-foreground uppercase">Current schedule</p>
               <p className="mt-1 text-sm text-foreground">{scheduleSummary}</p>
             </div>
           </div>

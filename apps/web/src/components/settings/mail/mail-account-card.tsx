@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { getErrorMessage } from '@/lib/errors';
+import { formatDateTime } from '@/lib/format';
 import { useRemoveMailAccount, useResyncMailAccount, useUpdateMailAccount } from '@/lib/mutations/mail';
 import type { MailSyncStatusView } from '@/lib/queries/mail';
 import { cn } from '@/lib/utils';
@@ -33,7 +34,7 @@ const SYNC_PHASE_CLASSES: Record<MailSyncPhase, string> = {
 
 function formatLastSyncedAt(value: number | null): string {
   if (value === null) return 'Never';
-  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+  return formatDateTime(value);
 }
 
 function MailNumberInput({

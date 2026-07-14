@@ -5,7 +5,7 @@ import { useParams } from '@tanstack/react-router';
 import { PrefixedString } from '@stitch/shared/id';
 
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useDialogContext } from '@/context/dialog-context';
 import { useRenameSession } from '@/lib/queries/chat';
@@ -38,28 +38,25 @@ export function RenameSessionDialog() {
 
   return (
     <Dialog open={renameSessionOpen} onOpenChange={setRenameSessionOpen}>
-      <DialogHeader className="sr-only">
-        <DialogTitle>Rename Session</DialogTitle>
-      </DialogHeader>
       <DialogContent className="max-w-sm">
-        <div className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold">Rename Session</h2>
-          <Input
-            placeholder="Session name"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={handleKeyDown}
-            autoFocus
-          />
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setRenameSessionOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleRename} disabled={!title.trim() || renameMutation.isPending}>
-              Rename
-            </Button>
-          </div>
-        </div>
+        <DialogHeader>
+          <DialogTitle>Rename Session</DialogTitle>
+        </DialogHeader>
+        <Input
+          placeholder="Session name"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onKeyDown={handleKeyDown}
+          autoFocus
+        />
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setRenameSessionOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleRename} disabled={!title.trim() || renameMutation.isPending}>
+            Rename
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

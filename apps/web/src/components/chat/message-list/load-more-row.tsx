@@ -1,5 +1,7 @@
 import * as React from 'react';
 
+import { Spinner } from '@/components/ui/spinner';
+
 type LoadMoreRowProps = {
   isFetchingMore: boolean;
   onLoadMore: () => void;
@@ -11,7 +13,7 @@ export function LoadMoreRow({ isFetchingMore, onLoadMore, sentinelRef }: LoadMor
     <div ref={sentinelRef} className="flex items-center justify-center py-3">
       {isFetchingMore ? (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
+          <Spinner size="sm" className="text-muted-foreground" />
           Loading older messages...
         </div>
       ) : (

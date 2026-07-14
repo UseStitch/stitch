@@ -10,6 +10,7 @@ import { InternalSidebar } from '@/components/navigation/internal-sidebar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -74,7 +75,7 @@ function ListRow({ list, isActive, isDragging, mergeIndicator, onDragStart, onMo
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-sm">{list.name}</span>
           {mergeIndicator ? (
-            <Badge variant="default" className="animate-in px-1.5 py-0 text-[10px] zoom-in-95 fade-in">
+            <Badge variant="default" size="xs" className="animate-in zoom-in-95 fade-in">
               {mergeIndicator === 'list' ? (
                 <span className="flex items-center gap-0.5">
                   <MergeIcon className="size-2.5" />
@@ -88,12 +89,12 @@ function ListRow({ list, isActive, isDragging, mergeIndicator, onDragStart, onMo
               )}
             </Badge>
           ) : openCount > 0 ? (
-            <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+            <Badge variant="secondary" size="xs">
               {openCount}
             </Badge>
           ) : null}
         </div>
-        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-1 text-2xs text-muted-foreground">
           <span>{list.itemCounts.total} items</span>
           {list.itemCounts.overdue > 0 && (
             <>
@@ -274,12 +275,13 @@ export function AgendaSidebarContent() {
             })}
             {dropIndex === lists.length && dragListId && <div className="mx-2 h-0.5 rounded bg-primary" />}
             {lists.length === 0 && (
-              <InternalSidebar.EmptyState
-                icon={ListTodoIcon}
-                title="No lists yet"
-                description="Click + to create your first list."
-                className="py-8"
-              />
+              <Empty size="compact">
+                <EmptyMedia>
+                  <ListTodoIcon className="size-8 text-muted-foreground/40" />
+                </EmptyMedia>
+                <EmptyTitle>No lists yet</EmptyTitle>
+                <EmptyDescription>Click + to create your first list.</EmptyDescription>
+              </Empty>
             )}
           </InternalSidebar.List>
         </InternalSidebar.Group>

@@ -1,14 +1,13 @@
-import { SearchIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
+import { SearchInput } from '@/components/ui/search-input';
 import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
-  SidebarInput,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -55,13 +54,8 @@ function Search({
   className,
   inputClassName,
   ...props
-}: React.ComponentProps<typeof SidebarInput> & { inputClassName?: string }) {
-  return (
-    <div className={cn('relative', className)}>
-      <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-      <SidebarInput className={cn('pl-8', inputClassName)} {...props} />
-    </div>
-  );
+}: React.ComponentProps<typeof SearchInput> & { inputClassName?: string }) {
+  return <SearchInput containerClassName={cn('bg-background', className)} className={inputClassName} {...props} />;
 }
 
 function Content(props: React.ComponentProps<typeof SidebarContent>) {
@@ -118,28 +112,6 @@ function SectionItem(props: React.ComponentProps<typeof Item>) {
   return <Item {...props} />;
 }
 
-function EmptyState({
-  icon: Icon,
-  title,
-  description,
-  className,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: React.ReactNode;
-  description?: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={cn('flex flex-col items-center justify-center gap-3 px-4 py-12 text-center', className)}>
-      <Icon className="size-8 text-muted-foreground/40" />
-      <div className="space-y-1">
-        <p className="text-sm font-medium text-muted-foreground">{title}</p>
-        {description ? <p className="text-xs text-muted-foreground/70">{description}</p> : null}
-      </div>
-    </div>
-  );
-}
-
 export const InternalSidebar = Object.assign(Root, {
   Header,
   Title,
@@ -154,5 +126,4 @@ export const InternalSidebar = Object.assign(Root, {
   Item,
   Section,
   SectionItem,
-  EmptyState,
 });

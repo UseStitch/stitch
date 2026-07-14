@@ -16,6 +16,7 @@ import type { LiquidUiNode } from '@stitch/shared/liquid-ui/schema';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { getChartColor } from '@/lib/chart-colors';
 import { cn } from '@/lib/utils';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend);
@@ -53,19 +54,6 @@ const textVariantClasses = {
   heading: 'text-base font-semibold text-foreground',
   caption: 'text-xs text-muted-foreground',
 } as const;
-
-const chartFallbackColors = ['#f97316', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6'];
-
-function resolveCssVar(varName: string, fallback: string): string {
-  if (typeof window === 'undefined') return fallback;
-  const value = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-  return value.length > 0 ? value : fallback;
-}
-
-function getChartColor(index: number): string {
-  const fallback = chartFallbackColors[index % chartFallbackColors.length] ?? '#6b7280';
-  return resolveCssVar(`--chart-${(index % 5) + 1}`, fallback);
-}
 
 function LiquidStack({ node, renderChildren }: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Stack' }>>) {
   return <div className={cn('flex flex-col', spacingClasses[node.spacing])}>{renderChildren(node.children)}</div>;

@@ -1,4 +1,4 @@
-import { ArrowDownToLineIcon, ExternalLinkIcon, PlusIcon, RefreshCwIcon, SearchIcon } from 'lucide-react';
+import { ArrowDownToLineIcon, ExternalLinkIcon, PlusIcon, RefreshCwIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -11,7 +11,7 @@ import { SettingsIconButtonTooltip } from '@/components/settings/settings-ui';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
-import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/search-input';
 import { getErrorMessage } from '@/lib/errors';
 import { mcpRegistryQueryOptions, useRefreshMcpRegistry } from '@/lib/queries/mcp';
 
@@ -47,15 +47,12 @@ export function McpRegistryList({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <SearchIcon className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search servers"
-            className="pl-7"
-          />
-        </div>
+        <SearchInput
+          containerClassName="flex-1"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search servers"
+        />
         <SettingsIconButtonTooltip label="Refresh MCP registry">
           <Button
             size="icon-sm"
@@ -90,7 +87,8 @@ export function McpRegistryList({
                     <Badge
                       key={tag}
                       variant="outline"
-                      className="border-border/40 bg-background/60 text-[11px] text-muted-foreground capitalize">
+                      size="sm"
+                      className="border-border/40 bg-background/60 text-muted-foreground capitalize">
                       {tag}
                     </Badge>
                   ))}

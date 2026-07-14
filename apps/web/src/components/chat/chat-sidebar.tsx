@@ -1,4 +1,4 @@
-import { ArchiveIcon, Loader2Icon, MessageCircleIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { ArchiveIcon, MessageCircleIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
 
 import type { InfiniteData } from '@tanstack/react-query';
@@ -11,6 +11,9 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { InternalSidebar } from '@/components/navigation/internal-sidebar';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { Spinner } from '@/components/ui/spinner';
+import { StatusDot } from '@/components/ui/status-dot';
 import { useStreamingSessionIds } from '@/hooks/use-session-stream-state';
 import { sessionsInfiniteQueryOptions, useArchiveSession, useDeleteSession } from '@/lib/queries/chat';
 import { cn } from '@/lib/utils';
@@ -35,7 +38,7 @@ const SessionStatusIcon = React.memo(function SessionStatusIcon({
   if (isStreaming) {
     return (
       <div className="flex size-3.5 shrink-0 items-center justify-center">
-        <div className="size-2 animate-pulse rounded-full bg-primary" />
+        <StatusDot color="primary" pulse />
       </div>
     );
   }
@@ -43,7 +46,7 @@ const SessionStatusIcon = React.memo(function SessionStatusIcon({
   if (isUnread) {
     return (
       <div className="flex size-3.5 shrink-0 items-center justify-center">
-        <div className="size-2 rounded-full bg-primary" />
+        <StatusDot color="primary" />
       </div>
     );
   }
@@ -181,16 +184,20 @@ export function ChatSidebarContent() {
             </InternalSidebar.List>
             {hasNextPage ? (
               <div ref={loadMoreRef} className="flex h-9 items-center justify-center">
-                {isFetchingNextPage ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" /> : null}
+                {isFetchingNextPage ? <Spinner className="text-muted-foreground" /> : null}
               </div>
             ) : null}
           </InternalSidebar.Group>
         ) : (
-          <InternalSidebar.EmptyState
-            icon={MessageCircleIcon}
-            title={deferredSearch ? 'No matching conversations' : 'No conversations yet'}
-            description={deferredSearch ? 'Try a different search' : 'Start a new chat to get going'}
-          />
+          <Empty size="compact">
+            <EmptyMedia>
+              <MessageCircleIcon className="size-8 text-muted-foreground/40" />
+            </EmptyMedia>
+            <EmptyTitle>{deferredSearch ? 'No matching conversations' : 'No conversations yet'}</EmptyTitle>
+            <EmptyDescription>
+              {deferredSearch ? 'Try a different search' : 'Start a new chat to get going'}
+            </EmptyDescription>
+          </Empty>
         )}
       </InternalSidebar.Content>
 

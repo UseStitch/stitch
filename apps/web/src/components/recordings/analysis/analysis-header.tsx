@@ -1,4 +1,4 @@
-import { FileTextIcon, Loader2Icon, SparklesIcon, SquareIcon, Trash2Icon } from 'lucide-react';
+import { FileTextIcon, SparklesIcon, SquareIcon, Trash2Icon } from 'lucide-react';
 
 import type { MeetingNoteTemplate, RecordingAnalysis, Recording } from '@stitch/shared/recordings/types';
 
@@ -7,6 +7,7 @@ import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group'
 import { CopyButton } from '@/components/ui/copy-button';
 import { PageDescription, PageHeader, PageHeaderContent, PageIcon, PageTitle } from '@/components/ui/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
 import { formatUsdCost } from '@/lib/format-cost';
 
 function formatCost(costUsd: number | null | undefined): string | null {
@@ -95,7 +96,7 @@ export function AnalysisHeader({
               aria-label={hasCompletedAnalysis ? 'Re-run analysis' : 'Analyze recording'}
               title={hasCompletedAnalysis ? 'Re-run analysis' : 'Analyze recording'}>
               {isStarting || isRunning ? (
-                <Loader2Icon data-icon="inline-start" className="size-4 animate-spin" />
+                <Spinner data-icon="inline-start" />
               ) : (
                 <SparklesIcon data-icon="inline-start" className="size-4" />
               )}
@@ -126,12 +127,12 @@ export function AnalysisHeader({
             disabled={isDeleting || isRunning || isRecording}
             aria-label="Delete recording"
             className="text-destructive shadow-sm hover:text-destructive">
-            {isDeleting ? <Loader2Icon className="size-4 animate-spin" /> : <Trash2Icon className="size-4" />}
+            {isDeleting ? <Spinner /> : <Trash2Icon className="size-4" />}
           </Button>
         ) : null}
         {!showRecordingControls && isRunning ? (
           <Button variant="destructive" onClick={onCancelAnalysis} disabled={isCancelling} className="shadow-sm">
-            {isCancelling ? <Loader2Icon data-icon="inline-start" className="size-4 animate-spin" /> : null}
+            {isCancelling ? <Spinner data-icon="inline-start" /> : null}
             Cancel
           </Button>
         ) : null}

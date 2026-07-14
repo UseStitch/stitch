@@ -3,6 +3,7 @@ import * as React from 'react';
 
 import type { ElectronBrowserDownload, ElectronBrowserState } from '@stitch/shared/browser/electron';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -156,9 +157,9 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
           />
         </form>
 
-        <span className={cn('shrink-0 rounded px-2 py-0.5 text-[10px] font-medium', controllerBadgeClass)}>
+        <Badge variant="soft" size="xs" className={cn('shrink-0', controllerBadgeClass)}>
           {controllerLabel}
-        </span>
+        </Badge>
 
         <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Close browser">
           <XIcon className="size-4" />

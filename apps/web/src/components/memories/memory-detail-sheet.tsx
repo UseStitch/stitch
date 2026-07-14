@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
+import { formatDate } from '@/lib/format';
 import type { MemoryCategory, MemoryConfidence, SemanticMemory } from '@/lib/queries/memories';
 import { deleteMemoryMutationOptions, updateMemoryMutationOptions } from '@/lib/queries/memories';
 
@@ -171,11 +172,11 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Created</span>
-                <span className="text-foreground">{new Date(memory.createdAt).toLocaleDateString()}</span>
+                <span className="text-foreground">{formatDate(memory.createdAt)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Updated</span>
-                <span className="text-foreground">{new Date(memory.updatedAt).toLocaleDateString()}</span>
+                <span className="text-foreground">{formatDate(memory.updatedAt)}</span>
               </div>
             </div>
           </div>

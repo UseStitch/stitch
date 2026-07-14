@@ -15,6 +15,7 @@ import { Link, useRouterState } from '@tanstack/react-router';
 
 import type { AppId } from '@stitch/shared/apps/types';
 
+import { StatusDot } from '@/components/ui/status-dot';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFullScreen } from '@/hooks/ui/use-fullscreen';
 import { appEnabledStatesQueryOptions } from '@/lib/queries/apps';
@@ -108,7 +109,8 @@ function NavLink({
           <Link
             to={to}
             {...(preload ? { preload: 'intent' as const } : {})}
-            {...(ariaLabel ? { 'aria-label': ariaLabel } : {})}
+            aria-label={ariaLabel ?? label}
+            aria-current={active ? 'page' : undefined}
             className={cn(
               'relative flex size-10 items-center justify-center rounded-lg transition-colors',
               active
@@ -118,7 +120,7 @@ function NavLink({
           />
         }>
         {icon}
-        {badge && <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-warning" />}
+        {badge && <StatusDot color="warning" className="absolute top-1.5 right-1.5" />}
       </TooltipTrigger>
       <TooltipContent side="right">{badge ?? label}</TooltipContent>
     </Tooltip>

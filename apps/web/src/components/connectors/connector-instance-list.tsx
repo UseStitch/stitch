@@ -1,4 +1,4 @@
-import { Trash2Icon, RefreshCwIcon, ExternalLinkIcon, Loader2Icon, ArrowUpCircleIcon } from 'lucide-react';
+import { Trash2Icon, RefreshCwIcon, ExternalLinkIcon, ArrowUpCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -11,6 +11,8 @@ import type {
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
+import { StatusDot, statusDotVariants } from '@/components/ui/status-dot';
 import { getErrorMessage } from '@/lib/errors';
 import {
   useAuthorizeConnector,
@@ -18,18 +20,23 @@ import {
   useTestConnector,
   useUpgradeConnector,
 } from '@/lib/queries/connectors';
+import type { VariantProps } from 'class-variance-authority';
 
 type Props = { instances: ConnectorInstanceSafe[]; definitions: ConnectorDefinition[] };
 
-const STATUS_CONFIG: Record<ConnectorStatus, { label: string; dotClassName: string; textClassName: string }> = {
-  connected: { label: 'Connected', dotClassName: 'bg-success shadow-success-glow', textClassName: 'text-success' },
-  awaiting_auth: { label: 'Awaiting Auth', dotClassName: 'bg-warning', textClassName: 'text-warning' },
-  pending_setup: {
-    label: 'Pending Setup',
-    dotClassName: 'bg-muted-foreground',
-    textClassName: 'text-muted-foreground',
-  },
-  error: { label: 'Error', dotClassName: 'bg-destructive shadow-destructive-glow', textClassName: 'text-destructive' },
+const STATUS_CONFIG: Record<
+  ConnectorStatus,
+  {
+    label: string;
+    dotColor: NonNullable<VariantProps<typeof statusDotVariants>['color']>;
+    glow?: boolean;
+    textClassName: string;
+  }
+> = {
+  connected: { label: 'Connected', dotColor: 'success', glow: true, textClassName: 'text-success' },
+  awaiting_auth: { label: 'Awaiting Auth', dotColor: 'warning', textClassName: 'text-warning' },
+  pending_setup: { label: 'Pending Setup', dotColor: 'muted', textClassName: 'text-muted-foreground' },
+  error: { label: 'Error', dotColor: 'destructive', glow: true, textClassName: 'text-destructive' },
 };
 
 const AUTH_ISSUE_COPY: Record<ConnectorAuthIssue, { label: string; message: string; actionLabel: string }> = {
@@ -151,7 +158,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
                 </div>
                 <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                   <span className={`inline-flex items-center gap-1.5 ${statusConfig.textClassName}`}>
-                    <span className={`size-1.5 rounded-full ${statusConfig.dotClassName}`} />
+                    <StatusDot color={statusConfig.dotColor} glow={statusConfig.glow} size="sm" />
                     {statusConfig.label}
                   </span>
                   {instance.accountEmail && (
@@ -206,7 +213,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
                 </Button>
               )}
               <Button variant="ghost" size="icon-sm" onClick={() => handleTest(instance.id)} disabled={isTesting}>
-                {isTesting ? <Loader2Icon className="size-3.5 animate-spin" /> : <RefreshCwIcon className="size-3.5" />}
+                {isTesting ? <Spinner size="sm" /> : <RefreshCwIcon className="size-3.5" />}
               </Button>
               <Button
                 variant="ghost"

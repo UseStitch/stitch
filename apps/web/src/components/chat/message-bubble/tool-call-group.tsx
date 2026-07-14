@@ -1,4 +1,4 @@
-import { ChevronDownIcon, ClockIcon, ExternalLinkIcon, LoaderIcon, SquareIcon } from 'lucide-react';
+import { ChevronDownIcon, ClockIcon, ExternalLinkIcon, SquareIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { Link } from '@tanstack/react-router';
@@ -20,6 +20,7 @@ import { ToolKindIcon } from '@/components/tools/tool-icons';
 import { Button } from '@/components/ui/button';
 import { CopyButton } from '@/components/ui/copy-button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 
 const VISIBLE_TOOL_COUNT = 4;
@@ -202,7 +203,7 @@ function ToolCallRowPreview() {
 function ToolCallRowMeta() {
   const { summary } = useToolCallRow();
   return (
-    <span className="hidden h-5 w-44 shrink-0 items-center justify-end truncate text-right text-[11px] leading-none text-muted-foreground/80 sm:flex">
+    <span className="hidden h-5 w-44 shrink-0 items-center justify-end truncate text-right text-2xs leading-none text-muted-foreground/80 sm:flex">
       {summary.meta}
     </span>
   );
@@ -211,7 +212,7 @@ function ToolCallRowMeta() {
 function ToolCallRowStatus() {
   const { call, errorDetails, onViewErrorDetails } = useToolCallRow();
   const className = cn(
-    'flex h-5 w-12 shrink-0 items-center justify-end text-right text-[11px] leading-none font-medium',
+    'flex h-5 w-12 shrink-0 items-center justify-end text-right text-2xs leading-none font-medium',
     STATUS_CLASS[call.status],
   );
 
@@ -237,7 +238,7 @@ function ToolCallRowStopButton({ onAbort }: { onAbort: () => void }) {
       variant="ghost"
       size="xs"
       onClick={onAbort}
-      className="h-5 pr-0 pl-1.5 text-[11px] leading-none text-destructive hover:text-destructive"
+      className="h-5 pr-0 pl-1.5 text-2xs leading-none text-destructive hover:text-destructive"
       title="Stop running response">
       <SquareIcon className="size-2.5" />
       <span className="leading-none">Stop</span>
@@ -254,7 +255,7 @@ function ToolCallRowActions({ actions }: { actions: ToolCallAction[] }) {
             key={`${action.type}-${action.sessionId}`}
             variant="ghost"
             size="xs"
-            className="h-5 px-1.5 text-[11px] leading-3 text-muted-foreground"
+            className="h-5 px-1.5 text-2xs leading-3 text-muted-foreground"
             title="Open child session"
             nativeButton={false}
             render={<Link to="/session/$id" params={{ id: action.sessionId }} />}>
@@ -309,7 +310,7 @@ function ToolStatusIcon({ status, summary }: { status: ToolCallStatus; summary: 
   }
 
   if (status === 'in-progress') {
-    return <LoaderIcon className="size-3.5 shrink-0 animate-spin text-info" />;
+    return <Spinner size="sm" className="shrink-0 text-info" />;
   }
 
   if (summary.connectorIconSlug) {

@@ -241,19 +241,16 @@ export function ChatInputInner({
             )}
 
             {canAttach && (
-              <button
+              <Button
                 type="button"
+                size="icon-xs"
+                variant="ghost"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={disabled}
-                className={cn(
-                  'flex items-center justify-center rounded-md p-1 transition-colors',
-                  'text-muted-foreground hover:text-foreground hover:bg-muted/50',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-                  disabled && 'pointer-events-none',
-                )}
+                className="text-muted-foreground hover:text-foreground"
                 title="Attach files">
                 <PaperclipIcon className="size-3.5" />
-              </button>
+              </Button>
             )}
 
             {sttProviders.length > 0 ? (

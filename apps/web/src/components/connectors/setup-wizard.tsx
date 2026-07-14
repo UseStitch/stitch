@@ -1,4 +1,4 @@
-import { ExternalLinkIcon, CheckIcon, Loader2Icon, ArrowRightIcon, ArrowLeftIcon } from 'lucide-react';
+import { ExternalLinkIcon, CheckIcon, ArrowRightIcon, ArrowLeftIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
 import { getErrorMessage } from '@/lib/errors';
 import {
   useCreateOAuthConnectorCredentials,
@@ -226,7 +227,7 @@ export function SetupWizard({ definition, connectors, onClose }: Props) {
 
           {step === 'authorizing' && (
             <div className="flex h-full min-h-0 flex-col items-center justify-center gap-3 py-6">
-              <Loader2Icon className="size-8 animate-spin text-primary" />
+              <Spinner size="lg" className="text-primary" />
               <p className="text-sm text-muted-foreground">Setting up connection...</p>
             </div>
           )}
@@ -579,7 +580,7 @@ function ScopesStep({
                   />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-medium">{description}</p>
-                    <p className="truncate text-[10px] text-muted-foreground">{scope}</p>
+                    <p className="truncate text-2xs text-muted-foreground">{scope}</p>
                   </div>
                 </label>
               ))}
@@ -626,7 +627,7 @@ function WizardProgress({ step, isOAuth }: { step: WizardStep; isOAuth: boolean 
         <div
           key={item.id}
           className={[
-            'rounded-md border px-2 py-1 text-center text-[11px]',
+            'rounded-md border px-2 py-1 text-center text-2xs',
             index <= activeIndex
               ? 'border-primary/30 bg-primary/10 text-foreground'
               : 'border-border/60 bg-muted/20 text-muted-foreground',
