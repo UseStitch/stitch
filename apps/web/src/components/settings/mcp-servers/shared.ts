@@ -21,7 +21,7 @@ export type AddFormState = {
   oauthClientSecret: string;
 };
 
-export type HomeTab = 'configured' | 'marketplace';
+type HomeTab = 'configured' | 'marketplace';
 
 export type View =
   | { type: 'home'; tab: HomeTab }

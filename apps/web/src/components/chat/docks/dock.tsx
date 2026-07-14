@@ -3,7 +3,7 @@ import * as React from 'react';
 
 import { cn } from '@/lib/utils';
 
-export type DockVariant = 'default' | 'primary' | 'warning' | 'destructive';
+type DockVariant = 'default' | 'primary' | 'warning' | 'destructive';
 
 export type DockItem = {
   id: string;

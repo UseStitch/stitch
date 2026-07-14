@@ -17,7 +17,7 @@ import type { LanguageModelUsage } from 'ai';
 // ─── Stream Lifecycle ────────────────────────────────────────────────────────
 // These internal events carry extra metadata not exposed to clients.
 
-export type StreamStartedEvent = {
+type StreamStartedEvent = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   modelId: string;
@@ -25,7 +25,7 @@ export type StreamStartedEvent = {
   streamRunId: string;
 };
 
-export type StreamStepCompletedEvent = {
+type StreamStepCompletedEvent = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   streamRunId: string;
@@ -40,7 +40,7 @@ export type StreamStepCompletedEvent = {
   durationMs: number;
 };
 
-export type StreamCompletedEvent = {
+type StreamCompletedEvent = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   streamRunId: string;
@@ -56,7 +56,7 @@ export type StreamCompletedEvent = {
   assistantMessage: string | null;
 };
 
-export type StreamFailedEvent = {
+type StreamFailedEvent = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   streamRunId: string;
@@ -67,7 +67,7 @@ export type StreamFailedEvent = {
   details: StreamErrorDetails | undefined;
 };
 
-export type StreamAbortedEvent = {
+type StreamAbortedEvent = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   streamRunId: string;
@@ -75,14 +75,14 @@ export type StreamAbortedEvent = {
 
 // ─── Tool Lifecycle ──────────────────────────────────────────────────────────
 
-export type ToolPendingEvent = {
+type ToolPendingEvent = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   toolCallId: string;
   toolName: string;
 };
 
-export type ToolStartedEvent = {
+type ToolStartedEvent = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   toolCallId: string;
@@ -90,7 +90,7 @@ export type ToolStartedEvent = {
   input: unknown;
 };
 
-export type ToolCompletedEvent = {
+type ToolCompletedEvent = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   toolCallId: string;
@@ -99,7 +99,7 @@ export type ToolCompletedEvent = {
   output: unknown;
 };
 
-export type ToolFailedEvent = {
+type ToolFailedEvent = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   toolCallId: string;
@@ -107,7 +107,7 @@ export type ToolFailedEvent = {
   error: string;
 };
 
-export type ToolProgressEvent = {
+type ToolProgressEvent = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   toolCallId: string;
@@ -117,7 +117,7 @@ export type ToolProgressEvent = {
 
 // ─── Session Lifecycle ───────────────────────────────────────────────────────
 
-export type SessionMessageSavedEvent = {
+type SessionMessageSavedEvent = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   modelId: string;
@@ -131,16 +131,16 @@ export type SessionMessageSavedEvent = {
 
 type BaseTitleGenerationRequest = { content: string; fallbackProviderId: string; fallbackModelId: string };
 
-export type ChatTitleGenerationRequestedEvent = BaseTitleGenerationRequest & { sessionId: PrefixedString<'ses'> };
+type ChatTitleGenerationRequestedEvent = BaseTitleGenerationRequest & { sessionId: PrefixedString<'ses'> };
 
-export type RecordingAnalysisTitleGenerationRequestedEvent = BaseTitleGenerationRequest & {
+type RecordingAnalysisTitleGenerationRequestedEvent = BaseTitleGenerationRequest & {
   recordingId: PrefixedString<'rec'>;
   analysisId: PrefixedString<'recan'>;
 };
 
 // ─── Error / Recovery ────────────────────────────────────────────────────────
 
-export type StreamPermissionRejectedEvent = {
+type StreamPermissionRejectedEvent = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   toolName: string;
@@ -148,7 +148,7 @@ export type StreamPermissionRejectedEvent = {
 
 // ─── Usage (emitted by runner for adapter consumption) ───────────────────────
 
-export type UsageMemoryCompletedEvent = {
+type UsageMemoryCompletedEvent = {
   providerId: string;
   modelId: string;
   usage: LanguageModelUsage;
@@ -157,7 +157,7 @@ export type UsageMemoryCompletedEvent = {
   endedAt: number;
 };
 
-export type UsageCompactionFailedEvent = {
+type UsageCompactionFailedEvent = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   providerId: string;
@@ -167,7 +167,7 @@ export type UsageCompactionFailedEvent = {
   overflow: boolean;
 };
 
-export type UsageStepFailedEvent = {
+type UsageStepFailedEvent = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   streamRunId: string;
@@ -179,7 +179,7 @@ export type UsageStepFailedEvent = {
   isRetryable: boolean;
 };
 
-export type UsageDoomLoopFailedEvent = {
+type UsageDoomLoopFailedEvent = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   streamRunId: string;
@@ -190,7 +190,7 @@ export type UsageDoomLoopFailedEvent = {
   isRetryable: boolean;
 };
 
-export type UsageDoomLoopSummaryEvent = {
+type UsageDoomLoopSummaryEvent = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   streamRunId: string;
@@ -202,27 +202,27 @@ export type UsageDoomLoopSummaryEvent = {
 // ─── MCP ─────────────────────────────────────────────────────────────────────
 // Internal uses PrefixedString<'mcp'> for serverId (narrower than shared string).
 
-export type McpToolsChangedEvent = { serverId: PrefixedString<'mcp'>; serverName: string; toolCount: number | null };
+type McpToolsChangedEvent = { serverId: PrefixedString<'mcp'>; serverName: string; toolCount: number | null };
 
-export type McpAuthStatusChangedEvent = { serverId: PrefixedString<'mcp'>; authStatus: McpAuthStatus };
+type McpAuthStatusChangedEvent = { serverId: PrefixedString<'mcp'>; authStatus: McpAuthStatus };
 
 // ─── Settings ────────────────────────────────────────────────────────────────
 
-export type SettingsChangedEvent = { key: SettingsKey };
+type SettingsChangedEvent = { key: SettingsKey };
 
 // ─── Automations / Schedules ─────────────────────────────────────────────────
 
-export type AutomationRunStartedEvent = { automationId: PrefixedString<'auto'>; sessionId: PrefixedString<'ses'> };
+type AutomationRunStartedEvent = { automationId: PrefixedString<'auto'>; sessionId: PrefixedString<'ses'> };
 
-export type AutomationRunCompletedEvent = { automationId: PrefixedString<'auto'>; sessionId: PrefixedString<'ses'> };
+type AutomationRunCompletedEvent = { automationId: PrefixedString<'auto'>; sessionId: PrefixedString<'ses'> };
 
-export type AutomationRunFailedEvent = { automationId: PrefixedString<'auto'>; error: string };
+type AutomationRunFailedEvent = { automationId: PrefixedString<'auto'>; error: string };
 
-export type ScheduleJobFiredEvent = { key: string; automationId: PrefixedString<'auto'> };
+type ScheduleJobFiredEvent = { key: string; automationId: PrefixedString<'auto'> };
 
-export type ScheduleJobSucceededEvent = { key: string; automationId: PrefixedString<'auto'> };
+type ScheduleJobSucceededEvent = { key: string; automationId: PrefixedString<'auto'> };
 
-export type ScheduleJobFailedEvent = { key: string; automationId: PrefixedString<'auto'>; error: string };
+type ScheduleJobFailedEvent = { key: string; automationId: PrefixedString<'auto'>; error: string };
 
 // ─── Event Map ───────────────────────────────────────────────────────────────
 

@@ -33,11 +33,11 @@ export type FieldDef =
   | (BaseFieldDef & { type?: 'text' })
   | (BaseFieldDef & { type: 'select'; options: SelectOption[] });
 
-export type AuthMethodDef = { method: string; label: string; enabled: boolean; fields: FieldDef[] };
+type AuthMethodDef = { method: string; label: string; enabled: boolean; fields: FieldDef[] };
 
 export type ProviderCapability = 'llm' | 'stt' | 'embedding';
 
-export const PROVIDER_CAPABILITIES = {
+const PROVIDER_CAPABILITIES = {
   'amazon-bedrock': ['llm'],
   anthropic: ['llm'],
   assemblyai: ['stt'],

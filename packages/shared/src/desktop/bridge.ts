@@ -17,7 +17,7 @@ import type {
   UpdaterStatePayload,
 } from '../ipc/types.js';
 
-export type DesktopPlatform = NodeJS.Platform;
+type DesktopPlatform = NodeJS.Platform;
 
 export type DesktopBridge = {
   getServerConfig: () => Promise<ServerConfigPayload>;

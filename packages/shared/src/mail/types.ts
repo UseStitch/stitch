@@ -4,12 +4,12 @@ export type MailAccountId = PrefixedString<'macc'>;
 export type MailLabelId = PrefixedString<'mlbl'>;
 export type MailThreadId = PrefixedString<'mthr'>;
 export type MailMessageId = PrefixedString<'mmsg'>;
-export type MailAttachmentId = PrefixedString<'matt'>;
+type MailAttachmentId = PrefixedString<'matt'>;
 export type MailDraftId = PrefixedString<'mdrf'>;
 
 export type MailSyncPhase = 'idle' | 'backfill' | 'incremental' | 'reconciling' | 'error';
-export type MailLabelKind = 'system' | 'user';
-export type MailHydration = 'metadata' | 'full';
+type MailLabelKind = 'system' | 'user';
+type MailHydration = 'metadata' | 'full';
 export type MailAddressView = { name: string | null; email: string };
 
 export type MailAccountView = {

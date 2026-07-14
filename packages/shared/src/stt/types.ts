@@ -15,7 +15,7 @@ export type CapabilityRequest = Partial<Record<STTCapability, 'required' | 'pref
 
 export type CapabilityResolution = { satisfied: Record<STTCapability, CapabilitySupport>; degraded: STTCapability[] };
 
-export type AudioEncoding = 'f32le' | 'pcm_s16le';
+type AudioEncoding = 'f32le' | 'pcm_s16le';
 
 export type AudioFormat = { encoding: AudioEncoding; sampleRateHz: number; channels: number };
 
@@ -23,7 +23,7 @@ export type AudioChunk = { samplesB64: string; sampleRateHz: number; numSamples:
 
 export type AudioSource = 'mic' | 'speaker';
 
-export type TranscriptWord = { text: string; startMs: number; endMs: number; speaker?: string | number };
+type TranscriptWord = { text: string; startMs: number; endMs: number; speaker?: string | number };
 
 export type TranscriptEvent = {
   id: string;
@@ -37,10 +37,10 @@ export type TranscriptEvent = {
 
 export type STTUsage = { durationMs: number; audioInputTokens?: number; textOutputTokens?: number };
 
-export type SttService = 'chat-input' | 'meeting-recording';
+type SttService = 'chat-input' | 'meeting-recording';
 
 // WebSocket protocol messages (client -> server)
-export type SttStartMessage = {
+type SttStartMessage = {
   type: 'start';
   sttSessionId: string;
   providerId: string;
@@ -53,7 +53,7 @@ export type SttStartMessage = {
   audioChunkConfig: { encoding: AudioEncoding; sampleRateHz: number };
 };
 
-export type SttChunkMessage = {
+type SttChunkMessage = {
   type: 'chunk';
   sttSessionId: string;
   source: AudioSource;
@@ -62,16 +62,16 @@ export type SttChunkMessage = {
   numSamples: number;
 };
 
-export type SttCommitMessage = { type: 'commit'; sttSessionId: string };
+type SttCommitMessage = { type: 'commit'; sttSessionId: string };
 
-export type SttStopMessage = { type: 'stop'; sttSessionId: string };
+type SttStopMessage = { type: 'stop'; sttSessionId: string };
 
 export type SttInboundMessage = SttStartMessage | SttChunkMessage | SttCommitMessage | SttStopMessage;
 
 // WebSocket protocol messages (server -> client)
-export type SttReadyMessage = { type: 'ready'; sttSessionId: string; capabilityResolution: CapabilityResolution };
+type SttReadyMessage = { type: 'ready'; sttSessionId: string; capabilityResolution: CapabilityResolution };
 
-export type SttTranscriptMessage = {
+type SttTranscriptMessage = {
   type: 'transcript';
   sttSessionId: string;
   id: string;
@@ -83,11 +83,11 @@ export type SttTranscriptMessage = {
   language?: string;
 };
 
-export type SttErrorMessage = { type: 'error'; sttSessionId: string; message: string; code: string };
+type SttErrorMessage = { type: 'error'; sttSessionId: string; message: string; code: string };
 
-export type SttDoneMessage = { type: 'done'; sttSessionId: string; costUsd: number; usage: STTUsage };
+type SttDoneMessage = { type: 'done'; sttSessionId: string; costUsd: number; usage: STTUsage };
 
-export type SttUnrecoverableMessage = { type: 'unrecoverable'; sttSessionId: string; reason: string };
+type SttUnrecoverableMessage = { type: 'unrecoverable'; sttSessionId: string; reason: string };
 
 export type SttOutboundMessage =
   | SttReadyMessage
@@ -96,6 +96,6 @@ export type SttOutboundMessage =
   | SttDoneMessage
   | SttUnrecoverableMessage;
 
-export type SttModelSummary = { id: string; name: string; sampleRateHz: number };
+type SttModelSummary = { id: string; name: string; sampleRateHz: number };
 
 export type SttProviderModels = { providerId: string; providerName: string; models: SttModelSummary[] };

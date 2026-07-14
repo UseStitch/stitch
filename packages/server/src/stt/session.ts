@@ -37,7 +37,7 @@ type STTSessionConfig = {
   inputSampleRateHz: number;
 };
 
-export type STTSessionResult = { costUsd: number; usage: STTUsage; capabilityResolution: CapabilityResolution };
+type STTSessionResult = { costUsd: number; usage: STTUsage; capabilityResolution: CapabilityResolution };
 
 export type STTSession = {
   readonly sttSessionId: string;

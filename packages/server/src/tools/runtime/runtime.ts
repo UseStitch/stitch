@@ -13,7 +13,7 @@ export type ToolContext = ToolRuntimeContext;
 
 export type RuntimeToolSource = 'core' | 'toolset' | 'mcp' | 'meta' | 'task' | 'code-mode';
 
-export type ToolPermissionBehavior = {
+type ToolPermissionBehavior = {
   getPatternTargets: (input: unknown) => string[];
   getSuggestion: (input: unknown) => PermissionSuggestion | null;
 };
@@ -37,7 +37,7 @@ export type ToolExecutionInput = {
   metadata: RuntimeToolMetadata;
 };
 
-export type ToolExecutor = (input: ToolExecutionInput) => Promise<unknown>;
+type ToolExecutor = (input: ToolExecutionInput) => Promise<unknown>;
 export type ToolMiddleware = (next: ToolExecutor) => ToolExecutor;
 
 type ToolRuntime = {

@@ -1,6 +1,6 @@
 import z from 'zod';
 
-export const EmbeddingModelSchema = z.object({
+const EmbeddingModelSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   family: z.string().optional(),
@@ -25,7 +25,7 @@ export const EmbeddingModelSchema = z.object({
   }),
 });
 
-export const EmbeddingProviderSchema = z.object({
+const EmbeddingProviderSchema = z.object({
   $schema: z.string().optional(),
   providerId: z.string().min(1),
   providerName: z.string().min(1),

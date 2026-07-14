@@ -12,7 +12,7 @@ export type ConnectorAuthIssue = 'reauthorization_required' | 'temporary_failure
 
 export type ConnectorSetupInstruction = { text: string; href?: string; hrefLabel?: string };
 
-export type OAuthServiceAccessOption = {
+type OAuthServiceAccessOption = {
   id: string;
   label: string;
   description?: string;
@@ -52,7 +52,7 @@ export type ConnectorDefinition = {
   setupInstructions: ConnectorSetupInstruction[];
 };
 
-export type ConnectorBase = {
+type ConnectorBase = {
   id: PrefixedString<'cnr'>;
   connectorId: string;
   label: string;
@@ -60,15 +60,15 @@ export type ConnectorBase = {
   updatedAt: number;
 };
 
-export type OAuthConnector = ConnectorBase & { authType: 'oauth2'; clientId: string; clientSecret: string };
+type OAuthConnector = ConnectorBase & { authType: 'oauth2'; clientId: string; clientSecret: string };
 
-export type ApiKeyConnector = ConnectorBase & { authType: 'api_key'; apiKey: string };
+type ApiKeyConnector = ConnectorBase & { authType: 'api_key'; apiKey: string };
 
 export type Connector = OAuthConnector | ApiKeyConnector;
 
-export type OAuthConnectorSafe = Omit<OAuthConnector, 'clientSecret'> & { hasClientSecret: boolean };
+type OAuthConnectorSafe = Omit<OAuthConnector, 'clientSecret'> & { hasClientSecret: boolean };
 
-export type ApiKeyConnectorSafe = Omit<ApiKeyConnector, 'apiKey'> & { hasApiKey: boolean };
+type ApiKeyConnectorSafe = Omit<ApiKeyConnector, 'apiKey'> & { hasApiKey: boolean };
 
 export type ConnectorSafe = OAuthConnectorSafe | ApiKeyConnectorSafe;
 

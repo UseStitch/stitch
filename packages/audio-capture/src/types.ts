@@ -1,6 +1,6 @@
 export type AudioChunkEncoding = 'f32le' | 'pcm_s16le';
 export type AudioChunkSource = 'mic' | 'speaker';
-export type PermissionState = 'granted' | 'denied' | 'unknown';
+type PermissionState = 'granted' | 'denied' | 'unknown';
 
 export type StartCaptureInput = {
   sampleRateHz: number;
@@ -10,7 +10,7 @@ export type StartCaptureInput = {
   echoCancellation?: boolean;
 };
 
-export type AudioChunkEvent = {
+type AudioChunkEvent = {
   type: 'audioChunk';
   source: AudioChunkSource;
   pcm: Buffer;
@@ -19,9 +19,9 @@ export type AudioChunkEvent = {
   encoding: AudioChunkEncoding;
 };
 
-export type DeviceChangedEvent = { type: 'deviceChanged'; kind: 'input' | 'output'; deviceName: string | null };
+type DeviceChangedEvent = { type: 'deviceChanged'; kind: 'input' | 'output'; deviceName: string | null };
 
-export type WarningEvent = { type: 'warning'; code: string; message: string };
+type WarningEvent = { type: 'warning'; code: string; message: string };
 
 export type CaptureEvent = AudioChunkEvent | DeviceChangedEvent | WarningEvent;
 export type CaptureEventListener = (event: CaptureEvent) => void;

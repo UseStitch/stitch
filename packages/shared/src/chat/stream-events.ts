@@ -16,7 +16,7 @@ import type { LanguageModelUsage } from 'ai';
 
 export type ToolCallStatus = 'pending' | 'in-progress' | 'completed' | 'error';
 
-export type StreamToolStatePayload = {
+type StreamToolStatePayload = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   toolCallId: string;
@@ -37,7 +37,7 @@ export type PartUpdate =
   | SourceStreamPart
   | FileStreamPart;
 
-export type StreamPartUpdatePayload = {
+type StreamPartUpdatePayload = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   partId: PrefixedString<'prt'>;
@@ -46,28 +46,28 @@ export type StreamPartUpdatePayload = {
 
 export type PartDelta = TextDeltaPart | ReasoningDeltaPart;
 
-export type StreamPartDeltaPayload = {
+type StreamPartDeltaPayload = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   partId: PrefixedString<'prt'>;
   delta: PartDelta;
 };
 
-export type StreamFinishPayload = {
+type StreamFinishPayload = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   finishReason: string;
   usage?: LanguageModelUsage;
 };
 
-export type StreamErrorPayload = {
+type StreamErrorPayload = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   error: string;
   details?: StreamErrorDetails;
 };
 
-export type StreamRetryPayload = {
+type StreamRetryPayload = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   attempt: number;
@@ -76,9 +76,9 @@ export type StreamRetryPayload = {
   message: string;
 };
 
-export type StreamStartPayload = { sessionId: PrefixedString<'ses'>; messageId: PrefixedString<'msg'> };
+type StreamStartPayload = { sessionId: PrefixedString<'ses'>; messageId: PrefixedString<'msg'> };
 
-export type DoomLoopDetectedPayload = {
+type DoomLoopDetectedPayload = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
   toolName: string;

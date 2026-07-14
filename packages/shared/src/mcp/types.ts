@@ -6,9 +6,9 @@ export type McpTransport = (typeof MCP_TRANSPORT_TYPES)[number];
 export const MCP_AUTH_TYPES = ['none', 'api_key', 'headers', 'oauth'] as const;
 export type McpAuthType = (typeof MCP_AUTH_TYPES)[number];
 
-export type NoneAuth = { type: 'none' };
-export type ApiKeyAuth = { type: 'api_key'; apiKey: string };
-export type HeadersAuth = { type: 'headers'; headers: Record<string, string> };
+type NoneAuth = { type: 'none' };
+type ApiKeyAuth = { type: 'api_key'; apiKey: string };
+type HeadersAuth = { type: 'headers'; headers: Record<string, string> };
 
 /**
  * OAuth configuration holds only what the user enters. Live secrets
@@ -19,7 +19,7 @@ export type OAuthAuth = { type: 'oauth'; scopes?: string[]; clientId?: string; c
 
 export type McpAuthConfig = NoneAuth | ApiKeyAuth | HeadersAuth | OAuthAuth;
 
-export const MCP_AUTH_STATUSES = [
+const MCP_AUTH_STATUSES = [
   'none',
   'connected',
   'awaiting_auth',
@@ -29,7 +29,7 @@ export const MCP_AUTH_STATUSES = [
 ] as const;
 export type McpAuthStatus = (typeof MCP_AUTH_STATUSES)[number];
 
-export type McpRegistryServerInstall = {
+type McpRegistryServerInstall = {
   name: string;
   transport: McpTransport;
   url: string;

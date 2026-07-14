@@ -2,9 +2,9 @@ import { type StitchLogger } from '@stitch/shared/logger';
 
 export type SchedulerLogger = StitchLogger;
 
-export type IntervalSchedule = { type: 'interval'; everyMs: number };
+type IntervalSchedule = { type: 'interval'; everyMs: number };
 
-export type CronSchedule = { type: 'cron'; expression: string; timezone?: string };
+type CronSchedule = { type: 'cron'; expression: string; timezone?: string };
 
 export type JobSchedule = IntervalSchedule | CronSchedule;
 

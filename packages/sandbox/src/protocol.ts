@@ -1,18 +1,18 @@
-export type WorkerExecuteMessage = { type: 'execute'; code: string };
+type WorkerExecuteMessage = { type: 'execute'; code: string };
 
-export type WorkerToolResultMessage = { type: 'tool_result'; id: string; result: unknown };
+type WorkerToolResultMessage = { type: 'tool_result'; id: string; result: unknown };
 
-export type WorkerToolErrorMessage = { type: 'tool_error'; id: string; error: string };
+type WorkerToolErrorMessage = { type: 'tool_error'; id: string; error: string };
 
 export type HostMessage = WorkerExecuteMessage | WorkerToolResultMessage | WorkerToolErrorMessage;
 
-export type SandboxToolCallMessage = { type: 'tool_call'; id: string; name: string; args: unknown };
+type SandboxToolCallMessage = { type: 'tool_call'; id: string; name: string; args: unknown };
 
-export type SandboxCompleteMessage = { type: 'complete'; result: unknown; logs: string[] };
+type SandboxCompleteMessage = { type: 'complete'; result: unknown; logs: string[] };
 
-export type SandboxErrorMessage = { type: 'error'; error: string; logs: string[] };
+type SandboxErrorMessage = { type: 'error'; error: string; logs: string[] };
 
-export type SandboxMemoryReportMessage = { type: 'memory_report'; rss: number };
+type SandboxMemoryReportMessage = { type: 'memory_report'; rss: number };
 
 export type WorkerMessage =
   | SandboxToolCallMessage

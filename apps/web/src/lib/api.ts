@@ -10,7 +10,7 @@ export type ContextMenuParams = {
   editFlags: { canCut: boolean; canCopy: boolean; canPaste: boolean; canSelectAll: boolean };
 };
 
-export type DesktopUpdaterStatus =
+type DesktopUpdaterStatus =
   | 'idle'
   | 'checking'
   | 'available'

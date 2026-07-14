@@ -3,7 +3,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { ModelSpec } from '@/components/chat/chat-input-parts/types';
 
 /** Server-backed actions a command can invoke, injected by the host hook. */
-export type CommandActions = {
+type CommandActions = {
   requestCompaction: (sessionId: string) => Promise<void>;
   generateAutomation: () => Promise<void>;
   submitPrompt: (content: string) => Promise<void>;
@@ -30,7 +30,7 @@ export type CommandContext = {
  * the field is kept so future kinds (e.g. a command sent on the chat stream)
  * can be added to the union without reshaping callers.
  */
-export type ClientCommand = {
+type ClientCommand = {
   kind: 'client';
   name: string;
   aliases?: string[];
@@ -43,7 +43,7 @@ export type ClientCommand = {
   run: (args: string, ctx: CommandContext) => void | Promise<void>;
 };
 
-export type PromptCommand = {
+type PromptCommand = {
   kind: 'prompt';
   name: string;
   aliases?: string[];

@@ -24,7 +24,7 @@ export type UsageTokenMetrics = {
   totalTokens: number;
 };
 
-export type UsageBucket = { start: number; end: number; label: string; costUsdBySource: Record<string, number> };
+type UsageBucket = { start: number; end: number; label: string; costUsdBySource: Record<string, number> };
 
 export type UsageDashboardResponse = {
   range: { from: number; to: number; granularity: UsageBucketGranularity; bucketCount: number };
@@ -36,7 +36,7 @@ export type UsageDashboardResponse = {
   buckets: UsageBucket[];
 };
 
-export type SttUsageBucket = {
+type SttUsageBucket = {
   start: number;
   end: number;
   label: string;
@@ -54,7 +54,7 @@ export type SttUsageDashboardResponse = {
   buckets: SttUsageBucket[];
 };
 
-export type EmbeddingUsageBucket = {
+type EmbeddingUsageBucket = {
   start: number;
   end: number;
   label: string;

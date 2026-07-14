@@ -41,7 +41,7 @@ type MailEngineDeps = {
   emit(event: MailEngineEvent): void;
 };
 
-export type EnrollInput = {
+type EnrollInput = {
   connectorInstanceId: string;
   provider: MailProviderId;
   email: string;

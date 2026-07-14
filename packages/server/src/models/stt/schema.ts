@@ -47,7 +47,7 @@ const PricingSchema = z.discriminatedUnion('type', [TokenPricingSchema, Duration
 
 const PartialStrategySchema = z.enum(['cumulative', 'incremental']);
 
-export const SttModelSchema = z.object({
+const SttModelSchema = z.object({
   modelId: z.string().min(1),
   displayName: z.string().min(1),
   deprecated: z.boolean(),
@@ -59,7 +59,7 @@ export const SttModelSchema = z.object({
   pricing: PricingSchema,
 });
 
-export const SttProviderSchema = z.object({
+const SttProviderSchema = z.object({
   $schema: z.string().optional(),
   providerId: z.string().min(1),
   providerName: z.string().min(1),

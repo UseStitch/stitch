@@ -12,11 +12,11 @@ export type Automation = {
   updatedAt: number;
 };
 
-export type AutomationCronSchedule = { type: 'cron'; expression: string };
+type AutomationCronSchedule = { type: 'cron'; expression: string };
 
 export type AutomationSchedule = AutomationCronSchedule;
 
-export type AutomationScheduleBlobV1 = { version: 1; schedule: AutomationSchedule };
+type AutomationScheduleBlobV1 = { version: 1; schedule: AutomationSchedule };
 
 export type AutomationScheduleBlob = AutomationScheduleBlobV1;
 

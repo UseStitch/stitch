@@ -6,7 +6,7 @@ import type { SttProviderModels } from '@stitch/shared/stt/types';
 
 import { serverRequest } from '@/lib/api';
 
-export type ProviderCapability = 'llm' | 'stt' | 'embedding';
+type ProviderCapability = 'llm' | 'stt' | 'embedding';
 
 export type ProviderSummary = {
   id: string;

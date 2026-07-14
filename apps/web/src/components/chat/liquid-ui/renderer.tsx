@@ -9,19 +9,23 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 type LiquidUiProps = { spec: unknown };
 type ErrorBoundaryProps = { children: React.ReactNode };
-type ErrorBoundaryState = { hasError: boolean; lastGood: React.ReactNode | null };
+type ErrorBoundaryState = { hasError: boolean; lastGood: React.ReactNode | null; prevChildren: React.ReactNode };
 
 class LiquidUiErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = { hasError: false, lastGood: null };
+  state: ErrorBoundaryState = { hasError: false, lastGood: null, prevChildren: null };
 
   static getDerivedStateFromError(): Partial<ErrorBoundaryState> {
     return { hasError: true };
   }
 
-  componentDidUpdate(previousProps: ErrorBoundaryProps) {
-    if (!this.state.hasError && previousProps.children !== this.props.children) {
-      this.setState({ lastGood: previousProps.children });
+  static getDerivedStateFromProps(
+    props: ErrorBoundaryProps,
+    state: ErrorBoundaryState,
+  ): Partial<ErrorBoundaryState> | null {
+    if (props.children !== state.prevChildren) {
+      return { lastGood: state.prevChildren, prevChildren: props.children };
     }
+    return null;
   }
 
   render() {
