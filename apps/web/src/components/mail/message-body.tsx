@@ -162,9 +162,16 @@ function buildSandboxedMailHtml(input: {
   isDark: boolean;
   collapseQuotedReplies: boolean;
 }): string {
-  const parser = new DOMParser();
   const html = input.bodyHtml ?? `<pre>${escapeHtml(input.bodyText ?? '')}</pre>`;
-  const doc = parser.parseFromString(html, 'text/html');
+
+  const sanitizedHtml = DOMPurify.sanitize(html, {
+    FORBID_TAGS: ['script', 'object', 'embed', 'iframe', 'form', 'input', 'button', 'textarea', 'select'],
+    ADD_TAGS: ['head', 'style'],
+    WHOLE_DOCUMENT: true,
+  });
+
+  const doc = new DOMParser().parseFromString(sanitizedHtml, 'text/html');
+
   const emailSupportsDarkMode = supportsDarkMode(doc);
   const background = input.isDark && !emailSupportsDarkMode ? DARK_MAIL_BACKGROUND : LIGHT_MAIL_BACKGROUND;
   const foreground = input.isDark && !emailSupportsDarkMode ? DARK_MAIL_FOREGROUND : LIGHT_MAIL_FOREGROUND;
@@ -172,19 +179,13 @@ function buildSandboxedMailHtml(input: {
   const scrollbarThumb = input.isDark ? '#374151' : '#d1d5db';
   const scrollbarThumbHover = input.isDark ? '#9ca3af' : '#6b7280';
 
-  const sanitizedHtml = DOMPurify.sanitize(doc.body.innerHTML, {
-    FORBID_TAGS: ['script', 'object', 'embed', 'iframe', 'form', 'input', 'button', 'textarea', 'select'],
-    WHOLE_DOCUMENT: false,
-  });
-  const sanitizedDoc = parser.parseFromString(sanitizedHtml, 'text/html');
+  if (input.collapseQuotedReplies) collapseTrailingQuotedReply(doc);
 
-  if (input.collapseQuotedReplies) collapseTrailingQuotedReply(sanitizedDoc);
-
-  sanitizedDoc.querySelectorAll('a').forEach((link) => {
+  doc.querySelectorAll('a').forEach((link) => {
     link.setAttribute('target', '_blank');
     link.setAttribute('rel', 'noreferrer noopener');
   });
-  sanitizedDoc.querySelectorAll('img').forEach((img) => {
+  doc.querySelectorAll('img').forEach((img) => {
     if (isTrackingPixel(img)) {
       img.remove();
       return;
@@ -198,9 +199,18 @@ function buildSandboxedMailHtml(input: {
     }
   });
 
+  const emailStyles = Array.from(doc.querySelectorAll('head style, body style'))
+    .map((style) => {
+      const text = style.textContent ?? '';
+      style.remove();
+      return text;
+    })
+    .filter(Boolean)
+    .join('\n');
+
   const imgSrc = input.loadImages ? 'https: http: data: cid:' : 'data: cid:';
 
-  return `<!doctype html><html><head><base target="_blank"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${imgSrc}; style-src 'unsafe-inline'; frame-ancestors 'none'"><meta name="color-scheme" content="${colorScheme}"><style>html{background:${background};color-scheme:${colorScheme};scrollbar-color:${scrollbarThumb} transparent;scrollbar-width:thin}body{box-sizing:border-box;margin:0;background:${background};color:${foreground};font:14px system-ui,sans-serif;line-height:1.5;overflow-wrap:anywhere;padding:16px}*{box-sizing:border-box}html::-webkit-scrollbar{width:6px;height:6px}html::-webkit-scrollbar-track{background:transparent}html::-webkit-scrollbar-thumb{background-color:${scrollbarThumb};border-radius:9999px}html::-webkit-scrollbar-thumb:hover{background-color:${scrollbarThumbHover}}img{max-width:100%;height:auto}pre{white-space:pre-wrap;font:inherit}table{max-width:100%}a{color:#2563eb}.stitch-quoted-reply{margin-top:12px;border-top:1px solid color-mix(in srgb,currentColor 18%,transparent);padding-top:8px}.stitch-quoted-reply:not([open])>:not(summary){display:none!important}.stitch-quoted-reply>summary{cursor:pointer;color:#6b7280;font-size:12px;list-style:none;user-select:none}.stitch-quoted-reply>summary::-webkit-details-marker{display:none}.stitch-quoted-reply>summary::before{content:'...';display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:18px;margin-right:6px;border:1px solid color-mix(in srgb,currentColor 28%,transparent);border-radius:9999px;font-weight:600;line-height:1}.stitch-quoted-reply[open]>summary{margin-bottom:8px}</style></head><body>${sanitizedDoc.body.innerHTML}</body></html>`;
+  return `<!doctype html><html><head><base target="_blank"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${imgSrc}; style-src 'unsafe-inline'; frame-ancestors 'none'"><meta name="color-scheme" content="${colorScheme}"><style>html{background:${background};color-scheme:${colorScheme};scrollbar-color:${scrollbarThumb} transparent;scrollbar-width:thin}body{box-sizing:border-box;margin:0;background:${background};color:${foreground};font:14px system-ui,sans-serif;line-height:1.5;overflow-wrap:anywhere;padding:16px}*{box-sizing:border-box}html::-webkit-scrollbar{width:6px;height:6px}html::-webkit-scrollbar-track{background:transparent}html::-webkit-scrollbar-thumb{background-color:${scrollbarThumb};border-radius:9999px}html::-webkit-scrollbar-thumb:hover{background-color:${scrollbarThumbHover}}img{max-width:100%;height:auto}pre{white-space:pre-wrap;font:inherit}table{max-width:100%}a{color:#2563eb}.stitch-quoted-reply{margin-top:12px;border-top:1px solid color-mix(in srgb,currentColor 18%,transparent);padding-top:8px}.stitch-quoted-reply:not([open])>:not(summary){display:none!important}.stitch-quoted-reply>summary{cursor:pointer;color:#6b7280;font-size:12px;list-style:none;user-select:none}.stitch-quoted-reply>summary::-webkit-details-marker{display:none}.stitch-quoted-reply>summary::before{content:'...';display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:18px;margin-right:6px;border:1px solid color-mix(in srgb,currentColor 28%,transparent);border-radius:9999px;font-weight:600;line-height:1}.stitch-quoted-reply[open]>summary{margin-bottom:8px}</style>${emailStyles ? `<style>${emailStyles}</style>` : ''}</head><body>${doc.body.innerHTML}</body></html>`;
 }
 
 function parseRgb(value: string): [number, number, number, number] | null {
