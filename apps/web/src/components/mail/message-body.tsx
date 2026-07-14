@@ -377,7 +377,7 @@ export function MessageBody({
 
   function handleFrameLoad() {
     const doc = iframeRef.current?.contentDocument;
-    if (!doc) return;
+    if (!doc?.body?.innerHTML) return;
 
     resizeObserverRef.current?.disconnect();
     mutationObserverRef.current?.disconnect();

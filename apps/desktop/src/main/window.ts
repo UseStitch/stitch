@@ -89,7 +89,8 @@ export async function createWindow(
     params.partition = params.partition || 'persist:stitch-browser';
   });
 
-  win.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+  win.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+    if (!isMainFrame || errorCode === -3) return;
     dialog.showErrorBox(
       'Failed to load Stitch UI',
       `errorCode=${errorCode}\nerror=${errorDescription}\nurl=${validatedURL}`,
