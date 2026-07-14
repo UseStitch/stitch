@@ -90,7 +90,8 @@ export function McpRegistryList({
                     <Badge
                       key={tag}
                       variant="outline"
-                      className="border-border/40 bg-background/60 text-[11px] text-muted-foreground capitalize">
+                      size="sm"
+                      className="border-border/40 bg-background/60 text-muted-foreground capitalize">
                       {tag}
                     </Badge>
                   ))}

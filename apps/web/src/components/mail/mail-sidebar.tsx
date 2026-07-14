@@ -143,7 +143,7 @@ function LabelDivider({
 function LabelBadge({ count }: { count: number }) {
   if (count === 0) return null;
   return (
-    <Badge variant="secondary" className="ml-auto px-1.5 py-0 text-[10px]">
+    <Badge variant="secondary" size="xs" className="ml-auto">
       {count}
     </Badge>
   );

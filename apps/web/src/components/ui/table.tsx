@@ -124,9 +124,10 @@ function TableStatus({ className, ...props }: React.HTMLAttributes<HTMLSpanEleme
 function TableBadge({
   className,
   variant = 'secondary',
+  size = 'sm',
   ...props
 }: React.ComponentProps<typeof Badge> & VariantProps<typeof badgeVariants>) {
-  return <Badge variant={variant} className={cn('text-[11px]', className)} {...props} />;
+  return <Badge variant={variant} size={size} className={className} {...props} />;
 }
 
 function TableIconText({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

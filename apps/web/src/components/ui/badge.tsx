@@ -17,22 +17,24 @@ const badgeVariants = cva(
         ghost: 'hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50',
         link: 'text-primary underline-offset-4 hover:underline',
       },
+      size: { default: '', sm: 'text-[11px]', xs: 'gap-0.5 px-1.5 py-0 text-[10px]' },
     },
-    defaultVariants: { variant: 'default' },
+    defaultVariants: { variant: 'default', size: 'default' },
   },
 );
 
 function Badge({
   className,
   variant = 'default',
+  size = 'default',
   render,
   ...props
 }: useRender.ComponentProps<'span'> & VariantProps<typeof badgeVariants>) {
   return useRender({
     defaultTagName: 'span',
-    props: mergeProps<'span'>({ className: cn(badgeVariants({ variant }), className) }, props),
+    props: mergeProps<'span'>({ className: cn(badgeVariants({ variant, size }), className) }, props),
     render,
-    state: { slot: 'badge', variant },
+    state: { slot: 'badge', variant, size },
   });
 }
 

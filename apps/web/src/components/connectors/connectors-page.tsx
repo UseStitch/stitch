@@ -9,6 +9,7 @@ import { ConnectorCard } from '@/components/connectors/connector-card';
 import { ConnectorInstanceList } from '@/components/connectors/connector-instance-list';
 import { SetupWizard } from '@/components/connectors/setup-wizard';
 import { Badge } from '@/components/ui/badge';
+import { Empty, EmptyDescription, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import {
   Page,
@@ -64,7 +65,7 @@ export function ConnectorsPage() {
             <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
             <TabsTrigger value="connected" className="gap-2">
               Connected
-              <Badge variant="secondary" className="h-5 rounded-full px-2 text-[11px]">
+              <Badge variant="secondary" size="sm" className="rounded-full">
                 {instances.length}
               </Badge>
               {pendingUpdates > 0 ? (
@@ -100,10 +101,10 @@ export function ConnectorsPage() {
                 })}
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-8 text-center">
-                <p className="text-sm font-medium">No connectors match your search</p>
-                <p className="mt-1 text-xs text-muted-foreground">Try a different name or clear the search query.</p>
-              </div>
+              <Empty surface="muted" size="compact">
+                <EmptyTitle>No connectors match your search</EmptyTitle>
+                <EmptyDescription>Try a different name or clear the search query.</EmptyDescription>
+              </Empty>
             )}
           </TabsContent>
 
@@ -112,10 +113,10 @@ export function ConnectorsPage() {
             {instances.length > 0 ? (
               <ConnectorInstanceList instances={instances} definitions={definitions} />
             ) : (
-              <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-8 text-center">
-                <p className="text-sm font-medium">No connected instances yet</p>
-                <p className="mt-1 text-xs text-muted-foreground">Open Marketplace to connect your first service.</p>
-              </div>
+              <Empty surface="muted" size="compact">
+                <EmptyTitle>No connected instances yet</EmptyTitle>
+                <EmptyDescription>Open Marketplace to connect your first service.</EmptyDescription>
+              </Empty>
             )}
           </TabsContent>
         </Tabs>
