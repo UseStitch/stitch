@@ -76,9 +76,9 @@ export async function retrieveMemoryContext(query: string, sourceFilter?: Memory
 
   const scoredCandidates = candidates.map((m) => {
     const lexicalFactor = getLexicalFactor(query, m.content);
-    const recencyFactor = config.retrievalRecencyBoost ? getRecencyFactor(m.lastAccessedAt) : 0;
+    const recencyFactor = config.retrievalRecencyBoost ? getRecencyFactor(m.updatedAt) : 0;
     const confidenceFactor = getConfidenceFactor(m.confidence);
-    const blendedScore = m.score * 0.6 + lexicalFactor * 0.25 + recencyFactor * 0.1 + confidenceFactor * 0.05;
+    const blendedScore = m.score * 0.75 + lexicalFactor * 0.15 + recencyFactor * 0.05 + confidenceFactor * 0.05;
     return { ...m, blendedScore };
   });
 
@@ -94,7 +94,10 @@ export async function retrieveMemoryContext(query: string, sourceFilter?: Memory
 
   const entries = relevant.map((m) => `- [${m.category}] ${m.content} (confidence: ${m.confidence})`);
 
-  log.debug({ semanticCount: relevant.length }, 'retrieved memory context');
+  log.debug(
+    { query, memories: relevant.map((m) => ({ id: m.id, score: m.score, blendedScore: m.blendedScore })) },
+    'retrieved memory context',
+  );
 
-  return `Known facts about the user:\n${entries.join('\n')}`;
+  return `Background memory recalled from past conversations:\n${entries.join('\n')}`;
 }
