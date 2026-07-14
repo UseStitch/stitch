@@ -241,6 +241,12 @@ function ExtractionSettings() {
         min={0}
         max={20}
       />
+      <SwitchSettingRow
+        settingKey="memory.extraction.fromAutomations"
+        label="Extract From Automations"
+        description="Allow automation sessions to extract and store new memories. When off, only chat sessions write memories."
+        checked={settings['memory.extraction.fromAutomations'] === 'true'}
+      />
     </SettingRows>
   );
 }
@@ -314,6 +320,18 @@ function RetrievalSettings() {
         label="Recency Boost"
         description="Boost recently-accessed memories in ranking."
         checked={settings['memory.retrieval.recencyBoost'] === 'true'}
+      />
+      <SwitchSettingRow
+        settingKey="memory.retrieval.contextAwareQuery"
+        label="Context-Aware Query"
+        description="Include the preceding assistant message when building the memory search query, so vague follow-ups resolve to the conversation topic."
+        checked={settings['memory.retrieval.contextAwareQuery'] === 'true'}
+      />
+      <SwitchSettingRow
+        settingKey="memory.retrieval.skipLowSignal"
+        label="Skip Low-Signal Messages"
+        description={`Skip memory retrieval for short, low-content messages (e.g. "continue", "ok do that") and reuse the previous turn's memories instead.`}
+        checked={settings['memory.retrieval.skipLowSignal'] === 'true'}
       />
     </SettingRows>
   );

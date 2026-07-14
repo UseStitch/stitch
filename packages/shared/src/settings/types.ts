@@ -162,6 +162,12 @@ const SETTINGS_REGISTRY = {
     default: '3',
     description: 'Minimum user turns between consecutive auto-memory writes for the same session. Acts as a cooldown.',
   },
+  'memory.extraction.fromAutomations': {
+    schema: booleanSetting,
+    default: 'false',
+    description:
+      'Allow automation sessions to extract and store new memories. When off, only chat sessions write memories.',
+  },
   'memory.retention.maxMemories': {
     schema: z.coerce.number().int().min(10),
     default: '150',
@@ -196,6 +202,18 @@ const SETTINGS_REGISTRY = {
     schema: booleanSetting,
     default: 'true',
     description: 'Boost recently-accessed memories in ranking.',
+  },
+  'memory.retrieval.contextAwareQuery': {
+    schema: booleanSetting,
+    default: 'true',
+    description:
+      'Include the preceding assistant message when building the memory search query, so vague follow-ups resolve to the conversation topic.',
+  },
+  'memory.retrieval.skipLowSignal': {
+    schema: booleanSetting,
+    default: 'true',
+    description:
+      'Skip memory retrieval for short, low-content messages (e.g. "continue", "ok do that") and reuse the previous turn\'s memories instead.',
   },
   'agents.customInstructions': {
     schema: z.string().max(20_000),

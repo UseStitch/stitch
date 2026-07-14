@@ -122,6 +122,11 @@ export async function processMemories(input: {
       resolveMemorySource(input.sessionId, input.memorySource),
     ]);
 
+    if (memorySource === 'automation' && !config.extractFromAutomations) {
+      log.debug({ sessionId: input.sessionId }, 'skipping extraction: automation session extraction disabled');
+      return;
+    }
+
     if (!resolved) {
       log.warn('no model available for memory extraction');
       return;

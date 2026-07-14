@@ -8,10 +8,20 @@ import { messages, sessions } from '@/db/schema/sessions.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { getPromptUserContext } from '@/llm/prompt/builder.js';
 import type { PromptConfig } from '@/llm/prompt/builder.js';
+import { getMemoryConfig } from '@/memory/config.js';
+import { buildRetrievalQuery } from '@/memory/query.js';
 import { retrieveMemoryContext } from '@/memory/retriever.js';
+import { getCachedSessionMemoryContext, setCachedSessionMemoryContext } from '@/memory/session-context-cache.js';
 import { getSettings } from '@/settings/service.js';
 import { getSessionTodosPromptBlock } from '@/todos/service.js';
 import type { ModelMessage } from 'ai';
+
+function extractMessageText(message: { parts: StoredPart[] }): string {
+  return message.parts
+    .filter((p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta')
+    .map((p) => p.text)
+    .join('');
+}
 
 /**
  * Build the LLM message history for a session, starting from the latest summary boundary.
@@ -46,15 +56,32 @@ export async function buildSessionLlmMessages(
   }
 
   let memoryContext: string | null = null;
-  const latestUserMsg = [...msgs].reverse().find((m) => m.role === 'user');
+  const msgsDesc = [...msgs].reverse();
+  const latestUserIndex = msgsDesc.findIndex((m) => m.role === 'user');
+  const latestUserMsg = latestUserIndex >= 0 ? msgsDesc[latestUserIndex] : undefined;
+
   if (latestUserMsg) {
-    const userText = latestUserMsg.parts
-      .filter((p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta')
-      .map((p) => p.text)
-      .join('');
+    const userText = extractMessageText(latestUserMsg);
 
     if (userText.length > 0) {
-      memoryContext = await retrieveMemoryContext(userText, memorySourceFilter).catch(() => null);
+      const previousAssistantMsg = msgsDesc.slice(latestUserIndex + 1).find((m) => m.role === 'assistant');
+      const previousAssistantText = previousAssistantMsg ? extractMessageText(previousAssistantMsg) : null;
+      const memoryConfig = await getMemoryConfig();
+      const query = buildRetrievalQuery({
+        userText,
+        previousAssistantText,
+        contextAwareQuery: memoryConfig.retrievalContextAwareQuery,
+        skipLowSignal: memoryConfig.retrievalSkipLowSignal,
+      });
+
+      if (query === null) {
+        memoryContext = getCachedSessionMemoryContext(sessionId);
+      } else {
+        memoryContext = await retrieveMemoryContext(query, memorySourceFilter).catch(() => null);
+        if (memoryContext !== null) {
+          setCachedSessionMemoryContext(sessionId, memoryContext);
+        }
+      }
     }
   }
 
