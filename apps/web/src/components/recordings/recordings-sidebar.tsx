@@ -1,4 +1,4 @@
-import { LibraryIcon, Loader2Icon, MicIcon } from 'lucide-react';
+import { LibraryIcon, MicIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -12,6 +12,8 @@ import {
 } from './shared/formatting';
 
 import { InternalSidebar } from '@/components/navigation/internal-sidebar';
+import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { Spinner } from '@/components/ui/spinner';
 import { recordingsInfiniteQueryOptions } from '@/lib/queries/recordings';
 
 export function RecordingsSidebarContent() {
@@ -68,11 +70,11 @@ export function RecordingsSidebarContent() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <span className="truncate text-sm">{displayTitle}</span>
-                        <span className="shrink-0 text-[10px] text-muted-foreground">
+                        <span className="shrink-0 text-2xs text-muted-foreground">
                           {formatRecordingShortDate(recording.startedAt)}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+                      <div className="flex items-center justify-between gap-2 text-2xs text-muted-foreground">
                         <span>
                           {formatReadableDuration(recording.durationMs)}
                           {' · '}
@@ -89,16 +91,18 @@ export function RecordingsSidebarContent() {
             </InternalSidebar.List>
             {hasNextPage ? (
               <div ref={loadMoreRef} className="flex h-9 items-center justify-center">
-                {isFetchingNextPage ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" /> : null}
+                {isFetchingNextPage ? <Spinner className="text-muted-foreground" /> : null}
               </div>
             ) : null}
           </InternalSidebar.Group>
         ) : (
-          <InternalSidebar.EmptyState
-            icon={MicIcon}
-            title="No recordings yet"
-            description="Start a recording to capture meeting audio."
-          />
+          <Empty size="compact">
+            <EmptyMedia>
+              <MicIcon className="size-8 text-muted-foreground/40" />
+            </EmptyMedia>
+            <EmptyTitle>No recordings yet</EmptyTitle>
+            <EmptyDescription>Start a recording to capture meeting audio.</EmptyDescription>
+          </Empty>
         )}
       </InternalSidebar.Content>
     </>

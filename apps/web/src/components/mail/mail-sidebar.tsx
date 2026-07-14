@@ -34,6 +34,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { SidebarMenuAction, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { getDefaultMailLabel, mailAccountsQueryOptions, mailLabelsQueryOptions } from '@/lib/queries/mail';
 import { cn } from '@/lib/utils';
@@ -131,7 +132,7 @@ function LabelDivider({
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center gap-2 px-2 py-1 text-[10px] font-medium tracking-wide text-muted-foreground uppercase transition-colors hover:text-sidebar-foreground">
+        className="flex w-full items-center gap-2 px-2 py-1 text-2xs font-medium tracking-wide text-muted-foreground uppercase transition-colors hover:text-sidebar-foreground">
         {collapsed ? <ChevronRightIcon className="size-3" /> : <ChevronDownIcon className="size-3" />}
         <span>{children}</span>
         <span className="h-px flex-1 bg-sidebar-border" />
@@ -419,11 +420,13 @@ export function MailSidebarContent() {
       </InternalSidebar.Header>
       <InternalSidebar.Content>
         {!selectedAccount ? (
-          <InternalSidebar.EmptyState
-            icon={MailIcon}
-            title="No mail accounts"
-            description="Enroll an account in Settings."
-          />
+          <Empty size="compact">
+            <EmptyMedia>
+              <MailIcon className="size-8 text-muted-foreground/40" />
+            </EmptyMedia>
+            <EmptyTitle>No mail accounts</EmptyTitle>
+            <EmptyDescription>Enroll an account in Settings.</EmptyDescription>
+          </Empty>
         ) : (
           <MailLabelList key={selectedAccount.id} accountId={selectedAccount.id} />
         )}
