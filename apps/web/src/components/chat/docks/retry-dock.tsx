@@ -1,7 +1,7 @@
-import { Loader2Icon } from 'lucide-react';
 import * as React from 'react';
 
 import { Dock } from '@/components/chat/docks/dock';
+import { Spinner } from '@/components/ui/spinner';
 import type { RetryInfo } from '@/stores/stream-store';
 
 export function RetryDock({ retry }: { retry: RetryInfo }) {
@@ -26,7 +26,7 @@ export function RetryDock({ retry }: { retry: RetryInfo }) {
   return (
     <Dock.Inline>
       <Dock.Icon>
-        <Loader2Icon className="size-4 animate-spin text-destructive" />
+        <Spinner className="text-destructive" />
       </Dock.Icon>
       <Dock.Body>
         <Dock.Title className="line-clamp-2 text-destructive" title={retry.message}>

@@ -99,7 +99,7 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
           return (
             <TabsContent key={idx} value={String(idx)} className="mt-0">
               <div className="mb-1 text-sm text-foreground">{item.question}</div>
-              <div className="mb-2 text-[11px] text-muted-foreground">
+              <div className="mb-2 text-2xs text-muted-foreground">
                 {isMultiQ ? 'Select all that apply' : 'Select one option'}
               </div>
 

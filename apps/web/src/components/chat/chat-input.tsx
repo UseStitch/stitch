@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { ChatInputInner } from '@/components/chat/chat-input-parts/chat-input-inner';
 import type { Attachment, ModelSpec } from '@/components/chat/chat-input-parts/types';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { TextareaCompletionGroup } from '@/components/ui/textarea-completions';
 import { cn } from '@/lib/utils';
 
@@ -35,11 +36,11 @@ export function ChatInput({ className, hasDockAbove, embedded, ...props }: ChatI
               hasDockAbove && !embedded && 'rounded-t-none border-t-0',
             )}>
             <div className="px-4 pt-4 pb-2">
-              <div className="h-5 w-32 animate-pulse rounded bg-muted" />
+              <Skeleton className="h-5 w-32" />
             </div>
             <div className="flex items-center justify-between px-3 pt-1 pb-3">
-              <div className="h-6 w-24 animate-pulse rounded bg-muted" />
-              <div className="size-6 animate-pulse rounded bg-muted" />
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="size-6" />
             </div>
           </div>
         }>
