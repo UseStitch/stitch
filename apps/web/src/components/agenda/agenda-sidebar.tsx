@@ -74,7 +74,7 @@ function ListRow({ list, isActive, isDragging, mergeIndicator, onDragStart, onMo
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-sm">{list.name}</span>
           {mergeIndicator ? (
-            <Badge variant="default" className="animate-in px-1.5 py-0 text-[10px] zoom-in-95 fade-in">
+            <Badge variant="default" size="xs" className="animate-in zoom-in-95 fade-in">
               {mergeIndicator === 'list' ? (
                 <span className="flex items-center gap-0.5">
                   <MergeIcon className="size-2.5" />
@@ -88,7 +88,7 @@ function ListRow({ list, isActive, isDragging, mergeIndicator, onDragStart, onMo
               )}
             </Badge>
           ) : openCount > 0 ? (
-            <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+            <Badge variant="secondary" size="xs">
               {openCount}
             </Badge>
           ) : null}

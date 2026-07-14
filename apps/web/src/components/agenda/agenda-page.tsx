@@ -20,7 +20,6 @@ import { AGENDA_ITEM_PRIORITIES, AGENDA_ITEM_STATUSES } from '@stitch/shared/age
 import { AgendaItemDetailSheet } from '@/components/agenda/agenda-item-detail';
 import { PRIORITY_LABELS, PRIORITY_VARIANTS, STATUS_LABELS, STATUS_VARIANTS } from '@/components/agenda/constants';
 import { formatDateInTz, useUserTimezone } from '@/components/agenda/utils';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -28,6 +27,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
+import { MetricCard } from '@/components/ui/metric-card';
 import { Page, PageContent, PageDescription, PageHeader, PageHeaderContent, PageIcon } from '@/components/ui/page';
 import {
   Pagination,
@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/pagination';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { Table } from '@/components/ui/table';
 import {
   agendaItemsQueryOptions,
   agendaListsQueryOptions,
@@ -321,33 +322,28 @@ export function AgendaPage({ listId }: { listId?: string }) {
 
         {/* Summary cards */}
         {!listId && (
-          <div className="mb-4 flex gap-3">
-            <div className="relative min-h-16 flex-1 overflow-hidden rounded-lg border border-border bg-background p-3">
-              <InboxIcon className="absolute top-3 right-3 size-5 text-muted-foreground/25" />
-              <div className="pr-8">
-                <p className="text-xs text-muted-foreground">Open</p>
-                <p className="text-lg font-semibold">{totalOpen}</p>
-              </div>
-            </div>
-            <div className="relative min-h-16 flex-1 overflow-hidden rounded-lg border border-border bg-background p-3">
-              <ActivityIcon className="absolute top-3 right-3 size-5 text-muted-foreground/25" />
-              <div className="pr-8">
-                <p className="text-xs text-muted-foreground">In Progress</p>
-                <p className="text-lg font-semibold">{totalInProgress}</p>
-              </div>
-            </div>
-            <div className="relative min-h-16 flex-1 overflow-hidden rounded-lg border border-border bg-background p-3">
-              <CircleAlertIcon className="absolute top-3 right-3 size-5 text-destructive/35" />
-              <div className="pr-8">
-                <p className="text-xs text-muted-foreground">Overdue</p>
-                <p className="text-lg font-semibold">{totalOverdue}</p>
-              </div>
-            </div>
+          <div className="flex gap-3">
+            <MetricCard className="flex-1" size="compact" label="Open" value={totalOpen} icon={<InboxIcon />} />
+            <MetricCard
+              className="flex-1"
+              size="compact"
+              label="In Progress"
+              value={totalInProgress}
+              icon={<ActivityIcon />}
+            />
+            <MetricCard
+              className="flex-1"
+              size="compact"
+              label="Overdue"
+              value={totalOverdue}
+              icon={<CircleAlertIcon />}
+              emphasis="destructive"
+            />
           </div>
         )}
 
         {/* Toolbar */}
-        <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as FilterStatus)}>
             <SelectTrigger className="w-40 bg-background">
               <span className="truncate">
@@ -397,76 +393,100 @@ export function AgendaPage({ listId }: { listId?: string }) {
         </div>
 
         {/* Table */}
-        <div className="overflow-hidden rounded-xl border border-border bg-background">
-          {/* Column headers */}
-          <div className="flex items-center gap-3 border-b border-border bg-muted/40 px-4 py-2 text-xs font-medium text-muted-foreground">
-            <div className="flex w-6 items-center justify-center">
-              <Checkbox
-                checked={allSelected}
-                data-indeterminate={someSelected || undefined}
-                onCheckedChange={toggleSelectAll}
-                aria-label="Select all"
-              />
-            </div>
-            <span className="flex-1">Title</span>
-            <span className="w-24 text-center">Status</span>
-            <span className="w-20 text-center">Priority</span>
-            {!listId && <span className="w-24 text-center">List</span>}
-            <span className="w-24 text-right">Due</span>
-          </div>
-
-          {/* Rows */}
-          {isLoading ? (
-            <div className="flex flex-col divide-y divide-border">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3 px-4 py-3">
-                  <div className="w-6" />
-                  <div className="h-4 flex-1 animate-pulse rounded bg-muted" />
-                  <div className="h-5 w-20 animate-pulse rounded-full bg-muted" />
-                  <div className="h-5 w-16 animate-pulse rounded-full bg-muted" />
-                  <div className="h-4 w-20 animate-pulse rounded bg-muted" />
-                </div>
-              ))}
-            </div>
-          ) : items.length === 0 ? (
-            <Empty>
-              <EmptyMedia>
-                <ListTodoIcon className="size-10 text-muted-foreground/30" />
-              </EmptyMedia>
-              <EmptyTitle>No agenda items</EmptyTitle>
-              <EmptyDescription>Create items from chat or click "New Item" to get started.</EmptyDescription>
-            </Empty>
-          ) : (
-            <div
-              className="flex flex-col"
-              onDragOver={(e) => {
-                if (!e.dataTransfer.types.includes('application/x-agenda-item')) return;
-                e.preventDefault();
-              }}
-              onDrop={handleRowDrop}>
-              {items.map((item, index) => (
-                <React.Fragment key={item.id}>
-                  {dropIndex === index && dragItemId && dragItemId !== item.id && <div className="h-0.5 bg-primary" />}
-                  <div
-                    className="border-b border-border last:border-b-0"
-                    onDragOver={(e) => handleRowDragOver(e, index)}>
-                    <AgendaItemRow
-                      item={item}
-                      selected={selectedIds.has(item.id)}
-                      showListColumn={!listId}
-                      isDragging={dragItemId === item.id}
-                      timeZone={timeZone}
-                      onToggleSelect={() => toggleSelect(item.id)}
-                      onClick={() => openItem(item)}
-                      onDragStart={() => handleRowDragStart(item.id)}
-                      onDateChange={handleDateChange}
+        <Table.Container>
+          <Table.Scroller>
+            <Table.Root className="min-w-175 table-fixed">
+              <Table.Header>
+                <Table.Row className="hover:bg-transparent">
+                  <Table.Head className="w-8" />
+                  <Table.Head className="w-10 text-center">
+                    <Checkbox
+                      checked={allSelected}
+                      data-indeterminate={someSelected || undefined}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Select all"
                     />
-                  </div>
-                </React.Fragment>
-              ))}
-              {dropIndex === items.length && dragItemId && <div className="h-0.5 bg-primary" />}
-            </div>
-          )}
+                  </Table.Head>
+                  <Table.Head className="w-full min-w-0">Title</Table.Head>
+                  <Table.Head className="w-24 text-center">Status</Table.Head>
+                  <Table.Head className="w-20 text-center">Priority</Table.Head>
+                  {!listId && <Table.Head className="w-24 text-center">List</Table.Head>}
+                  <Table.Head className="w-24 text-right">Due</Table.Head>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body
+                onDragOver={(e) => {
+                  if (!e.dataTransfer.types.includes('application/x-agenda-item')) return;
+                  e.preventDefault();
+                }}
+                onDrop={handleRowDrop}>
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <Table.Row key={i} className="hover:bg-transparent">
+                      <Table.Cell className="w-8" />
+                      <Table.Cell className="w-10" />
+                      <Table.Cell className="w-full max-w-0 min-w-0 overflow-hidden">
+                        <div className="h-4 animate-pulse rounded bg-muted" />
+                      </Table.Cell>
+                      <Table.Cell className="w-24">
+                        <div className="mx-auto h-5 w-16 animate-pulse rounded-full bg-muted" />
+                      </Table.Cell>
+                      <Table.Cell className="w-20">
+                        <div className="mx-auto h-5 w-14 animate-pulse rounded-full bg-muted" />
+                      </Table.Cell>
+                      {!listId && <Table.Cell className="w-24" />}
+                      <Table.Cell className="w-24">
+                        <div className="ml-auto h-4 w-16 animate-pulse rounded bg-muted" />
+                      </Table.Cell>
+                    </Table.Row>
+                  ))
+                ) : items.length === 0 ? (
+                  <Table.EmptyRow colSpan={listId ? 6 : 7}>
+                    <Empty>
+                      <EmptyMedia>
+                        <ListTodoIcon className="size-10 text-muted-foreground/30" />
+                      </EmptyMedia>
+                      <EmptyTitle>No agenda items</EmptyTitle>
+                      <EmptyDescription>Create items from chat or click "New Item" to get started.</EmptyDescription>
+                    </Empty>
+                  </Table.EmptyRow>
+                ) : (
+                  <>
+                    {items.map((item, index) => (
+                      <React.Fragment key={item.id}>
+                        {dropIndex === index && dragItemId && dragItemId !== item.id && (
+                          <tr aria-hidden="true">
+                            <td colSpan={listId ? 6 : 7} className="p-0">
+                              <div className="h-0.5 bg-primary" />
+                            </td>
+                          </tr>
+                        )}
+                        <AgendaItemRow
+                          item={item}
+                          selected={selectedIds.has(item.id)}
+                          showListColumn={!listId}
+                          isDragging={dragItemId === item.id}
+                          timeZone={timeZone}
+                          onToggleSelect={() => toggleSelect(item.id)}
+                          onClick={() => openItem(item)}
+                          onDragStart={() => handleRowDragStart(item.id)}
+                          onDragOver={(e) => handleRowDragOver(e, index)}
+                          onDateChange={handleDateChange}
+                        />
+                      </React.Fragment>
+                    ))}
+                    {dropIndex === items.length && dragItemId && (
+                      <tr aria-hidden="true">
+                        <td colSpan={listId ? 6 : 7} className="p-0">
+                          <div className="h-0.5 bg-primary" />
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                )}
+              </Table.Body>
+            </Table.Root>
+          </Table.Scroller>
 
           {totalPages > 1 ? (
             <div className="border-t border-border px-3 py-3">
@@ -520,7 +540,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
               </Pagination>
             </div>
           ) : null}
-        </div>
+        </Table.Container>
       </PageContent>
 
       {/* Detail sheet */}
@@ -585,6 +605,7 @@ type AgendaItemRowProps = {
   onToggleSelect: () => void;
   onClick: () => void;
   onDragStart: () => void;
+  onDragOver: (e: React.DragEvent) => void;
   onDateChange: (itemId: string, dueAt: number | null) => void;
 };
 
@@ -597,9 +618,9 @@ function AgendaItemRow({
   onToggleSelect,
   onClick,
   onDragStart,
+  onDragOver,
   onDateChange,
 }: AgendaItemRowProps) {
-  const rowRef = React.useRef<HTMLDivElement>(null);
   const [dateOpen, setDateOpen] = React.useState(false);
   const isDone = item.status === 'done' || item.status === 'cancelled';
   const isOverdue = item.dueAt && item.dueAt < Date.now() && item.status !== 'done' && item.status !== 'cancelled';
@@ -610,66 +631,74 @@ function AgendaItemRow({
     e.dataTransfer.effectAllowed = 'move';
     onDragStart();
 
-    if (rowRef.current) {
-      const row = rowRef.current;
+    const row = (e.currentTarget as HTMLElement).closest('tr');
+    if (row) {
       const clone = row.cloneNode(true) as HTMLElement;
-      clone.style.width = `${row.offsetWidth}px`;
       clone.style.opacity = '0.85';
-      clone.style.position = 'absolute';
-      clone.style.top = '-9999px';
-      clone.style.left = '-9999px';
-      document.body.appendChild(clone);
+      const table = document.createElement('table');
+      const tbody = document.createElement('tbody');
+      tbody.appendChild(clone);
+      table.appendChild(tbody);
+      table.style.width = `${row.offsetWidth}px`;
+      table.style.position = 'absolute';
+      table.style.top = '-9999px';
+      table.style.left = '-9999px';
+      document.body.appendChild(table);
       e.dataTransfer.setDragImage(clone, 20, 20);
-      requestAnimationFrame(() => clone.remove());
+      requestAnimationFrame(() => table.remove());
     }
   }
 
   return (
-    <div
-      ref={rowRef}
-      className={`group flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 ${isDragging ? 'opacity-40' : ''} ${isDone ? 'opacity-50' : ''}`}
-      onClick={onClick}>
-      <div
-        draggable
-        onDragStart={handleDragStart}
-        className="flex w-4 cursor-grab items-center justify-center opacity-0 transition-opacity group-hover:opacity-60 active:cursor-grabbing"
-        onClick={(e) => e.stopPropagation()}>
-        <GripVerticalIcon className="size-3.5 text-muted-foreground" />
-      </div>
+    <Table.Row
+      className={`cursor-pointer ${isDragging ? 'opacity-40' : ''} ${isDone ? 'opacity-50' : ''}`}
+      onClick={onClick}
+      onDragOver={onDragOver}>
+      <Table.Cell className="w-8">
+        <div
+          draggable
+          onDragStart={handleDragStart}
+          className="flex w-4 cursor-grab items-center justify-center opacity-0 transition-opacity group-hover:opacity-60 active:cursor-grabbing"
+          onClick={(e) => e.stopPropagation()}>
+          <GripVerticalIcon className="size-3.5 text-muted-foreground" />
+        </div>
+      </Table.Cell>
 
-      <div
-        className="flex w-6 items-center justify-center"
+      <Table.Cell
+        className="w-10 text-center"
         onClick={(e) => {
           e.stopPropagation();
           onToggleSelect();
         }}>
         <Checkbox checked={selected || isDone} onCheckedChange={onToggleSelect} aria-label="Select item" />
-      </div>
+      </Table.Cell>
 
-      <div className="min-w-0 flex-1">
-        <p className={`truncate text-sm ${isDone ? 'text-muted-foreground line-through' : ''}`}>{item.title}</p>
+      <Table.Cell className="w-full max-w-0 min-w-0 overflow-hidden">
+        <Table.Title className={`block ${isDone ? 'text-muted-foreground line-through' : ''}`}>
+          {item.title}
+        </Table.Title>
         {item.description && (
-          <p className={`truncate text-xs text-muted-foreground ${isDone ? 'line-through' : ''}`}>{item.description}</p>
+          <Table.Text className={`block truncate ${isDone ? 'line-through' : ''}`}>{item.description}</Table.Text>
         )}
-      </div>
+      </Table.Cell>
 
-      <div className="flex w-24 justify-center">
-        <Badge variant={STATUS_VARIANTS[item.status]} className="text-[10px]">
+      <Table.Cell className="w-24 text-center">
+        <Table.Badge variant={STATUS_VARIANTS[item.status]} size="xs">
           {STATUS_LABELS[item.status]}
-        </Badge>
-      </div>
+        </Table.Badge>
+      </Table.Cell>
 
-      <div className="flex w-20 justify-center">
-        <Badge variant={PRIORITY_VARIANTS[item.priority]} className="text-[10px]">
+      <Table.Cell className="w-20 text-center">
+        <Table.Badge variant={PRIORITY_VARIANTS[item.priority]} size="xs">
           {PRIORITY_LABELS[item.priority]}
-        </Badge>
-      </div>
+        </Table.Badge>
+      </Table.Cell>
 
       {showListColumn && (
-        <span className="w-24 truncate text-center text-xs text-muted-foreground">{item.listName ?? '—'}</span>
+        <Table.Cell className="w-24 text-center text-xs text-muted-foreground">{item.listName ?? '—'}</Table.Cell>
       )}
 
-      <div className="w-24 text-right" onClick={(e) => e.stopPropagation()}>
+      <Table.Cell className="w-24 text-right" onClick={(e) => e.stopPropagation()}>
         <Popover open={dateOpen} onOpenChange={setDateOpen}>
           <PopoverTrigger
             className={`inline-flex cursor-pointer rounded px-1 py-0.5 text-xs transition-colors hover:bg-muted ${isOverdue ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
@@ -695,7 +724,7 @@ function AgendaItemRow({
             />
           </PopoverContent>
         </Popover>
-      </div>
-    </div>
+      </Table.Cell>
+    </Table.Row>
   );
 }
