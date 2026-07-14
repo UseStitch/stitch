@@ -85,4 +85,34 @@ describe('validateConsolidationActions', () => {
     ]);
     expect(result.skipped).toBe(0);
   });
+
+  test('collapses a paraphrase family to a single canonical memory', () => {
+    const group = [
+      memory({ id: 'mem-1', content: 'User currently has a job at Acme Corp.' }),
+      memory({ id: 'mem-2', content: 'User is employed by Acme Corp.' }),
+      memory({ id: 'mem-3', content: 'User works for Acme Corp.' }),
+      memory({ id: 'mem-4', content: 'User has a role at Acme Corp.' }),
+    ];
+
+    const result = validateConsolidationActions(group, [
+      { action: 'UPDATE', memoryId: 'mem-1', content: 'User works at Acme Corp.', category: null, confidence: null },
+      { action: 'DELETE', memoryId: 'mem-2', content: null, category: null, confidence: null },
+      { action: 'DELETE', memoryId: 'mem-3', content: null, category: null, confidence: null },
+      { action: 'DELETE', memoryId: 'mem-4', content: null, category: null, confidence: null },
+    ]);
+
+    expect(result.valid).toEqual([
+      { action: 'UPDATE', memoryId: 'mem-1', content: 'User works at Acme Corp.' },
+      { action: 'DELETE', memoryId: 'mem-2' },
+      { action: 'DELETE', memoryId: 'mem-3' },
+      { action: 'DELETE', memoryId: 'mem-4' },
+    ]);
+    expect(result.skipped).toBe(0);
+
+    const survivingIds = new Set(group.map((m) => m.id));
+    for (const action of result.valid) {
+      if (action.action === 'DELETE') survivingIds.delete(action.memoryId);
+    }
+    expect(survivingIds.size).toBe(1);
+  });
 });
