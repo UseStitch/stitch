@@ -5,7 +5,7 @@ import draculaTheme from '@/themes/dracula.json';
 import solarizedTheme from '@/themes/solarized.json';
 import tokyonightTheme from '@/themes/tokyonight.json';
 
-export const THEME_TOKEN_KEYS = [
+const THEME_TOKEN_KEYS = [
   'background',
   'foreground',
   'card',
@@ -47,7 +47,7 @@ export const THEME_TOKEN_KEYS = [
   'sidebar-ring',
 ] as const;
 
-export type ThemeTokenKey = (typeof THEME_TOKEN_KEYS)[number];
+type ThemeTokenKey = (typeof THEME_TOKEN_KEYS)[number];
 export type ThemeTokens = Record<ThemeTokenKey, string>;
 
 type ThemeDefinition = { name: string; label: string; radius: string; light: ThemeTokens; dark: ThemeTokens };

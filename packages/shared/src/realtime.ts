@@ -10,7 +10,7 @@ import { SKILL_EVENT_NAMES, type SkillEvents } from './skills/events.js';
 
 const CONNECTION_EVENT_NAMES = ['heartbeat', 'connected'] as const;
 
-export type ConnectionEvents = { heartbeat: { ts: number }; connected: { ts: number } };
+type ConnectionEvents = { heartbeat: { ts: number }; connected: { ts: number } };
 
 export type SseEventPayloadMap = ConnectionEvents &
   StreamEvents &

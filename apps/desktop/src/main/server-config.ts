@@ -2,7 +2,7 @@ import { app } from 'electron';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
-export type ServerMode = 'local' | 'remote';
+type ServerMode = 'local' | 'remote';
 
 export type ServerConnectionConfig = { mode: ServerMode; remoteUrl: string | null };
 

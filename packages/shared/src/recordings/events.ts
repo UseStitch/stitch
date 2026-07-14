@@ -1,27 +1,27 @@
 import type { PrefixedString } from '../id/index.js';
 import type { RecordingAnalysisStatus } from './types.js';
 
-export type RecordingAnalysisUpdatedPayload = {
+type RecordingAnalysisUpdatedPayload = {
   recordingId: PrefixedString<'rec'>;
   status: RecordingAnalysisStatus;
   title: string | null;
 };
 
-export type RecordingAnalysisCompletedPayload = { recordingId: PrefixedString<'rec'>; title: string };
+type RecordingAnalysisCompletedPayload = { recordingId: PrefixedString<'rec'>; title: string };
 
-export type RecordingAnalysisFailedPayload = { recordingId: PrefixedString<'rec'> };
+type RecordingAnalysisFailedPayload = { recordingId: PrefixedString<'rec'> };
 
 export type RecordingWarningPayload = { code: string; message: string };
 
 export type RecordingDeviceChangedPayload = { kind: 'input' | 'output' | 'list'; deviceName: string | null };
 
-export type RecordingStartedPayload = { recordingId: PrefixedString<'rec'> };
+type RecordingStartedPayload = { recordingId: PrefixedString<'rec'> };
 
-export type RecordingStoppedPayload = { recordingId: PrefixedString<'rec'> };
+type RecordingStoppedPayload = { recordingId: PrefixedString<'rec'> };
 
-export type RecordingUnrecoverablePayload = { recordingId: PrefixedString<'rec'>; reason: string };
+type RecordingUnrecoverablePayload = { recordingId: PrefixedString<'rec'>; reason: string };
 
-export type RecordingTranscriptEntryPayload = {
+type RecordingTranscriptEntryPayload = {
   recordingId: string;
   kind: 'partial' | 'final';
   source: 'mic' | 'speaker';

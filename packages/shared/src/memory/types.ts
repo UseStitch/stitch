@@ -23,7 +23,7 @@ export type SemanticMemory = {
 
 export type ExtractedFact = { content: string; category: MemoryCategory; confidence: MemoryConfidence };
 
-export type MemorySearchResult = SemanticMemory & { score: number };
+type MemorySearchResult = SemanticMemory & { score: number };
 
 export type ListSemanticMemoriesResponse = {
   memories: SemanticMemory[];

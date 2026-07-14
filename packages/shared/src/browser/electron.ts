@@ -1,4 +1,4 @@
-export type ElectronBrowserTab = { id: string; title: string; url: string; type: 'page'; active: boolean };
+type ElectronBrowserTab = { id: string; title: string; url: string; type: 'page'; active: boolean };
 
 export type ElectronBrowserDownload = {
   id: string;
@@ -11,7 +11,7 @@ export type ElectronBrowserDownload = {
   createdAt: number;
 };
 
-export type ElectronBrowserController = 'none' | 'human' | 'agent';
+type ElectronBrowserController = 'none' | 'human' | 'agent';
 
 export type ElectronBrowserState = {
   tabs: ElectronBrowserTab[];
@@ -87,15 +87,15 @@ export type ElectronBrowserCommand =
 
 export type ElectronBrowserScreenshotResult = { data: string; format: 'png' | 'jpeg' };
 
-export type ElectronBrowserSearchPageMatch = { match: string; context: string; index: number };
+type ElectronBrowserSearchPageMatch = { match: string; context: string; index: number };
 
 export type ElectronBrowserSearchPageResult = { matches: ElectronBrowserSearchPageMatch[]; total: number };
 
-export type ElectronBrowserFindElementEntry = { tag: string; text?: string; attributes?: Record<string, string> };
+type ElectronBrowserFindElementEntry = { tag: string; text?: string; attributes?: Record<string, string> };
 
 export type ElectronBrowserFindElementsResult = { elements: ElectronBrowserFindElementEntry[]; total: number };
 
-export type ElectronBrowserDropdownOption = {
+type ElectronBrowserDropdownOption = {
   index: number;
   text: string;
   value: string;
@@ -118,7 +118,7 @@ export type ElectronBrowserExtractContentResult = {
  * the server's `send()` and the desktop's command handler are both bound to it,
  * so a mismatch becomes a compile error in both packages.
  */
-export type ElectronBrowserCommandResultMap = {
+type ElectronBrowserCommandResultMap = {
   ensure: ElectronBrowserState;
   state: ElectronBrowserState;
   executionState: ElectronBrowserExecutionState;

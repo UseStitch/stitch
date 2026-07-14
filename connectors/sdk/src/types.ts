@@ -10,7 +10,7 @@ import type {
 } from '@stitch/shared/connectors/types';
 import type { StitchLogger } from '@stitch/shared/logger';
 
-export type { ConnectorIconSource } from '@stitch/shared/connectors/types';
+;
 
 export type ConnectorDefinitionInput = {
   id: string;
@@ -26,7 +26,7 @@ export type ConnectorDefinitionInput = {
   setupInstructions: ConnectorSetupInstruction[];
 };
 
-export type ConnectorInstanceRecord = {
+type ConnectorInstanceRecord = {
   id: string;
   connectorId: string;
   connectorRefId: string;
@@ -44,13 +44,13 @@ export type ConnectorInstanceRecord = {
   updatedAt: number;
 };
 
-export type ConnectorLifecycleContext = {
+type ConnectorLifecycleContext = {
   listInstances: (connectorId: string) => Promise<ConnectorInstanceRecord[]>;
   refreshToolsets: () => Promise<void>;
   logger: StitchLogger;
 };
 
-export type ConnectorServiceHooks = {
+type ConnectorServiceHooks = {
   onAuthorized?: (input: {
     instance: ConnectorInstanceRecord;
     accessToken: string;

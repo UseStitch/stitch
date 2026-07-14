@@ -45,7 +45,7 @@ export const ModelSchema = z.object({
     })
     .optional(),
 });
-export const ProviderSchema = z.object({
+const ProviderSchema = z.object({
   api: z.string().optional(),
   name: z.string(),
   id: z.string(),

@@ -104,7 +104,7 @@ export const browserContentInputSchema = z.object({
   outputSchema: outputSchemaField,
 });
 
-export const browserBatchActionSchema = z.object({
+const browserBatchActionSchema = z.object({
   tool: z
     .enum(['snapshot', 'navigate', 'interact', 'wait', 'screenshot', 'dialog', 'content'])
     .describe('Tool group to execute for this batch action.'),

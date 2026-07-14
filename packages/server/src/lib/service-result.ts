@@ -1,4 +1,4 @@
-export type ServiceError = { message: string; status: 400 | 401 | 403 | 404 | 409 | 422 | 500; details?: unknown };
+type ServiceError = { message: string; status: 400 | 401 | 403 | 404 | 409 | 422 | 500; details?: unknown };
 
 export type ServiceSuccess<T> = { data: T; error: null };
 

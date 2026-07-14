@@ -35,7 +35,7 @@ export type RecordingPermissionsPayload = {
 
 export type MeetingCallDismissedPayload = { key: string };
 
-export type MeetingDetectedNotificationPayload = MeetingCallDetectedPayload;
+type MeetingDetectedNotificationPayload = MeetingCallDetectedPayload;
 
 export type DesktopNotificationEvent = {
   id: string;

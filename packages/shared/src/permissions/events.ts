@@ -1,9 +1,9 @@
 import type { PrefixedString } from '../id/index.js';
 import type { PermissionResponse } from './types.js';
 
-export type PermissionResponseRequestedPayload = { permissionResponse: PermissionResponse };
+type PermissionResponseRequestedPayload = { permissionResponse: PermissionResponse };
 
-export type PermissionResponseResolvedPayload = {
+type PermissionResponseResolvedPayload = {
   permissionResponseId: PrefixedString<'permres'>;
   sessionId: PrefixedString<'ses'>;
 };

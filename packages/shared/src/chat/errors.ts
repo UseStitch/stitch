@@ -1,4 +1,4 @@
-export const STREAM_ERROR_CATEGORIES = [
+const STREAM_ERROR_CATEGORIES = [
   'auth',
   'context_overflow',
   'rate_limited',

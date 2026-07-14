@@ -5,7 +5,7 @@ import type { LanguageModelUsage, TextStreamPart, ToolSet } from 'ai';
 
 export type { LanguageModelV3Source, LanguageModelUsage };
 
-export const MESSAGE_ROLES = ['user', 'assistant', 'system', 'tool'] as const;
+const MESSAGE_ROLES = ['user', 'assistant', 'system', 'tool'] as const;
 
 export const ARCHIVE_REASONS = {
   archiveSession: 'archive_session',
@@ -15,11 +15,11 @@ export const ARCHIVE_REASONS = {
 
 export type ArchiveReason = (typeof ARCHIVE_REASONS)[keyof typeof ARCHIVE_REASONS];
 
-export type UserImagePart = { type: 'user-image'; dataUrl: string; mime: string; filename: string };
+type UserImagePart = { type: 'user-image'; dataUrl: string; mime: string; filename: string };
 
-export type UserFilePart = { type: 'user-file'; dataUrl: string; mime: string; filename: string };
+type UserFilePart = { type: 'user-file'; dataUrl: string; mime: string; filename: string };
 
-export type UserTextFilePart = { type: 'user-text-file'; content: string; mime: string; filename: string };
+type UserTextFilePart = { type: 'user-text-file'; content: string; mime: string; filename: string };
 
 export type MessageRole = (typeof MESSAGE_ROLES)[number];
 
@@ -40,13 +40,13 @@ export type ToolResultStreamPart = Extract<FullStreamPart, { type: 'tool-result'
   truncated: boolean;
   outputPath?: string;
 };
-export type CompactionPart = { type: 'compaction'; auto: boolean; overflow?: boolean };
+type CompactionPart = { type: 'compaction'; auto: boolean; overflow?: boolean };
 
-export type SessionTitlePart = { type: 'session-title'; title: string };
+type SessionTitlePart = { type: 'session-title'; title: string };
 
-export type StreamErrorPart = { type: 'stream.error'; error: string; details?: StreamErrorDetails };
+type StreamErrorPart = { type: 'stream.error'; error: string; details?: StreamErrorDetails };
 
-export type AutomationGenerationPart = {
+type AutomationGenerationPart = {
   type: 'automation-generation';
   title: string;
   toolsets: string[];
@@ -56,7 +56,7 @@ export type AutomationGenerationPart = {
   modelId: string;
 };
 
-export type AllPart =
+type AllPart =
   | TextStartPart
   | TextDeltaPart
   | TextEndPart

@@ -9,7 +9,7 @@ import * as EmbeddingModels from '@/models/embedding/service.js';
 import * as Models from '@/models/llm/registry.js';
 import { getModelCatalog } from '@/models/stt/service.js';
 
-export type ProviderCapability = 'llm' | 'stt' | 'embedding';
+type ProviderCapability = 'llm' | 'stt' | 'embedding';
 
 export type ProviderWithCapabilities = {
   id: string;

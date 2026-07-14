@@ -1,6 +1,6 @@
 import type { PrefixedString } from '../id/index.js';
 
-export type QuestionOption = { label: string; description: string };
+type QuestionOption = { label: string; description: string };
 
 export type QuestionInfo = {
   question: string;
@@ -10,7 +10,7 @@ export type QuestionInfo = {
   custom?: boolean;
 };
 
-export const QUESTION_REQUEST_STATUSES = ['pending', 'answered', 'rejected'] as const;
+const QUESTION_REQUEST_STATUSES = ['pending', 'answered', 'rejected'] as const;
 
 export type QuestionRequestStatus = (typeof QUESTION_REQUEST_STATUSES)[number];
 
