@@ -163,8 +163,8 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
         <div className="flex items-center gap-3">
           <ProviderLogo providerId={provider.id} providerName={meta.displayName} className="size-5" />
           {provider.enabled && (
-            <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-              <span className="inline-block size-1.5 rounded-full bg-emerald-500" />
+            <span className="flex items-center gap-1.5 text-xs font-medium text-success">
+              <span className="inline-block size-1.5 rounded-full bg-success" />
               Connected
             </span>
           )}

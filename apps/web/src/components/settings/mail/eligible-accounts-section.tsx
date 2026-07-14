@@ -62,13 +62,13 @@ export function EligibleAccountsSection() {
             </div>
             <div className="flex min-w-0 flex-col gap-1">
               <span className="truncate text-[13px] font-semibold text-foreground">{account.email}</span>
-              <span className="truncate text-[12px] text-muted-foreground">Connected Google account</span>
+              <span className="truncate text-xs text-muted-foreground">Connected Google account</span>
             </div>
           </div>
           <Button
             variant="outline"
             size="sm"
-            className="ml-4 h-7 shrink-0 rounded-[6px] border-border/60 bg-transparent px-2.5 text-[12px] font-semibold text-foreground/90 transition-colors hover:bg-muted/50"
+            className="ml-4 h-7 shrink-0 rounded-[6px] border-border/60 bg-transparent px-2.5 text-xs font-semibold text-foreground/90 transition-colors hover:bg-muted/50"
             disabled={enrollMutation.isPending}
             onClick={() => handleEnroll(account.connectorInstanceId)}>
             <PlusIcon className="mr-0.75 size-3.5 text-muted-foreground" />

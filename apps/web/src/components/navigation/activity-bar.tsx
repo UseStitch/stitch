@@ -108,7 +108,8 @@ function NavLink({
           <Link
             to={to}
             {...(preload ? { preload: 'intent' as const } : {})}
-            {...(ariaLabel ? { 'aria-label': ariaLabel } : {})}
+            aria-label={ariaLabel ?? label}
+            aria-current={active ? 'page' : undefined}
             className={cn(
               'relative flex size-10 items-center justify-center rounded-lg transition-colors',
               active
