@@ -150,7 +150,14 @@ export function bulkDeleteMemoriesMutationOptions(queryClient: QueryClient): Mut
   };
 }
 
-type MaintenanceResult = { pruned: number; deduplicated: number; stats: MemoryHealthStats | null };
+type ConsolidationResult = { groupsReviewed: number; added: number; updated: number; deleted: number; skipped: number };
+
+type MaintenanceResult = {
+  pruned: number;
+  deduplicated: number;
+  consolidated: ConsolidationResult;
+  stats: MemoryHealthStats | null;
+};
 
 export function runMaintenanceMutationOptions(
   queryClient: QueryClient,
@@ -162,6 +169,9 @@ export function runMaintenanceMutationOptions(
       const parts: string[] = [];
       if (result.pruned > 0) parts.push(`${result.pruned} pruned`);
       if (result.deduplicated > 0) parts.push(`${result.deduplicated} deduplicated`);
+      const consolidated = result.consolidated;
+      const consolidatedTotal = consolidated.added + consolidated.updated + consolidated.deleted;
+      if (consolidatedTotal > 0) parts.push(`${consolidatedTotal} consolidated`);
       toast.success(
         parts.length > 0 ? `Maintenance complete: ${parts.join(', ')}` : 'Maintenance complete — nothing to clean up',
         { id: 'memory-maintenance' },

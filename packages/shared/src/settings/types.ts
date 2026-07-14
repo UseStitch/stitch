@@ -35,6 +35,7 @@ export const SETTINGS_KEYS = [
   'memory.retention.maxMemories',
   'memory.retention.staleDays',
   'memory.retention.autoprune',
+  'memory.retention.dedupThreshold',
   'memory.retrieval.maxResults',
   'memory.retrieval.minScore',
   'memory.retrieval.recencyBoost',
@@ -92,6 +93,7 @@ export const SETTINGS_SCHEMAS = {
   'memory.retention.maxMemories': z.coerce.number().int().min(10),
   'memory.retention.staleDays': z.coerce.number().int().min(1),
   'memory.retention.autoprune': booleanSetting,
+  'memory.retention.dedupThreshold': z.coerce.number().min(0.5).max(1),
   'memory.retrieval.maxResults': z.coerce.number().int().min(1),
   'memory.retrieval.minScore': z.coerce.number().min(0).max(1),
   'memory.retrieval.recencyBoost': booleanSetting,
@@ -232,7 +234,7 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
   {
     key: 'memory.extraction.importanceMinScore',
     value: '0.7',
-    description: 'Minimum importance score (0–1) a fact must have to be persisted. Lower scores are discarded.',
+    description: 'Minimum importance score (0-1) a fact must have to be persisted. Lower scores are discarded.',
   },
   {
     key: 'memory.extraction.maxFactsPerSession',
@@ -258,6 +260,11 @@ export const SETTINGS_DEFAULTS: SettingDefault[] = [
     key: 'memory.retention.autoprune',
     value: 'true',
     description: 'Run automatic pruning after extraction to stay within limits.',
+  },
+  {
+    key: 'memory.retention.dedupThreshold',
+    value: '0.85',
+    description: 'Cosine similarity threshold (0.5-1.0) for deduplication. Lower catches more duplicates.',
   },
   { key: 'memory.retrieval.maxResults', value: '3', description: 'Max memories injected into context per turn.' },
   {
