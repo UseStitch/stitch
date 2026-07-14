@@ -9,6 +9,7 @@ import { McpServerLogo } from '@/components/mcp/mcp-server-logo';
 import { SettingsIconButtonTooltip } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
+import { StatusDot, statusDotVariants } from '@/components/ui/status-dot';
 import { getErrorMessage } from '@/lib/errors';
 import {
   mcpServersQueryOptions,
@@ -17,14 +18,18 @@ import {
   useRefreshMcpServers,
   useStartMcpAuth,
 } from '@/lib/queries/mcp';
+import type { VariantProps } from 'class-variance-authority';
 
-const AUTH_STATUS_BADGE: Record<McpAuthStatus, { dotClass: string; label: string } | null> = {
+const AUTH_STATUS_BADGE: Record<
+  McpAuthStatus,
+  { dotColor: NonNullable<VariantProps<typeof statusDotVariants>['color']>; label: string } | null
+> = {
   none: null,
-  connected: { dotClass: 'bg-success', label: 'Connected' },
-  awaiting_auth: { dotClass: 'bg-warning', label: 'Awaiting authorization' },
-  reauthorization_required: { dotClass: 'bg-warning', label: 'Re-authorization required' },
-  client_registration_required: { dotClass: 'bg-warning', label: 'Client registration required' },
-  error: { dotClass: 'bg-destructive', label: 'Error' },
+  connected: { dotColor: 'success', label: 'Connected' },
+  awaiting_auth: { dotColor: 'warning', label: 'Awaiting authorization' },
+  reauthorization_required: { dotColor: 'warning', label: 'Re-authorization required' },
+  client_registration_required: { dotColor: 'warning', label: 'Client registration required' },
+  error: { dotColor: 'destructive', label: 'Error' },
 };
 
 export function McpServerList({ onAdd, onPreview }: { onAdd: () => void; onPreview: (server: McpServer) => void }) {
@@ -106,7 +111,7 @@ export function McpServerList({ onAdd, onPreview }: { onAdd: () => void; onPrevi
                   <p className="truncate text-sm font-medium">{server.name}</p>
                   {badge && (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <span className={`size-1.5 rounded-full ${badge.dotClass}`} aria-hidden />
+                      <StatusDot color={badge.dotColor} size="sm" aria-hidden />
                       {badge.label}
                     </span>
                   )}

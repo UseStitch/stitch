@@ -1,4 +1,3 @@
-import { SearchIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
 
@@ -10,10 +9,11 @@ import { SHORTCUT_CATEGORIES, SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts
 
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage, SettingSection, SettingRows, SettingRow } from '@/components/settings/settings-ui';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription } from '@/components/ui/empty';
-import { Input } from '@/components/ui/input';
 import { Kbd } from '@/components/ui/kbd';
+import { SearchInput } from '@/components/ui/search-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 import {
@@ -62,7 +62,7 @@ function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence
     return (
       <span className="inline-flex items-center gap-1.5">
         <Kbd>Leader</Kbd>
-        <span className="text-[11px] font-semibold tracking-widest text-muted-foreground uppercase">then</span>
+        <span className="text-2xs font-semibold tracking-widest text-muted-foreground uppercase">then</span>
         {suffixDisplayKeys.map((key, i) => (
           <Kbd key={`suffix-${i}`}>{key}</Kbd>
         ))}
@@ -115,9 +115,9 @@ function ShortcutRow({
       <div className="flex items-center gap-3">
         <span className="text-sm font-medium">{entry.label}</span>
         {!isDefault && (
-          <span className="rounded-md bg-muted/50 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+          <Badge variant="soft" size="xs" className="font-bold tracking-wider uppercase">
             Custom
-          </span>
+          </Badge>
         )}
       </div>
       <button
@@ -266,15 +266,12 @@ function ShortcutsContent() {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center gap-3">
-        <div className="relative flex-1">
-          <SearchIcon className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="border-border/60 bg-muted/20 pl-9 shadow-inner"
-            placeholder="Search shortcuts..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+        <SearchInput
+          containerClassName="flex-1 border-border/60 bg-muted/20 shadow-inner"
+          placeholder="Search shortcuts..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
         <Button
           variant="outline"
           size="sm"

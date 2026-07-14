@@ -18,6 +18,7 @@ import {
 import { SettingSubPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
+import { StatusDot } from '@/components/ui/status-dot';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDeleteProviderConfigMutation, useSaveProviderConfigMutation } from '@/lib/mutations/provider-config';
 import { providerConfigQueryOptions, type ProviderSummary } from '@/lib/queries/providers';
@@ -164,7 +165,7 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
           <ProviderLogo providerId={provider.id} providerName={meta.displayName} className="size-5" />
           {provider.enabled && (
             <span className="flex items-center gap-1.5 text-xs font-medium text-success">
-              <span className="inline-block size-1.5 rounded-full bg-success" />
+              <StatusDot color="success" size="sm" />
               Connected
             </span>
           )}

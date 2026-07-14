@@ -61,7 +61,7 @@ export function EligibleAccountsSection() {
               <SimpleIcon slug="gmail" className="size-5 bg-foreground" fallback={<MailIcon className="size-5" />} />
             </div>
             <div className="flex min-w-0 flex-col gap-1">
-              <span className="truncate text-[13px] font-semibold text-foreground">{account.email}</span>
+              <span className="truncate text-sm font-semibold text-foreground">{account.email}</span>
               <span className="truncate text-xs text-muted-foreground">Connected Google account</span>
             </div>
           </div>
