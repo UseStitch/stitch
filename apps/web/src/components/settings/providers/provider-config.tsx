@@ -203,6 +203,29 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
       }>
       {isLocalProviderId(provider.id) && provider.enabled ? (
         <div className="flex flex-1 flex-col gap-5">
+          {meta.extraFields.length > 0 && (
+            <FieldGroup
+              fields={meta.extraFields}
+              providerId={provider.id}
+              values={extraFields}
+              errors={fieldErrors}
+              onChange={handleExtraFieldChange}
+            />
+          )}
+          <ButtonGroup className="pt-1">
+            <Button onClick={handleSave} disabled={saveMutation.isPending} size="sm">
+              {saveMutation.isPending ? 'Saving...' : saveLabel}
+            </Button>
+            {showDisconnect && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => deleteMutation.mutate()}
+                disabled={deleteMutation.isPending}>
+                {deleteMutation.isPending ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            )}
+          </ButtonGroup>
           <LocalModelsPanel provider={provider.id} />
         </div>
       ) : (

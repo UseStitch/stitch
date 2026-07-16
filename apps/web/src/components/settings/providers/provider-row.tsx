@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
-import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
+import { PROVIDER_IDS, isLocalProviderId, type ProviderId } from '@stitch/shared/providers/types';
 
 import { ProviderLogo } from '@/components/settings/providers/provider-logo';
 import { SettingsIconButtonTooltip } from '@/components/settings/settings-ui';
@@ -53,7 +53,7 @@ export function ProviderRow({ provider, onSelect }: Props) {
       <div className="ml-4 flex shrink-0 items-center gap-1.5">
         {provider.enabled ? (
           <>
-            {provider.id === 'ollama_local' && (
+            {isLocalProviderId(provider.id) && (
               <SettingsIconButtonTooltip label="Manage models">
                 <Button
                   variant="ghost"
