@@ -55,11 +55,9 @@ describe('addCacheControlToMessages', () => {
     expect(result).toEqual(messages);
   });
 
-  test('marks first system, second system, and latest user message', () => {
+  test('marks system message and latest user message', () => {
     const messages: ModelMessage[] = [
-      { role: 'system', content: 'Static base prompt' },
-      { role: 'system', content: 'Semi-static env and catalogs' },
-      { role: 'system', content: 'Dynamic memory and todos' },
+      { role: 'system', content: 'Consolidated system prompt' },
       { role: 'user', content: 'First message' },
       { role: 'assistant', content: 'Response' },
       { role: 'user', content: 'Second message' },
@@ -68,11 +66,9 @@ describe('addCacheControlToMessages', () => {
     const result = addCacheControlToMessages(messages, 'anthropic', 'claude-sonnet-4-5');
 
     expect(result[0].providerOptions).toEqual({ anthropic: { cacheControl: { type: 'ephemeral' } } });
-    expect(result[1].providerOptions).toEqual({ anthropic: { cacheControl: { type: 'ephemeral' } } });
+    expect(result[1].providerOptions).toBeUndefined();
     expect(result[2].providerOptions).toBeUndefined();
-    expect(result[3].providerOptions).toBeUndefined();
-    expect(result[4].providerOptions).toBeUndefined();
-    expect(result[5].providerOptions).toEqual({ anthropic: { cacheControl: { type: 'ephemeral' } } });
+    expect(result[3].providerOptions).toEqual({ anthropic: { cacheControl: { type: 'ephemeral' } } });
   });
 
   test('marks only first system and latest user when one system message', () => {
@@ -177,7 +173,7 @@ describe('addCacheControlToMessages', () => {
     expect(result[2].providerOptions).toEqual({ anthropic: { cacheControl: { type: 'ephemeral' } } });
   });
 
-  test('respects budget cap of 3 message breakpoints with many system messages', () => {
+  test('marks only first system message even with multiple system messages', () => {
     const messages: ModelMessage[] = [
       { role: 'system', content: 'System 1' },
       { role: 'system', content: 'System 2' },
@@ -188,7 +184,7 @@ describe('addCacheControlToMessages', () => {
     const result = addCacheControlToMessages(messages, 'anthropic', 'claude-sonnet-4-5');
 
     expect(result[0].providerOptions).toEqual({ anthropic: { cacheControl: { type: 'ephemeral' } } });
-    expect(result[1].providerOptions).toEqual({ anthropic: { cacheControl: { type: 'ephemeral' } } });
+    expect(result[1].providerOptions).toBeUndefined();
     expect(result[2].providerOptions).toBeUndefined();
     expect(result[3].providerOptions).toEqual({ anthropic: { cacheControl: { type: 'ephemeral' } } });
   });

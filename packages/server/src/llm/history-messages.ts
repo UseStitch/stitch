@@ -210,14 +210,11 @@ export function buildHistoryMessages(
 
   if (llmMessages[0]?.role !== 'system') {
     const layers = buildSystemPromptLayers(promptConfig);
-    const systemMessages: ModelMessage[] = [
-      { role: 'system', content: layers.static },
-      { role: 'system', content: layers.semiStatic },
-    ];
+    const parts = [layers.static, layers.semiStatic];
     if (layers.dynamic) {
-      systemMessages.push({ role: 'system', content: layers.dynamic });
+      parts.push(layers.dynamic);
     }
-    llmMessages.unshift(...systemMessages);
+    llmMessages.unshift({ role: 'system', content: parts.join('\n\n') });
   }
 
   return llmMessages;
