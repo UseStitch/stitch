@@ -202,20 +202,40 @@ async function discoverLmStudioModels(baseURL: string): Promise<ServiceResult<Di
 
   if (v1Response && v1Response.ok) {
     const body = (await v1Response.json()) as {
+      models?: Array<{
+        key?: string;
+        id?: string;
+        display_name?: string;
+        max_context_length?: number;
+        type?: string;
+        capabilities?: {
+          vision?: boolean;
+          trained_for_tool_use?: boolean;
+          reasoning?: boolean | { allowed_options?: string[]; default?: string };
+        };
+      }>;
       data?: Array<{
         key?: string;
         id?: string;
         display_name?: string;
         max_context_length?: number;
         type?: string;
-        capabilities?: { vision?: boolean; trained_for_tool_use?: boolean; reasoning?: boolean };
+        capabilities?: {
+          vision?: boolean;
+          trained_for_tool_use?: boolean;
+          reasoning?: boolean | { allowed_options?: string[]; default?: string };
+        };
       }>;
     };
 
-    const models = (body.data ?? [])
+    const models = (body.models ?? body.data ?? [])
       .filter((m) => m.type !== 'embedding' && m.type !== 'embeddings')
       .map((m): DiscoveredModel => {
         const supportsVision = m.capabilities?.vision ?? m.type === 'vlm';
+        const supportsReasoning =
+          typeof m.capabilities?.reasoning === 'boolean'
+            ? m.capabilities.reasoning
+            : m.capabilities?.reasoning !== undefined;
         const inputModalities: LocalModelInput['inputModalities'] = ['text'];
         if (supportsVision) inputModalities.push('image');
 
@@ -225,7 +245,7 @@ async function discoverLmStudioModels(baseURL: string): Promise<ServiceResult<Di
           contextWindow: m.max_context_length ?? undefined,
           supportsToolCalls: m.capabilities?.trained_for_tool_use ?? false,
           supportsVision,
-          supportsReasoning: m.capabilities?.reasoning ?? false,
+          supportsReasoning,
           inputModalities,
           outputModalities: ['text'],
         };
