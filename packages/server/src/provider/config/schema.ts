@@ -5,6 +5,13 @@ import type { EmbeddingProviderId, LlmProviderId, ProviderId } from '@stitch/sha
 
 const AWS_REGION_VALUES = AWS_BEDROCK_REGIONS.map((r) => r.value) as [string, ...string[]];
 
+const baseURLSchema = z
+  .url()
+  .refine((val) => val.startsWith('http://') || val.startsWith('https://'), {
+    message: 'URL must use http or https protocol',
+  })
+  .transform((val) => val.replace(/\/+$/, ''));
+
 const BedrockCredentialsSchema = z.object({
   providerId: z.literal('amazon-bedrock'),
   region: z.enum(AWS_REGION_VALUES),
@@ -73,7 +80,13 @@ const ElevenLabsCredentialsSchema = z.object({
 
 const OllamaCredentialsSchema = z.object({
   providerId: z.literal('ollama_local'),
-  baseURL: z.string().optional(),
+  baseURL: baseURLSchema,
+  auth: z.object({ method: z.literal('none') }),
+});
+
+const LmStudioCredentialsSchema = z.object({
+  providerId: z.literal('lmstudio_local'),
+  baseURL: baseURLSchema,
   auth: z.object({ method: z.literal('none') }),
 });
 
@@ -89,6 +102,7 @@ export const ProviderCredentialsSchema = z.discriminatedUnion('providerId', [
   ElevenLabsCredentialsSchema,
   GoogleCredentialsSchema,
   GoogleVertexCredentialsSchema,
+  LmStudioCredentialsSchema,
   NvidiaCredentialsSchema,
   OpenAICredentialsSchema,
   OpenRouterCredentialsSchema,

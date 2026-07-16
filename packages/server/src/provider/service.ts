@@ -50,6 +50,7 @@ export async function listProvidersWithCapabilities(): Promise<ServiceResult<Pro
   }
 
   ensureEntry('ollama_local').add('llm');
+  ensureEntry('lmstudio_local').add('llm');
 
   const allIds = new Set([...Object.keys(llmProviders), ...Object.keys(embeddingProviders), ...capabilitiesMap.keys()]);
 

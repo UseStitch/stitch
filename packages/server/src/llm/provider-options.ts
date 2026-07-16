@@ -38,6 +38,7 @@ export function getProviderOptions(
     case 'google':
     case 'google-vertex':
     case 'ollama_local':
+    case 'lmstudio_local':
       return undefined;
   }
 }

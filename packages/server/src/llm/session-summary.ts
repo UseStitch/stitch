@@ -5,6 +5,7 @@ import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 import { createMessageId, createPartId } from '@stitch/shared/id';
 import type { LlmProviderId } from '@stitch/shared/providers/types';
+import { isLocalProviderId } from '@stitch/shared/providers/types';
 
 import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
@@ -20,7 +21,7 @@ import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import { getSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { getToolPruneProtectOverrides } from '@/llm/tool-prune-policy.js';
-import * as OllamaModels from '@/models/llm/ollama.js';
+import * as LocalModels from '@/models/llm/local.js';
 import * as Models from '@/models/llm/registry.js';
 import type { LlmProviderCredentials } from '@/provider/config/schema.js';
 import { getSettings } from '@/settings/service.js';
@@ -458,8 +459,8 @@ export function buildActiveToolsetInstructionsBlock(sessionId: PrefixedString<'s
  * Look up model limits for a given provider/model combination.
  */
 export async function getModelLimits(providerId: string, modelId: string): Promise<ModelLimits> {
-  if (providerId === 'ollama_local') {
-    const result = await OllamaModels.getOllamaModel(modelId);
+  if (isLocalProviderId(providerId)) {
+    const result = await LocalModels.getLocalModel(providerId, modelId);
     if (!result.error) {
       return { context: result.data.contextWindow, output: result.data.outputLimit };
     }

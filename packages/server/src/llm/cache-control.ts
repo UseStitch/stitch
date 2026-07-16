@@ -50,6 +50,8 @@ export function getCacheConfig(providerId: LlmProviderId, modelId: string): Prov
     case 'vercel':
     // Ollama: local inference, no cache control support
     case 'ollama_local':
+    // LM Studio: local inference, no cache control support
+    case 'lmstudio_local':
     // NVIDIA: caching handled by API provider
     case 'nvidia':
       return null;

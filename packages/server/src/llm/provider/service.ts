@@ -1,14 +1,15 @@
 import { eq, count } from 'drizzle-orm';
 
 import type { EmbeddingProviderModels } from '@stitch/shared/embedding/types';
+import { isLocalProviderId } from '@stitch/shared/providers/types';
 
 import { getDb } from '@/db/client.js';
-import { providerConfig, ollamaModels } from '@/db/schema/providers.js';
+import { providerConfig, localModels, type LocalProviderId } from '@/db/schema/providers.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import type { ResolvedEmbeddingModel } from '@/models/embedding/schema.js';
 import * as EmbeddingModels from '@/models/embedding/service.js';
-import * as OllamaModels from '@/models/llm/ollama.js';
+import * as LocalModels from '@/models/llm/local.js';
 import { isAllowedProvider } from '@/models/llm/registry.js';
 import * as Models from '@/models/llm/registry.js';
 import * as ProviderLogos from '@/provider/logos.js';
@@ -61,20 +62,27 @@ async function resolveProvider(providerId: string): Promise<ServiceResult<Models
   return ok(provider);
 }
 
+const LOCAL_PROVIDER_META: Record<LocalProviderId, { name: string }> = {
+  ollama_local: { name: 'Ollama' },
+  lmstudio_local: { name: 'LM Studio' },
+};
+
 export async function getProvider(providerId: string): Promise<ServiceResult<ProviderSummary>> {
-  if (providerId === 'ollama_local') {
+  if (isLocalProviderId(providerId)) {
+    const meta = LOCAL_PROVIDER_META[providerId];
     const db = getDb();
     const [[config], modelCount] = await Promise.all([
       db
-        .select({ providerId: providerConfig.providerId })
+        .select({ providerId: providerConfig.providerId, credentials: providerConfig.credentials })
         .from(providerConfig)
-        .where(eq(providerConfig.providerId, 'ollama_local')),
-      db.select({ value: count() }).from(ollamaModels),
+        .where(eq(providerConfig.providerId, providerId)),
+      db.select({ value: count() }).from(localModels).where(eq(localModels.provider, providerId)),
     ]);
+    const storedBaseURL = (config?.credentials as { baseURL?: string } | undefined)?.baseURL;
     return ok({
-      id: 'ollama_local',
-      name: 'Ollama',
-      api: 'http://localhost:11434',
+      id: providerId,
+      name: meta.name,
+      api: storedBaseURL,
       model_count: modelCount[0]?.value ?? 0,
       enabled: config !== undefined,
     });
@@ -109,7 +117,7 @@ export async function getProvider(providerId: string): Promise<ServiceResult<Pro
   return ok(toProviderSummary(providerResult.data, config !== undefined));
 }
 
-function ollamaModelToSummary(m: OllamaModels.OllamaModel): ModelSummary {
+function localModelToSummary(m: LocalModels.LocalModel): ModelSummary {
   return {
     id: m.id,
     name: m.name,
@@ -127,9 +135,9 @@ function ollamaModelToSummary(m: OllamaModels.OllamaModel): ModelSummary {
 }
 
 export async function listProviderModels(providerId: string): Promise<ServiceResult<ModelSummary[]>> {
-  if (providerId === 'ollama_local') {
-    const models = await OllamaModels.listOllamaModels();
-    return ok(models.map(ollamaModelToSummary));
+  if (isLocalProviderId(providerId)) {
+    const models = await LocalModels.listLocalModels(providerId);
+    return ok(models.map(localModelToSummary));
   }
 
   const providerResult = await resolveProvider(providerId);

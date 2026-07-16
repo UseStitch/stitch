@@ -186,6 +186,7 @@ function selectSanitizer(providerId: LlmProviderId, modelId: string): SchemaSani
   if (
     providerId === 'nvidia' ||
     providerId === 'ollama_local' ||
+    providerId === 'lmstudio_local' ||
     providerId === 'openrouter' ||
     providerId === 'vercel'
   ) {

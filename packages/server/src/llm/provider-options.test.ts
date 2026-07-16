@@ -13,7 +13,7 @@ describe('getProviderOptions', () => {
     expect(getProviderOptions('openrouter', sessionId)).toEqual({ openrouter: { prompt_cache_key: sessionId } });
   });
 
-  test.each(['anthropic', 'amazon-bedrock', 'google', 'google-vertex', 'ollama_local'] as const)(
+  test.each(['anthropic', 'amazon-bedrock', 'google', 'google-vertex', 'ollama_local', 'lmstudio_local'] as const)(
     'returns undefined for %s provider',
     (providerId) => {
       expect(getProviderOptions(providerId, sessionId)).toBeUndefined();
