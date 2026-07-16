@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import type { LocalProviderId } from '@stitch/shared/providers/types';
+
 import { SettingsIconButtonTooltip } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
@@ -14,15 +16,16 @@ import { Separator } from '@/components/ui/separator';
 import { serverRequest } from '@/lib/api';
 import { getErrorMessage } from '@/lib/errors';
 import {
-  discoverOllamaModelsQueryOptions,
-  ollamaModelKeys,
-  ollamaModelsQueryOptions,
-  type OllamaModality,
-  type OllamaModel,
-  type OllamaModelInput,
-} from '@/lib/queries/ollama-models';
+  discoverLocalModelsQueryOptions,
+  localModelKeys,
+  localModelsQueryOptions,
+  type DiscoveredModel,
+  type LocalModality,
+  type LocalModel,
+  type LocalModelInput,
+} from '@/lib/queries/local-models';
 
-type Props = { baseURL?: string };
+type Props = { provider: LocalProviderId };
 
 type ModelFormState = {
   id: string;
@@ -37,11 +40,11 @@ type ModelFormState = {
   supportsToolCalls: boolean;
   supportsVision: boolean;
   supportsReasoning: boolean;
-  inputModalities: OllamaModality[];
-  outputModalities: OllamaModality[];
+  inputModalities: LocalModality[];
+  outputModalities: LocalModality[];
 };
 
-const ALL_MODALITIES: OllamaModality[] = ['text', 'audio', 'image', 'video', 'pdf'];
+const ALL_MODALITIES: LocalModality[] = ['text', 'audio', 'image', 'video', 'pdf'];
 
 const DEFAULT_FORM: ModelFormState = {
   id: '',
@@ -60,7 +63,26 @@ const DEFAULT_FORM: ModelFormState = {
   outputModalities: ['text'],
 };
 
-function modelToForm(model: OllamaModel): ModelFormState {
+function discoveredToForm(d: DiscoveredModel): ModelFormState {
+  return {
+    id: d.id,
+    name: d.name,
+    contextWindow: String(d.contextWindow ?? 8192),
+    inputLimit: '',
+    outputLimit: String(d.outputLimit ?? 8192),
+    inputCostPerMillion: '0',
+    outputCostPerMillion: '0',
+    cacheReadCostPerMillion: '',
+    cacheWriteCostPerMillion: '',
+    supportsToolCalls: d.supportsToolCalls ?? false,
+    supportsVision: d.supportsVision ?? false,
+    supportsReasoning: d.supportsReasoning ?? false,
+    inputModalities: d.inputModalities ?? ['text'],
+    outputModalities: d.outputModalities ?? ['text'],
+  };
+}
+
+function modelToForm(model: LocalModel): ModelFormState {
   return {
     id: model.id,
     name: model.name,
@@ -91,7 +113,7 @@ function parseOptionalNonnegativeFloat(value: string): number | undefined {
   return n >= 0 ? n : undefined;
 }
 
-function formToInput(form: ModelFormState): OllamaModelInput {
+function formToInput(form: ModelFormState): LocalModelInput {
   return {
     id: form.id.trim(),
     name: form.name.trim(),
@@ -117,7 +139,7 @@ function ModelForm({
   isPending,
 }: {
   initial: ModelFormState;
-  onSave: (input: OllamaModelInput) => void;
+  onSave: (input: LocalModelInput) => void;
   onCancel: () => void;
   isPending: boolean;
 }) {
@@ -137,9 +159,9 @@ function ModelForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-md border p-4">
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="ollama-model-id">Model ID</Label>
+          <Label htmlFor="local-model-id">Model ID</Label>
           <Input
-            id="ollama-model-id"
+            id="local-model-id"
             placeholder="llama3.2"
             value={form.id}
             onChange={(e) => set('id', e.target.value)}
@@ -147,9 +169,9 @@ function ModelForm({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="ollama-model-name">Display Name</Label>
+          <Label htmlFor="local-model-name">Display Name</Label>
           <Input
-            id="ollama-model-name"
+            id="local-model-name"
             placeholder="Llama 3.2"
             value={form.name}
             onChange={(e) => set('name', e.target.value)}
@@ -161,11 +183,11 @@ function ModelForm({
       <p className="text-xs font-medium text-muted-foreground">Token limits</p>
       <div className="grid grid-cols-3 gap-3">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="ollama-context-window">
+          <Label htmlFor="local-context-window">
             Context <span className="text-xs text-muted-foreground">(tokens)</span>
           </Label>
           <Input
-            id="ollama-context-window"
+            id="local-context-window"
             type="number"
             min={1}
             placeholder="8192"
@@ -174,11 +196,11 @@ function ModelForm({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="ollama-input-limit">
+          <Label htmlFor="local-input-limit">
             Input limit <span className="text-xs text-muted-foreground">(optional)</span>
           </Label>
           <Input
-            id="ollama-input-limit"
+            id="local-input-limit"
             type="number"
             min={1}
             placeholder="—"
@@ -187,11 +209,11 @@ function ModelForm({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="ollama-output-limit">
+          <Label htmlFor="local-output-limit">
             Output limit <span className="text-xs text-muted-foreground">(tokens)</span>
           </Label>
           <Input
-            id="ollama-output-limit"
+            id="local-output-limit"
             type="number"
             min={1}
             placeholder="8192"
@@ -206,9 +228,9 @@ function ModelForm({
       </p>
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="ollama-input-cost">Input</Label>
+          <Label htmlFor="local-input-cost">Input</Label>
           <Input
-            id="ollama-input-cost"
+            id="local-input-cost"
             type="number"
             min={0}
             step="any"
@@ -218,9 +240,9 @@ function ModelForm({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="ollama-output-cost">Output</Label>
+          <Label htmlFor="local-output-cost">Output</Label>
           <Input
-            id="ollama-output-cost"
+            id="local-output-cost"
             type="number"
             min={0}
             step="any"
@@ -230,11 +252,11 @@ function ModelForm({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="ollama-cache-read-cost">
+          <Label htmlFor="local-cache-read-cost">
             Cache read <span className="text-xs text-muted-foreground">(optional)</span>
           </Label>
           <Input
-            id="ollama-cache-read-cost"
+            id="local-cache-read-cost"
             type="number"
             min={0}
             step="any"
@@ -244,11 +266,11 @@ function ModelForm({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="ollama-cache-write-cost">
+          <Label htmlFor="local-cache-write-cost">
             Cache write <span className="text-xs text-muted-foreground">(optional)</span>
           </Label>
           <Input
-            id="ollama-cache-write-cost"
+            id="local-cache-write-cost"
             type="number"
             min={0}
             step="any"
@@ -263,27 +285,27 @@ function ModelForm({
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <Checkbox
-            id="ollama-tool-calls"
+            id="local-tool-calls"
             checked={form.supportsToolCalls}
             onCheckedChange={(v) => set('supportsToolCalls', Boolean(v))}
           />
-          <Label htmlFor="ollama-tool-calls">Supports tool calls</Label>
+          <Label htmlFor="local-tool-calls">Supports tool calls</Label>
         </div>
         <div className="flex items-center gap-2">
           <Checkbox
-            id="ollama-vision"
+            id="local-vision"
             checked={form.supportsVision}
             onCheckedChange={(v) => set('supportsVision', Boolean(v))}
           />
-          <Label htmlFor="ollama-vision">Supports vision (image input)</Label>
+          <Label htmlFor="local-vision">Supports vision (image input)</Label>
         </div>
         <div className="flex items-center gap-2">
           <Checkbox
-            id="ollama-reasoning"
+            id="local-reasoning"
             checked={form.supportsReasoning}
             onCheckedChange={(v) => set('supportsReasoning', Boolean(v))}
           />
-          <Label htmlFor="ollama-reasoning">Supports reasoning</Label>
+          <Label htmlFor="local-reasoning">Supports reasoning</Label>
         </div>
       </div>
 
@@ -294,14 +316,14 @@ function ModelForm({
           {ALL_MODALITIES.map((m) => (
             <div key={m} className="flex items-center gap-2">
               <Checkbox
-                id={`ollama-input-mod-${m}`}
+                id={`local-input-mod-${m}`}
                 checked={form.inputModalities.includes(m)}
                 disabled={m === 'text'}
                 onCheckedChange={(v) =>
                   set('inputModalities', v ? [...form.inputModalities, m] : form.inputModalities.filter((x) => x !== m))
                 }
               />
-              <Label htmlFor={`ollama-input-mod-${m}`}>{m}</Label>
+              <Label htmlFor={`local-input-mod-${m}`}>{m}</Label>
             </div>
           ))}
         </div>
@@ -310,7 +332,7 @@ function ModelForm({
           {ALL_MODALITIES.map((m) => (
             <div key={m} className="flex items-center gap-2">
               <Checkbox
-                id={`ollama-output-mod-${m}`}
+                id={`local-output-mod-${m}`}
                 checked={form.outputModalities.includes(m)}
                 disabled={m === 'text'}
                 onCheckedChange={(v) =>
@@ -320,7 +342,7 @@ function ModelForm({
                   )
                 }
               />
-              <Label htmlFor={`ollama-output-mod-${m}`}>{m}</Label>
+              <Label htmlFor={`local-output-mod-${m}`}>{m}</Label>
             </div>
           ))}
         </div>
@@ -338,49 +360,49 @@ function ModelForm({
   );
 }
 
-export function OllamaModelsPanel({ baseURL }: Props) {
+export function LocalModelsPanel({ provider }: Props) {
   const queryClient = useQueryClient();
-  const { data: models = [], isLoading } = useQuery(ollamaModelsQueryOptions);
-  const discoverQuery = useQuery(discoverOllamaModelsQueryOptions(baseURL));
+  const { data: models = [], isLoading } = useQuery(localModelsQueryOptions(provider));
+  const discoverQuery = useQuery(discoverLocalModelsQueryOptions(provider));
 
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [showAddForm, setShowAddForm] = React.useState(false);
 
   const upsertMutation = useMutation({
-    mutationFn: (input: OllamaModelInput) =>
-      serverRequest<unknown>('/llm/ollama/models', {
+    mutationFn: (input: LocalModelInput) =>
+      serverRequest<unknown>(`/llm/local/${provider}/models`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
       }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ollamaModelKeys.list() });
+      void queryClient.invalidateQueries({ queryKey: localModelKeys.list(provider) });
       setShowAddForm(false);
       setEditingId(null);
-      toast.success('Model saved', { id: 'ollama-model-save' });
+      toast.success('Model saved', { id: 'local-model-save' });
     },
     onError: (error) => {
-      toast.error(getErrorMessage(error, 'Failed to save model'), { id: 'ollama-model-save' });
+      toast.error(getErrorMessage(error, 'Failed to save model'), { id: 'local-model-save' });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
-      serverRequest<void>(`/llm/ollama/models/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+      serverRequest<void>(`/llm/local/${provider}/models/${encodeURIComponent(id)}`, { method: 'DELETE' }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ollamaModelKeys.list() });
-      toast.success('Model deleted', { id: 'ollama-model-delete' });
+      void queryClient.invalidateQueries({ queryKey: localModelKeys.list(provider) });
+      toast.success('Model deleted', { id: 'local-model-delete' });
     },
     onError: (error) => {
-      toast.error(getErrorMessage(error, 'Failed to delete model'), { id: 'ollama-model-delete' });
+      toast.error(getErrorMessage(error, 'Failed to delete model'), { id: 'local-model-delete' });
     },
   });
 
   async function handleDiscover() {
     const result = await discoverQuery.refetch();
     if (result.isError) {
-      toast.error(result.error instanceof Error ? result.error.message : 'Failed to connect to Ollama', {
-        id: 'ollama-discover',
+      toast.error(result.error instanceof Error ? result.error.message : 'Failed to discover models', {
+        id: 'local-discover',
       });
     }
   }
@@ -424,19 +446,8 @@ export function OllamaModelsPanel({ baseURL }: Props) {
               type="button"
               className="flex items-center justify-between rounded px-2 py-1.5 text-sm hover:bg-accent"
               onClick={() => {
-                upsertMutation.mutate({
-                  id: d.id,
-                  name: d.name,
-                  contextWindow: 8192,
-                  outputLimit: 8192,
-                  inputCostPerMillion: 0,
-                  outputCostPerMillion: 0,
-                  supportsToolCalls: false,
-                  supportsVision: false,
-                  supportsReasoning: false,
-                  inputModalities: ['text'],
-                  outputModalities: ['text'],
-                });
+                const input = formToInput(discoveredToForm(d));
+                upsertMutation.mutate(input);
               }}>
               <span className="font-mono">{d.id}</span>
               <PlusIcon className="size-3.5 text-muted-foreground" />
@@ -458,7 +469,7 @@ export function OllamaModelsPanel({ baseURL }: Props) {
 
       {!isLoading && models.length === 0 && !showAddForm && (
         <p className="text-sm text-muted-foreground">
-          No models configured. Use Discover to find installed Ollama models, or add one manually.
+          No models configured. Use Discover to find installed models, or add one manually.
         </p>
       )}
 

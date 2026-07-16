@@ -50,7 +50,7 @@ export function FieldGroup({
           ) : (
             <Input
               id={`${providerId}-${field.key}`}
-              type={field.secret ? 'password' : 'text'}
+              type={field.secret ? 'password' : field.format === 'url' ? 'url' : 'text'}
               placeholder={field.placeholder}
               value={values[field.key] ?? ''}
               className={errors[field.key] ? 'border-destructive' : undefined}
