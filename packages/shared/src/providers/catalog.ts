@@ -163,10 +163,32 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
   ollama_local: {
     displayName: 'Ollama',
     description: 'Run models locally with Ollama',
-    api: 'http://localhost:11434',
     capabilities: ['llm'],
     extraFields: [
-      { key: 'baseURL', label: 'Base URL', placeholder: 'http://localhost:11434', required: false, secret: false },
+      {
+        key: 'baseURL',
+        label: 'Base URL',
+        placeholder: 'http://localhost:11434',
+        required: true,
+        secret: false,
+        format: 'url',
+      },
+    ],
+    authMethods: [{ method: 'none', label: 'No authentication', enabled: true, fields: [] }],
+  },
+  lmstudio_local: {
+    displayName: 'LM Studio',
+    description: 'Run models locally with LM Studio',
+    capabilities: ['llm'],
+    extraFields: [
+      {
+        key: 'baseURL',
+        label: 'Base URL',
+        placeholder: 'http://localhost:1234',
+        required: true,
+        secret: false,
+        format: 'url',
+      },
     ],
     authMethods: [{ method: 'none', label: 'No authentication', enabled: true, fields: [] }],
   },
