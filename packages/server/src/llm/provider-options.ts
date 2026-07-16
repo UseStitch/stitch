@@ -21,11 +21,7 @@ export function getProviderOptions(
       return { gateway: { caching: 'auto' } };
 
     case 'ollama_local':
-      return { ollama_local: { stream_options: { include_usage: true } } };
-
     case 'lmstudio_local':
-      return { lmstudio_local: { stream_options: { include_usage: true } } };
-
     case 'anthropic':
     case 'amazon-bedrock':
     case 'google':
