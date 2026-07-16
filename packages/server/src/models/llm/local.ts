@@ -160,7 +160,11 @@ async function discoverOllamaModels(baseURL: string): Promise<ServiceResult<Disc
         return { id: m.name, name: m.name };
       }
 
-      const showData = (await showResponse.json()) as { capabilities?: string[]; model_info?: Record<string, unknown> };
+      const showData = (await showResponse.json()) as {
+        capabilities?: string[];
+        model_info?: Record<string, unknown>;
+        parameters?: string;
+      };
 
       const capabilities = showData.capabilities ?? [];
 
@@ -171,7 +175,12 @@ async function discoverOllamaModels(baseURL: string): Promise<ServiceResult<Disc
 
       const modelInfo = showData.model_info ?? {};
       const arch = modelInfo['general.architecture'] as string | undefined;
-      const contextLength = arch ? (modelInfo[`${arch}.context_length`] as number | undefined) : undefined;
+      const archContextLength = arch ? (modelInfo[`${arch}.context_length`] as number | undefined) : undefined;
+
+      // Prefer num_ctx from parameters (the configured runtime context) over the architecture max
+      const numCtxMatch = showData.parameters?.match(/^num_ctx\s+(\d+)/m);
+      const numCtx = numCtxMatch ? Number.parseInt(numCtxMatch[1], 10) : undefined;
+      const contextLength = numCtx ?? archContextLength;
 
       const supportsToolCalls = capabilities.includes('tools');
       const supportsVision = capabilities.includes('vision');
@@ -201,32 +210,21 @@ async function discoverLmStudioModels(baseURL: string): Promise<ServiceResult<Di
   const v1Response = await fetch(`${baseURL}/api/v1/models`, { signal: AbortSignal.timeout(5_000) }).catch(() => null);
 
   if (v1Response && v1Response.ok) {
-    const body = (await v1Response.json()) as {
-      models?: Array<{
-        key?: string;
-        id?: string;
-        display_name?: string;
-        max_context_length?: number;
-        type?: string;
-        capabilities?: {
-          vision?: boolean;
-          trained_for_tool_use?: boolean;
-          reasoning?: boolean | { allowed_options?: string[]; default?: string };
-        };
-      }>;
-      data?: Array<{
-        key?: string;
-        id?: string;
-        display_name?: string;
-        max_context_length?: number;
-        type?: string;
-        capabilities?: {
-          vision?: boolean;
-          trained_for_tool_use?: boolean;
-          reasoning?: boolean | { allowed_options?: string[]; default?: string };
-        };
-      }>;
+    type LmStudioModel = {
+      key?: string;
+      id?: string;
+      display_name?: string;
+      max_context_length?: number;
+      type?: string;
+      loaded_instances?: Array<{ config?: { context_length?: number } }>;
+      capabilities?: {
+        vision?: boolean;
+        trained_for_tool_use?: boolean;
+        reasoning?: boolean | { allowed_options?: string[]; default?: string };
+      };
     };
+
+    const body = (await v1Response.json()) as { models?: LmStudioModel[]; data?: LmStudioModel[] };
 
     const models = (body.models ?? body.data ?? [])
       .filter((m) => m.type !== 'embedding' && m.type !== 'embeddings')
@@ -239,10 +237,14 @@ async function discoverLmStudioModels(baseURL: string): Promise<ServiceResult<Di
         const inputModalities: LocalModelInput['inputModalities'] = ['text'];
         if (supportsVision) inputModalities.push('image');
 
+        // Prefer the loaded instance's actual context length over the theoretical max
+        const loadedContext = m.loaded_instances?.[0]?.config?.context_length;
+        const contextWindow = loadedContext ?? m.max_context_length ?? undefined;
+
         return {
           id: m.key ?? m.id ?? 'unknown',
           name: m.display_name ?? m.key ?? m.id ?? 'unknown',
-          contextWindow: m.max_context_length ?? undefined,
+          contextWindow,
           supportsToolCalls: m.capabilities?.trained_for_tool_use ?? false,
           supportsVision,
           supportsReasoning,
