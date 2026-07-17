@@ -22,7 +22,9 @@ export const providerConfig = sqliteTable('provider_config', {
 export const modelVisibility = sqliteTable(
   'model_visibility',
   {
-    providerId: text('provider_id').notNull(),
+    providerId: text('provider_id')
+      .notNull()
+      .references(() => providerConfig.providerId, { onDelete: 'cascade' }),
     modelId: text('model_id').notNull(),
     visibility: text('visibility').$type<'show' | 'hide'>().notNull(),
     updatedAt: integer('updated_at', { mode: 'number' })
@@ -35,7 +37,10 @@ export const modelVisibility = sqliteTable(
 export const localModels = sqliteTable(
   'local_models',
   {
-    provider: text('provider').$type<LocalProviderId>().notNull(),
+    provider: text('provider')
+      .$type<LocalProviderId>()
+      .notNull()
+      .references(() => providerConfig.providerId, { onDelete: 'cascade' }),
     id: text('id').notNull(),
     name: text('name').notNull(),
     contextWindow: integer('context_window').notNull().default(8192),

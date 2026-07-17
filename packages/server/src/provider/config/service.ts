@@ -1,9 +1,7 @@
 import { eq } from 'drizzle-orm';
 
-import { isLocalProviderId } from '@stitch/shared/providers/types';
-
 import { getDb } from '@/db/client.js';
-import { localModels, providerConfig } from '@/db/schema/providers.js';
+import { providerConfig } from '@/db/schema/providers.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { isAllowedProvider } from '@/models/llm/registry.js';
@@ -57,10 +55,6 @@ export async function deleteProviderCredentials(providerId: string): Promise<Ser
     .returning({ providerId: providerConfig.providerId });
   if (result.length === 0) {
     return err('Provider not configured', 404);
-  }
-
-  if (isLocalProviderId(providerId)) {
-    await db.delete(localModels).where(eq(localModels.provider, providerId));
   }
 
   return ok(null);
