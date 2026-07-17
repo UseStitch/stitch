@@ -7,6 +7,7 @@ import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { SessionStats } from '@stitch/shared/chat/messages';
 import { createMessageId, createPartId, createSessionId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
+import { isLocalProviderId } from '@stitch/shared/providers/types';
 
 import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema/providers.js';
@@ -20,6 +21,7 @@ import { buildSessionLlmMessages } from '@/llm/session-history.js';
 import { compact } from '@/llm/session-summary.js';
 import { cancelDecision, resolveDecision, type DoomLoopResponse } from '@/llm/stream/doom-loop.js';
 import { runStream } from '@/llm/stream/runner.js';
+import * as LocalModels from '@/models/llm/local.js';
 import * as Models from '@/models/llm/registry.js';
 import { abortPermissionResponses } from '@/permission/service.js';
 import { isLlmProviderCredentials } from '@/provider/config/schema.js';
@@ -526,7 +528,17 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
   const totalTokens = latestUsage.totalTokens;
 
   // Resolve provider/model labels and context limit
-  const latestMessage = sessionMessages.length > 0 ? sessionMessages[sessionMessages.length - 1] : null;
+  // Find the latest real assistant message (skip background tasks like title generation, compaction, automation)
+  const BACKGROUND_PART_TYPES: StoredPart['type'][] = ['session-title', 'compaction', 'automation-generation'];
+  let latestRealMessage: (typeof sessionMessages)[number] | null = null;
+  for (let i = sessionMessages.length - 1; i >= 0; i--) {
+    const msg = sessionMessages[i];
+    if (!msg || msg.role !== 'assistant') continue;
+    if (msg.parts?.some((p) => BACKGROUND_PART_TYPES.includes(p.type))) continue;
+    latestRealMessage = msg;
+    break;
+  }
+
   const [providersResult, modelCatalog] = await Promise.all([listProvidersWithCapabilities(), Models.get()]);
   const providers: ProviderWithCapabilities[] = providersResult.error ? [] : providersResult.data;
 
@@ -534,19 +546,32 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
   let modelLabel = '-';
   let contextLimit: number | null = null;
 
-  if (latestMessage) {
-    const provider = providers.find((p) => p.id === latestMessage.providerId);
-    providerLabel = provider?.name ?? latestMessage.providerId;
+  if (latestRealMessage) {
+    const provider = providers.find((p) => p.id === latestRealMessage.providerId);
+    providerLabel = provider?.name ?? latestRealMessage.providerId;
 
-    const providerModels = modelCatalog[latestMessage.providerId];
-    const model = providerModels?.models[latestMessage.modelId];
-    modelLabel = model?.name ?? latestMessage.modelId;
+    if (isLocalProviderId(latestRealMessage.providerId)) {
+      const localModel = await LocalModels.getLocalModel(latestRealMessage.providerId, latestRealMessage.modelId);
+      modelLabel = localModel.error ? latestRealMessage.modelId : localModel.data.name;
+    } else {
+      const providerModels = modelCatalog[latestRealMessage.providerId];
+      const model = providerModels?.models[latestRealMessage.modelId];
+      modelLabel = model?.name ?? latestRealMessage.modelId;
+    }
   }
 
   if (latestAssistantWithTokens) {
-    const providerModels = modelCatalog[latestAssistantWithTokens.providerId];
-    const model = providerModels?.models[latestAssistantWithTokens.modelId];
-    contextLimit = model?.limit?.context ?? null;
+    if (isLocalProviderId(latestAssistantWithTokens.providerId)) {
+      const localModel = await LocalModels.getLocalModel(
+        latestAssistantWithTokens.providerId,
+        latestAssistantWithTokens.modelId,
+      );
+      contextLimit = localModel.error ? null : localModel.data.contextWindow;
+    } else {
+      const providerModels = modelCatalog[latestAssistantWithTokens.providerId];
+      const model = providerModels?.models[latestAssistantWithTokens.modelId];
+      contextLimit = model?.limit?.context ?? null;
+    }
   }
 
   const usagePercent =

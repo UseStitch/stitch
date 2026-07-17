@@ -3,12 +3,13 @@ import * as React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
-import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
+import { PROVIDER_IDS, isLocalProviderId, type LocalProviderId, type ProviderId } from '@stitch/shared/providers/types';
+import { validateBaseURL } from '@stitch/shared/providers/validation';
 
 import { ProviderLogo } from './provider-logo';
 
 import { FieldGroup, NoFieldsNote } from '@/components/settings/providers/field-group';
-import { OllamaModelsPanel } from '@/components/settings/providers/ollama-models-panel';
+import { LocalModelsPanel } from '@/components/settings/providers/local-models-panel';
 import {
   buildProviderConfigBody,
   hydrateProviderConfigState,
@@ -21,6 +22,7 @@ import { ButtonGroup } from '@/components/ui/button-group';
 import { StatusDot } from '@/components/ui/status-dot';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDeleteProviderConfigMutation, useSaveProviderConfigMutation } from '@/lib/mutations/provider-config';
+import { localProviderHealthQueryOptions } from '@/lib/queries/local-models';
 import { providerConfigQueryOptions, type ProviderSummary } from '@/lib/queries/providers';
 
 type Props = {
@@ -30,6 +32,25 @@ type Props = {
   onSaved?: () => void;
   showDisconnect?: boolean;
 };
+
+function LocalProviderStatusBadge({ provider }: { provider: LocalProviderId }) {
+  const { data } = useQuery(localProviderHealthQueryOptions(provider));
+  if (!data) return null;
+  if (data.reachable) {
+    return (
+      <span className="flex items-center gap-1.5 text-xs font-medium text-success">
+        <StatusDot color="success" size="sm" />
+        Connected
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-1.5 text-xs font-medium text-warning">
+      <StatusDot color="warning" size="sm" />
+      Server not reachable
+    </span>
+  );
+}
 
 export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, showDisconnect = true }: Props) {
   const meta = (PROVIDER_IDS as readonly string[]).includes(provider.id)
@@ -117,8 +138,14 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
     const errors: Record<string, string> = {};
 
     for (const field of meta.extraFields) {
-      if (field.required && !extraFields[field.key]) {
+      const value = extraFields[field.key];
+      if (field.required && !value) {
         errors[field.key] = `${field.label} is required`;
+      } else if (field.format === 'url' && value) {
+        const result = validateBaseURL(value);
+        if (!result.valid) {
+          errors[field.key] = result.reason;
+        }
       }
     }
 
@@ -163,17 +190,43 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
       actions={
         <div className="flex items-center gap-3">
           <ProviderLogo providerId={provider.id} providerName={meta.displayName} className="size-5" />
-          {provider.enabled && (
-            <span className="flex items-center gap-1.5 text-xs font-medium text-success">
-              <StatusDot color="success" size="sm" />
-              Connected
-            </span>
-          )}
+          {provider.enabled &&
+            (isLocalProviderId(provider.id) ? (
+              <LocalProviderStatusBadge provider={provider.id} />
+            ) : (
+              <span className="flex items-center gap-1.5 text-xs font-medium text-success">
+                <StatusDot color="success" size="sm" />
+                Connected
+              </span>
+            ))}
         </div>
       }>
-      {provider.id === 'ollama_local' && provider.enabled ? (
+      {isLocalProviderId(provider.id) && provider.enabled ? (
         <div className="flex flex-1 flex-col gap-5">
-          <OllamaModelsPanel baseURL={(extraFields['baseURL'] as string | undefined) || undefined} />
+          {meta.extraFields.length > 0 && (
+            <FieldGroup
+              fields={meta.extraFields}
+              providerId={provider.id}
+              values={extraFields}
+              errors={fieldErrors}
+              onChange={handleExtraFieldChange}
+            />
+          )}
+          <ButtonGroup className="pt-1">
+            <Button onClick={handleSave} disabled={saveMutation.isPending} size="sm">
+              {saveMutation.isPending ? 'Saving...' : saveLabel}
+            </Button>
+            {showDisconnect && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => deleteMutation.mutate()}
+                disabled={deleteMutation.isPending}>
+                {deleteMutation.isPending ? 'Disconnecting...' : 'Disconnect'}
+              </Button>
+            )}
+          </ButtonGroup>
+          <LocalModelsPanel provider={provider.id} />
         </div>
       ) : (
         <div className="flex flex-1 flex-col gap-5">

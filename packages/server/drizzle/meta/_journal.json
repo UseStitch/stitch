@@ -46,6 +46,7 @@
     { "idx": 35, "version": "6", "when": 1782067742555, "tag": "0035_slim_sumo", "breakpoints": true },
     { "idx": 36, "version": "6", "when": 1783382634204, "tag": "0036_perfect_mauler", "breakpoints": true },
     { "idx": 37, "version": "6", "when": 1783471267511, "tag": "0037_rich_maelstrom", "breakpoints": true },
-    { "idx": 38, "version": "6", "when": 1783713767858, "tag": "0038_right_salo", "breakpoints": true }
+    { "idx": 38, "version": "6", "when": 1783713767858, "tag": "0038_right_salo", "breakpoints": true },
+    { "idx": 39, "version": "6", "when": 1784239111266, "tag": "0039_mushy_the_hunter", "breakpoints": true }
   ]
 }

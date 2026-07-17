@@ -25,7 +25,14 @@ export const AWS_BEDROCK_REGIONS = [
   { value: 'af-south-1', label: 'Africa (Cape Town)' },
 ] as const;
 
-type BaseFieldDef = { key: string; label: string; placeholder?: string; required: boolean; secret: boolean };
+type BaseFieldDef = {
+  key: string;
+  label: string;
+  placeholder?: string;
+  required: boolean;
+  secret: boolean;
+  format?: 'url';
+};
 
 type SelectOption = { value: string; label: string };
 
@@ -44,6 +51,7 @@ const PROVIDER_CAPABILITIES = {
   elevenlabs: ['stt'],
   google: ['llm', 'embedding'],
   'google-vertex': ['llm'],
+  lmstudio_local: ['llm'],
   nvidia: ['llm', 'embedding'],
   ollama_local: ['llm'],
   openai: ['llm', 'stt', 'embedding'],
@@ -58,6 +66,7 @@ type ProvidersWithCapability<C extends ProviderCapability> = {
 }[ProviderId];
 
 export type LlmProviderId = ProvidersWithCapability<'llm'>;
+export type LocalProviderId = 'ollama_local' | 'lmstudio_local';
 type SttProviderId = ProvidersWithCapability<'stt'>;
 export type EmbeddingProviderId = ProvidersWithCapability<'embedding'>;
 
@@ -69,6 +78,12 @@ function hasProviderCapability(providerId: string, capability: ProviderCapabilit
 
 export function isLlmProviderId(providerId: string): providerId is LlmProviderId {
   return hasProviderCapability(providerId, 'llm');
+}
+
+const LOCAL_PROVIDER_IDS: LocalProviderId[] = ['ollama_local', 'lmstudio_local'];
+
+export function isLocalProviderId(providerId: string): providerId is LocalProviderId {
+  return (LOCAL_PROVIDER_IDS as string[]).includes(providerId);
 }
 
 function isSttProviderId(providerId: string): providerId is SttProviderId {

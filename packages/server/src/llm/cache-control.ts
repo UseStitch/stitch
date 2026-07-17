@@ -50,6 +50,8 @@ export function getCacheConfig(providerId: LlmProviderId, modelId: string): Prov
     case 'vercel':
     // Ollama: local inference, no cache control support
     case 'ollama_local':
+    // LM Studio: local inference, no cache control support
+    case 'lmstudio_local':
     // NVIDIA: caching handled by API provider
     case 'nvidia':
       return null;
@@ -72,9 +74,9 @@ function withCacheMarker(message: ModelMessage, config: ProviderCacheConfig): Mo
 /**
  * Adds provider-specific prompt caching markers to messages.
  *
- * Marks the first two system messages and the latest user message with
- * cache control directives, reserving one breakpoint for tools (applied
- * separately via `addCacheControlToTools`).
+ * Marks the system message and the latest user message with cache control
+ * directives, reserving one breakpoint for tools (applied separately via
+ * `addCacheControlToTools`).
  *
  * For providers with implicit caching (OpenAI, Google, Vercel),
  * messages are returned unchanged.
@@ -94,28 +96,13 @@ export function addCacheControlToMessages(
 
   const toMark = new Set<number>();
 
-  // First system message
+  // System message
   if (remaining > 0) {
     for (let i = 0; i < messages.length; i++) {
       if (messages[i].role === 'system') {
         toMark.add(i);
         remaining--;
         break;
-      }
-    }
-  }
-
-  // Second system message
-  if (remaining > 0) {
-    let systemCount = 0;
-    for (let i = 0; i < messages.length; i++) {
-      if (messages[i].role === 'system') {
-        systemCount++;
-        if (systemCount === 2) {
-          toMark.add(i);
-          remaining--;
-          break;
-        }
       }
     }
   }

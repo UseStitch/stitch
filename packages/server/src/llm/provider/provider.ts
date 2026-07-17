@@ -90,9 +90,13 @@ export const createProvider = (credentials: ModelProviderCredentials) => {
       return createGateway({ apiKey: credentials.auth.apiKey });
 
     case 'ollama_local':
+      return createOpenAICompatible({ name: 'ollama_local', baseURL: credentials.baseURL + '/v1', includeUsage: true });
+
+    case 'lmstudio_local':
       return createOpenAICompatible({
-        name: 'ollama_local',
-        baseURL: (credentials.baseURL ?? 'http://localhost:11434') + '/v1',
+        name: 'lmstudio_local',
+        baseURL: credentials.baseURL + '/v1',
+        includeUsage: true,
       });
   }
 };

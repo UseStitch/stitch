@@ -14,9 +14,7 @@ const CREDENTIALS: ProviderCredentials = { providerId: 'openai', auth: { method:
 
 /** Minimal system message layout matching buildHistoryMessages output. */
 const STUB_MESSAGES: ModelMessage[] = [
-  { role: 'system', content: 'static layer' },
-  { role: 'system', content: 'semiStatic layer' },
-  { role: 'system', content: 'dynamic layer' },
+  { role: 'system', content: 'consolidated system prompt' },
   { role: 'user', content: 'Hello' },
 ];
 

@@ -191,9 +191,9 @@ describe('buildHistoryMessages', () => {
       },
     );
 
-    // 2 system messages (static + semi-static) + assistant + tool
+    // 1 consolidated system message (static + semi-static joined)
     const systemMessages = result.filter((m) => m.role === 'system');
-    expect(systemMessages.length).toBeGreaterThanOrEqual(2);
+    expect(systemMessages).toHaveLength(1);
     expect(result[0]).toMatchObject({ role: 'system' });
 
     const nonSystem = result.filter((m) => m.role !== 'system');
@@ -329,13 +329,12 @@ describe('buildHistoryMessages', () => {
     );
 
     const systemMessages = result.filter((m) => m.role === 'system');
-    expect(systemMessages.length).toBeGreaterThanOrEqual(2);
+    expect(systemMessages).toHaveLength(1);
 
-    // Static layer contains identity
+    // Consolidated message contains identity and env
     expect(systemMessages[0].content).toContain('You are Stitch, a local machine assistant');
-    // Semi-static layer contains env
-    expect(systemMessages[1].content).toContain('<env>');
-    expect(systemMessages[1].content).toContain('Preferred shell:');
+    expect(systemMessages[0].content).toContain('<env>');
+    expect(systemMessages[0].content).toContain('Preferred shell:');
   });
 
   test('uses custom system prompt when base prompt is disabled', () => {
@@ -352,12 +351,12 @@ describe('buildHistoryMessages', () => {
     );
 
     const systemMessages = result.filter((m) => m.role === 'system');
-    expect(systemMessages.length).toBeGreaterThanOrEqual(2);
-    // Semi-static layer contains env and custom prompt
-    expect(systemMessages[1].content).toContain('<env>');
-    expect(systemMessages[1].content).toContain('<user-instructions>');
-    expect(systemMessages[1].content).toContain('Custom system prompt for testing');
-    expect(systemMessages[1].content).toContain('</user-instructions>');
+    expect(systemMessages).toHaveLength(1);
+    // Consolidated message contains env and custom prompt
+    expect(systemMessages[0].content).toContain('<env>');
+    expect(systemMessages[0].content).toContain('<user-instructions>');
+    expect(systemMessages[0].content).toContain('Custom system prompt for testing');
+    expect(systemMessages[0].content).toContain('</user-instructions>');
   });
 
   test('appends custom system prompt when base prompt is enabled', () => {
@@ -374,12 +373,12 @@ describe('buildHistoryMessages', () => {
     );
 
     const systemMessages = result.filter((m) => m.role === 'system');
-    expect(systemMessages.length).toBeGreaterThanOrEqual(2);
-    // Semi-static layer contains env and user instruction
-    expect(systemMessages[1].content).toContain('<env>');
-    expect(systemMessages[1].content).toContain('<user-instructions>');
-    expect(systemMessages[1].content).toContain('Extra user instruction');
-    expect(systemMessages[1].content).toContain('</user-instructions>');
+    expect(systemMessages).toHaveLength(1);
+    // Consolidated message contains env and user instruction
+    expect(systemMessages[0].content).toContain('<env>');
+    expect(systemMessages[0].content).toContain('<user-instructions>');
+    expect(systemMessages[0].content).toContain('Extra user instruction');
+    expect(systemMessages[0].content).toContain('</user-instructions>');
   });
 
   test('omits user instructions block when custom system prompt is empty', () => {
@@ -396,8 +395,8 @@ describe('buildHistoryMessages', () => {
     );
 
     const systemMessages = result.filter((m) => m.role === 'system');
-    expect(systemMessages[1].content).toContain('<env>');
-    expect(systemMessages[1].content).not.toContain('<user-instructions>');
+    expect(systemMessages[0].content).toContain('<env>');
+    expect(systemMessages[0].content).not.toContain('<user-instructions>');
   });
 
   test('includes user profile name in system prompt when provided', () => {
@@ -431,9 +430,9 @@ describe('buildHistoryMessages', () => {
       },
     );
 
-    // Semi-static layer contains env with timezone
+    // Consolidated message contains env with timezone
     const systemMessages = result.filter((m) => m.role === 'system');
-    expect(systemMessages[1].content).toContain('User timezone: America/New_York');
+    expect(systemMessages[0].content).toContain('User timezone: America/New_York');
   });
 
   test('throws when called with empty history', () => {
