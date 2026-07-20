@@ -37,17 +37,57 @@ describe('ChatMarkdown', () => {
     expect(html).not.toContain('katex');
   });
 
-  test('renders double-escaped single-dollar LaTeX command spans', () => {
+  test('leaves double-escaped single-dollar LaTeX command spans as text', () => {
     const html = renderToStaticMarkup(<ChatMarkdown text={'Standard AI Routing Proxy $\\\\rightarrow$ NO-GO.'} />);
 
-    expect(html).toContain('katex');
-    expect(html).not.toContain('$\\rightarrow$');
+    expect(html).toContain('$\\\\rightarrow$');
+    expect(html).not.toContain('katex');
   });
 
   test('leaves unsupported single-dollar LaTeX command spans as text', () => {
     const html = renderToStaticMarkup(<ChatMarkdown text={'Unsupported $\\notarealcommand$ stays literal.'} />);
 
     expect(html).toContain('$\\notarealcommand$');
+    expect(html).not.toContain('katex');
+  });
+
+  test('renders bare single-dollar math variables as inline math', () => {
+    const html = renderToStaticMarkup(<ChatMarkdown text="Scaling $N$ without scaling $D$ is a waste of money." />);
+
+    expect(html).toContain('katex');
+    expect(html).not.toContain('$N$');
+    expect(html).not.toContain('$D$');
+  });
+
+  test('renders bare single-dollar math variables as plain text while streaming', () => {
+    const html = renderToStaticMarkup(
+      <ChatMarkdown text="Scaling $N$ without scaling $D$ is a waste of money." isStreaming />,
+    );
+
+    expect(html).toContain('Scaling N without scaling D');
+    expect(html).not.toContain('$N$');
+    expect(html).not.toContain('$D$');
+    expect(html).not.toContain('katex');
+  });
+
+  test('keeps escaped dollar variables literal', () => {
+    const html = renderToStaticMarkup(<ChatMarkdown text={'Escaped \\$N$ stays literal.'} />);
+
+    expect(html).toContain('$N$');
+    expect(html).not.toContain('katex');
+  });
+
+  test('keeps two currency amounts in one paragraph as text', () => {
+    const html = renderToStaticMarkup(<ChatMarkdown text="Cost is $10 and revenue is $20." />);
+
+    expect(html).toContain('Cost is $10 and revenue is $20.');
+    expect(html).not.toContain('katex');
+  });
+
+  test('keeps multi-letter single-dollar spans as text', () => {
+    const html = renderToStaticMarkup(<ChatMarkdown text="Priced in $USD$ globally." />);
+
+    expect(html).toContain('$USD$');
     expect(html).not.toContain('katex');
   });
 });

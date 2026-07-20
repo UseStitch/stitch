@@ -39,11 +39,7 @@ interface MarkdownNode {
   value?: string;
   children?: MarkdownNode[];
   data?: unknown;
-}
-
-interface MarkdownTextNode extends MarkdownNode {
-  type: 'text';
-  value: string;
+  position?: { start: { offset?: number }; end: { offset?: number } };
 }
 
 interface SingleDollarLatexCommand {
@@ -54,7 +50,13 @@ interface SingleDollarLatexCommand {
 const SINGLE_DOLLAR_LATEX_COMMANDS: Record<string, SingleDollarLatexCommand> = {
   rightarrow: { math: '\\rightarrow', streamingText: '\u2192' },
 };
-const LATEX_COMMAND_SPAN_REGEX = /\$\\{1,2}([a-zA-Z]+)\$/g;
+// A single-dollar span is treated as real math when it is a single-letter variable (`$N$`, `$D$`)
+// or an allowlisted LaTeX command (`$\rightarrow$`). Everything else — most importantly currency
+// like `$10` or `$10 and revenue is $20` — is demoted back to its exact source text.
+const SINGLE_DOLLAR_VARIABLE_REGEX = /^[A-Za-z]$/;
+const ALLOWED_SINGLE_DOLLAR_COMMANDS = new Set(
+  Object.values(SINGLE_DOLLAR_LATEX_COMMANDS).map((command) => command.math),
+);
 
 interface CodeBlockErrorBoundaryProps {
   fallback: React.ReactNode;
@@ -210,87 +212,71 @@ function extractCodeBlock(children: React.ReactNode): { className: string | unde
   return { className: onlyChild.props.className, code: nodeToPlainText(onlyChild.props.children) };
 }
 
-function createInlineMathNode(value: string): MarkdownNode {
-  return {
-    type: 'inlineMath',
-    value,
-    data: {
-      hName: 'code',
-      hProperties: { className: ['language-math', 'math-inline'] },
-      hChildren: [{ type: 'text', value }],
-    },
-  };
+function toTextNode(node: MarkdownNode, value: string): MarkdownNode {
+  node.type = 'text';
+  node.value = value;
+  node.children = undefined;
+  node.data = undefined;
+  return node;
 }
 
-function splitLatexCommandSpans(
-  node: MarkdownTextNode,
-  createCommandNode: (command: SingleDollarLatexCommand) => MarkdownNode,
-): MarkdownNode[] {
-  const nodes: MarkdownNode[] = [];
-  let lastIndex = 0;
-
-  for (const match of node.value.matchAll(LATEX_COMMAND_SPAN_REGEX)) {
-    const index = match.index;
-    if (index === undefined) continue;
-
-    const command = SINGLE_DOLLAR_LATEX_COMMANDS[match[1] ?? ''];
-    if (!command) continue;
-
-    if (index > lastIndex) {
-      nodes.push({ type: 'text', value: node.value.slice(lastIndex, index) });
-    }
-
-    nodes.push(createCommandNode(command));
-    lastIndex = index + match[0].length;
-  }
-
-  if (nodes.length === 0) {
-    return [node];
-  }
-
-  if (lastIndex < node.value.length) {
-    nodes.push({ type: 'text', value: node.value.slice(lastIndex) });
-  }
-
-  return nodes;
+function getNodeSource(node: MarkdownNode, source: string): string | null {
+  const start = node.position?.start.offset;
+  const end = node.position?.end.offset;
+  if (start === undefined || end === undefined) return null;
+  return source.slice(start, end);
 }
 
-function createSingleDollarLatexCommandTransformer(renderAsText: boolean) {
-  const createCommandNode = renderAsText
-    ? (command: SingleDollarLatexCommand): MarkdownNode => ({ type: 'text', value: command.streamingText })
-    : (command: SingleDollarLatexCommand): MarkdownNode => createInlineMathNode(command.math);
-
-  return function transform(tree: MarkdownNode) {
-    transformLatexCommandTextNodes(tree, createCommandNode);
-  };
-}
-
-function remarkSingleDollarLatexCommands() {
-  return createSingleDollarLatexCommandTransformer(false);
-}
-
-function remarkStreamingSingleDollarLatexCommands() {
-  return createSingleDollarLatexCommandTransformer(true);
-}
-
-function transformLatexCommandTextNodes(
-  node: MarkdownNode,
-  createCommandNode: (command: SingleDollarLatexCommand) => MarkdownNode,
-) {
+// `remark-math` recognizes every `$...$` / `$$...$$` delimiter (respecting escapes, code spans,
+// and source positions). This transformer keeps only the single-dollar math we allow — single-letter
+// variables (`$N$`) and allowlisted LaTeX commands (`$\rightarrow$`) — and demotes anything else
+// (currency like `$10 and revenue is $20`) back to its exact original source text.
+function applySingleDollarMathPolicy(node: MarkdownNode, source: string, streaming: boolean) {
   if (!node.children) return;
 
-  const transformedChildren: MarkdownNode[] = [];
   for (const child of node.children) {
-    if (child.type === 'text' && typeof child.value === 'string') {
-      transformedChildren.push(...splitLatexCommandSpans(child as MarkdownTextNode, createCommandNode));
+    if (child.type === 'inlineMath' && typeof child.value === 'string') {
+      resolveInlineMath(child, source, streaming);
       continue;
     }
+    applySingleDollarMathPolicy(child, source, streaming);
+  }
+}
 
-    transformLatexCommandTextNodes(child, createCommandNode);
-    transformedChildren.push(child);
+function streamingTextForMath(value: string): string {
+  const command = Object.values(SINGLE_DOLLAR_LATEX_COMMANDS).find((entry) => entry.math === value);
+  return command?.streamingText ?? value;
+}
+
+function resolveInlineMath(node: MarkdownNode, source: string, streaming: boolean) {
+  const value = node.value ?? '';
+  const rawSource = getNodeSource(node, source);
+
+  // Double-dollar math is always allowed as-is.
+  if (rawSource !== null && rawSource.startsWith('$$')) return;
+
+  if (SINGLE_DOLLAR_VARIABLE_REGEX.test(value) || ALLOWED_SINGLE_DOLLAR_COMMANDS.has(value)) {
+    // During streaming we skip KaTeX, so show a readable plain-text equivalent instead.
+    if (streaming) toTextNode(node, streamingTextForMath(value));
+    return;
   }
 
-  node.children = transformedChildren;
+  toTextNode(node, rawSource ?? `$${value}$`);
+}
+
+function createSingleDollarMathTransformer(streaming: boolean) {
+  return function transform(tree: MarkdownNode, file: { value: string | Uint8Array }) {
+    const source = typeof file.value === 'string' ? file.value : '';
+    applySingleDollarMathPolicy(tree, source, streaming);
+  };
+}
+
+function remarkSingleDollarMath() {
+  return createSingleDollarMathTransformer(false);
+}
+
+function remarkStreamingSingleDollarMath() {
+  return createSingleDollarMathTransformer(true);
 }
 
 function MarkdownAnchor({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
@@ -363,15 +349,16 @@ function ChatMarkdown({ text, className, isStreaming = false }: ChatMarkdownProp
     };
   }, [isStreaming]);
 
-  // During streaming: use remarkGfm only — skip remark-math + rehype-katex (heavy)
+  // remark-math parses every `$...$` delimiter; the policy transformer then keeps only the
+  // single-dollar math we allow and demotes the rest back to text. During streaming we still parse
+  // math (cheap) but skip rehype-katex (heavy) — allowed math renders as its plain-text equivalent.
   const remarkPlugins = useMemo(() => {
-    if (isStreaming) return [remarkGfm, remarkStreamingSingleDollarLatexCommands];
-
-    const remarkMathWithoutSingleDollar = [remarkMath, { singleDollarTextMath: false }] as [
+    const remarkMathConfigured = [remarkMath, { singleDollarTextMath: true }] as [
       typeof remarkMath,
-      { singleDollarTextMath: false },
+      { singleDollarTextMath: true },
     ];
-    return [remarkGfm, remarkSingleDollarLatexCommands, remarkMathWithoutSingleDollar];
+    const policy = isStreaming ? remarkStreamingSingleDollarMath : remarkSingleDollarMath;
+    return [remarkGfm, remarkMathConfigured, policy];
   }, [isStreaming]);
   const rehypePlugins = useMemo(() => (isStreaming ? [] : [rehypeKatex]), [isStreaming]);
 
