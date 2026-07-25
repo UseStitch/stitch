@@ -43,130 +43,90 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5); // 0, 5, 10...
 const DAYS_OF_MONTH = Array.from({ length: 31 }, (_, i) => i + 1);
 
+type CronConfig = {
+  frequency: Frequency;
+  minutes: number[];
+  hours: number[];
+  daysOfMonth: number[];
+  months: number[];
+  daysOfWeek: number[];
+};
+
+const DEFAULT_CONFIG: CronConfig = {
+  frequency: 'daily',
+  minutes: [0],
+  hours: [9],
+  daysOfMonth: [1],
+  months: [],
+  daysOfWeek: [1],
+};
+
+function parsePart(part: string): number[] {
+  if (part === '*' || part === '?') return [];
+  return part
+    .split(',')
+    .map((v) => Number.parseInt(v, 10))
+    .filter((v) => !Number.isNaN(v));
+}
+
+// Simple parser: the builder only ever writes numeric lists, so ranges/steps fall back to the closest match
+function parseFrequency(hour: string, dayOfMonth: string, month: string, dayOfWeek: string): Frequency {
+  if (hour === '*' && dayOfMonth === '*' && month === '*' && dayOfWeek === '*') return 'hourly';
+  if (dayOfMonth === '*' && month === '*' && dayOfWeek === '*') return 'daily';
+  if (dayOfMonth === '*' && month === '*') return 'weekly';
+  if (dayOfMonth !== '*' && dayOfWeek === '*') return 'monthly';
+  if (dayOfWeek !== '*') return 'weekly';
+  return 'daily';
+}
+
+function parseCron(value: string): CronConfig {
+  const parts = value.trim().split(' ');
+  if (!value || parts.length < 5) return DEFAULT_CONFIG;
+
+  const [m, h, dom, mon, dow] = parts;
+  const parsedMinutes = parsePart(m);
+
+  return {
+    frequency: parseFrequency(h, dom, mon, dow),
+    minutes: parsedMinutes.length > 0 ? [parsedMinutes[0]] : DEFAULT_CONFIG.minutes,
+    hours: parsePart(h),
+    daysOfMonth: parsePart(dom),
+    months: parsePart(mon),
+    daysOfWeek: parsePart(dow),
+  };
+}
+
+function formatPart(values: number[]): string {
+  if (values.length === 0) return '*';
+  return values.join(',');
+}
+
+function buildCron(config: CronConfig): string {
+  const minute = config.minutes.length > 0 ? config.minutes[0].toString() : '0';
+  const hour = formatPart(config.hours);
+
+  switch (config.frequency) {
+    case 'hourly':
+      return `${minute} * * * *`;
+    case 'weekly':
+      return `${minute} ${hour} * * ${formatPart(config.daysOfWeek)}`;
+    case 'monthly':
+      return `${minute} ${hour} ${formatPart(config.daysOfMonth)} ${formatPart(config.months)} *`;
+    default:
+      return `${minute} ${hour} * * *`;
+  }
+}
+
 export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', className }: CronExpressionBuilderProps) {
-  // State
-  const [frequency, setFrequency] = React.useState<Frequency>('daily');
-  const [minutes, setMinutes] = React.useState<number[]>([0]); // Single minute for > hourly
-  const [hours, setHours] = React.useState<number[]>([9]);
-  const [daysOfMonth, setDaysOfMonth] = React.useState<number[]>([1]);
-  const [months, setMonths] = React.useState<number[]>([]); // Empty means *
-  const [daysOfWeek, setDaysOfWeek] = React.useState<number[]>([1]); // Default Mon
+  // The cron parts are derived from `value`; only the frequency is a user choice that `value` cannot always express
+  const parsed = parseCron(value);
+  const [frequency, setFrequency] = React.useState(parsed.frequency);
+  const { minutes, hours, daysOfMonth, months, daysOfWeek } = parsed;
 
-  // Track when we're syncing from an external value change to avoid
-  // the construct effect firing with stale state before parse completes.
-  const isSyncingRef = React.useRef(true);
-
-  // Parse incoming cron expression
-  React.useEffect(() => {
-    if (!value) return;
-
-    isSyncingRef.current = true;
-
-    const parts = value.trim().split(' ');
-    if (parts.length < 5) return;
-
-    const [m, h, dom, mon, dow] = parts;
-
-    const parsePart = (part: string, _max: number): number[] => {
-      if (part === '*' || part === '?') return [];
-      return part
-        .split(',')
-        .map((v) => Number.parseInt(v, 10))
-        .filter((v) => !Number.isNaN(v));
-    };
-
-    // Minutes
-    const parsedMinutes = parsePart(m, 59);
-    if (parsedMinutes.length > 0) setMinutes([parsedMinutes[0]]); // Enforce single minute
-
-    // Hours
-    const parsedHours = parsePart(h, 23);
-    setHours(parsedHours.length > 0 ? parsedHours : []);
-
-    // Days of Month
-    const parsedDom = parsePart(dom, 31);
-    setDaysOfMonth(parsedDom.length > 0 ? parsedDom : []);
-
-    // Months
-    const parsedMon = parsePart(mon, 12);
-    setMonths(parsedMon.length > 0 ? parsedMon : []);
-
-    // Days of Week
-    // Handle MON-FRI etc if necessary, but we mostly write numbers
-    // This is a simple parser, might need more robust parsing for complex expressions
-    // For now assuming the builder generates standard numeric lists
-    const parsedDow = parsePart(dow, 7);
-    setDaysOfWeek(parsedDow.length > 0 ? parsedDow : []);
-
-    // Determine Frequency
-    if (h === '*' && dom === '*' && mon === '*' && dow === '*') {
-      setFrequency('hourly');
-    } else if (dom === '*' && mon === '*' && dow === '*') {
-      setFrequency('daily');
-    } else if (dom === '*' && mon === '*' && dow !== '*') {
-      setFrequency('weekly');
-    } else if (dom !== '*' && mon === '*' && dow === '*') {
-      setFrequency('monthly');
-    } else {
-      // Default to daily if it doesn't match perfectly or custom
-      // If it's a specific day of month AND day of week, it's complex, maybe monthly?
-      if (dom !== '*' && dow === '*') setFrequency('monthly');
-      else if (dow !== '*') setFrequency('weekly');
-      else setFrequency('daily');
-    }
-  }, [value]);
-
-  // Construct cron expression
-  const constructCron = React.useCallback(() => {
-    // Helper to format part
-    const formatPart = (vals: number[], allChar = '*') => {
-      if (vals.length === 0) return allChar;
-      return vals.join(',');
-    };
-
-    const mStr = minutes.length > 0 ? minutes[0].toString() : '0';
-
-    let cron = '';
-    switch (frequency) {
-      case 'hourly':
-        cron = `${mStr} * * * *`;
-        break;
-      case 'daily': {
-        const hStr = formatPart(hours);
-        cron = `${mStr} ${hStr} * * *`;
-        break;
-      }
-      case 'weekly': {
-        const hStr = formatPart(hours);
-        const dowStr = formatPart(daysOfWeek);
-        cron = `${mStr} ${hStr} * * ${dowStr}`;
-        break;
-      }
-      case 'monthly': {
-        const hStr = formatPart(hours);
-        const domStr = formatPart(daysOfMonth);
-        const monStr = formatPart(months);
-        cron = `${mStr} ${hStr} ${domStr} ${monStr} *`;
-        break;
-      }
-      default:
-        cron = value; // Fallback
-    }
-
-    // Only update if changed
-    if (cron !== value) {
-      onChange(cron);
-    }
-  }, [frequency, minutes, hours, daysOfWeek, daysOfMonth, months, onChange, value]);
-
-  // Update on state change
-  React.useEffect(() => {
-    if (isSyncingRef.current) {
-      isSyncingRef.current = false;
-      return;
-    }
-    constructCron();
-  }, [constructCron]);
+  function emit(changes: Partial<CronConfig>) {
+    const next = buildCron({ ...parsed, frequency, ...changes });
+    if (next !== value) onChange(next);
+  }
 
   // Calculate upcoming executions
   const upcomingExecutions = React.useMemo(() => {
@@ -202,7 +162,7 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
         value={[minutes[0]?.toString() ?? '0']}
         onValueChange={(vals) => {
           const val = vals[0];
-          if (val) setMinutes([Number.parseInt(val)]);
+          if (val) emit({ minutes: [Number.parseInt(val)] });
         }}
         className="flex flex-wrap justify-start gap-1">
         {MINUTES.map((m) => (
@@ -224,7 +184,7 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
         multiple
         value={hours.map((h) => h.toString())}
         onValueChange={(vals) => {
-          if (vals.length > 0) setHours(vals.map((v) => Number.parseInt(v)).sort((a, b) => a - b));
+          if (vals.length > 0) emit({ hours: vals.map((v) => Number.parseInt(v)).toSorted((a, b) => a - b) });
         }}
         className="flex flex-wrap justify-start gap-1">
         {HOURS.map((h) => (
@@ -246,7 +206,7 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
         multiple
         value={daysOfWeek.map((d) => d.toString())}
         onValueChange={(vals) => {
-          if (vals.length > 0) setDaysOfWeek(vals.map((v) => Number.parseInt(v)));
+          if (vals.length > 0) emit({ daysOfWeek: vals.map((v) => Number.parseInt(v)) });
         }}
         className="flex flex-wrap justify-start gap-1">
         {DAYS_OF_WEEK.map((day) => (
@@ -268,7 +228,7 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
         multiple
         value={daysOfMonth.map((d) => d.toString())}
         onValueChange={(vals) => {
-          if (vals.length > 0) setDaysOfMonth(vals.map((v) => Number.parseInt(v)).sort((a, b) => a - b));
+          if (vals.length > 0) emit({ daysOfMonth: vals.map((v) => Number.parseInt(v)).toSorted((a, b) => a - b) });
         }}
         className="flex flex-wrap justify-start gap-1">
         {DAYS_OF_MONTH.map((d) => (
@@ -291,7 +251,7 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
         value={months.map((m) => m.toString())}
         onValueChange={(vals) => {
           // If empty, it means all months (cron *)
-          setMonths(vals.map((v) => Number.parseInt(v)).sort((a, b) => a - b));
+          emit({ months: vals.map((v) => Number.parseInt(v)).toSorted((a, b) => a - b) });
         }}
         className="flex flex-wrap justify-start gap-1">
         {MONTHS_SHORT.map((m, i) => (
@@ -320,12 +280,11 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
               setFrequency(newFreq);
 
               // Ensure required fields are populated when switching
-              if (newFreq === 'monthly' && daysOfMonth.length === 0) {
-                setDaysOfMonth([1]);
-              }
-              if (newFreq === 'weekly' && daysOfWeek.length === 0) {
-                setDaysOfWeek([1]); // Monday
-              }
+              emit({
+                frequency: newFreq,
+                daysOfMonth: newFreq === 'monthly' && daysOfMonth.length === 0 ? [1] : daysOfMonth,
+                daysOfWeek: newFreq === 'weekly' && daysOfWeek.length === 0 ? [1] : daysOfWeek, // Monday
+              });
             }
           }}
           className="w-fit justify-start rounded-md border bg-muted/30 p-1">

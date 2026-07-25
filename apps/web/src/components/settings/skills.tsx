@@ -62,7 +62,6 @@ function ImportSkillView({ onBack }: { onBack: () => void }) {
       backLabel="Back to skills">
       <div className="flex min-h-0 flex-1 flex-col gap-4">
         <Input
-          autoFocus
           value={search}
           placeholder="Search skills, e.g. frontend design"
           onChange={(event) => setSearch(event.target.value)}
@@ -107,10 +106,6 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
   const createSkill = useCreateSkill();
   const updateSkill = useUpdateSkill();
   const [draft, setDraft] = React.useState<SkillDraft>(() => toDraft(skill));
-
-  React.useEffect(() => {
-    setDraft(toDraft(skill));
-  }, [skill]);
 
   const isEditing = !!skill;
   const isSaving = createSkill.isPending || updateSkill.isPending;

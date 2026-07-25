@@ -176,16 +176,16 @@ export function TextareaCompletions({
     };
   }, [completionState, textareaRef]);
 
-  const updateCompletionState = React.useCallback(() => {
-    const textarea = textareaRef.current;
-    const nextState = textarea ? getCompletionState(textarea, groups) : null;
-    setCompletionState(nextState);
-    setActiveIndex(0);
-  }, [groups, textareaRef]);
+  const updateCompletionState = React.useCallback(
+    (textarea: HTMLTextAreaElement) => {
+      setCompletionState(getCompletionState(textarea, groups));
+      setActiveIndex(0);
+    },
+    [groups],
+  );
 
-  function applyCompletion(option: TextareaCompletionOption) {
-    const textarea = textareaRef.current;
-    if (!textarea || !completionState) return;
+  function applyCompletion(textarea: HTMLTextAreaElement, option: TextareaCompletionOption) {
+    if (!completionState) return;
 
     const replacement = `${completionState.group.prefix}${option.value} `;
     const prefix = value.slice(0, completionState.anchorIndex) + replacement;
@@ -222,7 +222,7 @@ export function TextareaCompletions({
 
       if (event.key === 'Tab' || (event.key === 'Enter' && !event.shiftKey)) {
         event.preventDefault();
-        applyCompletion(completionOptions[activeIndex]);
+        applyCompletion(event.currentTarget, completionOptions[activeIndex]);
         return;
       }
     }
@@ -236,13 +236,14 @@ export function TextareaCompletions({
     'aria-controls': isOpen ? listId : undefined,
     'aria-expanded': isOpen,
     onChange: (event) => {
-      onChange(event.target.value);
-      requestAnimationFrame(updateCompletionState);
+      const textarea = event.currentTarget;
+      onChange(textarea.value);
+      requestAnimationFrame(() => updateCompletionState(textarea));
     },
     onKeyDown: handleKeyDown,
-    onSelect: updateCompletionState,
+    onSelect: (event) => updateCompletionState(event.currentTarget),
     onBlur: () => setCompletionState(null),
-    onFocus: updateCompletionState,
+    onFocus: (event) => updateCompletionState(event.currentTarget),
   };
 
   return (
@@ -273,7 +274,10 @@ export function TextareaCompletions({
                 )}
                 onMouseDown={(event) => event.preventDefault()}
                 onMouseEnter={() => setActiveIndex(index)}
-                onClick={() => applyCompletion(option)}>
+                onClick={() => {
+                  const textarea = textareaRef.current;
+                  if (textarea) applyCompletion(textarea, option);
+                }}>
                 <span className="font-medium">
                   {completionState?.group.prefix}
                   {option.value}

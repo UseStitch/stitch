@@ -7,7 +7,7 @@ export const AUTH_TYPE_LABELS: Record<McpAuthType, { label: string; description:
   oauth: { label: 'OAuth', description: 'Authorize in your browser (PKCE, auto-registration)' },
 };
 
-export type HeaderEntry = { key: string; value: string };
+export type HeaderEntry = { id: string; key: string; value: string };
 
 export type AddFormState = {
   name: string;
@@ -81,7 +81,7 @@ export function applyAuthConfigToForm(form: AddFormState, authConfig: McpAuthCon
       ...form,
       authType: 'headers',
       apiKey: '',
-      headers: Object.entries(authConfig.headers).map(([key, value]) => ({ key, value })),
+      headers: Object.entries(authConfig.headers).map(([key, value]) => ({ id: crypto.randomUUID(), key, value })),
     };
   }
 

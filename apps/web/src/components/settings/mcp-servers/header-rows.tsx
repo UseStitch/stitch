@@ -15,13 +15,13 @@ export function HeaderRows({ rows, onChange }: { rows: HeaderEntry[]; onChange: 
   };
 
   const add = () => {
-    onChange([...rows, { key: '', value: '' }]);
+    onChange([...rows, { id: crypto.randomUUID(), key: '', value: '' }]);
   };
 
   return (
     <div className="space-y-2">
       {rows.map((row, i) => (
-        <div key={`${row.key}-${i}`} className="flex items-center gap-2">
+        <div key={row.id} className="flex items-center gap-2">
           <Input
             placeholder="Header name"
             value={row.key}

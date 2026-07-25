@@ -30,10 +30,12 @@ export function PermissionResponseDock({
 }: PermissionResponseDockProps) {
   const suggestion = permissionResponse.suggestion;
   const [entry, setEntry] = React.useState('');
+  const [entryFor, setEntryFor] = React.useState(permissionResponse.id);
 
-  React.useEffect(() => {
+  if (entryFor !== permissionResponse.id) {
+    setEntryFor(permissionResponse.id);
     setEntry('');
-  }, [permissionResponse.id]);
+  }
 
   const canSubmitAlternative = entry.trim().length > 0 && !isPending;
   const isDirectorySuggestion = suggestion?.message.startsWith(DIR_PREFIX) ?? false;

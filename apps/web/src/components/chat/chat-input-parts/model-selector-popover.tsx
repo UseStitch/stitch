@@ -54,7 +54,6 @@ export function ModelSelectorPopover({ selectedValue, onSelect, providerModels }
             <div className="flex items-center gap-2 border-b border-border/50 px-3 py-2">
               <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" />
               <input
-                autoFocus
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search models"

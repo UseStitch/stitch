@@ -165,15 +165,15 @@ export function DockContainer({ docks, className }: DockContainerProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const hasDocks = docks.length > 0;
 
-  React.useEffect(() => {
-    if (hasDocks) {
-      setRenderedDocks(docks);
-      const frame = requestAnimationFrame(() => setIsOpen(true));
-      return () => cancelAnimationFrame(frame);
-    }
+  // Keep the last non-empty docks mounted so the collapse transition can play out.
+  if (hasDocks && renderedDocks !== docks) setRenderedDocks(docks);
+  if (!hasDocks && isOpen) setIsOpen(false);
 
-    setIsOpen(false);
-  }, [docks, hasDocks]);
+  React.useEffect(() => {
+    if (!hasDocks) return;
+    const frame = requestAnimationFrame(() => setIsOpen(true));
+    return () => cancelAnimationFrame(frame);
+  }, [hasDocks]);
 
   const handleTransitionEnd = React.useCallback(
     (event: React.TransitionEvent<HTMLDivElement>) => {

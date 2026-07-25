@@ -19,10 +19,12 @@ export function AgentsSettings() {
   );
   const savedInstructions = settings[SETTING_KEY] ?? '';
   const [instructions, setInstructions] = React.useState(savedInstructions);
+  const [syncedInstructions, setSyncedInstructions] = React.useState(savedInstructions);
 
-  React.useEffect(() => {
+  if (syncedInstructions !== savedInstructions) {
+    setSyncedInstructions(savedInstructions);
     setInstructions(savedInstructions);
-  }, [savedInstructions]);
+  }
 
   const saveInstructions = () => {
     if (instructions !== savedInstructions) {

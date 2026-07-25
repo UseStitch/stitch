@@ -354,23 +354,17 @@ function MeetingNoteTemplatesSettings() {
   const selectedTemplate = data.templates.find((template) => template.id === selectedId) ?? null;
   const [name, setName] = React.useState(selectedTemplate?.name ?? '');
   const [content, setContent] = React.useState(selectedTemplate?.content ?? EMPTY_TEMPLATE_CONTENT);
+  const [syncedTemplate, setSyncedTemplate] = React.useState(selectedTemplate);
 
-  React.useEffect(() => {
-    if (!selectedTemplate) {
-      setName('');
-      setContent(EMPTY_TEMPLATE_CONTENT);
-      return;
-    }
+  if (!selectedId && data.templates[0]) {
+    setSelectedId(data.templates[0].id);
+  }
 
-    setName(selectedTemplate.name);
-    setContent(selectedTemplate.content);
-  }, [selectedTemplate]);
-
-  React.useEffect(() => {
-    if (!selectedId && data.templates[0]) {
-      setSelectedId(data.templates[0].id);
-    }
-  }, [data.templates, selectedId]);
+  if (syncedTemplate !== selectedTemplate) {
+    setSyncedTemplate(selectedTemplate);
+    setName(selectedTemplate?.name ?? '');
+    setContent(selectedTemplate?.content ?? EMPTY_TEMPLATE_CONTENT);
+  }
 
   const canSave = name.trim().length > 0 && selectedTemplate !== null;
   const isSaving = createMutation.isPending || updateMutation.isPending;

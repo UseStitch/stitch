@@ -3,6 +3,7 @@ import * as React from 'react';
 
 import { Link } from '@tanstack/react-router';
 import {
+  type CellContext,
   createColumnHelper,
   flexRender,
   getCoreRowModel,
@@ -43,6 +44,88 @@ type AutomationsTableProps = {
 
 const columnHelper = createColumnHelper<Automation>();
 
+type AutomationsTableMeta = {
+  modelLabelByKey: Map<string, string>;
+  runPending: boolean;
+  deletePending: boolean;
+  onRun: (automation: Automation) => void;
+  onEdit: (automationId: string) => void;
+  onDelete: (automation: Automation) => void;
+};
+
+function TitleCell({ row }: CellContext<Automation, Automation['title']>) {
+  return (
+    <Table.Title className="block">
+      <Link
+        to="/automations/$automationId"
+        params={{ automationId: row.original.id }}
+        className="text-foreground hover:underline">
+        {row.original.title}
+      </Link>
+    </Table.Title>
+  );
+}
+
+function ModelCell({ row, table }: CellContext<Automation, unknown>) {
+  const { modelLabelByKey } = table.options.meta as AutomationsTableMeta;
+  const automation = row.original;
+  const label = modelLabelByKey.get(`${automation.providerId}:${automation.modelId}`) ?? automation.modelId;
+  return <Table.Badge>{label}</Table.Badge>;
+}
+
+function RunCountCell({ getValue }: CellContext<Automation, Automation['runCount']>) {
+  return <Table.Number value={getValue()} />;
+}
+
+function ScheduleCell({ row }: CellContext<Automation, unknown>) {
+  return <Table.Text>{getAutomationScheduleLabel(row.original.schedule)}</Table.Text>;
+}
+
+function UpdatedAtCell({ getValue }: CellContext<Automation, Automation['updatedAt']>) {
+  return <Table.Time value={getValue()} />;
+}
+
+function ActionsCell({ row, table }: CellContext<Automation, unknown>) {
+  const { runPending, deletePending, onRun, onEdit, onDelete } = table.options.meta as AutomationsTableMeta;
+
+  return (
+    <Table.Actions>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={() => onRun(row.original)}
+        disabled={runPending}
+        aria-label={`Run ${row.original.title}`}>
+        <PlayIcon className="size-3.5" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={() => onEdit(row.original.id)}
+        aria-label={`Edit ${row.original.title}`}>
+        <PencilIcon className="size-3.5" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={() => onDelete(row.original)}
+        disabled={deletePending}
+        aria-label={`Delete ${row.original.title}`}>
+        <Trash2Icon className="size-3.5 text-destructive" />
+      </Button>
+    </Table.Actions>
+  );
+}
+
+const columns = [
+  columnHelper.accessor('title', { header: 'Title', cell: TitleCell }),
+  columnHelper.display({ id: 'model', header: 'Model', cell: ModelCell }),
+  columnHelper.accessor('runCount', { header: 'Runs', cell: RunCountCell }),
+  columnHelper.display({ id: 'schedule', header: 'Schedule', cell: ScheduleCell }),
+  columnHelper.accessor('updatedAt', { header: 'Updated', cell: UpdatedAtCell }),
+  columnHelper.display({ id: 'actions', header: '', cell: ActionsCell }),
+];
+
 export function AutomationsTable({
   automations,
   providerModels,
@@ -67,83 +150,12 @@ export function AutomationsTable({
     return map;
   }, [providerModels]);
 
-  const columns = React.useMemo(
-    () => [
-      columnHelper.accessor('title', {
-        header: 'Title',
-        cell: ({ row }) => (
-          <Table.Title className="block">
-            <Link
-              to="/automations/$automationId"
-              params={{ automationId: row.original.id }}
-              className="text-foreground hover:underline">
-              {row.original.title}
-            </Link>
-          </Table.Title>
-        ),
-      }),
-      columnHelper.display({
-        id: 'model',
-        header: 'Model',
-        cell: ({ row }) => {
-          const automation = row.original;
-          const label = modelLabelByKey.get(`${automation.providerId}:${automation.modelId}`) ?? automation.modelId;
-          return <Table.Badge>{label}</Table.Badge>;
-        },
-      }),
-      columnHelper.accessor('runCount', {
-        header: 'Runs',
-        cell: ({ getValue }) => <Table.Number value={getValue()} />,
-      }),
-      columnHelper.display({
-        id: 'schedule',
-        header: 'Schedule',
-        cell: ({ row }) => <Table.Text>{getAutomationScheduleLabel(row.original.schedule)}</Table.Text>,
-      }),
-      columnHelper.accessor('updatedAt', {
-        header: 'Updated',
-        cell: ({ getValue }) => <Table.Time value={getValue()} />,
-      }),
-      columnHelper.display({
-        id: 'actions',
-        header: '',
-        cell: ({ row }) => (
-          <Table.Actions>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => onRun(row.original)}
-              disabled={runPending}
-              aria-label={`Run ${row.original.title}`}>
-              <PlayIcon className="size-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => onEdit(row.original.id)}
-              aria-label={`Edit ${row.original.title}`}>
-              <PencilIcon className="size-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => onDelete(row.original)}
-              disabled={deletePending}
-              aria-label={`Delete ${row.original.title}`}>
-              <Trash2Icon className="size-3.5 text-destructive" />
-            </Button>
-          </Table.Actions>
-        ),
-      }),
-    ],
-    [deletePending, modelLabelByKey, onDelete, onEdit, onRun, runPending],
-  );
-
   const table = useReactTable({
     data: automations,
     columns,
     state: { sorting },
     onSortingChange: setSorting,
+    meta: { modelLabelByKey, runPending, deletePending, onRun, onEdit, onDelete } satisfies AutomationsTableMeta,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
@@ -164,7 +176,7 @@ export function AutomationsTable({
       pages.add(index);
     }
 
-    return [...pages].sort((a, b) => a - b);
+    return [...pages].toSorted((a, b) => a - b);
   }, [currentPage, totalPages]);
 
   return (

@@ -13,12 +13,12 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
   const [commandPaletteOpen, setCommandPaletteOpen] = React.useState(false);
   const [renameSessionOpen, setRenameSessionOpen] = React.useState(false);
 
-  return (
-    <DialogContext.Provider
-      value={{ commandPaletteOpen, setCommandPaletteOpen, renameSessionOpen, setRenameSessionOpen }}>
-      {children}
-    </DialogContext.Provider>
+  const value = React.useMemo(
+    () => ({ commandPaletteOpen, setCommandPaletteOpen, renameSessionOpen, setRenameSessionOpen }),
+    [commandPaletteOpen, renameSessionOpen],
   );
+
+  return <DialogContext.Provider value={value}>{children}</DialogContext.Provider>;
 }
 
 export function useDialogContext(): DialogContextValue {

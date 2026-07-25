@@ -173,12 +173,14 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
     [close],
   );
 
+  const misspelledWord = params?.misspelledWord ?? null;
+
   const handleAddToDictionary = useCallback(() => {
-    if (params?.misspelledWord) {
-      void window.api?.spellcheck?.addToDictionary(params.misspelledWord);
+    if (misspelledWord) {
+      void window.api?.spellcheck?.addToDictionary(misspelledWord);
     }
     close();
-  }, [params?.misspelledWord, close]);
+  }, [misspelledWord, close]);
 
   const handleCut = useCallback(() => {
     document.execCommand('cut');
@@ -197,7 +199,7 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
     close();
   }, [close]);
 
-  const isMisspelled = !!params?.misspelledWord;
+  const isMisspelled = !!misspelledWord;
   const isEditable = params?.isEditable ?? false;
   const { canCut, canCopy, canPaste } = params?.editFlags ?? { canCut: false, canCopy: false, canPaste: false };
 

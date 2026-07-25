@@ -80,12 +80,19 @@ type UseAttachmentsOptions = { pendingAttachments?: Attachment[]; onPendingAttac
 
 export function useAttachments(options: UseAttachmentsOptions) {
   const { pendingAttachments, onPendingAttachmentsConsumed } = options;
-  const [attachments, setAttachments] = React.useState<Attachment[]>([]);
+  const [attachments, setAttachments] = React.useState<Attachment[]>(pendingAttachments ?? []);
   const [isDragging, setIsDragging] = React.useState(false);
+  const [appliedPending, setAppliedPending] = React.useState(pendingAttachments);
+
+  if (appliedPending !== pendingAttachments) {
+    setAppliedPending(pendingAttachments);
+    if (pendingAttachments && pendingAttachments.length > 0) {
+      setAttachments(pendingAttachments);
+    }
+  }
 
   React.useEffect(() => {
     if (pendingAttachments && pendingAttachments.length > 0) {
-      setAttachments(pendingAttachments);
       onPendingAttachmentsConsumed?.();
     }
   }, [pendingAttachments, onPendingAttachmentsConsumed]);

@@ -49,8 +49,6 @@ export function useDictation({
 }: UseDictationArgs): UseDictationReturn {
   const stt = useStt();
   const baseOffsetRef = React.useRef(0);
-  const valueRef = React.useRef(value);
-  valueRef.current = value;
   // Set when stop is requested before recording has actually started (fast
   // push-to-talk taps). Finalizes as soon as the session reaches 'recording'.
   const pendingStopRef = React.useRef(false);
@@ -82,10 +80,10 @@ export function useDictation({
       const resolved = resolveModel(model);
       if (!resolved) return;
       pendingStopRef.current = false;
-      baseOffsetRef.current = valueRef.current.length;
+      baseOffsetRef.current = value.length;
       void stt.start(resolved.providerId, resolved.modelId, resolved.sampleRateHz);
     },
-    [stt, resolveModel],
+    [stt, resolveModel, value],
   );
 
   const stopAndCommit = React.useCallback(async () => {
@@ -96,9 +94,9 @@ export function useDictation({
       return;
     }
     const transcript = await stt.stop();
-    const base = valueRef.current.slice(0, baseOffsetRef.current);
+    const base = value.slice(0, baseOffsetRef.current);
     onChange(spliceTranscript(base, transcript));
-  }, [stt, onChange]);
+  }, [stt, onChange, value]);
 
   // Honor a stop requested during the startup window.
   React.useEffect(() => {

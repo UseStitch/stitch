@@ -34,6 +34,7 @@ export function AppearanceSelector() {
           {APPEARANCE_MODES.map((m) => (
             <button
               key={m}
+              type="button"
               onClick={() => setMode(m)}
               className={cn(
                 'flex-1 rounded-xl border px-3 py-3 text-sm font-medium transition-all text-center',
@@ -52,6 +53,7 @@ export function AppearanceSelector() {
           {THEMES.map((t) => (
             <button
               key={t.name}
+              type="button"
               onClick={() => setTheme(t.name)}
               className={cn(
                 'rounded-xl border p-3 text-left transition-all space-y-2',

@@ -9,6 +9,15 @@ import { useShortcuts } from '@/lib/shortcuts';
 
 type CommandPaletteProps = { actions: Action[] };
 
+function toKeyItems(labels: string[]): Array<{ id: string; label: string }> {
+  const occurrences = new Map<string, number>();
+  return labels.map((label) => {
+    const occurrence = (occurrences.get(label) ?? 0) + 1;
+    occurrences.set(label, occurrence);
+    return { id: `${label}-${occurrence}`, label };
+  });
+}
+
 export function CommandPalette({ actions }: CommandPaletteProps) {
   const { commandPaletteOpen, setCommandPaletteOpen } = useDialogContext();
   const shortcuts = useShortcuts();
@@ -39,37 +48,30 @@ export function CommandPalette({ actions }: CommandPaletteProps) {
                   const hotkey = info?.hotkey ?? null;
                   const isLeaderShortcut = typeof hotkey === 'string' && hotkey.startsWith('LEADER+');
                   const leaderSuffix = isLeaderShortcut ? hotkey.slice('LEADER+'.length) : null;
+                  const keyItems = toKeyItems(
+                    hotkey === null
+                      ? []
+                      : isLeaderShortcut
+                        ? [
+                            'Leader',
+                            ...formatForDisplay(leaderSuffix ?? '')
+                              .split('+')
+                              .filter(Boolean),
+                          ]
+                        : info?.isSequence
+                          ? [...formatForDisplay(hotkey).split('+'), ...formatForDisplay(hotkey).split('+')]
+                          : formatForDisplay(hotkey).split('+'),
+                  );
                   return (
                     <CommandItem key={action.id} onSelect={() => handleSelect(action)}>
                       <span className="flex-1">{action.label}</span>
                       {hotkey && (
                         <span className="ml-auto flex items-center gap-1.5">
-                          {isLeaderShortcut
-                            ? [
-                                'Leader',
-                                ...formatForDisplay(leaderSuffix ?? '')
-                                  .split('+')
-                                  .filter(Boolean),
-                              ].map((key, i) => (
-                                <Kbd key={i} size="sm">
-                                  {key}
-                                </Kbd>
-                              ))
-                            : info?.isSequence
-                              ? [...formatForDisplay(hotkey).split('+'), ...formatForDisplay(hotkey).split('+')].map(
-                                  (key, i) => (
-                                    <Kbd key={i} size="sm">
-                                      {key}
-                                    </Kbd>
-                                  ),
-                                )
-                              : formatForDisplay(hotkey)
-                                  .split('+')
-                                  .map((key, i) => (
-                                    <Kbd key={i} size="sm">
-                                      {key}
-                                    </Kbd>
-                                  ))}
+                          {keyItems.map((item) => (
+                            <Kbd key={item.id} size="sm">
+                              {item.label}
+                            </Kbd>
+                          ))}
                         </span>
                       )}
                     </CommandItem>

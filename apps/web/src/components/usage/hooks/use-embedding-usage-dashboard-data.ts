@@ -26,8 +26,8 @@ type EmbeddingModelOption = {
 export function useEmbeddingUsageDashboardData(rangeFilter: UsageDateRange) {
   const { data: embeddingProviderModels } = useSuspenseQuery(embeddingProviderModelsQueryOptions);
 
-  const [providerFilter, setProviderFilter] = React.useState<string>(ALL_FILTER);
-  const [modelFilter, setModelFilter] = React.useState<string>(ALL_FILTER);
+  const [selectedProvider, setProviderFilter] = React.useState<string>(ALL_FILTER);
+  const [selectedModel, setModelFilter] = React.useState<string>(ALL_FILTER);
 
   const { data: usageRangeData } = useQuery({
     ...embeddingUsageDashboardQueryOptions({ range: rangeFilter }),
@@ -56,6 +56,11 @@ export function useEmbeddingUsageDashboardData(rangeFilter: UsageDateRange) {
       .map((p) => ({ providerId: p.providerId, providerName: p.providerName }));
   }, [embeddingProviderModels, usageRangeData?.usedProviders]);
 
+  // A selection falls back to ALL_FILTER once its provider/model drops out of the active range.
+  const providerFilter = availableProviders.some((p) => p.providerId === selectedProvider)
+    ? selectedProvider
+    : ALL_FILTER;
+
   const availableModels = React.useMemo<EmbeddingModelOption[]>(() => {
     const usedModels = usageRangeData?.usedModels ?? [];
     return usedModels
@@ -74,20 +79,9 @@ export function useEmbeddingUsageDashboardData(rangeFilter: UsageDateRange) {
       });
   }, [modelNameByKey, providerById, providerFilter, usageRangeData?.usedModels]);
 
-  React.useEffect(() => {
-    if (providerFilter === ALL_FILTER) return;
-    const stillAvailable = availableProviders.some((p) => p.providerId === providerFilter);
-    if (!stillAvailable) {
-      setProviderFilter(ALL_FILTER);
-      setModelFilter(ALL_FILTER);
-    }
-  }, [availableProviders, providerFilter]);
-
-  React.useEffect(() => {
-    if (modelFilter === ALL_FILTER) return;
-    const isStillAvailable = availableModels.some((m) => encodeModelFilter(m.providerId, m.modelId) === modelFilter);
-    if (!isStillAvailable) setModelFilter(ALL_FILTER);
-  }, [availableModels, modelFilter]);
+  const modelFilter = availableModels.some((m) => encodeModelFilter(m.providerId, m.modelId) === selectedModel)
+    ? selectedModel
+    : ALL_FILTER;
 
   const usageFilters = React.useMemo(() => {
     const decodedModel = modelFilter === ALL_FILTER ? null : decodeModelFilter(modelFilter);

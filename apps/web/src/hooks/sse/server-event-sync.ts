@@ -54,16 +54,14 @@ function useServerEventSync(): void {
   const params = useParams({ strict: false });
   const currentSessionId = params.id;
 
-  const {
-    applyStreamStart,
-    applyPartUpdate,
-    applyPartDeltas,
-    applyToolState,
-    finishStream,
-    errorStream,
-    retryStream,
-    doomLoopDetected,
-  } = useStreamStore.getState();
+  const applyStreamStart = useStreamStore((s) => s.applyStreamStart);
+  const applyPartUpdate = useStreamStore((s) => s.applyPartUpdate);
+  const applyPartDeltas = useStreamStore((s) => s.applyPartDeltas);
+  const applyToolState = useStreamStore((s) => s.applyToolState);
+  const finishStream = useStreamStore((s) => s.finishStream);
+  const errorStream = useStreamStore((s) => s.errorStream);
+  const retryStream = useStreamStore((s) => s.retryStream);
+  const doomLoopDetected = useStreamStore((s) => s.doomLoopDetected);
 
   const pendingDeltasRef = useRef<PendingDelta[]>([]);
   const rafIdRef = useRef<number | null>(null);

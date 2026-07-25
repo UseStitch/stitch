@@ -29,15 +29,17 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
   const deleteMutation = useMutation(deleteMemoryMutationOptions(queryClient));
 
   const memoryRef = React.useRef(memory);
-  memoryRef.current = memory;
-
   React.useEffect(() => {
-    if (memory) {
-      setContent(memory.content);
-      setCategory(memory.category);
-      setConfidence(memory.confidence);
-    }
+    memoryRef.current = memory;
   }, [memory]);
+
+  const [syncedMemory, setSyncedMemory] = React.useState<SemanticMemory | null>(null);
+  if (memory && syncedMemory !== memory) {
+    setSyncedMemory(memory);
+    setContent(memory.content);
+    setCategory(memory.category);
+    setConfidence(memory.confidence);
+  }
 
   function save(updates: { content?: string; category?: MemoryCategory; confidence?: MemoryConfidence }) {
     if (!memoryRef.current) return;

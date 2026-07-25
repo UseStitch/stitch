@@ -115,7 +115,7 @@ function getSession(sessions: Record<string, SessionStreamState>, sessionId: str
   return sessions[sessionId] ?? null;
 }
 
-function guardMessage(session: SessionStreamState | null, messageId: string): boolean {
+function guardMessage(session: SessionStreamState | null, messageId: string): session is SessionStreamState {
   return session !== null && session.activeMessageId === messageId;
 }
 
@@ -249,21 +249,21 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
     set((state) => {
       const session = getSession(state.sessions, sessionId);
       if (!guardMessage(session, messageId)) return state;
-      return { sessions: { ...state.sessions, [sessionId]: applyPartUpdateToSession(session!, partId, part) } };
+      return { sessions: { ...state.sessions, [sessionId]: applyPartUpdateToSession(session, partId, part) } };
     }),
 
   applyPartDelta: (sessionId, messageId, partId, delta) =>
     set((state) => {
       const session = getSession(state.sessions, sessionId);
       if (!guardMessage(session, messageId)) return state;
-      return { sessions: { ...state.sessions, [sessionId]: applyPartDeltaToSession(session!, partId, delta) } };
+      return { sessions: { ...state.sessions, [sessionId]: applyPartDeltaToSession(session, partId, delta) } };
     }),
 
   applyPartDeltas: (sessionId, messageId, deltas) =>
     set((state) => {
       const session = getSession(state.sessions, sessionId);
       if (!guardMessage(session, messageId)) return state;
-      let current = session!;
+      let current = session;
       for (const { partId, delta } of deltas) {
         current = applyPartDeltaToSession(current, partId, delta);
       }
@@ -275,13 +275,13 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
       const session = getSession(state.sessions, sessionId);
       if (!guardMessage(session, messageId)) return state;
 
-      const existing = session!.parts[toolCallId];
+      const existing = session.parts[toolCallId];
 
       if (existing && existing.type === 'tool-call') {
         return {
           sessions: {
             ...state.sessions,
-            [sessionId]: updatePart(session!, toolCallId, {
+            [sessionId]: updatePart(session, toolCallId, {
               ...existing,
               status,
               ...(input !== undefined && { input }),
@@ -296,7 +296,7 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
       return {
         sessions: {
           ...state.sessions,
-          [sessionId]: addPart(session!, toolCallId, {
+          [sessionId]: addPart(session, toolCallId, {
             type: 'tool-call',
             toolCallId,
             toolName,
@@ -319,7 +319,7 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
         sessions: {
           ...state.sessions,
           [sessionId]: {
-            ...session!,
+            ...session,
             isStreaming: false,
             finishReason,
             usage: usage ?? null,
@@ -338,7 +338,7 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
         sessions: {
           ...state.sessions,
           [sessionId]: {
-            ...session!,
+            ...session,
             isStreaming: false,
             error: { message: error, details },
             retry: null,
@@ -352,16 +352,14 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
     set((state) => {
       const session = getSession(state.sessions, sessionId);
       if (!guardMessage(session, messageId)) return state;
-      return { sessions: { ...state.sessions, [sessionId]: { ...session!, retry } } };
+      return { sessions: { ...state.sessions, [sessionId]: { ...session, retry } } };
     }),
 
   doomLoopDetected: (sessionId, messageId, toolName, consecutiveCount) =>
     set((state) => {
       const session = getSession(state.sessions, sessionId);
       if (!guardMessage(session, messageId)) return state;
-      return {
-        sessions: { ...state.sessions, [sessionId]: { ...session!, doomLoop: { toolName, consecutiveCount } } },
-      };
+      return { sessions: { ...state.sessions, [sessionId]: { ...session, doomLoop: { toolName, consecutiveCount } } } };
     }),
 
   resetSession: (sessionId) =>

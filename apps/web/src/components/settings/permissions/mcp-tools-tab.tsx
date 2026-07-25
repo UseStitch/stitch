@@ -47,8 +47,8 @@ export function useMcpToolsetGroups(
     }
 
     return Array.from(groups.values())
-      .map((group) => ({ ...group, tools: group.tools.sort((a, b) => a.displayName.localeCompare(b.displayName)) }))
-      .sort((a, b) => a.serverName.localeCompare(b.serverName));
+      .map((group) => ({ ...group, tools: group.tools.toSorted((a, b) => a.displayName.localeCompare(b.displayName)) }))
+      .toSorted((a, b) => a.serverName.localeCompare(b.serverName));
   }, [knownTools, mcpToolMetaByName]);
 }
 

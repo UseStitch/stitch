@@ -48,7 +48,8 @@ export function SessionPageHeader({
   const { setRenameSessionOpen } = useDialogContext();
   const { data: session } = useSuspenseQuery(sessionQueryOptions(sessionId));
 
-  const isChildSession = session.parentSessionId !== null;
+  const parentSessionId = session.parentSessionId;
+  const isChildSession = parentSessionId !== null;
 
   return (
     <header className="border-b border-border/60 bg-muted/40">
@@ -57,7 +58,7 @@ export function SessionPageHeader({
           {isChildSession ? (
             <Link
               to="/session/$id"
-              params={{ id: session.parentSessionId! }}
+              params={{ id: parentSessionId }}
               className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
               <ArrowLeftIcon className="size-4" />
               <span className="hidden sm:inline">Back to parent</span>

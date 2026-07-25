@@ -24,7 +24,7 @@ type SttUsageCostChartProps = { usageData: SttUsageDashboardResponse | undefined
 
 export function SttUsageCostChart({ usageData }: SttUsageCostChartProps) {
   const services = React.useMemo(
-    () => [...(usageData?.services ?? [])].sort((a, b) => a.localeCompare(b)),
+    () => [...(usageData?.services ?? [])].toSorted((a, b) => a.localeCompare(b)),
     [usageData?.services],
   );
   const labels = usageData?.buckets.map((b) => b.label) ?? [];

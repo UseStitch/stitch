@@ -12,7 +12,7 @@ import { useShortcuts } from '@/lib/shortcuts';
 
 const LEADER_PREFIX = 'LEADER+';
 
-const defaultLeaderKey = SETTINGS_DEFAULTS.find((s) => s.key === 'shortcuts.leaderKey')!.value;
+const defaultLeaderKey = SETTINGS_DEFAULTS.find((s) => s.key === 'shortcuts.leaderKey')?.value ?? 'Mod+X';
 const defaultShortcutHotkeys = new Map(SHORTCUT_DEFAULTS.map((shortcut) => [shortcut.actionId, shortcut.hotkey]));
 
 function getDefaultShortcutHotkey(actionId: ShortcutActionId): string | null {

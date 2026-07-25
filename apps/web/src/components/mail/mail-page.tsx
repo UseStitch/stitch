@@ -51,9 +51,12 @@ function MailPageContent({
   const [selectedThreadId, setSelectedThreadId] = React.useState<MailThreadId | null>(null);
   const [composerOpen, setComposerOpen] = React.useState(false);
 
-  React.useEffect(() => {
+  const scope = `${accountId}:${labelId}`;
+  const [previousScope, setPreviousScope] = React.useState(scope);
+  if (previousScope !== scope) {
+    setPreviousScope(scope);
     setSelectedThreadId(null);
-  }, [accountId, labelId]);
+  }
 
   return (
     <div className="flex h-full min-h-0 bg-background">

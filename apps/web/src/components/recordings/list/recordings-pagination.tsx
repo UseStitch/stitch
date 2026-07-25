@@ -25,7 +25,7 @@ function getPageNumbers(currentPage: number, pageCount: number): number[] {
     pages.add(index);
   }
 
-  return [...pages].sort((a, b) => a - b);
+  return [...pages].toSorted((a, b) => a - b);
 }
 
 export function RecordingsPagination({

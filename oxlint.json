@@ -1,25 +1,68 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["unicorn", "typescript", "oxc", "import", "react"],
+  "plugins": ["unicorn", "typescript", "oxc", "import", "react", "jsx-a11y"],
   "jsPlugins": [{ "name": "stitch", "specifier": "./tools/oxlint-plugins/index.mjs" }],
   "options": { "typeAware": true },
   "rules": {
     "unicorn/no-useless-fallback-in-spread": "error",
+    "unicorn/prefer-set-has": "error",
+    "unicorn/no-array-sort": "error",
     "no-unused-vars": "error",
     "eqeqeq": "error",
     "typescript/no-unnecessary-type-assertion": "error",
     "typescript/no-floating-promises": "error",
+    "typescript/no-non-null-assertion": "error",
     "import/no-dynamic-require": ["error", { "esmodule": true }],
     "react/jsx-key": "error",
     "react/no-direct-mutation-state": "error",
+    "react/no-danger": "error",
     "react/no-danger-with-children": "error",
     "react/jsx-no-duplicate-props": "error",
     "react/jsx-no-target-blank": "error",
+    "react/jsx-no-constructed-context-values": "error",
+    "react/no-array-index-key": "error",
+    "react/no-unstable-nested-components": "error",
+    "react/button-has-type": "error",
     "react/react-in-jsx-scope": "off",
     "react/rules-of-hooks": "error",
     "react/exhaustive-deps": "error",
+    "react/react-compiler": "error",
+    "jsx-a11y/anchor-has-content": "error",
+    "jsx-a11y/control-has-associated-label": "error",
+    "jsx-a11y/label-has-associated-control": "error",
+    "jsx-a11y/no-autofocus": "error",
+    "jsx-a11y/no-redundant-roles": "error",
     "stitch/no-collapsible-if": "error"
   },
+  "overrides": [
+    {
+      "files": [
+        "apps/web/src/components/automations/automation-runs-table.tsx",
+        "apps/web/src/components/automations/automations-table.tsx",
+        "apps/web/src/components/chat/message-list.tsx",
+        "apps/web/src/components/mail/thread-list.tsx",
+        "apps/web/src/components/recordings/analysis/transcript-sidebar.tsx",
+        "apps/web/src/components/recordings/list/recordings-table.tsx"
+      ],
+      "rules": { "react/react-compiler": "off" }
+    },
+    {
+      "files": [
+        "apps/web/src/components/ui/button-group.tsx",
+        "apps/web/src/components/ui/input-group.tsx",
+        "apps/web/src/components/ui/textarea-completions.tsx"
+      ],
+      "rules": { "jsx-a11y/prefer-tag-over-role": "off" }
+    },
+    { "files": ["apps/web/src/components/ui/label.tsx"], "rules": { "jsx-a11y/label-has-associated-control": "off" } },
+    {
+      "files": ["apps/web/src/components/ui/input-group.tsx"],
+      "rules": {
+        "jsx-a11y/click-events-have-key-events": "off",
+        "jsx-a11y/no-noninteractive-element-interactions": "off"
+      }
+    }
+  ],
   "ignorePatterns": ["node_modules", "dist", "out", "dist-electron", ".turbo"],
   "env": { "browser": true, "node": true, "es2022": true }
 }

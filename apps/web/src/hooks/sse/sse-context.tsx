@@ -129,10 +129,12 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
     const entries = Object.entries(handlers) as [SseEventName, AnyHandler][];
 
     entries.forEach(([eventName, handler]) => {
-      if (!handlersRef.current.has(eventName)) {
-        handlersRef.current.set(eventName, new Set());
+      let eventHandlers = handlersRef.current.get(eventName);
+      if (!eventHandlers) {
+        eventHandlers = new Set();
+        handlersRef.current.set(eventName, eventHandlers);
       }
-      handlersRef.current.get(eventName)!.add(handler);
+      eventHandlers.add(handler);
     });
 
     return () => {
@@ -142,7 +144,9 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  return <SseContext.Provider value={{ status, lastHeartbeat, subscribe }}>{children}</SseContext.Provider>;
+  const value = React.useMemo(() => ({ status, lastHeartbeat, subscribe }), [status, lastHeartbeat, subscribe]);
+
+  return <SseContext.Provider value={value}>{children}</SseContext.Provider>;
 }
 
 function useSseContext(): SseContextValue {
@@ -157,8 +161,12 @@ export function useSSE(handlers: SseHandlers = {}): UseSseResult {
   const { status, lastHeartbeat, subscribe } = useSseContext();
 
   // Stable ref so the subscribe effect only runs once per mount, not on every render.
+  // Synced in a layout effect so the latest handlers are in place before the browser
+  // can deliver another SSE message.
   const handlersRef = React.useRef(handlers);
-  handlersRef.current = handlers;
+  React.useLayoutEffect(() => {
+    handlersRef.current = handlers;
+  });
 
   // Capture event names on mount for stable useEffect dependencies
   const [eventNames] = React.useState(() => Object.keys(handlers) as SseEventName[]);
@@ -189,10 +197,11 @@ export function useSessionEvents(
   const { subscribe } = useSseContext();
 
   const handlersRef = React.useRef(handlers);
-  handlersRef.current = handlers;
-
   const sessionIdRef = React.useRef(sessionId);
-  sessionIdRef.current = sessionId;
+  React.useLayoutEffect(() => {
+    handlersRef.current = handlers;
+    sessionIdRef.current = sessionId;
+  });
 
   const [eventNames] = React.useState(() => Object.keys(handlers) as SessionScopedName[]);
 
@@ -222,10 +231,11 @@ export function useRecordingEvents(
   const { subscribe } = useSseContext();
 
   const handlersRef = React.useRef(handlers);
-  handlersRef.current = handlers;
-
   const recordingIdRef = React.useRef(recordingId);
-  recordingIdRef.current = recordingId;
+  React.useLayoutEffect(() => {
+    handlersRef.current = handlers;
+    recordingIdRef.current = recordingId;
+  });
 
   const [eventNames] = React.useState(() => Object.keys(handlers) as RecordingScopedName[]);
 

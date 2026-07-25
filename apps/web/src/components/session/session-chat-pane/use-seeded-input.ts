@@ -3,8 +3,8 @@ import * as React from 'react';
 import { consumeNextSessionInputSeed, getTransitionSeedClearDelayMs } from '@/lib/chat-input-transition-seed';
 
 export function useSeededInput() {
-  const seedTextRef = React.useRef(consumeNextSessionInputSeed());
-  const [value, setValue] = React.useState(seedTextRef.current);
+  const [value, setValue] = React.useState(consumeNextSessionInputSeed);
+  const seedTextRef = React.useRef(value);
 
   React.useEffect(() => {
     const seedText = seedTextRef.current;

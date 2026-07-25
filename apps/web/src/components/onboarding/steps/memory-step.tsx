@@ -43,15 +43,15 @@ export function MemoryStep({ onComplete, onBackToProviders }: Props) {
 
   const modelOptions = React.useMemo(() => buildModelOptions(providerModels), [providerModels]);
 
-  const [selectedValue, setSelectedValue] = React.useState<string>('');
+  const [chosenValue, setChosenValue] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    if (!settings || modelOptions.length === 0) return;
-
-    const existingValue = `${settings['memory.embedding.providerId']}:${settings['memory.embedding.modelId']}`;
-    const hasExisting = modelOptions.some((option) => option.value === existingValue);
-    setSelectedValue(hasExisting ? existingValue : modelOptions[0].value);
-  }, [modelOptions, settings]);
+  const existingValue = settings
+    ? `${settings['memory.embedding.providerId']}:${settings['memory.embedding.modelId']}`
+    : '';
+  const defaultValue = modelOptions.some((option) => option.value === existingValue)
+    ? existingValue
+    : (modelOptions[0]?.value ?? '');
+  const selectedValue = chosenValue ?? defaultValue;
 
   if (!settings || !providerModels) {
     return <div className="text-sm text-muted-foreground">Loading memory settings...</div>;
@@ -91,7 +91,7 @@ export function MemoryStep({ onComplete, onBackToProviders }: Props) {
       {hasModels ? (
         <div className="space-y-2">
           <Label htmlFor="onboarding-memory-model">Embedding model</Label>
-          <Select value={selectedValue} onValueChange={(value) => setSelectedValue(value ?? '')}>
+          <Select value={selectedValue} onValueChange={(value) => setChosenValue(value ?? '')}>
             <SelectTrigger id="onboarding-memory-model" className="w-full">
               <SelectValue placeholder="Select an embedding model">{selectedOption?.label}</SelectValue>
             </SelectTrigger>

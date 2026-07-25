@@ -22,7 +22,7 @@ export function EmbeddingUsageCostChart({ usageData }: EmbeddingUsageCostChartPr
         keys.add(key);
       }
     }
-    return Array.from(keys).sort((a, b) => a.localeCompare(b));
+    return Array.from(keys).toSorted((a, b) => a.localeCompare(b));
   }, [usageData?.buckets]);
 
   const labels = usageData?.buckets.map((b) => b.label) ?? [];

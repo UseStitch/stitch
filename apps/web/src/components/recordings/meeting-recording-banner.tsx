@@ -37,7 +37,9 @@ export function RecordingEventListener() {
   const stopRecording = useStopRecording();
 
   const stopRecordingRef = React.useRef(stopRecording);
-  stopRecordingRef.current = stopRecording;
+  React.useEffect(() => {
+    stopRecordingRef.current = stopRecording;
+  }, [stopRecording]);
 
   React.useEffect(() => {
     const unsubscribeWarning = window.api?.recording?.onWarning((payload) => {
@@ -95,10 +97,11 @@ export function MeetingRecordingBanner() {
       : null;
 
   const activeRecordingIdRef = React.useRef(activeRecordingId);
-  activeRecordingIdRef.current = activeRecordingId;
-
   const dismissedKeysRef = React.useRef(dismissedKeys);
-  dismissedKeysRef.current = dismissedKeys;
+  React.useEffect(() => {
+    activeRecordingIdRef.current = activeRecordingId;
+    dismissedKeysRef.current = dismissedKeys;
+  }, [activeRecordingId, dismissedKeys]);
 
   function dismissMeeting(key: string): void {
     setDismissedKeys((current) => {
@@ -167,11 +170,13 @@ export function MeetingRecordingBanner() {
     };
   }, []);
 
-  React.useEffect(() => {
+  const [previousActiveRecordingId, setPreviousActiveRecordingId] = React.useState(activeRecordingId);
+  if (previousActiveRecordingId !== activeRecordingId) {
+    setPreviousActiveRecordingId(activeRecordingId);
     if (activeRecordingId) {
       setDetection(null);
     }
-  }, [activeRecordingId]);
+  }
 
   if (data === undefined || !detection || activeRecordingId) {
     return null;
