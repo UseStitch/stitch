@@ -16,6 +16,7 @@ import {
 } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Empty, EmptyDescription, EmptyTitle } from '@/components/ui/empty';
 import { FieldError, fieldErrorMessage } from '@/components/ui/field-error';
 import { Input } from '@/components/ui/input';
@@ -217,6 +218,7 @@ export function SkillsSettings() {
   const { data: skills } = useSuspenseQuery(skillsQueryOptions);
   const deleteSkill = useDeleteSkill();
   const [view, setView] = React.useState<SkillView>({ type: 'list' });
+  const [pendingDelete, setPendingDelete] = React.useState<Skill | null>(null);
 
   function handleAdd() {
     setView({ type: 'editor', skill: null });
@@ -227,9 +229,13 @@ export function SkillsSettings() {
   }
 
   function handleDelete(skill: Skill) {
-    const confirmed = window.confirm(`Delete skill "${skill.name}"?`);
-    if (!confirmed) return;
-    deleteSkill.mutate(skill.name);
+    setPendingDelete(skill);
+  }
+
+  function handleConfirmDelete() {
+    if (!pendingDelete) return;
+    deleteSkill.mutate(pendingDelete.name);
+    setPendingDelete(null);
   }
 
   if (view.type === 'editor') {
@@ -295,6 +301,14 @@ export function SkillsSettings() {
           </SettingRows>
         </SettingSection>
       )}
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => !open && setPendingDelete(null)}
+        title="Delete skill?"
+        description={`Delete skill "${pendingDelete?.name}"? This action cannot be undone.`}
+        onConfirm={handleConfirmDelete}
+        isPending={deleteSkill.isPending}
+      />
     </SettingPage>
   );
 }
