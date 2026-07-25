@@ -48,6 +48,7 @@
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/eslint-plugin-query": "^5.101.4",
+    "@tanstack/eslint-plugin-router": "^1.162.0",
     "@tanstack/router-plugin": "1.166.7",
     "@types/bun": "catalog:",
     "@types/react": "19.2.14",
