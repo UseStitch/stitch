@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server';
 import { createNodeWebSocket } from '@hono/node-ws';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { Server as HttpServer } from 'node:http';
 
 import { init } from '@/init.js';
 import * as Log from '@/lib/log.js';
@@ -30,6 +31,8 @@ import { usageRouter } from '@/routes/usage.js';
 import { registerShutdownHandlers } from '@/shutdown.js';
 import { initSttAdapters } from '@/stt/init.js';
 import { createSttRouter } from '@/stt/route.js';
+
+const SOCKET_KEEPALIVE_DELAY_MS = 15_000;
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -87,4 +90,15 @@ await init();
 const server = serve({ fetch: app.fetch, port, hostname }, (info) => {
   log.info({ address: info.address, port: info.port }, 'server ready');
 });
+
+if (server instanceof HttpServer) {
+  // Long-lived SSE streams sit idle between events, so a peer that vanishes
+  // without a TCP FIN (sleep, network switch) would otherwise linger for the OS
+  // default (2h on Windows). Socket keepalive makes the kernel reap it, which
+  // closes the response and lets the SSE adapter drop the connection.
+  server.on('connection', (socket) => {
+    socket.setKeepAlive(true, SOCKET_KEEPALIVE_DELAY_MS);
+  });
+}
+
 nodeWebSocket.injectWebSocket(server);

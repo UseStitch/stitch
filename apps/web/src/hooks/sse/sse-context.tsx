@@ -1,12 +1,14 @@
 import * as React from 'react';
 
 import {
-  SSE_EVENT_NAMES,
+  type SseConnectionStatus,
   type SseEventName,
   type SseEventPayloadMap,
   type SseHandlers,
   type UseSseResult,
 } from '@stitch/shared/realtime';
+
+import { createSseConnection } from './sse-connection';
 
 type SessionScopedName = {
   [K in SseEventName]: SseEventPayloadMap[K] extends { sessionId: string }
@@ -23,7 +25,7 @@ type RecordingScopedName = {
 }[SseEventName];
 
 type SseContextValue = {
-  isConnected: boolean;
+  status: SseConnectionStatus;
   lastHeartbeat: Date | null;
   subscribe: (handlers: SseHandlers) => () => void;
 };
@@ -36,21 +38,6 @@ function parseJson(raw: string): unknown {
   } catch {
     return raw;
   }
-}
-
-// Heartbeat uses runtime fallback to Date.now() for connection health monitoring
-function parseEventData<K extends SseEventName>(eventName: K, raw: string): SseEventPayloadMap[K] {
-  if (eventName === 'heartbeat') {
-    const parsed = parseJson(raw);
-
-    if (typeof parsed === 'object' && parsed && 'ts' in parsed && typeof parsed.ts === 'number') {
-      return { ts: parsed.ts } as SseEventPayloadMap[K];
-    }
-
-    return { ts: Date.now() } as SseEventPayloadMap[K];
-  }
-
-  return parseJson(raw) as SseEventPayloadMap[K];
 }
 
 type AnyHandler = (data: never) => void;
@@ -98,68 +85,45 @@ function getRecordingIdFromPayload(eventName: SseEventName, payload: unknown): s
 }
 
 export function SseProvider({ children }: { children: React.ReactNode }) {
-  const [isConnected, setIsConnected] = React.useState(false);
+  const [status, setStatus] = React.useState<SseConnectionStatus>('connecting');
   const [lastHeartbeat, setLastHeartbeat] = React.useState<Date | null>(null);
-  const [connectionVersion, setConnectionVersion] = React.useState(0);
 
   // Map from event name → set of handlers so multiple subscribers can coexist per event.
   const handlersRef = React.useRef<Map<SseEventName, Set<AnyHandler>>>(new Map());
 
   React.useEffect(() => {
-    const reconnect = () => setConnectionVersion((version) => version + 1);
+    const connection = createSseConnection({
+      getUrl: async () => {
+        const { getServerUrl } = await import('@/lib/api');
+        return getServerUrl();
+      },
+      onStatus: setStatus,
+      onEvent: (eventName, raw) => {
+        // Stamped on arrival rather than from the server's `ts`, so the value stays
+        // meaningful for remote servers whose clock is skewed from the client's.
+        if (eventName === 'heartbeat') setLastHeartbeat(new Date());
+
+        const payload = parseJson(raw) as never;
+        handlersRef.current.get(eventName)?.forEach((handler) => handler(payload));
+      },
+    });
+
+    // On wake or network recovery, re-check liveness immediately instead of
+    // waiting for the next watchdog tick.
+    const poke = () => connection.poke();
+    const reconnect = () => connection.reconnect();
+
+    document.addEventListener('visibilitychange', poke);
+    window.addEventListener('online', poke);
     window.addEventListener('server-config-changed', reconnect);
-    return () => window.removeEventListener('server-config-changed', reconnect);
-  }, []);
-
-  React.useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        setConnectionVersion((version) => version + 1);
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
-
-  React.useEffect(() => {
-    let eventSource: EventSource | null = null;
-    let cancelled = false;
-
-    const initEventSource = async () => {
-      const { getServerUrl } = await import('@/lib/api');
-      const baseUrl = await getServerUrl();
-
-      if (cancelled) return;
-
-      eventSource = new EventSource(`${baseUrl}/events`);
-
-      eventSource.onopen = () => setIsConnected(true);
-      eventSource.onerror = () => setIsConnected(false);
-
-      SSE_EVENT_NAMES.forEach((eventName) => {
-        eventSource!.addEventListener(eventName, (e) => {
-          if (eventName === 'heartbeat') {
-            const payload = parseEventData('heartbeat', e.data);
-            setLastHeartbeat(new Date(payload.ts));
-            handlersRef.current.get('heartbeat')?.forEach((h) => h(payload as never));
-            return;
-          }
-
-          const payload = parseEventData(eventName, e.data);
-          const castedPayload = payload as never;
-          handlersRef.current.get(eventName)?.forEach((h) => h(castedPayload));
-        });
-      });
-    };
-
-    void initEventSource();
 
     return () => {
-      cancelled = true;
-      eventSource?.close();
-      setIsConnected(false);
+      document.removeEventListener('visibilitychange', poke);
+      window.removeEventListener('online', poke);
+      window.removeEventListener('server-config-changed', reconnect);
+      connection.close();
     };
-  }, [connectionVersion]);
+  }, []);
 
   const subscribe = React.useCallback((handlers: SseHandlers) => {
     const entries = Object.entries(handlers) as [SseEventName, AnyHandler][];
@@ -178,7 +142,7 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  return <SseContext.Provider value={{ isConnected, lastHeartbeat, subscribe }}>{children}</SseContext.Provider>;
+  return <SseContext.Provider value={{ status, lastHeartbeat, subscribe }}>{children}</SseContext.Provider>;
 }
 
 function useSseContext(): SseContextValue {
@@ -190,7 +154,7 @@ function useSseContext(): SseContextValue {
 }
 
 export function useSSE(handlers: SseHandlers = {}): UseSseResult {
-  const { isConnected, lastHeartbeat, subscribe } = useSseContext();
+  const { status, lastHeartbeat, subscribe } = useSseContext();
 
   // Stable ref so the subscribe effect only runs once per mount, not on every render.
   const handlersRef = React.useRef(handlers);
@@ -215,7 +179,7 @@ export function useSSE(handlers: SseHandlers = {}): UseSseResult {
     return subscribe(stableHandlers);
   }, [subscribe, eventNames]);
 
-  return { isConnected, lastHeartbeat };
+  return { status, lastHeartbeat };
 }
 
 export function useSessionEvents(

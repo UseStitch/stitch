@@ -4,8 +4,8 @@ import { streamSSE } from 'hono/streaming';
 import { registerSseConnection, unregisterSseConnection } from '@/adapters/sse.js';
 import * as Log from '@/lib/log.js';
 
-const HEARTBEAT_INTERVAL_MS = 30_000;
-const RECONNECT_DELAY_MS = 10_000;
+const HEARTBEAT_INTERVAL_MS = 15_000;
+const RECONNECT_DELAY_MS = 2_000;
 
 export const eventsRouter = new Hono();
 const log = Log.create({ service: 'events' });
