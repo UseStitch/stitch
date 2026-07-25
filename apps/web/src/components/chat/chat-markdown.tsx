@@ -1,3 +1,4 @@
+import { toJsxRuntime } from 'hast-util-to-jsx-runtime';
 import { CheckIcon, CopyIcon } from 'lucide-react';
 import * as React from 'react';
 import {
@@ -13,12 +14,14 @@ import {
   memo,
 } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { Fragment, jsx, jsxs } from 'react/jsx-runtime';
 import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
 import {
   getHighlighterPromise,
+  type HighlightedCodeHast,
   type SupportedLanguage,
   normalizeLanguage,
   highlightedCodeCache,
@@ -27,7 +30,11 @@ import {
 } from '@/lib/code-highlighting';
 import { normalizeInlineMath } from '@/lib/normalize-inline-math';
 import { cn } from '@/lib/utils';
-import type { Components } from 'react-markdown';
+import type { Components, ExtraProps } from 'react-markdown';
+
+const JSX_RUNTIME = { Fragment, jsx, jsxs };
+
+type MarkdownPreProps = React.ComponentProps<'pre'> & ExtraProps;
 
 interface ChatMarkdownProps {
   text: string;
@@ -129,22 +136,21 @@ interface SuspenseShikiCodeBlockProps {
 function SuspenseShikiCodeBlock({ className, code, isStreaming }: SuspenseShikiCodeBlockProps) {
   const language = extractFenceLanguage(className);
   const cacheKey = createHighlightCacheKey(code, language, 'dual');
-  const cachedHighlightedHtml = !isStreaming ? (highlightedCodeCache.get(cacheKey) ?? null) : null;
+  const cachedHighlightedHast = !isStreaming ? (highlightedCodeCache.get(cacheKey) ?? null) : null;
 
-  if (cachedHighlightedHtml !== null) {
+  if (cachedHighlightedHast !== null) {
     return (
-      <div
-        className="chat-markdown-shiki overflow-x-auto rounded-lg bg-muted/50 p-3 text-sm"
-        dangerouslySetInnerHTML={{ __html: cachedHighlightedHtml }}
-      />
+      <div className="chat-markdown-shiki overflow-x-auto rounded-lg bg-muted/50 p-3 text-sm">
+        {toJsxRuntime(cachedHighlightedHast, JSX_RUNTIME)}
+      </div>
     );
   }
 
   const highlighter = use(getHighlighterPromise(language));
 
-  let highlightedHtml: string;
+  let highlightedHast: HighlightedCodeHast;
   try {
-    highlightedHtml = highlighter.codeToHtml(code, {
+    highlightedHast = highlighter.codeToHast(code, {
       lang: language as SupportedLanguage,
       themes: { light: 'github-light', dark: 'github-dark' },
     });
@@ -153,21 +159,20 @@ function SuspenseShikiCodeBlock({ className, code, isStreaming }: SuspenseShikiC
       `Code highlighting failed for language "${language}", falling back to plain text.`,
       error instanceof Error ? error.message : error,
     );
-    highlightedHtml = highlighter.codeToHtml(code, {
+    highlightedHast = highlighter.codeToHast(code, {
       lang: 'text',
       themes: { light: 'github-light', dark: 'github-dark' },
     });
   }
 
   if (!isStreaming) {
-    highlightedCodeCache.set(cacheKey, highlightedHtml, estimateHighlightedSize(highlightedHtml, code));
+    highlightedCodeCache.set(cacheKey, highlightedHast, estimateHighlightedSize(highlightedHast, code));
   }
 
   return (
-    <div
-      className="chat-markdown-shiki overflow-x-auto rounded-lg bg-muted/50 p-3 text-sm"
-      dangerouslySetInnerHTML={{ __html: highlightedHtml }}
-    />
+    <div className="chat-markdown-shiki overflow-x-auto rounded-lg bg-muted/50 p-3 text-sm">
+      {toJsxRuntime(highlightedHast, JSX_RUNTIME)}
+    </div>
   );
 }
 
@@ -278,7 +283,7 @@ function MarkdownAnchor({ href, children, ...props }: React.AnchorHTMLAttributes
   );
 }
 
-function MarkdownImage(props: React.ImgHTMLAttributes<HTMLImageElement>) {
+function MarkdownImage({ alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
   const [broken, setBroken] = useState(false);
 
   if (broken) {
@@ -289,41 +294,45 @@ function MarkdownImage(props: React.ImgHTMLAttributes<HTMLImageElement>) {
     );
   }
 
-  return <img {...props} onError={() => setBroken(true)} />;
+  return <img {...props} alt={alt ?? ''} onError={() => setBroken(true)} />;
 }
 
+/** Plain `pre` used while streaming — Shiki highlighting is too expensive per token. */
+function StreamingMarkdownPre({ node: _node, children, ...props }: MarkdownPreProps) {
+  const codeBlock = extractCodeBlock(children);
+  if (!codeBlock) {
+    return <pre {...props}>{children}</pre>;
+  }
+
+  return (
+    <MarkdownCodeBlock code={codeBlock.code}>
+      <pre {...props}>{children}</pre>
+    </MarkdownCodeBlock>
+  );
+}
+
+function HighlightedMarkdownPre({ node: _node, children, ...props }: MarkdownPreProps) {
+  const codeBlock = extractCodeBlock(children);
+  if (!codeBlock) {
+    return <pre {...props}>{children}</pre>;
+  }
+
+  return (
+    <MarkdownCodeBlock code={codeBlock.code}>
+      <CodeBlockErrorBoundary fallback={<pre {...props}>{children}</pre>}>
+        <Suspense fallback={<pre {...props}>{children}</pre>}>
+          <SuspenseShikiCodeBlock className={codeBlock.className} code={codeBlock.code} isStreaming={false} />
+        </Suspense>
+      </CodeBlockErrorBoundary>
+    </MarkdownCodeBlock>
+  );
+}
+
+const STREAMING_COMPONENTS: Components = { img: MarkdownImage, a: MarkdownAnchor, pre: StreamingMarkdownPre };
+const HIGHLIGHTED_COMPONENTS: Components = { img: MarkdownImage, a: MarkdownAnchor, pre: HighlightedMarkdownPre };
+
 function ChatMarkdown({ text, className, isStreaming = false }: ChatMarkdownProps) {
-  const markdownComponents = useMemo<Components>(() => {
-    return {
-      img: MarkdownImage,
-      a: MarkdownAnchor,
-      pre({ node: _node, children, ...props }) {
-        const codeBlock = extractCodeBlock(children);
-        if (!codeBlock) {
-          return <pre {...props}>{children}</pre>;
-        }
-
-        // During streaming: skip Shiki (expensive async highlighting) — plain pre
-        if (isStreaming) {
-          return (
-            <MarkdownCodeBlock code={codeBlock.code}>
-              <pre {...props}>{children}</pre>
-            </MarkdownCodeBlock>
-          );
-        }
-
-        return (
-          <MarkdownCodeBlock code={codeBlock.code}>
-            <CodeBlockErrorBoundary fallback={<pre {...props}>{children}</pre>}>
-              <Suspense fallback={<pre {...props}>{children}</pre>}>
-                <SuspenseShikiCodeBlock className={codeBlock.className} code={codeBlock.code} isStreaming={false} />
-              </Suspense>
-            </CodeBlockErrorBoundary>
-          </MarkdownCodeBlock>
-        );
-      },
-    };
-  }, [isStreaming]);
+  const markdownComponents = isStreaming ? STREAMING_COMPONENTS : HIGHLIGHTED_COMPONENTS;
 
   // During streaming: use remarkGfm only — skip remark-math + rehype-katex (heavy)
   const remarkPlugins = useMemo(() => {

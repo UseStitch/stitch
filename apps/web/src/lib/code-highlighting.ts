@@ -1,4 +1,6 @@
-import type { BundledLanguage } from 'shiki';
+import type { BundledLanguage, Highlighter } from 'shiki';
+
+export type HighlightedCodeHast = ReturnType<Highlighter['codeToHast']>;
 
 interface LRUEntry<T> {
   value: T;
@@ -49,7 +51,10 @@ class LRUCache<T> {
 const MAX_HIGHLIGHT_CACHE_ENTRIES = 500;
 const MAX_HIGHLIGHT_CACHE_MEMORY_BYTES = 50 * 1024 * 1024;
 
-const _highlightedCodeCache = new LRUCache<string>(MAX_HIGHLIGHT_CACHE_ENTRIES, MAX_HIGHLIGHT_CACHE_MEMORY_BYTES);
+const _highlightedCodeCache = new LRUCache<HighlightedCodeHast>(
+  MAX_HIGHLIGHT_CACHE_ENTRIES,
+  MAX_HIGHLIGHT_CACHE_MEMORY_BYTES,
+);
 
 export const highlightedCodeCache = _highlightedCodeCache;
 
@@ -63,8 +68,8 @@ export function createHighlightCacheKey(code: string, language: string, themeNam
   return `${Math.abs(hash).toString(36)}:${code.length}:${language}:${themeName}`;
 }
 
-export function estimateHighlightedSize(html: string, code: string): number {
-  return Math.max(html.length * 2, code.length * 3);
+export function estimateHighlightedSize(hast: HighlightedCodeHast, code: string): number {
+  return Math.max(JSON.stringify(hast).length * 2, code.length * 3);
 }
 
 export type SupportedLanguage = BundledLanguage | 'text';
