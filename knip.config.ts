@@ -35,6 +35,7 @@ const config: KnipConfig = {
     'oxlint',
     'oxlint-tsgolint',
     '@tanstack/eslint-plugin-query',
+    '@tanstack/eslint-plugin-router',
     // Referenced via CSS @import / @plugin in apps/web/src/styles/global.css, not TS imports
     'katex',
     'shadcn',
