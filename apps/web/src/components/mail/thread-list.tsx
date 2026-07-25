@@ -62,8 +62,10 @@ function ThreadRow({ thread, active, onClick }: { thread: MailThreadListItem; ac
 export function ThreadList({ accountId, labelId, selectedThreadId, onSelectThread }: ThreadListProps) {
   const parentRef = React.useRef<HTMLDivElement>(null);
   const loadMoreRef = React.useRef<HTMLDivElement>(null);
-  const query = useSuspenseInfiniteQuery(mailThreadsInfiniteQueryOptions(accountId, labelId));
-  const threads = query.data.pages.flatMap((page) => page.threads);
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useSuspenseInfiniteQuery(
+    mailThreadsInfiniteQueryOptions(accountId, labelId),
+  );
+  const threads = data.pages.flatMap((page) => page.threads);
   const rowVirtualizer = useVirtualizer({
     count: threads.length,
     getScrollElement: () => parentRef.current,
@@ -73,14 +75,14 @@ export function ThreadList({ accountId, labelId, selectedThreadId, onSelectThrea
 
   React.useEffect(() => {
     const el = loadMoreRef.current;
-    if (!el || !query.hasNextPage || query.isFetchingNextPage) return;
+    if (!el || !hasNextPage || isFetchingNextPage) return;
 
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0]?.isIntersecting) void query.fetchNextPage();
+      if (entries[0]?.isIntersecting) void fetchNextPage();
     });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [query]);
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   if (threads.length === 0) {
     return <div className="p-4 text-sm text-muted-foreground">No messages in this label.</div>;
@@ -110,13 +112,9 @@ export function ThreadList({ accountId, labelId, selectedThreadId, onSelectThrea
         })}
       </div>
       <div ref={loadMoreRef} className="flex justify-center p-3">
-        {query.hasNextPage ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={query.isFetchingNextPage}
-            onClick={() => void query.fetchNextPage()}>
-            {query.isFetchingNextPage ? 'Loading…' : 'Load more'}
+        {hasNextPage ? (
+          <Button variant="ghost" size="sm" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>
+            {isFetchingNextPage ? 'Loading…' : 'Load more'}
           </Button>
         ) : null}
       </div>
