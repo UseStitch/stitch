@@ -1,14 +1,21 @@
 import * as React from 'react';
+import { z } from 'zod';
 
+import { useForm } from '@tanstack/react-form';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
-import { PROVIDER_IDS, isLocalProviderId, type LocalProviderId, type ProviderId } from '@stitch/shared/providers/types';
+import {
+  PROVIDER_IDS,
+  isLocalProviderId,
+  type FieldDef,
+  type LocalProviderId,
+  type ProviderId,
+} from '@stitch/shared/providers/types';
 import { validateBaseURL } from '@stitch/shared/providers/validation';
 
 import { ProviderLogo } from './provider-logo';
 
-import { FieldGroup, NoFieldsNote } from '@/components/settings/providers/field-group';
 import { LocalModelsPanel } from '@/components/settings/providers/local-models-panel';
 import {
   buildProviderConfigBody,
@@ -19,6 +26,10 @@ import {
 import { SettingSubPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
+import { FieldError, fieldErrorMessage } from '@/components/ui/field-error';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StatusDot } from '@/components/ui/status-dot';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDeleteProviderConfigMutation, useSaveProviderConfigMutation } from '@/lib/mutations/provider-config';
@@ -32,6 +43,41 @@ type Props = {
   onSaved?: () => void;
   showDisconnect?: boolean;
 };
+
+type ProviderFormState = { fieldsByMethod: Record<string, FieldValues>; extraFields: FieldValues };
+
+const EMPTY_PROVIDER_FORM: ProviderFormState = { fieldsByMethod: {}, extraFields: {} };
+
+function createProviderConfigSchema(extraFields: FieldDef[], method: string, methodFields: FieldDef[]) {
+  return z
+    .object({
+      fieldsByMethod: z.record(z.string(), z.record(z.string(), z.string())),
+      extraFields: z.record(z.string(), z.string()),
+    })
+    .superRefine((value, context) => {
+      for (const field of extraFields) {
+        const fieldValue = value.extraFields[field.key];
+        if (field.required && !fieldValue) {
+          context.addIssue({ code: 'custom', message: `${field.label} is required`, path: ['extraFields', field.key] });
+        } else if (field.format === 'url' && fieldValue) {
+          const result = validateBaseURL(fieldValue);
+          if (!result.valid) {
+            context.addIssue({ code: 'custom', message: result.reason, path: ['extraFields', field.key] });
+          }
+        }
+      }
+
+      for (const field of methodFields) {
+        if (field.required && !value.fieldsByMethod[method]?.[field.key]) {
+          context.addIssue({
+            code: 'custom',
+            message: `${field.label} is required`,
+            path: ['fieldsByMethod', method, field.key],
+          });
+        }
+      }
+    });
+}
 
 function LocalProviderStatusBadge({ provider }: { provider: LocalProviderId }) {
   const { data } = useQuery(localProviderHealthQueryOptions(provider));
@@ -52,6 +98,35 @@ function LocalProviderStatusBadge({ provider }: { provider: LocalProviderId }) {
   );
 }
 
+function NoFieldsNote({ method }: { method: string }) {
+  if (method === 'adc') {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Uses Application Default Credentials from your environment. No additional configuration needed.
+      </p>
+    );
+  }
+
+  if (method === 'credential-provider') {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Uses the AWS credential provider chain (environment variables, shared credentials file, IAM role, etc.). No
+        additional configuration needed.
+      </p>
+    );
+  }
+
+  if (method === 'none') {
+    return (
+      <p className="text-sm text-muted-foreground">
+        No authentication required. Ollama runs locally and does not need an API key.
+      </p>
+    );
+  }
+
+  return null;
+}
+
 export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, showDisconnect = true }: Props) {
   const meta = (PROVIDER_IDS as readonly string[]).includes(provider.id)
     ? PROVIDER_META[provider.id as ProviderId]
@@ -64,23 +139,15 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
   const defaultMethod = resolveDefaultAuthMethod(existingMethod, enabledAuthMethods);
 
   const [activeTab, setActiveTab] = React.useState(defaultMethod);
-  const [fieldsByMethod, setFieldsByMethod] = React.useState<Record<string, FieldValues>>({});
-  const [extraFields, setExtraFields] = React.useState<FieldValues>({});
-  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
-  const [hydratedConfig, setHydratedConfig] = React.useState<typeof existingConfig>(undefined);
-
-  if (existingConfig && meta && hydratedConfig !== existingConfig) {
-    const hydrated = hydrateProviderConfigState(existingConfig as Record<string, unknown>, enabledAuthMethods);
-    const activeMethod = hydrated.activeMethod;
-    if (activeMethod) {
-      setActiveTab(activeMethod);
-      setFieldsByMethod((prev) => ({ ...prev, [activeMethod]: hydrated.authFields }));
-    } else if (enabledAuthMethods[0]?.method) {
-      setActiveTab(enabledAuthMethods[0].method);
-    }
-    setExtraFields(hydrated.extraFields);
-    setHydratedConfig(existingConfig);
-  }
+  const hydrationRef = React.useRef<{ providerId: string; enabled: boolean; hydrated: boolean } | null>(null);
+  const activeMethodFields = React.useMemo(
+    () => enabledAuthMethods.find((method) => method.method === activeTab)?.fields ?? [],
+    [activeTab, enabledAuthMethods],
+  );
+  const providerConfigSchema = React.useMemo(
+    () => createProviderConfigSchema(meta?.extraFields ?? [], activeTab, activeMethodFields),
+    [activeMethodFields, activeTab, meta?.extraFields],
+  );
 
   const saveMutation = useSaveProviderConfigMutation({
     providerId: provider.id,
@@ -88,8 +155,7 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
     successMessage: `${meta?.displayName ?? 'Provider'} connected`,
     errorMessage: 'Failed to save',
     onSuccess: () => {
-      setFieldsByMethod({});
-      setExtraFields({});
+      form.reset();
       onSaved?.();
       onBack();
     },
@@ -101,79 +167,53 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
     successMessage: `${meta?.displayName ?? 'Provider'} disconnected`,
     errorMessage: 'Failed to disconnect',
     onSuccess: () => {
-      setFieldsByMethod({});
-      setExtraFields({});
+      form.reset();
       onBack();
     },
   });
 
-  if (!meta || enabledAuthMethods.length === 0) return null;
-
-  const currentMethodFields = fieldsByMethod[activeTab] ?? {};
-
-  function handleMethodFieldChange(key: string, value: string) {
-    setFieldsByMethod((prev) => ({ ...prev, [activeTab]: { ...prev[activeTab], [key]: value } }));
-    if (fieldErrors[key]) {
-      setFieldErrors((prev) => {
-        const next = { ...prev };
-        delete next[key];
-        return next;
+  const form = useForm({
+    defaultValues: EMPTY_PROVIDER_FORM,
+    validators: { onMount: providerConfigSchema, onChange: providerConfigSchema },
+    onSubmit: ({ value }) => {
+      if (!meta) return;
+      const body = buildProviderConfigBody({
+        activeTab,
+        enabledAuthMethods,
+        currentMethodFields: value.fieldsByMethod[activeTab] ?? {},
+        extraFields: value.extraFields,
+        extraFieldDefs: meta.extraFields,
       });
-    }
-  }
+      saveMutation.mutate(body);
+    },
+  });
 
-  function handleExtraFieldChange(key: string, value: string) {
-    setExtraFields((prev) => ({ ...prev, [key]: value }));
-    if (fieldErrors[key]) {
-      setFieldErrors((prev) => {
-        const next = { ...prev };
-        delete next[key];
-        return next;
-      });
-    }
-  }
+  React.useEffect(() => {
+    if (!meta || enabledAuthMethods.length === 0) return;
 
-  function handleSave() {
-    if (!meta) return;
-
-    const errors: Record<string, string> = {};
-
-    for (const field of meta.extraFields) {
-      const value = extraFields[field.key];
-      if (field.required && !value) {
-        errors[field.key] = `${field.label} is required`;
-      } else if (field.format === 'url' && value) {
-        const result = validateBaseURL(value);
-        if (!result.valid) {
-          errors[field.key] = result.reason;
-        }
-      }
+    const providerChanged =
+      hydrationRef.current?.providerId !== provider.id || hydrationRef.current.enabled !== provider.enabled;
+    if (providerChanged) {
+      setActiveTab(defaultMethod);
+      form.reset(EMPTY_PROVIDER_FORM);
+      hydrationRef.current = { providerId: provider.id, enabled: provider.enabled, hydrated: !provider.enabled };
     }
 
-    const methodDef = enabledAuthMethods.find((m) => m.method === activeTab);
-    if (methodDef) {
-      for (const field of methodDef.fields) {
-        if (field.required && !currentMethodFields[field.key]) {
-          errors[field.key] = `${field.label} is required`;
-        }
-      }
-    }
+    if (hydrationRef.current?.hydrated || existingConfig === undefined) return;
 
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors);
-      return;
-    }
-
-    setFieldErrors({});
-    const body = buildProviderConfigBody({
-      activeTab,
-      enabledAuthMethods,
-      currentMethodFields,
-      extraFields,
-      extraFieldDefs: meta.extraFields,
+    const hydrated = existingConfig
+      ? hydrateProviderConfigState(existingConfig as Record<string, unknown>, enabledAuthMethods)
+      : null;
+    const activeMethod = hydrated?.activeMethod ?? defaultMethod;
+    setActiveTab(activeMethod);
+    form.reset({
+      fieldsByMethod: hydrated?.activeMethod ? { [hydrated.activeMethod]: hydrated.authFields } : {},
+      extraFields: hydrated?.extraFields ?? {},
     });
-    saveMutation.mutate(body);
-  }
+    hydrationRef.current = { providerId: provider.id, enabled: provider.enabled, hydrated: true };
+  }, [defaultMethod, enabledAuthMethods, existingConfig, form, meta, provider.enabled, provider.id]);
+
+  if (!meta || enabledAuthMethods.length === 0) return null;
 
   function handleTabChange(value: string | null) {
     if (value) setActiveTab(value);
@@ -181,6 +221,65 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
 
   const hasMultipleMethods = enabledAuthMethods.length > 1;
   const activeMethodDef = enabledAuthMethods.find((m) => m.method === activeTab);
+
+  function renderFields(fields: FieldDef[], providerId: string, method?: string) {
+    return (
+      <div className="flex flex-col gap-3">
+        {fields.map((fieldDef) => {
+          const name = method
+            ? (`fieldsByMethod.${method}.${fieldDef.key}` as const)
+            : (`extraFields.${fieldDef.key}` as const);
+          return (
+            <form.Field key={fieldDef.key} name={name}>
+              {(field) => (
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor={`${providerId}-${fieldDef.key}`}>
+                    {fieldDef.label}
+                    {!fieldDef.required ? <span className="ml-1 text-xs text-muted-foreground">(optional)</span> : null}
+                  </Label>
+                  {fieldDef.type === 'select' ? (
+                    <Select value={field.state.value ?? ''} onValueChange={(value) => field.handleChange(value || '')}>
+                      <SelectTrigger
+                        id={`${providerId}-${fieldDef.key}`}
+                        className="w-full"
+                        aria-invalid={!!fieldErrorMessage(field.state.meta)}>
+                        <SelectValue placeholder={fieldDef.placeholder}>
+                          {fieldDef.options.find((option) => option.value === field.state.value)?.label ??
+                            field.state.value}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="max-h-80 max-w-none">
+                        {fieldDef.options.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      id={`${providerId}-${fieldDef.key}`}
+                      type={fieldDef.secret ? 'password' : fieldDef.format === 'url' ? 'url' : 'text'}
+                      placeholder={fieldDef.placeholder}
+                      value={field.state.value ?? ''}
+                      aria-invalid={!!fieldErrorMessage(field.state.meta)}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                    />
+                  )}
+                  <FieldError meta={field.state.meta} />
+                </div>
+              )}
+            </form.Field>
+          );
+        })}
+      </div>
+    );
+  }
+
+  function handleSubmit() {
+    void form.handleSubmit();
+  }
 
   return (
     <SettingSubPage
@@ -204,17 +303,9 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
       }>
       {isLocalProviderId(provider.id) && provider.enabled ? (
         <div className="flex flex-1 flex-col gap-5">
-          {meta.extraFields.length > 0 && (
-            <FieldGroup
-              fields={meta.extraFields}
-              providerId={provider.id}
-              values={extraFields}
-              errors={fieldErrors}
-              onChange={handleExtraFieldChange}
-            />
-          )}
+          {meta.extraFields.length > 0 && renderFields(meta.extraFields, provider.id)}
           <ButtonGroup className="pt-1">
-            <Button onClick={handleSave} disabled={saveMutation.isPending} size="sm">
+            <Button onClick={handleSubmit} disabled={saveMutation.isPending} size="sm">
               {saveMutation.isPending ? 'Saving...' : saveLabel}
             </Button>
             {showDisconnect && (
@@ -232,15 +323,7 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
       ) : (
         <div className="flex flex-1 flex-col gap-5">
           {/* Extra top-level fields (region, project, location, etc.) */}
-          {meta.extraFields.length > 0 && (
-            <FieldGroup
-              fields={meta.extraFields}
-              providerId={provider.id}
-              values={extraFields}
-              errors={fieldErrors}
-              onChange={handleExtraFieldChange}
-            />
-          )}
+          {meta.extraFields.length > 0 && renderFields(meta.extraFields, provider.id)}
 
           {/* Auth method section */}
           {hasMultipleMethods ? (
@@ -255,15 +338,7 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
               {enabledAuthMethods.map((m) => (
                 <TabsContent key={m.method} value={m.method} className="mt-4">
                   {m.fields.length > 0 ? (
-                    <FieldGroup
-                      fields={m.fields}
-                      providerId={`${provider.id}-${m.method}`}
-                      values={fieldsByMethod[m.method] ?? {}}
-                      errors={fieldErrors}
-                      onChange={(key, value) =>
-                        setFieldsByMethod((prev) => ({ ...prev, [m.method]: { ...prev[m.method], [key]: value } }))
-                      }
-                    />
+                    renderFields(m.fields, `${provider.id}-${m.method}`, m.method)
                   ) : (
                     <NoFieldsNote method={m.method} />
                   )}
@@ -273,20 +348,14 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
           ) : (
             activeMethodDef &&
             (activeMethodDef.fields.length > 0 ? (
-              <FieldGroup
-                fields={activeMethodDef.fields}
-                providerId={provider.id}
-                values={currentMethodFields}
-                errors={fieldErrors}
-                onChange={handleMethodFieldChange}
-              />
+              renderFields(activeMethodDef.fields, provider.id, activeMethodDef.method)
             ) : (
               <NoFieldsNote method={activeMethodDef.method} />
             ))
           )}
 
           <ButtonGroup className="pt-1">
-            <Button onClick={handleSave} disabled={saveMutation.isPending} size="sm">
+            <Button onClick={handleSubmit} disabled={saveMutation.isPending} size="sm">
               {saveMutation.isPending ? 'Saving...' : saveLabel}
             </Button>
             {showDisconnect && provider.enabled && (

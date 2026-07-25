@@ -8,16 +8,21 @@ const SKILL_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const skillNameSchema = z
   .string()
-  .min(1)
-  .max(64)
+  .trim()
+  .min(1, 'Name is required')
+  .max(64, 'Name must be 64 characters or fewer')
   .regex(
     SKILL_NAME_PATTERN,
     'Use lowercase letters, numbers, and single hyphens only. Do not start or end with a hyphen.',
   );
 
-const skillDescriptionSchema = z.string().trim().min(1).max(1024);
+const skillDescriptionSchema = z
+  .string()
+  .trim()
+  .min(1, 'Description is required')
+  .max(1024, 'Description must be 1024 characters or fewer');
 
-const skillContentSchema = z.string().trim().min(1);
+const skillContentSchema = z.string().trim().min(1, 'Markdown instructions are required');
 
 export const createSkillSchema = z.object({
   name: skillNameSchema,
