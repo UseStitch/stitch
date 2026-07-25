@@ -5,7 +5,7 @@ import { formatClockDuration } from './formatting';
 import { Table } from '@/components/ui/table';
 
 function useDurationTick(): number {
-  const [tick, setTick] = React.useState(Date.now());
+  const [tick, setTick] = React.useState(() => Date.now());
 
   React.useEffect(() => {
     const id = setInterval(() => setTick(Date.now()), 1_000);

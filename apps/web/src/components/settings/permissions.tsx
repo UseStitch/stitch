@@ -151,7 +151,7 @@ function ToolsContent() {
   const connectorToolsets = filteredToolsets.filter((toolset) => toolset.source === 'connector');
 
   const mcpToolsetGroups = useMcpToolsetGroups(knownTools, mcpToolMetaByName);
-  const filteredMcpGroups = React.useMemo(() => filterMcpGroups(mcpToolsetGroups, query), [mcpToolsetGroups, query]);
+  const filteredMcpGroups = filterMcpGroups(mcpToolsetGroups, query);
 
   if (editingTarget) {
     return (

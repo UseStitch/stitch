@@ -26,7 +26,6 @@ function useElapsed(startedAt: number | null): number {
 
   React.useEffect(() => {
     if (startedAt === null) return;
-    setNow(Date.now());
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, [startedAt]);
@@ -43,7 +42,7 @@ export function RecordingBar({ audioLevel, startedAt, isStopping, onCancel, onSt
   const elapsedMs = useElapsed(startedAt);
 
   return (
-    <div className="flex w-full items-center gap-2" role="status" aria-live="polite">
+    <output className="flex w-full items-center gap-2" aria-live="polite">
       <StatusDot color="destructive" pulse={!isStopping} />
       <span className="text-xs font-medium text-destructive">{isStopping ? 'Transcribing…' : 'Recording'}</span>
       <MicLevelMeter level={isStopping ? 0 : audioLevel} />
@@ -67,6 +66,6 @@ export function RecordingBar({ audioLevel, startedAt, isStopping, onCancel, onSt
         title="Stop and insert transcript">
         <CheckIcon className="size-3.5" />
       </Button>
-    </div>
+    </output>
   );
 }

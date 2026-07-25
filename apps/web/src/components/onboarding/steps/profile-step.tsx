@@ -69,7 +69,6 @@ export function ProfileStep({ initialName, initialTimezone, isSaving, onContinue
           onBlur={() => setTouched(true)}
           placeholder="Jane"
           maxLength={80}
-          autoFocus
         />
         {hasError && <p className="text-xs text-destructive">Please enter your name.</p>}
       </div>

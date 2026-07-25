@@ -2,6 +2,7 @@ import { Trash2Icon, MicIcon } from 'lucide-react';
 import * as React from 'react';
 
 import {
+  type CellContext,
   createColumnHelper,
   flexRender,
   getCoreRowModel,
@@ -22,6 +23,78 @@ import { Table } from '@/components/ui/table';
 
 const columnHelper = createColumnHelper<Recording>();
 
+type RecordingsTableMeta = { activeRecordingId: string | null; onDelete: (recording: Recording) => void };
+
+function TitleCell({ row }: CellContext<Recording, string>) {
+  return (
+    <div className="flex min-w-0 flex-col">
+      <Table.Title>{getRecordingDisplayTitle(row.original)}</Table.Title>
+    </div>
+  );
+}
+
+function PlatformCell({ getValue }: CellContext<Recording, Recording['platform']>) {
+  return <PlatformBadge platform={getValue()} />;
+}
+
+function StatusCell({ getValue }: CellContext<Recording, Recording['status']>) {
+  return <Table.Badge variant={STATUS_VARIANTS[getValue()]}>{STATUS_LABELS[getValue()]}</Table.Badge>;
+}
+
+function StartedAtCell({ getValue }: CellContext<Recording, Recording['startedAt']>) {
+  return <Table.Time value={getValue()} />;
+}
+
+function DurationCell({ row, table }: CellContext<Recording, unknown>) {
+  const { activeRecordingId } = table.options.meta as RecordingsTableMeta;
+  const recording = row.original;
+  if (recording.id === activeRecordingId) {
+    return <LiveDuration startedAt={recording.startedAt} />;
+  }
+  return <Table.Duration>{formatClockDuration(recording.durationMs)}</Table.Duration>;
+}
+
+function CostCell({ getValue }: CellContext<Recording, Recording['costUsd']>) {
+  return <Table.Money value={getValue()} />;
+}
+
+function ActionsHeader() {
+  return <div className="pr-1 text-right">Actions</div>;
+}
+
+function ActionsCell({ row, table }: CellContext<Recording, unknown>) {
+  const { activeRecordingId, onDelete } = table.options.meta as RecordingsTableMeta;
+
+  return (
+    <Table.Actions className="-mr-1.5">
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete(row.original);
+        }}
+        title="Delete recording"
+        aria-label="Delete recording"
+        disabled={row.original.id === activeRecordingId}
+        className="text-destructive hover:text-destructive">
+        <Trash2Icon className="size-4" />
+      </Button>
+    </Table.Actions>
+  );
+}
+
+const columns = [
+  columnHelper.accessor('title', { header: 'Title', cell: TitleCell }),
+  columnHelper.accessor('platform', { header: 'Platform', cell: PlatformCell }),
+  columnHelper.accessor('status', { header: 'Capturing', cell: StatusCell }),
+  columnHelper.accessor('startedAt', { header: 'Date', cell: StartedAtCell }),
+  columnHelper.display({ id: 'duration', header: 'Duration', cell: DurationCell }),
+  columnHelper.accessor('costUsd', { header: 'Cost', cell: CostCell }),
+  columnHelper.display({ id: 'actions', header: ActionsHeader, cell: ActionsCell }),
+];
+
 interface RecordingsTableProps {
   recordings: Recording[];
   activeRecordingId: string | null;
@@ -39,71 +112,13 @@ export function RecordingsTable({
   onDelete,
   onNavigate,
 }: RecordingsTableProps) {
-  const columns = React.useMemo(
-    () => [
-      columnHelper.accessor('title', {
-        header: 'Title',
-        cell: ({ row }) => (
-          <div className="flex min-w-0 flex-col">
-            <Table.Title>{getRecordingDisplayTitle(row.original)}</Table.Title>
-          </div>
-        ),
-      }),
-      columnHelper.accessor('platform', {
-        header: 'Platform',
-        cell: ({ getValue }) => <PlatformBadge platform={getValue()} />,
-      }),
-      columnHelper.accessor('status', {
-        header: 'Capturing',
-        cell: ({ getValue }) => (
-          <Table.Badge variant={STATUS_VARIANTS[getValue()]}>{STATUS_LABELS[getValue()]}</Table.Badge>
-        ),
-      }),
-      columnHelper.accessor('startedAt', { header: 'Date', cell: ({ getValue }) => <Table.Time value={getValue()} /> }),
-      columnHelper.display({
-        id: 'duration',
-        header: 'Duration',
-        cell: ({ row }) => {
-          const recording = row.original;
-          if (recording.id === activeRecordingId) {
-            return <LiveDuration startedAt={recording.startedAt} />;
-          }
-          return <Table.Duration>{formatClockDuration(recording.durationMs)}</Table.Duration>;
-        },
-      }),
-      columnHelper.accessor('costUsd', { header: 'Cost', cell: ({ getValue }) => <Table.Money value={getValue()} /> }),
-      columnHelper.display({
-        id: 'actions',
-        header: () => <div className="pr-1 text-right">Actions</div>,
-        cell: ({ row }) => (
-          <Table.Actions className="-mr-1.5">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(row.original);
-              }}
-              title="Delete recording"
-              aria-label="Delete recording"
-              disabled={row.original.id === activeRecordingId}
-              className="text-destructive hover:text-destructive">
-              <Trash2Icon className="size-4" />
-            </Button>
-          </Table.Actions>
-        ),
-      }),
-    ],
-    [activeRecordingId, onDelete],
-  );
-
   const table = useReactTable({
     data: recordings,
     columns,
     getRowId: (row) => row.id,
     state: { sorting },
     onSortingChange,
+    meta: { activeRecordingId, onDelete } satisfies RecordingsTableMeta,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });

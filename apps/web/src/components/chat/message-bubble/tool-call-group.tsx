@@ -57,8 +57,9 @@ export function ToolCallGroup({ calls, onAbort }: ToolCallGroupProps) {
   const [errorDetails, setErrorDetails] = React.useState<ToolErrorDetails | null>(null);
   const hiddenCount = Math.max(0, calls.length - VISIBLE_TOOL_COUNT);
   const visibleCalls = expanded ? calls : calls.slice(hiddenCount);
-  const previousHiddenCount = usePrevious(hiddenCount);
-  const hiddenCountIncreased = previousHiddenCount !== undefined && hiddenCount > previousHiddenCount;
+  // Only animate counts that grew after mount, so restored history stays static.
+  const [mountedHiddenCount] = React.useState(hiddenCount);
+  const hiddenCountIncreased = hiddenCount > mountedHiddenCount;
 
   if (calls.length === 0) return null;
 
@@ -159,8 +160,13 @@ function ToolCallRowRoot({
   animateIn: boolean;
   children: React.ReactNode;
 }) {
+  const contextValue = React.useMemo(
+    () => ({ call, summary, errorDetails, onViewErrorDetails }),
+    [call, summary, errorDetails, onViewErrorDetails],
+  );
+
   return (
-    <ToolCallRowContext.Provider value={{ call, summary, errorDetails, onViewErrorDetails }}>
+    <ToolCallRowContext.Provider value={contextValue}>
       <div
         className={cn(
           'group flex min-h-7 min-w-0 items-center gap-2 rounded-md px-1.5 text-xs transition-colors hover:bg-muted/40',
@@ -332,14 +338,4 @@ function ToolStatusIcon({ status, summary }: { status: ToolCallStatus; summary: 
       className={cn('size-3.5 shrink-0', status === 'error' ? 'text-destructive' : 'text-success')}
     />
   );
-}
-
-function usePrevious(value: number) {
-  const ref = React.useRef<number>(undefined);
-
-  React.useEffect(() => {
-    ref.current = value;
-  }, [value]);
-
-  return ref.current;
 }

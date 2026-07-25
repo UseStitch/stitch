@@ -17,18 +17,34 @@ import { ToolCallGroup } from '@/components/chat/message-bubble/tool-call-group.
 
 type AssistantMessageBubbleProps = { parts: StoredPart[]; finishReason?: string | null; onAbortTool?: () => void };
 
+type InlineSegments = NonNullable<ReturnType<typeof parseInlineLiquidUiText>>;
+
+/**
+ * Segments come from a linear scan of the message text, so each segment's start
+ * offset is a stable identity even while the message is still streaming in.
+ */
+function keyInlineSegments(segments: InlineSegments) {
+  let offset = 0;
+
+  return segments.map((segment) => {
+    const key = `${segment.type}-${offset}`;
+    offset += segment.type === 'text' ? segment.text.length : 1;
+    return { key, segment };
+  });
+}
+
 function AssistantTextSegment({ text }: { text: string }) {
   const inlineSegments = parseInlineLiquidUiText(text);
   if (!inlineSegments) return <ChatMarkdown text={text} />;
 
   return (
     <>
-      {inlineSegments.map((segment, index) => {
+      {keyInlineSegments(inlineSegments).map(({ key, segment }) => {
         if (segment.type === 'text') {
-          return segment.text ? <ChatMarkdown key={index} text={segment.text} /> : null;
+          return segment.text ? <ChatMarkdown key={key} text={segment.text} /> : null;
         }
 
-        return <LiquidUi key={index} spec={segment.spec} />;
+        return <LiquidUi key={key} spec={segment.spec} />;
       })}
     </>
   );

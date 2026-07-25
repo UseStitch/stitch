@@ -13,21 +13,29 @@ import { useRenameSession } from '@/lib/queries/chat';
 export function RenameSessionDialog() {
   const { renameSessionOpen, setRenameSessionOpen } = useDialogContext();
   const params = useParams({ strict: false });
-  const renameMutation = useRenameSession();
-  const [title, setTitle] = React.useState('');
 
   const sessionId = params.id;
 
-  React.useEffect(() => {
-    if (renameSessionOpen && sessionId) {
-      setTitle('');
-    }
-  }, [renameSessionOpen, sessionId]);
+  return (
+    <Dialog open={renameSessionOpen} onOpenChange={setRenameSessionOpen}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Rename Session</DialogTitle>
+        </DialogHeader>
+        <RenameSessionForm key={sessionId} sessionId={sessionId} onClose={() => setRenameSessionOpen(false)} />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function RenameSessionForm({ sessionId, onClose }: { sessionId: string | undefined; onClose: () => void }) {
+  const renameMutation = useRenameSession();
+  const [title, setTitle] = React.useState('');
 
   const handleRename = async () => {
     if (!title.trim() || !sessionId) return;
     await renameMutation.mutateAsync({ sessionId: sessionId as PrefixedString<'ses'>, title: title.trim() });
-    setRenameSessionOpen(false);
+    onClose();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -37,27 +45,21 @@ export function RenameSessionDialog() {
   };
 
   return (
-    <Dialog open={renameSessionOpen} onOpenChange={setRenameSessionOpen}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Rename Session</DialogTitle>
-        </DialogHeader>
-        <Input
-          placeholder="Session name"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onKeyDown={handleKeyDown}
-          autoFocus
-        />
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setRenameSessionOpen(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleRename} disabled={!title.trim() || renameMutation.isPending}>
-            Rename
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Input
+        placeholder="Session name"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={handleKeyDown}
+      />
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button onClick={handleRename} disabled={!title.trim() || renameMutation.isPending}>
+          Rename
+        </Button>
+      </DialogFooter>
+    </>
   );
 }

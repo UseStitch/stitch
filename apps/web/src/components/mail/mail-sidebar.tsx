@@ -49,22 +49,27 @@ function getSystemLabelGroup(label: MailLabelView): 'primary' | 'category' | 'ma
   return null;
 }
 
-function getSystemIcon(label: MailLabelView) {
-  const normalized = label.providerLabelId.toUpperCase();
-  if (normalized === 'INBOX') return InboxIcon;
-  if (normalized === 'SENT') return SendIcon;
-  if (normalized === 'TRASH') return TrashIcon;
-  if (normalized.startsWith('CATEGORY_')) return ArchiveIcon;
-  if (normalized === 'IMPORTANT' || normalized === 'YELLOW_STAR' || normalized === 'STARRED') return StarIcon;
-  return MailIcon;
-}
-
 function getLabelIconClassName(label: MailLabelView): string {
   const normalized = label.providerLabelId.toUpperCase();
   if (normalized === 'IMPORTANT' || normalized === 'YELLOW_STAR' || normalized === 'STARRED') {
     return 'size-3.5 text-warning fill-warning';
   }
   return 'size-3.5 text-muted-foreground';
+}
+
+function LabelIcon({ label }: { label: MailLabelView }) {
+  const className = getLabelIconClassName(label);
+  if (label.kind !== 'system') return <TagIcon className={className} />;
+
+  const normalized = label.providerLabelId.toUpperCase();
+  if (normalized === 'INBOX') return <InboxIcon className={className} />;
+  if (normalized === 'SENT') return <SendIcon className={className} />;
+  if (normalized === 'TRASH') return <TrashIcon className={className} />;
+  if (normalized.startsWith('CATEGORY_')) return <ArchiveIcon className={className} />;
+  if (normalized === 'IMPORTANT' || normalized === 'YELLOW_STAR' || normalized === 'STARRED') {
+    return <StarIcon className={className} />;
+  }
+  return <MailIcon className={className} />;
 }
 
 function getLabelDepthClassName(depth: number): string | undefined {
@@ -109,7 +114,7 @@ function buildUserLabelTree(labels: MailLabelView[]): UserLabelNode[] {
 }
 
 function sortLabels(labels: MailLabelView[]): MailLabelView[] {
-  return [...labels].sort((a, b) => {
+  return [...labels].toSorted((a, b) => {
     const aIndex = SYSTEM_LABEL_ORDER.findIndex((id) => id === a.providerLabelId.toUpperCase());
     const bIndex = SYSTEM_LABEL_ORDER.findIndex((id) => id === b.providerLabelId.toUpperCase());
     if (aIndex !== -1 || bIndex !== -1) return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
@@ -167,8 +172,6 @@ function LabelItem({
   onSelect: () => void;
   onToggle?: () => void;
 }) {
-  const Icon = label.kind === 'system' ? getSystemIcon(label) : TagIcon;
-
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
@@ -180,7 +183,7 @@ function LabelItem({
           depth > 0 && 'text-muted-foreground',
           label.unreadCount > 0 && 'font-medium',
         )}>
-        <Icon className={getLabelIconClassName(label)} />
+        <LabelIcon label={label} />
         <span className="min-w-0 flex-1 truncate">{getLabelDisplayName(label)}</span>
         {!hasChildren ? <LabelBadge count={label.unreadCount} /> : null}
       </SidebarMenuButton>

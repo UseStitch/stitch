@@ -33,11 +33,13 @@ function ConnectionContent() {
   const [mode, setMode] = React.useState<ServerMode>(config.mode);
   const [remoteUrl, setRemoteUrl] = React.useState(config.remoteUrl ?? '');
   const [testState, setTestState] = React.useState<TestState>({ status: 'idle' });
+  const [syncedConfig, setSyncedConfig] = React.useState(config);
 
-  React.useEffect(() => {
+  if (syncedConfig !== config) {
+    setSyncedConfig(config);
     setMode(config.mode);
     setRemoteUrl(config.remoteUrl ?? '');
-  }, [config]);
+  }
 
   const hasChanges = mode !== config.mode || remoteUrl.trim() !== (config.remoteUrl ?? '');
   const remoteSelected = mode === 'remote';

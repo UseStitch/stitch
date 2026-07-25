@@ -51,10 +51,12 @@ function MailNumberInput({
   onSave: (value: number) => void;
 }) {
   const [localValue, setLocalValue] = React.useState(String(value));
+  const [syncedValue, setSyncedValue] = React.useState(value);
 
-  React.useEffect(() => {
+  if (syncedValue !== value) {
+    setSyncedValue(value);
     setLocalValue(String(value));
-  }, [value]);
+  }
 
   function handleBlur() {
     const nextValue = Math.max(min, Number.parseInt(localValue, 10));

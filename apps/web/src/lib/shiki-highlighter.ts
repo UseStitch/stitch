@@ -7,7 +7,7 @@ let currentLangs: string[] = [];
 const highlighterPromiseCache = new Map<string, Promise<Highlighter>>();
 
 async function getSharedHighlighter(themes: string[], langs: string[]): Promise<Highlighter> {
-  const cacheKey = `${themes.sort().join(',')}-${langs.sort().join(',')}`;
+  const cacheKey = `${themes.toSorted().join(',')}-${langs.toSorted().join(',')}`;
 
   const cached = highlighterPromiseCache.get(cacheKey);
   if (cached) return cached;

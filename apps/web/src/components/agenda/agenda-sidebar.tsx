@@ -302,7 +302,6 @@ export function AgendaSidebarContent() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && newListName.trim()) handleCreateList();
                 }}
-                autoFocus
               />
             </div>
             <div className="flex flex-col gap-1.5">

@@ -24,30 +24,18 @@ type Props = { item: AgendaItem | null; open: boolean; onOpenChange: (open: bool
 
 export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
   const timeZone = useUserTimezone();
-  const [title, setTitle] = React.useState('');
-  const [description, setDescription] = React.useState('');
-  const [status, setStatus] = React.useState<AgendaItemStatus>('open');
-  const [priority, setPriority] = React.useState<AgendaItemPriority>('medium');
-  const [dueDate, setDueDate] = React.useState<Date | undefined>(undefined);
+  const [title, setTitle] = React.useState(item?.title ?? '');
+  const [description, setDescription] = React.useState(item?.description ?? '');
+  const [status, setStatus] = React.useState<AgendaItemStatus>(item?.status ?? 'open');
+  const [priority, setPriority] = React.useState<AgendaItemPriority>(item?.priority ?? 'medium');
+  const [dueDate, setDueDate] = React.useState<Date | undefined>(() =>
+    item?.dueAt ? new Date(item.dueAt) : undefined,
+  );
   const [confirmDeleteOpen, setConfirmDeleteOpen] = React.useState(false);
   const [datePickerOpen, setDatePickerOpen] = React.useState(false);
 
   const updateMutation = useUpdateAgendaItem();
   const deleteMutation = useDeleteAgendaItem();
-
-  // Keep a stable ref to the item so callbacks can access it without stale closures
-  const itemRef = React.useRef(item);
-  itemRef.current = item;
-
-  React.useEffect(() => {
-    if (item) {
-      setTitle(item.title);
-      setDescription(item.description);
-      setStatus(item.status);
-      setPriority(item.priority);
-      setDueDate(item.dueAt ? new Date(item.dueAt) : undefined);
-    }
-  }, [item]);
 
   function dateToMs(date: Date): number {
     const y = date.getFullYear();
@@ -63,8 +51,8 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
     priority?: AgendaItemPriority;
     dueAt?: number | null;
   }) {
-    if (!itemRef.current) return;
-    updateMutation.mutate({ id: itemRef.current.id, updates });
+    if (!item) return;
+    updateMutation.mutate({ id: item.id, updates });
   }
 
   // Debounced save for text fields
@@ -80,10 +68,9 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
     if (!nextOpen && debounceRef.current) {
       clearTimeout(debounceRef.current);
       debounceRef.current = null;
-      const current = itemRef.current;
-      if (current) {
-        const pendingTitle = title !== current.title ? title : undefined;
-        const pendingDescription = description !== current.description ? description : undefined;
+      if (item) {
+        const pendingTitle = title !== item.title ? title : undefined;
+        const pendingDescription = description !== item.description ? description : undefined;
         if (pendingTitle !== undefined || pendingDescription !== undefined) {
           save({ title: pendingTitle, description: pendingDescription });
         }
@@ -95,7 +82,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
   function handleTitleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const next = e.target.value;
     setTitle(next);
-    if (itemRef.current && next !== itemRef.current.title) {
+    if (item && next !== item.title) {
       saveDebounced({ title: next, description: undefined });
     }
   }
@@ -103,7 +90,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
   function handleDescriptionChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     const next = e.target.value;
     setDescription(next);
-    if (itemRef.current && next !== itemRef.current.description) {
+    if (item && next !== item.description) {
       saveDebounced({ title: undefined, description: next });
     }
   }
@@ -112,7 +99,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
     if (!v) return;
     const next = v as AgendaItemStatus;
     setStatus(next);
-    if (itemRef.current && next !== itemRef.current.status) {
+    if (item && next !== item.status) {
       save({ status: next });
     }
   }
@@ -121,7 +108,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
     if (!v) return;
     const next = v as AgendaItemPriority;
     setPriority(next);
-    if (itemRef.current && next !== itemRef.current.priority) {
+    if (item && next !== item.priority) {
       save({ priority: next });
     }
   }
@@ -129,16 +116,16 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
   function handleDateSelect(date: Date | undefined) {
     setDueDate(date);
     setDatePickerOpen(false);
-    if (!itemRef.current) return;
+    if (!item) return;
     const newDueMs = date ? dateToMs(date) : null;
-    if (newDueMs !== itemRef.current.dueAt) {
+    if (newDueMs !== item.dueAt) {
       save({ dueAt: newDueMs });
     }
   }
 
   function handleClearDate() {
     setDueDate(undefined);
-    if (itemRef.current && itemRef.current.dueAt !== null) {
+    if (item && item.dueAt !== null) {
       save({ dueAt: null });
     }
   }

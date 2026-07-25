@@ -25,7 +25,7 @@ import {
 } from '@/lib/queries/shortcuts';
 import { cn } from '@/lib/utils';
 
-const BLOCKED_HOTKEYS = ['Mod+C', 'Mod+V', 'Mod+R', 'Mod+M'];
+const BLOCKED_HOTKEYS = new Set(['Mod+C', 'Mod+V', 'Mod+R', 'Mod+M']);
 const LEADER_KEY_RECORDING_ID = '__leader-key__';
 
 const defaultsByActionId = new Map<string, (typeof SHORTCUT_DEFAULTS)[number]>(
@@ -47,7 +47,7 @@ function groupByCategory(entries: ShortcutEntry[]): Map<string, ShortcutEntry[]>
   return groups;
 }
 
-const defaultLeaderKey = SETTINGS_DEFAULTS.find((s) => s.key === 'shortcuts.leaderKey')!.value;
+const defaultLeaderKey = SETTINGS_DEFAULTS.find((s) => s.key === 'shortcuts.leaderKey')?.value ?? 'Mod+X';
 
 function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence: boolean }) {
   if (!hotkey) {
@@ -63,8 +63,8 @@ function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence
       <span className="inline-flex items-center gap-1.5">
         <Kbd>Leader</Kbd>
         <span className="text-2xs font-semibold tracking-widest text-muted-foreground uppercase">then</span>
-        {suffixDisplayKeys.map((key, i) => (
-          <Kbd key={`suffix-${i}`}>{key}</Kbd>
+        {suffixDisplayKeys.map((key) => (
+          <Kbd key={`suffix-${key}`}>{key}</Kbd>
         ))}
       </span>
     );
@@ -75,11 +75,11 @@ function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence
   if (isSequence) {
     return (
       <span className="inline-flex gap-1.5">
-        {displayKeys.map((key, i) => (
-          <Kbd key={`first-${i}`}>{key}</Kbd>
+        {displayKeys.map((key) => (
+          <Kbd key={`first-${key}`}>{key}</Kbd>
         ))}
-        {displayKeys.map((key, i) => (
-          <Kbd key={`second-${i}`}>{key}</Kbd>
+        {displayKeys.map((key) => (
+          <Kbd key={`second-${key}`}>{key}</Kbd>
         ))}
       </span>
     );
@@ -87,8 +87,8 @@ function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence
 
   return (
     <span className="inline-flex gap-1.5">
-      {displayKeys.map((key, i) => (
-        <Kbd key={i}>{key}</Kbd>
+      {displayKeys.map((key) => (
+        <Kbd key={key}>{key}</Kbd>
       ))}
     </span>
   );
@@ -121,6 +121,7 @@ function ShortcutRow({
         )}
       </div>
       <button
+        type="button"
         onClick={() => !isLeaderShortcut && onStartRecording(entry.actionId)}
         className={cn(
           'text-sm rounded-md px-2 py-1.5 transition-colors',
@@ -162,7 +163,7 @@ function ShortcutsContent() {
     onRecord: (hotkey) => {
       if (!recordingId) return;
 
-      if (BLOCKED_HOTKEYS.includes(hotkey)) {
+      if (BLOCKED_HOTKEYS.has(hotkey)) {
         toast.error(`${formatForDisplay(hotkey)} is reserved and cannot be used`, { id: 'shortcut-reserved' });
         setRecordingId(null);
         return;
@@ -253,9 +254,10 @@ function ShortcutsContent() {
       if (!entry.hotkey) continue;
       // Use hotkey + isSequence as the conflict key so single-press and double-press don't clash
       const conflictKey = `${entry.hotkey}:${entry.isSequence}`;
-      if (hotkeyToDef.has(conflictKey)) {
-        map.set(entry.actionId, hotkeyToDef.get(conflictKey)!.label);
-        map.set(hotkeyToDef.get(conflictKey)!.actionId, entry.label);
+      const existing = hotkeyToDef.get(conflictKey);
+      if (existing) {
+        map.set(entry.actionId, existing.label);
+        map.set(existing.actionId, entry.label);
       } else {
         hotkeyToDef.set(conflictKey, entry);
       }
@@ -286,6 +288,7 @@ function ShortcutsContent() {
         <SettingRows>
           <SettingRow label="Leader key" description="Used as the prefix for LEADER+ shortcuts">
             <button
+              type="button"
               onClick={handleStartLeaderKeyRecording}
               className={cn(
                 'text-sm rounded-md px-2 py-1.5 transition-colors hover:bg-accent/60 cursor-pointer',

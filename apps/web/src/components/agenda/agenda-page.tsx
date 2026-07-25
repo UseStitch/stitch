@@ -93,13 +93,19 @@ export function AgendaPage({ listId }: { listId?: string }) {
   const totalPages = itemsData?.totalPages ?? 0;
   const total = itemsData?.total ?? 0;
 
-  React.useEffect(() => {
+  // Adjust paging/selection during render when the filters or the loaded page change
+  const viewKey = `${listId ?? ''}|${filterStatus}|${filterPriority}`;
+  const resultKey = `${viewKey}|${itemsData?.page ?? 0}|${itemsData?.total ?? 0}`;
+  const [prevViewKey, setPrevViewKey] = React.useState(viewKey);
+  const [prevResultKey, setPrevResultKey] = React.useState(resultKey);
+  if (prevViewKey !== viewKey) {
+    setPrevViewKey(viewKey);
     setPage(1);
-  }, [filterStatus, filterPriority, listId]);
-
-  React.useEffect(() => {
+  }
+  if (prevResultKey !== resultKey) {
+    setPrevResultKey(resultKey);
     setSelectedIds(new Set());
-  }, [itemsData?.page, itemsData?.total, filterStatus, filterPriority]);
+  }
 
   const createMutation = useCreateAgendaItem();
   const deleteMutation = useDeleteAgendaItem();
@@ -257,7 +263,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
     for (let index = start; index <= end; index += 1) {
       pages.add(index);
     }
-    return [...pages].sort((a, b) => a - b);
+    return [...pages].toSorted((a, b) => a - b);
   }, [currentPage, totalPages]);
 
   const allSelected = items.length > 0 && selectedIds.size === items.length;
@@ -448,9 +454,9 @@ export function AgendaPage({ listId }: { listId?: string }) {
                       <React.Fragment key={item.id}>
                         {dropIndex === index && dragItemId && dragItemId !== item.id && (
                           <tr aria-hidden="true">
-                            <td colSpan={listId ? 6 : 7} className="p-0">
+                            <Table.Cell colSpan={listId ? 6 : 7} className="p-0">
                               <div className="h-0.5 bg-primary" />
-                            </td>
+                            </Table.Cell>
                           </tr>
                         )}
                         <AgendaItemRow
@@ -469,9 +475,9 @@ export function AgendaPage({ listId }: { listId?: string }) {
                     ))}
                     {dropIndex === items.length && dragItemId && (
                       <tr aria-hidden="true">
-                        <td colSpan={listId ? 6 : 7} className="p-0">
+                        <Table.Cell colSpan={listId ? 6 : 7} className="p-0">
                           <div className="h-0.5 bg-primary" />
-                        </td>
+                        </Table.Cell>
                       </tr>
                     )}
                   </>
@@ -536,7 +542,12 @@ export function AgendaPage({ listId }: { listId?: string }) {
       </PageContent>
 
       {/* Detail sheet */}
-      <AgendaItemDetailSheet item={sheetItem} open={sheetOpen} onOpenChange={setSheetOpen} />
+      <AgendaItemDetailSheet
+        key={sheetItem ? `${sheetItem.id}:${sheetItem.updatedAt}` : 'none'}
+        item={sheetItem}
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+      />
 
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -551,7 +562,6 @@ export function AgendaPage({ listId }: { listId?: string }) {
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleCreate();
             }}
-            autoFocus
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
@@ -614,8 +624,9 @@ function AgendaItemRow({
   onDateChange,
 }: AgendaItemRowProps) {
   const [dateOpen, setDateOpen] = React.useState(false);
+  const [nowMs] = React.useState(() => Date.now());
   const isDone = item.status === 'done' || item.status === 'cancelled';
-  const isOverdue = item.dueAt && item.dueAt < Date.now() && item.status !== 'done' && item.status !== 'cancelled';
+  const isOverdue = item.dueAt && item.dueAt < nowMs && item.status !== 'done' && item.status !== 'cancelled';
 
   function handleDragStart(e: React.DragEvent) {
     e.stopPropagation();
@@ -647,13 +658,15 @@ function AgendaItemRow({
       onClick={onClick}
       onDragOver={onDragOver}>
       <Table.Cell className="w-8">
-        <div
+        <button
+          type="button"
           draggable
+          aria-label={`Reorder ${item.title}`}
           onDragStart={handleDragStart}
           className="flex w-4 cursor-grab items-center justify-center opacity-0 transition-opacity group-hover:opacity-60 active:cursor-grabbing"
           onClick={(e) => e.stopPropagation()}>
           <GripVerticalIcon className="size-3.5 text-muted-foreground" />
-        </div>
+        </button>
       </Table.Cell>
 
       <Table.Cell

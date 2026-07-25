@@ -63,16 +63,18 @@ export function SetupWizard({ definition, connectors, onClose }: Props) {
   const apiKeyConfig = !isOAuth ? (definition.authConfig as ApiKeyConfig) : null;
   const isCreatingConnector = selectedConnectorRefId === 'new';
 
+  const serviceAccessOptions = oauthConfig?.serviceAccessOptions;
+
   const initialServiceAccess = useMemo(() => {
-    if (!oauthConfig?.serviceAccessOptions) return {} as Record<string, 'none' | 'read' | 'write'>;
+    if (!serviceAccessOptions) return {} as Record<string, 'none' | 'read' | 'write'>;
     return Object.fromEntries(
-      oauthConfig.serviceAccessOptions.map((option) => {
+      serviceAccessOptions.map((option) => {
         const hasWrite = (option.writeScopes ?? []).some((scope) => selectedScopes.includes(scope));
         const hasRead = option.readScopes.some((scope) => selectedScopes.includes(scope));
         return [option.id, hasWrite ? 'write' : hasRead ? 'read' : 'none'];
       }),
     ) as Record<string, 'none' | 'read' | 'write'>;
-  }, [oauthConfig?.serviceAccessOptions, selectedScopes]);
+  }, [serviceAccessOptions, selectedScopes]);
   const [serviceAccess, setServiceAccess] = useState<Record<string, 'none' | 'read' | 'write'>>(initialServiceAccess);
 
   function toggleScope(scope: string) {
@@ -264,24 +266,25 @@ function InstructionsStep({ instructions, onNext }: { instructions: ConnectorSet
     <div className="flex h-full min-h-0 flex-col gap-3">
       <ScrollArea className="max-h-[45vh] min-h-0 flex-1 rounded-lg border border-border/60 bg-muted/30 p-3">
         <ol className="list-inside list-decimal space-y-2 text-sm text-foreground/85">
-          {instructions.map((instruction, i) => (
-            <li key={i} className="leading-relaxed">
-              <span>{instruction.text}</span>
-              {instruction.href ? (
-                <button
-                  type="button"
-                  className="ml-1 inline-flex items-center gap-1 text-primary hover:underline"
-                  onClick={() => {
-                    void (
-                      window.api?.shell?.openExternal(instruction.href!) ?? window.open(instruction.href, '_blank')
-                    );
-                  }}>
-                  {instruction.hrefLabel ?? 'Open'}
-                  <ExternalLinkIcon className="size-3" />
-                </button>
-              ) : null}
-            </li>
-          ))}
+          {instructions.map((instruction) => {
+            const href = instruction.href;
+            return (
+              <li key={instruction.text} className="leading-relaxed">
+                <span>{instruction.text}</span>
+                {href ? (
+                  <button
+                    type="button"
+                    className="ml-1 inline-flex items-center gap-1 text-primary hover:underline"
+                    onClick={() => {
+                      void (window.api?.shell?.openExternal(href) ?? window.open(href, '_blank'));
+                    }}>
+                    {instruction.hrefLabel ?? 'Open'}
+                    <ExternalLinkIcon className="size-3" />
+                  </button>
+                ) : null}
+              </li>
+            );
+          })}
         </ol>
       </ScrollArea>
       <DialogFooter className="shrink-0">
@@ -325,6 +328,8 @@ function ConnectorCredentialsStep({
   onBack: () => void;
   onNext: () => void;
 }) {
+  const helpUrl = apiKeyConfig?.helpUrl;
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
@@ -386,18 +391,15 @@ function ConnectorCredentialsStep({
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
             />
-            {apiKeyConfig?.helpUrl && (
+            {helpUrl && (
               <a
-                href={apiKeyConfig.helpUrl}
+                href={helpUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                 onClick={(e) => {
                   e.preventDefault();
-                  void (
-                    window.api?.shell?.openExternal(apiKeyConfig.helpUrl!) ??
-                    window.open(apiKeyConfig.helpUrl, '_blank')
-                  );
+                  void (window.api?.shell?.openExternal(helpUrl) ?? window.open(helpUrl, '_blank'));
                 }}>
                 <ExternalLinkIcon className="size-3" />
                 Get your API key
@@ -572,8 +574,10 @@ function ScopesStep({
               {Object.entries(config.scopeDescriptions).map(([scope, description]) => (
                 <label
                   key={scope}
+                  htmlFor={scope}
                   className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 text-sm hover:bg-muted/50">
                   <Checkbox
+                    id={scope}
                     checked={selectedScopes.includes(scope)}
                     onCheckedChange={() => toggleScope(scope)}
                     className="mt-0.5"

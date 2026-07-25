@@ -82,6 +82,7 @@ export function MemoriesPage() {
   }, [searchInput]);
 
   const isSearching = debouncedSearch.length > 0;
+  const filterKey = `${debouncedSearch}|${filterSource}|${filterCategory}`;
 
   const listQuery = useQuery(
     semanticMemoriesQueryOptions({
@@ -101,12 +102,21 @@ export function MemoriesPage() {
     }),
   );
 
-  React.useEffect(() => {
+  const [previousFilterKey, setPreviousFilterKey] = React.useState(filterKey);
+  if (previousFilterKey !== filterKey) {
+    setPreviousFilterKey(filterKey);
     setPage(1);
-  }, [debouncedSearch, filterSource, filterCategory]);
+  }
 
   const pageData = isSearching ? searchQuery.data : listQuery.data;
   const memories = pageData?.memories ?? [];
+
+  const selectionKey = `${pageData?.page}|${pageData?.total}|${filterKey}`;
+  const [previousSelectionKey, setPreviousSelectionKey] = React.useState(selectionKey);
+  if (previousSelectionKey !== selectionKey) {
+    setPreviousSelectionKey(selectionKey);
+    setSelectedIds(new Set());
+  }
 
   const bulkDeleteMutation = useMutation(bulkDeleteMemoriesMutationOptions(queryClient));
 
@@ -141,10 +151,6 @@ export function MemoriesPage() {
     });
   }
 
-  React.useEffect(() => {
-    setSelectedIds(new Set());
-  }, [pageData?.page, pageData?.total, debouncedSearch, filterSource, filterCategory]);
-
   const isLoading = isSearching ? searchQuery.isLoading : listQuery.isLoading;
   const totalPages = pageData?.totalPages ?? 0;
   const currentPage = (pageData?.page ?? page) - 1;
@@ -163,7 +169,7 @@ export function MemoriesPage() {
       pages.add(index);
     }
 
-    return [...pages].sort((a, b) => a - b);
+    return [...pages].toSorted((a, b) => a - b);
   }, [currentPage, totalPages]);
 
   const allSelected = memories.length > 0 && selectedIds.size === memories.length;

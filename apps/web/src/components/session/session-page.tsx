@@ -24,6 +24,8 @@ import { settingsQueryOptions } from '@/lib/queries/settings';
 
 type SessionPageProps = { sessionId: string };
 
+const LOCAL_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
 export function SessionPage({ sessionId }: SessionPageProps) {
   const navigate = useNavigate();
   const { mutate: markReadMutate } = useMarkSessionRead();
@@ -34,37 +36,32 @@ export function SessionPage({ sessionId }: SessionPageProps) {
   const generateAutomation = useGenerateAutomationDraft();
   const details = useSessionDetailsStats(sessionId);
   const streamState = useSessionStreamState(sessionId);
-  const [rightPanel, setRightPanel] = React.useState<SessionPageHeaderProps['rightPanel']>('closed');
+  const [requestedRightPanel, setRequestedRightPanel] = React.useState<SessionPageHeaderProps['rightPanel']>('closed');
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [automationDialogOpen, setAutomationDialogOpen] = React.useState(false);
   const [generatedDraft, setGeneratedDraft] = React.useState<GeneratedAutomationDraft | null>(null);
   const lastReadCompletedMessageIdRef = React.useRef<string | null>(null);
-  const timezone = settings?.['profile.timezone']?.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-
-  const rightPanelOpen = rightPanel !== 'closed';
+  const timezone = settings?.['profile.timezone']?.trim() || LOCAL_TIMEZONE;
 
   const browserAppEnabled = appEnabledStates?.find((state) => state.appId === 'browser')?.enabled ?? true;
   const hasBrowser = typeof window !== 'undefined' && Boolean(window.api?.browser) && browserAppEnabled;
 
+  const rightPanel = requestedRightPanel === 'browser' && !hasBrowser ? 'closed' : requestedRightPanel;
+  const rightPanelOpen = rightPanel !== 'closed';
+
   const toggleDetails = React.useCallback(() => {
-    setRightPanel((previous) => (previous === 'details' ? 'closed' : 'details'));
+    setRequestedRightPanel((previous) => (previous === 'details' ? 'closed' : 'details'));
   }, []);
 
   const toggleBrowser = React.useCallback(() => {
-    setRightPanel((previous) => (previous === 'browser' ? 'closed' : 'browser'));
+    setRequestedRightPanel((previous) => (previous === 'browser' ? 'closed' : 'browser'));
   }, []);
 
   React.useEffect(() => {
     return window.api?.browser.onShowRequested(() => {
-      if (browserAppEnabled) setRightPanel('browser');
+      if (browserAppEnabled) setRequestedRightPanel('browser');
     });
   }, [browserAppEnabled]);
-
-  React.useEffect(() => {
-    if (!hasBrowser && rightPanel === 'browser') {
-      setRightPanel('closed');
-    }
-  }, [hasBrowser, rightPanel]);
 
   React.useEffect(() => {
     lastReadCompletedMessageIdRef.current = null;
@@ -133,7 +130,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
 
               <ResizablePanel defaultSize="30%" minSize="24%" maxSize="55%">
                 {rightPanel === 'browser' ? (
-                  <BrowserPanel sessionId={sessionId} onClose={() => setRightPanel('closed')} />
+                  <BrowserPanel sessionId={sessionId} onClose={() => setRequestedRightPanel('closed')} />
                 ) : (
                   <SessionDetailsSheet {...details} sessionId={sessionId} className="hidden lg:block" />
                 )}
@@ -147,7 +144,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
         sessionId={sessionId}
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
-        onDeleted={() => setRightPanel('closed')}
+        onDeleted={() => setRequestedRightPanel('closed')}
       />
 
       <AutomationDialog

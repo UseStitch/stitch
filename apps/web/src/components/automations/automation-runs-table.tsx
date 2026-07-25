@@ -2,6 +2,7 @@ import { ArrowUpRightIcon } from 'lucide-react';
 import * as React from 'react';
 
 import {
+  type CellContext,
   createColumnHelper,
   flexRender,
   getCoreRowModel,
@@ -19,44 +20,45 @@ type AutomationRunsTableProps = { sessions: Session[]; onOpen: (sessionId: strin
 
 const columnHelper = createColumnHelper<Session>();
 
+type AutomationRunsTableMeta = { onOpen: (sessionId: string) => void };
+
+function TitleCell({ row }: CellContext<Session, Session['title']>) {
+  return <Table.Title>{row.original.title ?? 'Untitled run'}</Table.Title>;
+}
+
+function TimeCell({ getValue }: CellContext<Session, number>) {
+  return <Table.Time value={getValue()} />;
+}
+
+function ActionsCell({ row, table }: CellContext<Session, unknown>) {
+  const { onOpen } = table.options.meta as AutomationRunsTableMeta;
+
+  return (
+    <Table.Actions>
+      <Button variant="outline" size="sm" onClick={() => onOpen(row.original.id)}>
+        <ArrowUpRightIcon data-icon="inline-start" className="size-4" />
+        View
+      </Button>
+    </Table.Actions>
+  );
+}
+
+const columns = [
+  columnHelper.accessor('title', { header: 'Run', cell: TitleCell }),
+  columnHelper.accessor('createdAt', { header: 'Started', cell: TimeCell }),
+  columnHelper.accessor('updatedAt', { header: 'Updated', cell: TimeCell }),
+  columnHelper.display({ id: 'actions', header: '', cell: ActionsCell }),
+];
+
 export function AutomationRunsTable({ sessions, onOpen }: AutomationRunsTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'updatedAt', desc: true }]);
-
-  const columns = React.useMemo(
-    () => [
-      columnHelper.accessor('title', {
-        header: 'Run',
-        cell: ({ row }) => <Table.Title>{row.original.title ?? 'Untitled run'}</Table.Title>,
-      }),
-      columnHelper.accessor('createdAt', {
-        header: 'Started',
-        cell: ({ getValue }) => <Table.Time value={getValue()} />,
-      }),
-      columnHelper.accessor('updatedAt', {
-        header: 'Updated',
-        cell: ({ getValue }) => <Table.Time value={getValue()} />,
-      }),
-      columnHelper.display({
-        id: 'actions',
-        header: '',
-        cell: ({ row }) => (
-          <Table.Actions>
-            <Button variant="outline" size="sm" onClick={() => onOpen(row.original.id)}>
-              <ArrowUpRightIcon data-icon="inline-start" className="size-4" />
-              View
-            </Button>
-          </Table.Actions>
-        ),
-      }),
-    ],
-    [onOpen],
-  );
 
   const table = useReactTable({
     data: sessions,
     columns,
     state: { sorting },
     onSortingChange: setSorting,
+    meta: { onOpen } satisfies AutomationRunsTableMeta,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });

@@ -28,12 +28,14 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
   const [tab, setTab] = React.useState(0);
   const [answers, setAnswers] = React.useState<string[][]>(() => emptyAnswers(items));
   const [customAnswers, setCustomAnswers] = React.useState<string[]>(() => emptyText(items));
+  const [answeredRequest, setAnsweredRequest] = React.useState({ id: request.id, items });
 
-  React.useEffect(() => {
+  if (answeredRequest.id !== request.id || answeredRequest.items !== items) {
+    setAnsweredRequest({ id: request.id, items });
     setTab(0);
     setAnswers(emptyAnswers(items));
     setCustomAnswers(emptyText(items));
-  }, [request.id, items]);
+  }
 
   function handleSelect(idx: number, optionLabel: string) {
     const newAnswers = [...answers];
@@ -84,7 +86,7 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
         {total > 1 && (
           <TabsList variant="line" className="w-full justify-start">
             {items.map((item, idx) => (
-              <TabsTrigger key={idx} value={String(idx)} className="gap-1.5 text-xs">
+              <TabsTrigger key={item.question} value={String(idx)} className="gap-1.5 text-xs">
                 {item.header}
                 {isAnswered(idx) && <CheckIcon className="size-3 text-primary" />}
               </TabsTrigger>
@@ -97,7 +99,7 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
           const isTabSelected = (label: string) => answers[idx]?.includes(label) ?? false;
 
           return (
-            <TabsContent key={idx} value={String(idx)} className="mt-0">
+            <TabsContent key={item.question} value={String(idx)} className="mt-0">
               <div className="mb-1 text-sm text-foreground">{item.question}</div>
               <div className="mb-2 text-2xs text-muted-foreground">
                 {isMultiQ ? 'Select all that apply' : 'Select one option'}

@@ -1,5 +1,5 @@
 import { BotIcon, PencilIcon, PlayIcon, PlusIcon, Trash2Icon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
@@ -42,6 +42,8 @@ import { useAutomationStore } from '@/stores/automation-store';
 
 type AutomationsPageProps = { automationId?: string };
 
+const LOCAL_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const navigate = useNavigate();
   const { data: sidebarAutomations } = useSuspenseQuery(automationsSidebarListQueryOptions);
@@ -83,15 +85,12 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const [automationToDelete, setAutomationToDelete] = useState<Automation | null>(null);
   const [archiveDeletedAutomationSessions, setArchiveDeletedAutomationSessions] = useState(false);
 
-  useEffect(() => {
-    if (automationsPage.totalPages === 0 && page !== 1) {
-      setPage(1);
-      return;
-    }
-    if (automationsPage.totalPages > 0 && page > automationsPage.totalPages) {
-      setPage(automationsPage.totalPages);
-    }
-  }, [automationsPage.totalPages, page]);
+  // Clamp the requested page during render when the result set shrinks
+  if (automationsPage.totalPages === 0 && page !== 1) {
+    setPage(1);
+  } else if (automationsPage.totalPages > 0 && page > automationsPage.totalPages) {
+    setPage(automationsPage.totalPages);
+  }
 
   const handleDelete = (automation: Automation) => {
     setArchiveDeletedAutomationSessions(false);
@@ -138,7 +137,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const pageDescription = selectedAutomation
     ? 'Automation details and run history.'
     : 'Manage reusable prompts and model presets for recurring tasks.';
-  const timezone = settings?.['profile.timezone']?.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const timezone = settings?.['profile.timezone']?.trim() || LOCAL_TIME_ZONE || 'UTC';
   const selectedScheduleLabel = selectedAutomation ? getAutomationScheduleLabel(selectedAutomation.schedule) : 'Manual';
   const upcomingRuns = selectedAutomation ? getUpcomingRuns(selectedAutomation.schedule, 3, timezone) : [];
 
@@ -309,8 +308,11 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
         pendingLabel="Delete"
         isPending={deleteAutomation.isPending}
         contentClassName="max-w-sm">
-        <label className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/40 p-3 text-sm">
+        <label
+          htmlFor="archive-automation-sessions"
+          className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/40 p-3 text-sm">
           <Checkbox
+            id="archive-automation-sessions"
             checked={archiveDeletedAutomationSessions}
             onCheckedChange={(checked) => setArchiveDeletedAutomationSessions(Boolean(checked))}
             disabled={deleteAutomation.isPending}

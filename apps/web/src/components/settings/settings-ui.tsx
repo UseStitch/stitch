@@ -233,10 +233,12 @@ export function SliderSettingRow({
 }: SliderSettingRowProps) {
   const queryClient = useQueryClient();
   const [localValue, setLocalValue] = React.useState(currentValue);
+  const [syncedValue, setSyncedValue] = React.useState(currentValue);
 
-  React.useEffect(() => {
+  if (syncedValue !== currentValue) {
+    setSyncedValue(currentValue);
     setLocalValue(currentValue);
-  }, [currentValue]);
+  }
 
   const saveMutation = useMutation(saveSettingMutationOptions(settingKey, queryClient, { silent: true }));
 

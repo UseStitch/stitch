@@ -5,51 +5,35 @@ import { useServerAssetUrl } from '@/components/icons/use-server-asset-url';
 import { cn } from '@/lib/utils';
 
 const resolvedImageCache = new Map<string, boolean>();
+const resolvedImageListeners = new Set<() => void>();
+
+function subscribeToResolvedImages(listener: () => void) {
+  resolvedImageListeners.add(listener);
+  return () => {
+    resolvedImageListeners.delete(listener);
+  };
+}
+
+function cacheResolvedImage(url: string, resolved: boolean) {
+  resolvedImageCache.set(url, resolved);
+  for (const listener of resolvedImageListeners) listener();
+}
 
 function useResolvedImageUrl(url: string | null): string | null {
-  const [resolvedUrl, setResolvedUrl] = React.useState<string | null>(() => {
-    if (!url) return null;
-    return resolvedImageCache.get(url) === true ? url : null;
-  });
-  const [failed, setFailed] = React.useState(() => (url ? resolvedImageCache.get(url) === false : false));
+  const resolved = React.useSyncExternalStore(subscribeToResolvedImages, () =>
+    url ? resolvedImageCache.get(url) === true : false,
+  );
 
   React.useEffect(() => {
-    if (!url) {
-      setResolvedUrl(null);
-      setFailed(false);
-      return;
-    }
+    if (!url || resolvedImageCache.has(url)) return;
 
-    const cached = resolvedImageCache.get(url);
-    if (cached !== undefined) {
-      setResolvedUrl(cached ? url : null);
-      setFailed(!cached);
-      return;
-    }
-
-    let active = true;
     const image = new Image();
-    image.onload = () => {
-      if (!active) return;
-      resolvedImageCache.set(url, true);
-      setResolvedUrl(url);
-      setFailed(false);
-    };
-    image.onerror = () => {
-      if (!active) return;
-      resolvedImageCache.set(url, false);
-      setResolvedUrl(null);
-      setFailed(true);
-    };
+    image.onload = () => cacheResolvedImage(url, true);
+    image.onerror = () => cacheResolvedImage(url, false);
     image.src = url;
-
-    return () => {
-      active = false;
-    };
   }, [url]);
 
-  if (failed) return null;
-  return resolvedUrl;
+  return resolved ? url : null;
 }
 
 type RemoteMaskedIconProps = {
@@ -76,13 +60,9 @@ type RemoteImageIconProps = {
 
 export function RemoteImageIcon({ path, label, className, fallback }: RemoteImageIconProps) {
   const url = useServerAssetUrl(path);
-  const [failed, setFailed] = React.useState(false);
+  const [failedUrl, setFailedUrl] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    setFailed(false);
-  }, [url]);
-
-  if (!url || failed) return <>{fallback}</>;
+  if (!url || failedUrl === url) return <>{fallback}</>;
 
   return (
     <img
@@ -91,7 +71,7 @@ export function RemoteImageIcon({ path, label, className, fallback }: RemoteImag
       aria-label={label}
       className={cn('shrink-0 rounded-sm object-contain', className)}
       loading="lazy"
-      onError={() => setFailed(true)}
+      onError={() => setFailedUrl(url)}
     />
   );
 }

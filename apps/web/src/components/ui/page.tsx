@@ -42,8 +42,12 @@ function PageIcon({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function PageTitle({ className, ...props }: React.ComponentProps<'h1'>) {
-  return <h1 data-slot="page-title" className={cn('text-xl font-semibold', className)} {...props} />;
+function PageTitle({ className, children, ...props }: React.ComponentProps<'h1'>) {
+  return (
+    <h1 data-slot="page-title" className={cn('text-xl font-semibold', className)} {...props}>
+      {children}
+    </h1>
+  );
 }
 
 function PageDescription({ className, ...props }: React.ComponentProps<'p'>) {

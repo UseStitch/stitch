@@ -29,7 +29,9 @@ declare module '@tanstack/react-router' {
   }
 }
 
-const rootElement = document.getElementById('root')!;
+const rootElement = document.getElementById('root');
+if (!rootElement) throw new Error('Root element #root not found');
+
 const isDesktopNotificationWindow = window.location.hash.startsWith('#/desktop-notifications');
 
 if (isDesktopNotificationWindow) {

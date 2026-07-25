@@ -67,9 +67,9 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
   const [fieldsByMethod, setFieldsByMethod] = React.useState<Record<string, FieldValues>>({});
   const [extraFields, setExtraFields] = React.useState<FieldValues>({});
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
+  const [hydratedConfig, setHydratedConfig] = React.useState<typeof existingConfig>(undefined);
 
-  React.useEffect(() => {
-    if (!existingConfig || !meta) return;
+  if (existingConfig && meta && hydratedConfig !== existingConfig) {
     const hydrated = hydrateProviderConfigState(existingConfig as Record<string, unknown>, enabledAuthMethods);
     const activeMethod = hydrated.activeMethod;
     if (activeMethod) {
@@ -79,7 +79,8 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
       setActiveTab(enabledAuthMethods[0].method);
     }
     setExtraFields(hydrated.extraFields);
-  }, [enabledAuthMethods, existingConfig, meta]);
+    setHydratedConfig(existingConfig);
+  }
 
   const saveMutation = useSaveProviderConfigMutation({
     providerId: provider.id,

@@ -89,12 +89,15 @@ function TableEmptyRow({ colSpan, children }: { colSpan: number; children: React
 type TableSkeletonColumn = { className?: string; skeletonClassName?: string };
 
 function TableSkeletonRows({ rows = 5, columns }: { rows?: number; columns: TableSkeletonColumn[] }) {
+  const rowKeys = Array.from({ length: rows }, (_, index) => `skeleton-row-${index}`);
+  const cells = columns.map((column, index) => ({ column, key: `skeleton-cell-${index}` }));
+
   return (
     <>
-      {Array.from({ length: rows }).map((_, rowIndex) => (
-        <TableRow key={rowIndex} className="hover:bg-transparent">
-          {columns.map((column, columnIndex) => (
-            <TableCell key={columnIndex} className={column.className}>
+      {rowKeys.map((rowKey) => (
+        <TableRow key={rowKey} className="hover:bg-transparent">
+          {cells.map(({ column, key }) => (
+            <TableCell key={key} className={column.className}>
               {column.skeletonClassName ? <Skeleton className={column.skeletonClassName} /> : null}
             </TableCell>
           ))}
