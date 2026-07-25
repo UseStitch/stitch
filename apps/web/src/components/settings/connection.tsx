@@ -79,19 +79,20 @@ function ConnectionContent() {
         <SettingSection title="Server">
           <div className="grid grid-cols-2 gap-3">
             {MODE_OPTIONS.map((option) => (
-              <button
+              <Button
                 key={option.mode}
                 type="button"
+                variant="ghost"
                 onClick={() => setMode(option.mode)}
                 className={cn(
-                  'rounded-xl border p-4 text-left transition-colors',
+                  'h-auto flex-col items-stretch rounded-xl border p-4 text-left',
                   mode === option.mode
                     ? 'border-primary bg-primary/5 shadow-sm ring-2 ring-primary/20'
                     : 'border-border bg-background hover:bg-accent/50',
                 )}>
                 <span className="text-sm font-medium">{option.label}</span>
                 <span className="mt-1 block text-xs text-muted-foreground">{option.description}</span>
-              </button>
+              </Button>
             ))}
           </div>
         </SettingSection>

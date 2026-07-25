@@ -95,9 +95,10 @@ function MessageCard({
           ? 'flex min-h-0 flex-1 flex-col rounded-lg border border-border bg-card p-4 text-card-foreground'
           : 'rounded-lg border border-border bg-card p-4 text-card-foreground'
       }>
-      <button
+      <Button
         type="button"
-        className="flex w-full items-start justify-between gap-3 text-left"
+        variant="ghost"
+        className="h-auto w-full items-start justify-between gap-3 p-0 text-left hover:bg-transparent"
         onClick={() => setOpen(!open)}>
         <div className="min-w-0">
           <div className="truncate text-sm font-medium">{formatAddress(message)}</div>
@@ -106,7 +107,7 @@ function MessageCard({
           </div>
         </div>
         <div className="shrink-0 text-xs text-muted-foreground">{formatDateTime(message.internalDate)}</div>
-      </button>
+      </Button>
       {open ? (
         <div className={fillAvailableHeight ? 'mt-4 flex min-h-0 flex-1 flex-col space-y-3' : 'mt-4 space-y-3'}>
           <MessageBody
@@ -118,13 +119,15 @@ function MessageCard({
           {message.attachments.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {message.attachments.map((attachment) => (
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="xs"
                   key={attachment.id}
                   onClick={() => openAttachment(attachment.id)}
-                  className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted">
+                  className="border border-border text-muted-foreground hover:bg-muted">
                   {attachment.filename}
-                </button>
+                </Button>
               ))}
             </div>
           ) : null}

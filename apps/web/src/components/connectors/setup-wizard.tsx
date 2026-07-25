@@ -272,15 +272,16 @@ function InstructionsStep({ instructions, onNext }: { instructions: ConnectorSet
               <li key={instruction.text} className="leading-relaxed">
                 <span>{instruction.text}</span>
                 {href ? (
-                  <button
+                  <Button
                     type="button"
-                    className="ml-1 inline-flex items-center gap-1 text-primary hover:underline"
+                    variant="ghost"
+                    className="ml-1 h-auto gap-1 p-0 font-normal text-primary hover:bg-transparent hover:underline"
                     onClick={() => {
                       void (window.api?.shell?.openExternal(href) ?? window.open(href, '_blank'));
                     }}>
                     {instruction.hrefLabel ?? 'Open'}
                     <ExternalLinkIcon className="size-3" />
-                  </button>
+                  </Button>
                 ) : null}
               </li>
             );
@@ -522,15 +523,16 @@ function ScopesStep({
             <p className="mb-1.5 text-xs font-medium text-foreground">
               Before connecting, enable the APIs for the services you select below:
             </p>
-            <button
+            <Button
               type="button"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+              variant="ghost"
+              className="h-auto gap-1.5 p-0 text-primary hover:bg-transparent hover:underline"
               onClick={() => {
                 void (window.api?.shell?.openExternal(enableApisUrl) ?? window.open(enableApisUrl, '_blank'));
               }}>
               <ExternalLinkIcon className="size-3.5" />
               Enable required Google APIs in Cloud Console
-            </button>
+            </Button>
           </div>
         )}
         {config.serviceAccessOptions && config.serviceAccessOptions.length > 0 ? (

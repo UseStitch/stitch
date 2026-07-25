@@ -196,13 +196,14 @@ function ToolCallRowPreview() {
   }
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={() => onViewErrorDetails(errorDetails)}
-      className="min-w-0 flex-1 cursor-pointer truncate text-left text-muted-foreground hover:text-destructive"
+      className="h-auto min-w-0 flex-1 justify-start truncate p-0 text-left font-normal text-muted-foreground hover:bg-transparent hover:text-destructive"
       title="View full error">
       {summary.preview}
-    </button>
+    </Button>
   );
 }
 
@@ -227,13 +228,14 @@ function ToolCallRowStatus() {
   }
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={() => onViewErrorDetails(errorDetails)}
-      className={cn(className, 'cursor-pointer hover:underline')}
+      className={cn(className, 'h-auto p-0 hover:bg-transparent hover:underline')}
       title="View full error">
       {STATUS_LABEL[call.status]}
-    </button>
+    </Button>
   );
 }
 

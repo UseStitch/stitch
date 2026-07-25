@@ -1,6 +1,7 @@
 import { CheckIcon, ChevronDownIcon } from 'lucide-react';
 import * as React from 'react';
 
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 type DockVariant = 'default' | 'primary' | 'warning' | 'destructive';
@@ -82,10 +83,11 @@ function DockInput({ className, ...props }: DockInputProps) {
 
 function DockSelectable({ selected, description, children, className, ...props }: DockSelectableProps) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       className={cn(
-        'flex w-full items-start gap-2 rounded-md border p-2 text-left text-sm transition-colors',
+        'h-auto w-full items-start justify-start gap-2 rounded-md border p-2 text-left',
         selected ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50',
         className,
       )}
@@ -101,7 +103,7 @@ function DockSelectable({ selected, description, children, className, ...props }
         <div className="truncate text-foreground">{children}</div>
         {description ? <div className="truncate text-xs text-muted-foreground">{description}</div> : null}
       </div>
-    </button>
+    </Button>
   );
 }
 
@@ -124,12 +126,13 @@ function CollapsibleDockItem({ title, defaultExpanded = true, children, isLast, 
   return (
     <div className={cn('overflow-hidden bg-transparent', !isLast && 'border-b border-border/60')}>
       <div className="flex items-center">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => setIsExpanded((prev) => !prev)}
           aria-expanded={isExpanded}
           className={cn(
-            'flex flex-1 items-center gap-3 px-4 py-3 text-left text-sm font-medium',
+            'h-auto flex-1 justify-start gap-3 px-4 py-3 text-left',
             'transition-colors duration-150 ease-out',
             styles.header,
             'focus-visible:outline-none',
@@ -143,7 +146,7 @@ function CollapsibleDockItem({ title, defaultExpanded = true, children, isLast, 
             <ChevronDownIcon className="size-4 shrink-0" />
           </span>
           <span>{title}</span>
-        </button>
+        </Button>
       </div>
 
       <div

@@ -441,17 +441,18 @@ export function LocalModelsPanel({ provider }: Props) {
             Found {newDiscovered.length} new model{newDiscovered.length !== 1 ? 's' : ''} — click to add
           </p>
           {newDiscovered.map((d) => (
-            <button
+            <Button
               key={d.id}
               type="button"
-              className="flex items-center justify-between rounded px-2 py-1.5 text-sm hover:bg-accent"
+              variant="ghost"
+              className="h-auto justify-between rounded px-2 py-1.5 hover:bg-accent"
               onClick={() => {
                 const input = formToInput(discoveredToForm(d));
                 upsertMutation.mutate(input);
               }}>
               <span className="font-mono">{d.id}</span>
               <PlusIcon className="size-3.5 text-muted-foreground" />
-            </button>
+            </Button>
           ))}
         </div>
       )}

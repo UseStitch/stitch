@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import type { AddFormState } from './shared';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -52,12 +53,13 @@ export function OAuthFields({
           </div>
         </div>
       ) : (
-        <button
+        <Button
           type="button"
-          className="text-xs text-muted-foreground underline hover:text-foreground"
+          variant="ghost"
+          className="h-auto p-0 text-xs font-normal text-muted-foreground underline hover:bg-transparent hover:text-foreground"
           onClick={() => setShowAdvanced(true)}>
           Advanced: provide a pre-registered client
-        </button>
+        </Button>
       )}
     </div>
   );

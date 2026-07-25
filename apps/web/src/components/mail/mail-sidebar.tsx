@@ -134,14 +134,16 @@ function LabelDivider({
 }) {
   return (
     <li className="py-1">
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="xs"
         onClick={onToggle}
-        className="flex w-full items-center gap-2 px-2 py-1 text-2xs font-medium tracking-wide text-muted-foreground uppercase transition-colors hover:text-sidebar-foreground">
+        className="w-full gap-2 text-2xs tracking-wide text-muted-foreground uppercase hover:text-sidebar-foreground">
         {collapsed ? <ChevronRightIcon className="size-3" /> : <ChevronDownIcon className="size-3" />}
         <span>{children}</span>
         <span className="h-px flex-1 bg-sidebar-border" />
-      </button>
+      </Button>
     </li>
   );
 }

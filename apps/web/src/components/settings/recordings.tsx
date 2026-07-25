@@ -108,13 +108,14 @@ function PermissionStatus() {
             {screenDenied ? <li>System audio recording access is required to capture system audio.</li> : null}
           </ul>
         </div>
-        <button
+        <Button
           type="button"
-          className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          size="sm"
+          className="shrink-0 text-xs hover:bg-primary/90"
           disabled={requesting}
           onClick={() => void handleGrantPermissions()}>
           {requesting ? 'Requesting...' : 'Grant Permissions'}
-        </button>
+        </Button>
       </div>
     </div>
   );

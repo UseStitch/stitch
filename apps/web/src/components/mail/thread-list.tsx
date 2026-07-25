@@ -32,11 +32,12 @@ function formatSender(thread: MailThreadListItem): string {
 
 function ThreadRow({ thread, active, onClick }: { thread: MailThreadListItem; active: boolean; onClick: () => void }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={onClick}
       className={cn(
-        'flex w-full flex-col gap-1 border-b border-sidebar-border px-3 py-3 text-left transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+        'h-auto w-full flex-col items-stretch justify-start gap-1 rounded-none border-b border-sidebar-border px-3 py-3 text-left hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
         active && 'bg-sidebar-accent text-sidebar-accent-foreground',
         thread.hasUnread && 'bg-sidebar-primary/5',
       )}>
@@ -55,7 +56,7 @@ function ThreadRow({ thread, active, onClick }: { thread: MailThreadListItem; ac
         {thread.subject || '(No subject)'}
       </div>
       <div className="line-clamp-2 text-xs text-muted-foreground">{thread.snippet}</div>
-    </button>
+    </Button>
   );
 }
 
