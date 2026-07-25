@@ -109,7 +109,7 @@ function assertChecksumMatches(
 }
 
 export async function runPendingMigrations(db: Db, deps?: { getConnection?: typeof GetConnectionFn }): Promise<void> {
-  const orderedMigrations = [...MIGRATIONS].sort((a, b) => a.version - b.version);
+  const orderedMigrations = [...MIGRATIONS].toSorted((a, b) => a.version - b.version);
   ensureMigrationsAreValid(orderedMigrations);
 
   if (orderedMigrations.length === 0) return;

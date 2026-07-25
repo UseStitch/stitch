@@ -15,7 +15,7 @@ function createPermissionDedupeKey(input: ToolExecutionInput, patternTargets: st
     input.context.messageId,
     input.context.streamRunId,
     input.toolName,
-    [...patternTargets].sort(),
+    [...patternTargets].toSorted(),
   ]);
 }
 

@@ -162,8 +162,8 @@ export function createWsTransport(
         },
         onError(cb) {
           errorListeners.push(cb);
-          while (pendingErrors.length > 0) {
-            cb(pendingErrors.shift()!);
+          for (const pending of pendingErrors.splice(0)) {
+            cb(pending);
           }
         },
         onClose(cb) {

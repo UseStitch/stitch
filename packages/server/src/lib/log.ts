@@ -105,7 +105,7 @@ export async function cleanup(dir = PATHS.logDir): Promise<void> {
     return;
   }
 
-  const logFiles = entries.filter((f) => LOG_FILE_PATTERN.test(f)).sort();
+  const logFiles = entries.filter((f) => LOG_FILE_PATTERN.test(f)).toSorted();
 
   if (logFiles.length <= 10) return;
 

@@ -38,20 +38,21 @@ type ToolMeta = {
   bindingName: string;
   description: string;
   schema: Record<string, unknown>;
-  tool: Tool;
+  execute: NonNullable<Tool['execute']>;
 };
 
 function mapExecutableTools<T>(tools: Record<string, Tool>, mapper: (meta: ToolMeta) => T): Record<string, T> {
   const result: Record<string, T> = {};
 
   for (const [name, tool] of Object.entries(tools)) {
-    if (!tool.execute) continue;
+    const execute = tool.execute;
+    if (!execute) continue;
 
     const bindingName = `${EXTERNAL_PREFIX}${name}`;
     const description = tool.description ?? `Tool: ${name}`;
     const schema = getToolSchema(tool);
 
-    result[bindingName] = mapper({ originalName: name, bindingName, description, schema, tool });
+    result[bindingName] = mapper({ originalName: name, bindingName, description, schema, execute });
   }
 
   return result;
@@ -71,8 +72,7 @@ export function toolsToTypeInfo(tools: Record<string, Tool>): Record<string, Too
 }
 
 export function toolsToBindings(tools: Record<string, Tool>, abortSignal?: AbortSignal): Record<string, ToolBinding> {
-  return mapExecutableTools(tools, ({ bindingName, description, schema, tool }) => {
-    const execute = tool.execute!;
+  return mapExecutableTools(tools, ({ bindingName, description, schema, execute }) => {
     return {
       name: bindingName,
       description,

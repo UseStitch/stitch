@@ -18,8 +18,8 @@ describe('meeting note templates', () => {
 
     expect(result.error).toBeNull();
     if (result.error) return;
-    expect(result.data.templates.map((template) => template.id).sort()).toEqual(
-      PREBUILT_MEETING_NOTE_TEMPLATES.map((template) => template.id).sort(),
+    expect(result.data.templates.map((template) => template.id).toSorted()).toEqual(
+      PREBUILT_MEETING_NOTE_TEMPLATES.map((template) => template.id).toSorted(),
     );
   });
 

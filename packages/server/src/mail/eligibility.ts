@@ -31,14 +31,14 @@ export function filterEligibleMailAccounts(
 ): EligibleMailAccount[] {
   return instances
     .filter(
-      (instance) =>
+      (instance): instance is EligibleConnectorInstance & { accountEmail: string } =>
         instance.connectorId === 'google' &&
         instance.status === 'connected' &&
         instance.accountEmail !== null &&
         !enrolledConnectorInstanceIds.has(instance.id) &&
         hasRequiredGmailScopes(instance.scopes),
     )
-    .map((instance) => ({ connectorInstanceId: instance.id, email: instance.accountEmail! }));
+    .map((instance) => ({ connectorInstanceId: instance.id, email: instance.accountEmail }));
 }
 
 export function assertCanEnrollMailAccount(

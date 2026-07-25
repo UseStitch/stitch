@@ -76,7 +76,7 @@ configRouter.get('/toolsets', async (c) => {
         tools: (view.tools ?? []).map((tool) => ({ toolName: tool.name, displayName: tool.displayName })),
       };
     })
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .toSorted((a, b) => a.name.localeCompare(b.name));
 
   return c.json({ toolsets });
 });

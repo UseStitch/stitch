@@ -197,7 +197,7 @@ export async function processMemories(input: {
     // Apply per-turn cap
     if (facts.length > config.maxFactsPerTurn) {
       // Keep highest-importance facts when capping
-      facts = facts.sort((a, b) => b.importanceScore - a.importanceScore).slice(0, config.maxFactsPerTurn);
+      facts = facts.toSorted((a, b) => b.importanceScore - a.importanceScore).slice(0, config.maxFactsPerTurn);
     }
 
     // Apply remaining session budget

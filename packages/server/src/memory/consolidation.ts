@@ -127,7 +127,7 @@ async function findCandidateGroups(): Promise<ConsolidationMemory[][]> {
   const allResult = await getAllSemanticMemories({ page: 1, pageSize: 1000 });
   if (allResult.error || allResult.data.memories.length < MIN_GROUP_SIZE) return [];
 
-  const memories = [...allResult.data.memories].sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+  const memories = [...allResult.data.memories].toSorted((a, b) => a.updatedAt.localeCompare(b.updatedAt));
   const used = new Set<string>();
   const groups: ConsolidationMemory[][] = [];
 

@@ -31,7 +31,8 @@ describe('mcp icon cache', () => {
     });
 
     expect(cached).not.toBeNull();
-    const icon = await getMcpIconByKey(cached!.key, { cacheDir });
+    if (!cached) throw new Error('expected icon to be cached');
+    const icon = await getMcpIconByKey(cached.key, { cacheDir });
     expect(icon?.mimeType).toBe('image/png');
     expect(icon?.body.length).toBeGreaterThan(0);
   });

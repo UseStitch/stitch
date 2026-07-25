@@ -529,12 +529,16 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
 
   // Resolve provider/model labels and context limit
   // Find the latest real assistant message (skip background tasks like title generation, compaction, automation)
-  const BACKGROUND_PART_TYPES: StoredPart['type'][] = ['session-title', 'compaction', 'automation-generation'];
+  const BACKGROUND_PART_TYPES: Set<StoredPart['type']> = new Set([
+    'session-title',
+    'compaction',
+    'automation-generation',
+  ]);
   let latestRealMessage: (typeof sessionMessages)[number] | null = null;
   for (let i = sessionMessages.length - 1; i >= 0; i--) {
     const msg = sessionMessages[i];
     if (!msg || msg.role !== 'assistant') continue;
-    if (msg.parts?.some((p) => BACKGROUND_PART_TYPES.includes(p.type))) continue;
+    if (msg.parts?.some((p) => BACKGROUND_PART_TYPES.has(p.type))) continue;
     latestRealMessage = msg;
     break;
   }

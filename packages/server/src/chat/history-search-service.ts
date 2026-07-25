@@ -244,7 +244,7 @@ export async function searchSessionHistory(
   }
 
   const sorted = hits
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       if (b.score !== a.score) {
         return b.score - a.score;
       }

@@ -220,7 +220,7 @@ class StreamRunner {
   private getCurrentTools(): Record<string, Tool> {
     const dynamicTools = this.ctx.toolsetManager.getActiveTools();
     const all = { ...this.ctx.coreTools, ...dynamicTools };
-    return Object.fromEntries(Object.entries(all).sort(([a], [b]) => a.localeCompare(b)));
+    return Object.fromEntries(Object.entries(all).toSorted(([a], [b]) => a.localeCompare(b)));
   }
 
   private buildStepOptions(step: number, conversation = this.state.conversation): StepOptions {

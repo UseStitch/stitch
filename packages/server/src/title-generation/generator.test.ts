@@ -38,16 +38,16 @@ describe('generateTitleFromContent', () => {
       getModel: () => model,
     });
 
-    expect(result!.title).toBe('Project Setup');
-    expect(result!.providerId).toBe('openai');
-    expect(result!.modelId).toBe('gpt-5-nano');
-    expect(result!.usage!.inputTokens).toBe(10);
-    expect(result!.usage!.outputTokens).toBe(5);
+    expect(result?.title).toBe('Project Setup');
+    expect(result?.providerId).toBe('openai');
+    expect(result?.modelId).toBe('gpt-5-nano');
+    expect(result?.usage?.inputTokens).toBe(10);
+    expect(result?.usage?.outputTokens).toBe(5);
 
     expect(model.doGenerateCalls).toHaveLength(1);
     const messages = model.doGenerateCalls[0].prompt;
     const userMessage = messages.find((m) => m.role === 'user');
-    const textContent = userMessage!.content.find((c): c is { type: 'text'; text: string } => c.type === 'text');
+    const textContent = userMessage?.content.find((c): c is { type: 'text'; text: string } => c.type === 'text');
     expect(textContent?.text).toBe(content);
   });
 
@@ -58,7 +58,7 @@ describe('generateTitleFromContent', () => {
       getModel: () => model,
     });
 
-    expect(result!.title).toBe('Debug Auth Flow');
+    expect(result?.title).toBe('Debug Auth Flow');
   });
 
   test('returns null when model returns empty text', async () => {

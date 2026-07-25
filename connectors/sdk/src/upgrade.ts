@@ -3,7 +3,7 @@ import type { ConnectorUpgradeAction, ConnectorVersion } from '@stitch/shared/co
 import type { ConnectorDefinitionInput, ConnectorUpgradeState } from './types.js';
 
 function getSortedVersions(definition: ConnectorDefinitionInput): ConnectorVersion[] {
-  return [...definition.versionHistory].sort((a, b) => a.version - b.version);
+  return [...definition.versionHistory].toSorted((a, b) => a.version - b.version);
 }
 
 export function getCapabilitiesForVersion(definition: ConnectorDefinitionInput, appliedVersion: number): string[] {

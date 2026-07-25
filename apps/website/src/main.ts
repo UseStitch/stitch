@@ -39,7 +39,10 @@ document.addEventListener('click', (e: MouseEvent) => {
     document.documentElement.setAttribute('data-theme', stored);
   }
 
-  document.getElementById('theme-toggle')!.addEventListener('click', () => {
+  const themeToggle = document.getElementById('theme-toggle');
+  if (!themeToggle) throw new Error('Theme toggle element #theme-toggle not found');
+
+  themeToggle.addEventListener('click', () => {
     const current = document.documentElement.getAttribute('data-theme');
     let isLight: boolean;
 
@@ -58,10 +61,12 @@ document.addEventListener('click', (e: MouseEvent) => {
 // Waitlist dialog
 (() => {
   const dialog = document.getElementById('waitlist-dialog') as HTMLDialogElement;
-  const openBtn = document.getElementById('open-waitlist-dialog')!;
-  const closeBtn = document.getElementById('close-waitlist-dialog')!;
+  const openBtn = document.getElementById('open-waitlist-dialog');
+  const closeBtn = document.getElementById('close-waitlist-dialog');
   const form = document.getElementById('waitlist-form') as HTMLFormElement;
-  const successMsg = document.getElementById('waitlist-success')!;
+  const successMsg = document.getElementById('waitlist-success');
+
+  if (!openBtn || !closeBtn || !successMsg) throw new Error('Waitlist dialog elements not found');
 
   openBtn.addEventListener('click', () => {
     dialog.showModal();

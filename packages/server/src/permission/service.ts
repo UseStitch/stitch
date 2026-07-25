@@ -137,17 +137,18 @@ async function createPermissionResponse(opts: RequestPermissionResponseOptions):
 export async function requestPermissionResponse(
   opts: RequestPermissionResponseOptions,
 ): Promise<PermissionDecisionResult> {
-  if (!opts.dedupeKey) {
+  const dedupeKey = opts.dedupeKey;
+  if (!dedupeKey) {
     return createPermissionResponse(opts);
   }
 
-  const existing = pendingPermissionRequests.get(opts.dedupeKey);
+  const existing = pendingPermissionRequests.get(dedupeKey);
   if (existing) return existing;
 
   const promise = createPermissionResponse(opts).finally(() => {
-    pendingPermissionRequests.delete(opts.dedupeKey!);
+    pendingPermissionRequests.delete(dedupeKey);
   });
-  pendingPermissionRequests.set(opts.dedupeKey, promise);
+  pendingPermissionRequests.set(dedupeKey, promise);
   return promise;
 }
 

@@ -72,9 +72,10 @@ for (const pkgPath of workspacePkgPaths) {
   for (const field of DEP_FIELDS) {
     const deps: Record<string, string> = pkg[field] ?? {};
     for (const [name, version] of Object.entries(deps)) {
-      if (!catalogPackages.has(name)) continue;
+      const expected = catalogPackages.get(name);
+      if (!expected) continue;
       if (version.startsWith('catalog:')) continue; // already using catalog
-      violations.push({ file: relPath, field, pkg: name, actual: version, expected: catalogPackages.get(name)! });
+      violations.push({ file: relPath, field, pkg: name, actual: version, expected });
     }
   }
 }

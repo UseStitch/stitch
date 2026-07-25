@@ -33,8 +33,11 @@ export async function listProvidersWithCapabilities(): Promise<ServiceResult<Pro
   const capabilitiesMap = new Map<string, Set<ProviderCapability>>();
 
   function ensureEntry(id: string): Set<ProviderCapability> {
-    if (!capabilitiesMap.has(id)) capabilitiesMap.set(id, new Set());
-    return capabilitiesMap.get(id)!;
+    const existing = capabilitiesMap.get(id);
+    if (existing) return existing;
+    const created = new Set<ProviderCapability>();
+    capabilitiesMap.set(id, created);
+    return created;
   }
 
   for (const id of Object.keys(llmProviders)) {
