@@ -3,6 +3,7 @@ import { APPEARANCE_MODES } from '@stitch/shared/appearance/types';
 
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage, SettingSection } from '@/components/settings/settings-ui';
+import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/ui/use-theme';
 import { THEMES } from '@/lib/theme';
 import type { ThemeTokens } from '@/lib/theme';
@@ -32,18 +33,19 @@ export function AppearanceSelector() {
       <SettingSection title="Mode">
         <div className="flex gap-2">
           {APPEARANCE_MODES.map((m) => (
-            <button
+            <Button
               key={m}
               type="button"
+              variant="ghost"
               onClick={() => setMode(m)}
               className={cn(
-                'flex-1 rounded-xl border px-3 py-3 text-sm font-medium transition-all text-center',
+                'h-auto flex-1 rounded-xl border px-3 py-3 text-center',
                 mode === m
                   ? 'border-primary bg-primary/5 ring-2 ring-primary/20 text-foreground shadow-sm'
                   : 'border-border bg-background text-muted-foreground hover:text-foreground hover:bg-accent/50',
               )}>
               {MODE_LABELS[m]}
-            </button>
+            </Button>
           ))}
         </div>
       </SettingSection>
@@ -51,19 +53,20 @@ export function AppearanceSelector() {
       <SettingSection title="Theme">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {THEMES.map((t) => (
-            <button
+            <Button
               key={t.name}
               type="button"
+              variant="ghost"
               onClick={() => setTheme(t.name)}
               className={cn(
-                'rounded-xl border p-3 text-left transition-all space-y-2',
+                'h-auto flex-col items-stretch space-y-2 rounded-xl border p-3 text-left',
                 themeName === t.name
                   ? 'border-primary bg-primary/5 ring-2 ring-primary/20 shadow-sm'
                   : 'border-border bg-background hover:bg-accent/50 hover:border-foreground/20',
               )}>
               <ThemePreview tokens={effectiveMode === 'dark' ? t.dark : t.light} />
               <span className="text-xs font-medium">{t.label}</span>
-            </button>
+            </Button>
           ))}
         </div>
       </SettingSection>

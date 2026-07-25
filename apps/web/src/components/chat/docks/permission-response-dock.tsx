@@ -78,14 +78,15 @@ export function PermissionResponseDock({
       </Dock.Actions>
 
       {suggestion && isDirectorySuggestion ? (
-        <button
+        <Button
           type="button"
+          variant="ghost"
           disabled={isPending}
           onClick={() => void onApplySuggestion(permissionResponse.id, suggestion.pattern)}
-          className="group flex w-fit items-baseline gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50">
+          className="group h-auto w-fit items-baseline gap-1.5 p-0 text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-foreground">
           <span className="underline-offset-2 group-hover:underline">Always allow in directory</span>
           <span className="max-w-70 truncate font-mono opacity-60 group-hover:opacity-100">{dir}</span>
-        </button>
+        </Button>
       ) : null}
 
       <div className="flex items-center gap-2">

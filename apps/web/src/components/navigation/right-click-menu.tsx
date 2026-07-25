@@ -2,6 +2,7 @@ import { BookPlus, Scissors, Copy, ClipboardPaste, Terminal, ChevronRight, Spell
 import { useEffect, useLayoutEffect, useCallback, useState, useRef, forwardRef } from 'react';
 import { createPortal } from 'react-dom';
 
+import { Button } from '@/components/ui/button';
 import type { ContextMenuParams } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -23,11 +24,12 @@ const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(function MenuItem(
   ref,
 ) {
   return (
-    <button
+    <Button
       ref={ref}
       type="button"
+      variant="ghost"
       className={cn(
-        'flex w-full cursor-default items-center gap-1.5 rounded-md px-1.5 py-1 text-sm outline-none',
+        'h-auto w-full cursor-default justify-start gap-1.5 rounded-md px-1.5 py-1',
         'hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
         '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
         className,
@@ -38,7 +40,7 @@ const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(function MenuItem(
       onMouseLeave={onMouseLeave}>
       {children}
       {hasSubmenu && <ChevronRight className="ml-auto" />}
-    </button>
+    </Button>
   );
 });
 

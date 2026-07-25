@@ -14,13 +14,15 @@ function DesktopNotificationRoot({ children, exiting, onDismiss }: DesktopNotifi
         exiting ? 'translate-x-8 opacity-0' : 'translate-x-0 opacity-100',
       )}>
       {children}
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-xs"
         aria-label="Dismiss notification"
         onClick={onDismiss}
-        className="absolute top-1.5 right-1.5 flex size-6 items-center justify-center rounded-full text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:bg-muted hover:text-foreground">
+        className="absolute top-1.5 right-1.5 rounded-full text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-muted hover:text-foreground">
         <XIcon className="size-3.5" />
-      </button>
+      </Button>
     </article>
   );
 }

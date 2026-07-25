@@ -188,9 +188,11 @@ function ToolPermissionEditor({
               {BASH_COMMON_PRESETS.map((preset: BashPreset) => {
                 const existing = patternRules.find((rule) => rule.pattern === preset.pattern);
                 return (
-                  <button
+                  <Button
                     key={preset.pattern}
                     type="button"
+                    variant="ghost"
+                    size="xs"
                     disabled={isMutating}
                     onClick={() => {
                       if (existing) {
@@ -204,14 +206,14 @@ function ToolPermissionEditor({
                       }
                     }}
                     className={[
-                      'inline-flex items-center rounded-md border px-2 py-0.5 font-mono text-xs transition-colors',
+                      'h-auto rounded-md border px-2 py-0.5 font-mono',
                       'disabled:cursor-not-allowed disabled:opacity-50',
                       existing
                         ? 'border-primary/40 bg-primary/10 text-primary'
                         : 'border-border/50 bg-transparent text-muted-foreground hover:border-border hover:text-foreground',
                     ].join(' ')}>
                     {preset.label}
-                  </button>
+                  </Button>
                 );
               })}
             </div>

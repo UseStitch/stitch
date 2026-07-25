@@ -295,13 +295,14 @@ export function AgendaPage({ listId }: { listId?: string }) {
                   className="-ml-1 w-full rounded border-none bg-transparent px-1 text-xl font-semibold ring-1 ring-primary outline-none"
                 />
               ) : currentList ? (
-                <button
+                <Button
                   type="button"
-                  className="group/title -ml-1 flex items-center gap-1.5 rounded px-1 transition-colors hover:bg-muted"
+                  variant="ghost"
+                  className="group/title -ml-1 h-auto gap-1.5 rounded px-1 hover:bg-muted"
                   onClick={startRenaming}>
                   <h1 className="text-xl font-semibold">{currentList.name}</h1>
                   <PencilIcon className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/title:opacity-100" />
-                </button>
+                </Button>
               ) : (
                 <h1 className="text-xl font-semibold">Agenda</h1>
               )}
@@ -658,15 +659,17 @@ function AgendaItemRow({
       onClick={onClick}
       onDragOver={onDragOver}>
       <Table.Cell className="w-8">
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-xs"
           draggable
           aria-label={`Reorder ${item.title}`}
           onDragStart={handleDragStart}
-          className="flex w-4 cursor-grab items-center justify-center opacity-0 transition-opacity group-hover:opacity-60 active:cursor-grabbing"
+          className="h-auto w-4 cursor-grab p-0 opacity-0 transition-opacity group-hover:opacity-60 hover:bg-transparent active:cursor-grabbing"
           onClick={(e) => e.stopPropagation()}>
           <GripVerticalIcon className="size-3.5 text-muted-foreground" />
-        </button>
+        </Button>
       </Table.Cell>
 
       <Table.Cell

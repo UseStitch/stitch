@@ -120,11 +120,12 @@ function ShortcutRow({
           </Badge>
         )}
       </div>
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={() => !isLeaderShortcut && onStartRecording(entry.actionId)}
         className={cn(
-          'text-sm rounded-md px-2 py-1.5 transition-colors',
+          'rounded-md px-2 py-1.5',
           isLeaderShortcut
             ? 'cursor-default'
             : isRecording
@@ -140,7 +141,7 @@ function ShortcutRow({
         ) : (
           <HotkeyBadge hotkey={entry.hotkey} isSequence={entry.isSequence} />
         )}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -287,11 +288,12 @@ function ShortcutsContent() {
       <SettingSection title="Leader Key">
         <SettingRows>
           <SettingRow label="Leader key" description="Used as the prefix for LEADER+ shortcuts">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={handleStartLeaderKeyRecording}
               className={cn(
-                'text-sm rounded-md px-2 py-1.5 transition-colors hover:bg-accent/60 cursor-pointer',
+                'cursor-pointer rounded-md px-2 py-1.5 hover:bg-accent/60',
                 recordingId === LEADER_KEY_RECORDING_ID && 'text-foreground bg-accent shadow-inner ring-1 ring-ring/50',
               )}>
               {recordingId === LEADER_KEY_RECORDING_ID ? (
@@ -299,7 +301,7 @@ function ShortcutsContent() {
               ) : (
                 <HotkeyBadge hotkey={leaderKey} isSequence={false} />
               )}
-            </button>
+            </Button>
           </SettingRow>
         </SettingRows>
       </SettingSection>

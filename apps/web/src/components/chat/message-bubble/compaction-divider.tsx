@@ -1,5 +1,4 @@
 import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
-import * as React from 'react';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 
@@ -15,34 +14,34 @@ function stripOuterCodeFence(text: string): string {
 }
 
 export function CompactionDivider({ summaryParts }: CompactionDividerProps) {
-  const [open, setOpen] = React.useState(false);
-
   const raw = summaryParts ? extractTextFromParts(summaryParts) : '';
   const summaryText = stripOuterCodeFence(raw);
   const hasSummary = !!summaryText;
 
-  return (
-    <div>
+  if (!hasSummary) {
+    return (
       <div className="flex items-center gap-3 py-2">
         <div className="h-px flex-1 bg-border/60" />
-        {hasSummary ? (
-          <button
-            type="button"
-            onClick={() => setOpen((o) => !o)}
-            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
-            {open ? <ChevronDownIcon className="size-3 shrink-0" /> : <ChevronRightIcon className="size-3 shrink-0" />}
-            <span>Session compacted</span>
-          </button>
-        ) : (
-          <span className="text-xs font-medium text-muted-foreground">Session compacted</span>
-        )}
+        <span className="text-xs font-medium text-muted-foreground">Session compacted</span>
         <div className="h-px flex-1 bg-border/60" />
       </div>
-      {open && hasSummary && (
-        <div className="w-full">
-          <ChatMarkdown text={summaryText} />
-        </div>
-      )}
-    </div>
+    );
+  }
+
+  return (
+    <details className="group">
+      <summary className="flex cursor-pointer list-none items-center gap-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
+        <div className="h-px flex-1 bg-border/60" />
+        <span className="flex items-center gap-1.5">
+          <ChevronRightIcon className="size-3 shrink-0 group-open:hidden" />
+          <ChevronDownIcon className="hidden size-3 shrink-0 group-open:block" />
+          Session compacted
+        </span>
+        <div className="h-px flex-1 bg-border/60" />
+      </summary>
+      <div className="w-full">
+        <ChatMarkdown text={summaryText} />
+      </div>
+    </details>
   );
 }
