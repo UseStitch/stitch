@@ -62,7 +62,7 @@ export async function grepContent(input: z.infer<typeof grepInputSchema>): Promi
 
   const searchableFiles = filesWithMtime
     .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
-    .sort((a, b) => b.mtimeMs - a.mtimeMs);
+    .toSorted((a, b) => b.mtimeMs - a.mtimeMs);
 
   const matches: Match[] = [];
   let scannedFiles = 0;

@@ -14,6 +14,10 @@ function resolvedSchema(tool: Tool): JSONSchema7 {
   return (tool as { inputSchema: Schema }).inputSchema.jsonSchema as JSONSchema7;
 }
 
+function resolvedProperties(tool: Tool): Record<string, JSONSchema7> {
+  return resolvedSchema(tool).properties as Record<string, JSONSchema7>;
+}
+
 describe('sanitizeToolSchemasForProvider', () => {
   test('strips required from non-object anyOf branches for google (Apollo repro)', () => {
     const schema: JSONSchema7 = {
@@ -28,7 +32,7 @@ describe('sanitizeToolSchemasForProvider', () => {
 
     const out = sanitizeToolSchemasForProvider({ t: mcpTool(schema) }, 'google' as LlmProviderId, 'gemini-3.5-flash');
 
-    const items = (resolvedSchema(out.t).properties!.tasks_attributes as JSONSchema7).items as JSONSchema7;
+    const items = resolvedProperties(out.t).tasks_attributes.items as JSONSchema7;
     const branches = items.anyOf as JSONSchema7[];
     expect(branches[0].required).toBeUndefined();
     expect(branches[1].required).toBeUndefined();
@@ -42,7 +46,7 @@ describe('sanitizeToolSchemasForProvider', () => {
 
     const out = sanitizeToolSchemasForProvider({ t: mcpTool(schema) }, 'google' as LlmProviderId, 'gemini-3.5-flash');
 
-    const name = resolvedSchema(out.t).properties!.name as JSONSchema7;
+    const name = resolvedProperties(out.t).name;
     expect(name.required).toBeUndefined();
     expect(name.properties).toBeUndefined();
   });
@@ -60,7 +64,7 @@ describe('sanitizeToolSchemasForProvider', () => {
 
     const out = sanitizeToolSchemasForProvider({ t: mcpTool(schema) }, 'google' as LlmProviderId, 'gemini-3.5-flash');
 
-    const level = resolvedSchema(out.t).properties!.level as JSONSchema7;
+    const level = resolvedProperties(out.t).level;
     expect(level.type).toBe('string');
     expect(level.enum).toEqual(['1', '2', '3']);
   });
@@ -73,7 +77,7 @@ describe('sanitizeToolSchemasForProvider', () => {
 
     const out = sanitizeToolSchemasForProvider({ t: mcpTool(schema) }, 'google' as LlmProviderId, 'gemini-3.5-flash');
 
-    const value = resolvedSchema(out.t).properties!.value as Record<string, unknown>;
+    const value = resolvedProperties(out.t).value as Record<string, unknown>;
     expect(value.type).toBeUndefined();
     expect(value.anyOf).toEqual([{ type: 'string' }, { type: 'number' }]);
     expect(value.nullable).toBe(true);
@@ -84,7 +88,7 @@ describe('sanitizeToolSchemasForProvider', () => {
 
     const out = sanitizeToolSchemasForProvider({ t: mcpTool(schema) }, 'google' as LlmProviderId, 'gemini-3.5-flash');
 
-    const tags = resolvedSchema(out.t).properties!.tags as JSONSchema7;
+    const tags = resolvedProperties(out.t).tags;
     expect(tags.items).toEqual({ type: 'string' });
   });
 
@@ -113,7 +117,7 @@ describe('sanitizeToolSchemasForProvider', () => {
       'google-vertex' as LlmProviderId,
       'gemini-2.5-pro',
     );
-    expect((resolvedSchema(geminiOut.t).properties!.p as JSONSchema7).required).toBeUndefined();
+    expect(resolvedProperties(geminiOut.t).p.required).toBeUndefined();
   });
 
   describe('openai sanitizer', () => {
@@ -124,7 +128,7 @@ describe('sanitizeToolSchemasForProvider', () => {
 
       const root = resolvedSchema(out.t);
       expect(root.type).toBe('object');
-      const mode = root.properties!.mode as JSONSchema7;
+      const mode = resolvedProperties(out.t).mode;
       expect(mode).toEqual({ enum: ['fast'], type: 'string' });
     });
 
@@ -133,7 +137,7 @@ describe('sanitizeToolSchemasForProvider', () => {
 
       const out = sanitizeToolSchemasForProvider({ t: mcpTool(schema) }, 'openai' as LlmProviderId, 'gpt-4o');
 
-      expect(resolvedSchema(out.t).properties!.anything).toEqual({ type: 'string' });
+      expect(resolvedProperties(out.t).anything).toEqual({ type: 'string' });
     });
 
     test('infers array type and defaults missing items to string', () => {
@@ -141,7 +145,7 @@ describe('sanitizeToolSchemasForProvider', () => {
 
       const out = sanitizeToolSchemasForProvider({ t: mcpTool(schema) }, 'openai' as LlmProviderId, 'gpt-4o');
 
-      const tags = resolvedSchema(out.t).properties!.tags as JSONSchema7;
+      const tags = resolvedProperties(out.t).tags;
       expect(tags.type).toBe('array');
     });
 
@@ -153,7 +157,7 @@ describe('sanitizeToolSchemasForProvider', () => {
 
       const out = sanitizeToolSchemasForProvider({ t: mcpTool(schema) }, 'openai' as LlmProviderId, 'gpt-4o');
 
-      const value = resolvedSchema(out.t).properties!.value as JSONSchema7;
+      const value = resolvedProperties(out.t).value;
       expect(value.type).toBeUndefined();
       expect(value.anyOf).toEqual([{ type: 'string' }, { type: 'number' }]);
     });
@@ -169,7 +173,7 @@ describe('sanitizeToolSchemasForProvider', () => {
         'google/gemini-2.5-pro',
       );
 
-      const level = resolvedSchema(out.t).properties!.level as JSONSchema7;
+      const level = resolvedProperties(out.t).level;
       expect(level.type).toBe('string');
       expect(level.enum).toEqual(['1', '2']);
     });
@@ -183,7 +187,7 @@ describe('sanitizeToolSchemasForProvider', () => {
         'openai/gpt-4o',
       );
 
-      expect((resolvedSchema(out.t).properties!.mode as JSONSchema7).enum).toEqual(['x']);
+      expect(resolvedProperties(out.t).mode.enum).toEqual(['x']);
     });
   });
 });

@@ -126,7 +126,8 @@ describe('createWsTransport', () => {
       () => 'commit',
     );
     FakeWebSocket.last?.open();
-    const socket = FakeWebSocket.last!;
+    const socket = FakeWebSocket.last;
+    if (!socket) throw new Error('expected a socket to have been created');
     const transport = await transportPromise;
 
     expect(socket.listenerCount).toBeGreaterThan(0);

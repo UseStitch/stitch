@@ -47,7 +47,7 @@ export async function globPaths(input: z.infer<typeof globInputSchema>): Promise
     }),
   );
 
-  const sorted = withMtime.sort((a, b) => b.mtime - a.mtime).map((entry) => entry.filePath);
+  const sorted = withMtime.toSorted((a, b) => b.mtime - a.mtime).map((entry) => entry.filePath);
   const truncated = sorted.length > MAX_RESULTS;
   const finalPaths = truncated ? sorted.slice(0, MAX_RESULTS) : sorted;
 

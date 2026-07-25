@@ -5,7 +5,7 @@ import type { MemoryCategory } from '@/memory/types.js';
 import type { MemorySource } from '@/memory/types.js';
 
 const log = Log.create({ service: 'memory-retriever' });
-const CHAT_MEMORY_CATEGORIES: MemoryCategory[] = ['preference', 'fact', 'constraint'];
+const CHAT_MEMORY_CATEGORIES: Set<MemoryCategory> = new Set(['preference', 'fact', 'constraint']);
 
 function tokenize(value: string): Set<string> {
   return new Set(
@@ -71,7 +71,7 @@ export async function retrieveMemoryContext(query: string, sourceFilter?: Memory
 
   // Apply category and score filters before reranking.
   const candidates = semantic.memories.filter(
-    (m) => CHAT_MEMORY_CATEGORIES.includes(m.category) && m.score >= config.retrievalMinScore,
+    (m) => CHAT_MEMORY_CATEGORIES.has(m.category) && m.score >= config.retrievalMinScore,
   );
 
   const scoredCandidates = candidates.map((m) => {

@@ -16,7 +16,7 @@ describe('syncDefaultPermissions', () => {
     const rows = await getDb().select().from(toolPermissions);
     const skillsRule = rows.find((r) => r.toolName === 'read' && r.pattern === `${PATHS.dirPaths.skills}${path.sep}*`);
 
-    expect(skillsRule!.permission).toBe('allow');
+    expect(skillsRule?.permission).toBe('allow');
   });
 
   test('creates file tool permissions for recordings directory', async () => {
@@ -30,7 +30,7 @@ describe('syncDefaultPermissions', () => {
         (r) => r.toolName === toolName && r.pattern === `${PATHS.dirPaths.recordings}${path.sep}*`,
       );
 
-      expect(rule!.permission).toBe('allow');
+      expect(rule?.permission).toBe('allow');
     }
   });
 

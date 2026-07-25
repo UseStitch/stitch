@@ -370,7 +370,7 @@ export async function getUsageDashboard(input: GetUsageDashboardInput): Promise<
   }
 
   const sourceOrder = new Map<string, number>(USAGE_SOURCES.map((source, index) => [source, index]));
-  const sources = Array.from(sourceSet).sort((a, b) => {
+  const sources = Array.from(sourceSet).toSorted((a, b) => {
     const aIndex = sourceOrder.get(a) ?? Number.MAX_SAFE_INTEGER;
     const bIndex = sourceOrder.get(b) ?? Number.MAX_SAFE_INTEGER;
     if (aIndex !== bIndex) return aIndex - bIndex;
@@ -386,13 +386,13 @@ export async function getUsageDashboard(input: GetUsageDashboardInput): Promise<
   return ok({
     range: { from: window.from, to: window.to, granularity, bucketCount: buckets.length },
     filters: { providerId: input.providerId ?? null, modelId: input.modelId ?? null },
-    usedProviders: Array.from(usedProviderIds).sort((a, b) => a.localeCompare(b)),
+    usedProviders: Array.from(usedProviderIds).toSorted((a, b) => a.localeCompare(b)),
     usedModels: Array.from(usedModelKeys)
       .map((key) => {
         const separator = key.indexOf('::');
         return { providerId: key.slice(0, separator), modelId: key.slice(separator + 2) };
       })
-      .sort((a, b) => a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId)),
+      .toSorted((a, b) => a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId)),
     sources,
     totals: { costUsd: totalCostUsd, tokenMetrics: totalTokenMetrics },
     buckets,
@@ -467,18 +467,18 @@ export async function getSttUsageDashboard(
     bucket.durationMsByService[service] = (bucket.durationMsByService[service] ?? 0) + durationMs;
   }
 
-  const services = Array.from(serviceSet).sort((a, b) => a.localeCompare(b));
+  const services = Array.from(serviceSet).toSorted((a, b) => a.localeCompare(b));
 
   return ok({
     range: { from: window.from, to: window.to, granularity, bucketCount: buckets.length },
     filters: { providerId: input.providerId ?? null, modelId: input.modelId ?? null },
-    usedProviders: Array.from(usedProviderIds).sort((a, b) => a.localeCompare(b)),
+    usedProviders: Array.from(usedProviderIds).toSorted((a, b) => a.localeCompare(b)),
     usedModels: Array.from(usedModelKeys)
       .map((key) => {
         const separator = key.indexOf('::');
         return { providerId: key.slice(0, separator), modelId: key.slice(separator + 2) };
       })
-      .sort((a, b) => a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId)),
+      .toSorted((a, b) => a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId)),
     services,
     totals: { costUsd: totalCostUsd, durationMs: totalDurationMs },
     buckets,
@@ -553,13 +553,13 @@ export async function getEmbeddingUsageDashboard(
   return ok({
     range: { from: window.from, to: window.to, granularity, bucketCount: buckets.length },
     filters: { providerId: input.providerId ?? null, modelId: input.modelId ?? null },
-    usedProviders: Array.from(usedProviderIds).sort((a, b) => a.localeCompare(b)),
+    usedProviders: Array.from(usedProviderIds).toSorted((a, b) => a.localeCompare(b)),
     usedModels: Array.from(usedModelKeys)
       .map((key) => {
         const separator = key.indexOf('::');
         return { providerId: key.slice(0, separator), modelId: key.slice(separator + 2) };
       })
-      .sort((a, b) => a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId)),
+      .toSorted((a, b) => a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId)),
     totals: { costUsd: totalCostUsd, totalTokens },
     buckets,
   });

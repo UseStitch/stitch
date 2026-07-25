@@ -80,9 +80,11 @@ export function getAgendaLists(input?: { includeArchived?: boolean }): ServiceRe
 
   type Counts = AgendaListWithCounts['itemCounts'];
   const countMap = new Map<string, Counts>();
-  for (const list of lists) {
-    countMap.set(list.id, { open: 0, in_progress: 0, done: 0, cancelled: 0, total: 0, overdue: 0, dueSoon: 0 });
-  }
+  const listsWithCounts = lists.map((row) => {
+    const itemCounts: Counts = { open: 0, in_progress: 0, done: 0, cancelled: 0, total: 0, overdue: 0, dueSoon: 0 };
+    countMap.set(row.id, itemCounts);
+    return { ...toAgendaList(row), itemCounts };
+  });
 
   for (const item of allItems) {
     const counts = countMap.get(item.listId);
@@ -98,7 +100,7 @@ export function getAgendaLists(input?: { includeArchived?: boolean }): ServiceRe
     }
   }
 
-  return ok(lists.map((row) => ({ ...toAgendaList(row), itemCounts: countMap.get(row.id)! })));
+  return ok(listsWithCounts);
 }
 
 export function getAgendaListByName(name: string): ServiceResult<AgendaList | null> {

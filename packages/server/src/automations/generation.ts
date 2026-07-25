@@ -64,7 +64,7 @@ function collectToolsetContext(messageList: GenerationMessageContext[]): {
   availableToolsets: string[];
 } {
   const available = listToolsets();
-  const availableToolsets = available.map((toolset) => toolset.id).sort();
+  const availableToolsets = available.map((toolset) => toolset.id).toSorted();
   const toolToToolset = new Map<string, string>();
 
   for (const toolset of available) {
@@ -85,7 +85,11 @@ function collectToolsetContext(messageList: GenerationMessageContext[]): {
     }
   }
 
-  return { usedToolNames: dedupeStrings(toolNames), inferredToolsets: [...inferredToolsets].sort(), availableToolsets };
+  return {
+    usedToolNames: dedupeStrings(toolNames),
+    inferredToolsets: [...inferredToolsets].toSorted(),
+    availableToolsets,
+  };
 }
 
 function buildAutomationPrompt(input: {

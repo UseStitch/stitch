@@ -155,7 +155,8 @@ export function createMailEngine(deps: MailEngineDeps): MailEngine {
   });
 
   async function runAccount(accountId: MailAccountId, forcedMode?: 'full' | 'incremental'): Promise<void> {
-    if (running.has(accountId)) return running.get(accountId)!.promise;
+    const inFlight = running.get(accountId);
+    if (inFlight) return inFlight.promise;
     const controller = new AbortController();
     const promise = (async () => {
       const db = getMailDb();
@@ -172,7 +173,9 @@ export function createMailEngine(deps: MailEngineDeps): MailEngine {
             updatedAt: Date.now(),
           })
           .where(eq(mailAccounts.id, account.id));
-        account = (await readAccount(accountId))!;
+        const refreshed = await readAccount(accountId);
+        if (!refreshed) return;
+        account = refreshed;
       }
 
       const provider = getMailProvider(account.provider).sync;

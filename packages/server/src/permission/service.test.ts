@@ -82,7 +82,7 @@ describe('permission service interactions', () => {
     await waitForEvents(1);
 
     const requestedEvent = emittedEvents.find(([name]) => name === 'permission.requested');
-    const requestedData = requestedEvent![1] as InternalEventMap['permission.requested'];
+    const requestedData = requestedEvent?.[1] as InternalEventMap['permission.requested'];
     expect(requestedData.permissionResponse).toMatchObject({
       sessionId,
       messageId,
@@ -96,7 +96,7 @@ describe('permission service interactions', () => {
     expect(promise).resolves.toEqual({ decision: 'allow' });
 
     const resolvedEvent = emittedEvents.find(([name]) => name === 'permission.resolved');
-    expect(resolvedEvent![1]).toEqual({ permissionResponseId, sessionId });
+    expect(resolvedEvent?.[1]).toEqual({ permissionResponseId, sessionId });
   });
 
   test('deduplicates concurrent permission requests with the same key', async () => {
@@ -186,7 +186,7 @@ describe('permission service interactions', () => {
     await waitForRequestedEvents(1);
     const firstRequested = emittedEvents.find(
       ([name]) => name === 'permission.requested',
-    )![1] as InternalEventMap['permission.requested'];
+    )?.[1] as InternalEventMap['permission.requested'];
 
     await allowPermissionResponse(firstRequested.permissionResponse.id);
     expect(first).resolves.toEqual({ decision: 'allow' });
@@ -268,7 +268,7 @@ describe('permission service interactions', () => {
 
     const requestedData = emittedEvents.find(
       ([name]) => name === 'permission.requested',
-    )![1] as InternalEventMap['permission.requested'];
+    )?.[1] as InternalEventMap['permission.requested'];
     const permissionResponseId = requestedData.permissionResponse.id;
 
     expect(alternativePermissionResponse(permissionResponseId, 'Use read instead')).resolves.toEqual({
@@ -322,7 +322,8 @@ describe('permission service interactions', () => {
     ).toBe(true);
 
     // Second permission (different session) is unaffected - still resolvable
-    await rejectPermissionResponse(secondId!);
+    if (!secondId) throw new Error('expected a permission request for the other session');
+    await rejectPermissionResponse(secondId);
     expect(second).resolves.toEqual({ decision: 'reject' });
   });
 });

@@ -50,4 +50,4 @@ export const FAMILY_RULES: FamilyRule[] = [
   { tokens: ['grep'], arity: 1, description: 'search text in files', showAsPreset: true },
   { tokens: ['where'], arity: 1, description: 'find files or commands', showAsPreset: false },
   { tokens: ['which'], arity: 1, description: 'find files or commands', showAsPreset: false },
-].sort((a, b) => b.tokens.length - a.tokens.length);
+].toSorted((a, b) => b.tokens.length - a.tokens.length);

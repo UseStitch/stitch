@@ -218,7 +218,7 @@ describe('collectSkillDirFiles', () => {
     await fs.writeFile(path.join(skillDir, 'scripts', 'run.py'), 'print()', 'utf8');
 
     const files = await collectSkillDirFiles(skillDir, skillDir);
-    const paths = files.map((f) => f.relativePath).sort();
+    const paths = files.map((f) => f.relativePath).toSorted();
 
     expect(paths).toEqual(['agents/helper.md', 'scripts/run.py']);
   });

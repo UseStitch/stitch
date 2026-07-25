@@ -68,7 +68,7 @@ describe('question service interactions', () => {
     await waitForEvents(1);
 
     const askedEvent = emittedEvents.find(([name]) => name === 'question.asked');
-    const askedData = askedEvent![1] as InternalEventMap['question.asked'];
+    const askedData = askedEvent?.[1] as InternalEventMap['question.asked'];
     expect(askedData.question).toMatchObject({ sessionId, messageId, toolCallId: 'call_question', status: 'pending' });
 
     const questionId = askedData.question.id;
@@ -79,7 +79,7 @@ describe('question service interactions', () => {
     expect(promise).resolves.toEqual([['A']]);
 
     const repliedEvent = emittedEvents.find(([name]) => name === 'question.replied');
-    expect(repliedEvent![1]).toEqual({ questionId, sessionId, answers: [['A']] });
+    expect(repliedEvent?.[1]).toEqual({ questionId, sessionId, answers: [['A']] });
 
     const db = getDb();
     const [row] = await db.select().from(questions).where(eq(questions.id, questionId));
@@ -101,7 +101,7 @@ describe('question service interactions', () => {
 
     const askedData = emittedEvents.find(
       ([name]) => name === 'question.asked',
-    )![1] as InternalEventMap['question.asked'];
+    )?.[1] as InternalEventMap['question.asked'];
     const questionId = askedData.question.id;
 
     const rejectResult = await rejectQuestion(questionId);
@@ -110,7 +110,7 @@ describe('question service interactions', () => {
     expect(promise).rejects.toThrow('Question rejected by user');
 
     const rejectedEvent = emittedEvents.find(([name]) => name === 'question.rejected');
-    expect(rejectedEvent![1]).toEqual({ questionId, sessionId });
+    expect(rejectedEvent?.[1]).toEqual({ questionId, sessionId });
 
     const db = getDb();
     const [row] = await db.select().from(questions).where(eq(questions.id, questionId));
@@ -222,7 +222,8 @@ describe('question service interactions', () => {
     ).toBe(true);
 
     // Second question (different session) is unaffected - still resolvable
-    await replyQuestion(secondId!, [['ok']]);
+    if (!secondId) throw new Error('expected a question for the other session');
+    await replyQuestion(secondId, [['ok']]);
     expect(second).resolves.toEqual([['ok']]);
   });
 });

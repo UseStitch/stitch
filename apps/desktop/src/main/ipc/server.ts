@@ -37,9 +37,10 @@ export function registerServerHandlers(
 
   registerIpcHandler('server:set-config', async (_event, config): Promise<ServerConfigPayload> => {
     let nextConfig: ServerConnectionConfig;
+    let remoteUrl: string | null = null;
 
     if (config.mode === 'remote') {
-      const remoteUrl = normalizeRemoteUrl(config.remoteUrl ?? '');
+      remoteUrl = normalizeRemoteUrl(config.remoteUrl ?? '');
       if (!(await checkHealth(remoteUrl))) {
         throw new Error('Remote server health check failed');
       }
@@ -51,7 +52,7 @@ export function registerServerHandlers(
     await stopRecordingCapture().catch(() => null);
     await killServer();
 
-    const nextUrl = nextConfig.mode === 'remote' ? nextConfig.remoteUrl! : await startLocalServer();
+    const nextUrl = remoteUrl ?? (await startLocalServer());
 
     state.serverUrl = nextUrl;
     state.serverConnectionConfig = nextConfig;

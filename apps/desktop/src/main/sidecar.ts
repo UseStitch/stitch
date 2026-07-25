@@ -183,8 +183,10 @@ async function spawnServerOnce(port: number, extraEnv: NodeJS.ProcessEnv): Promi
     console.error(`[sidecar:stderr] ${text.trim()}`);
   });
 
+  const proc = serverProcess;
+
   const exitPromise = new Promise<never>((_resolve, reject) => {
-    serverProcess!.on('exit', (code, signal) => {
+    proc.on('exit', (code, signal) => {
       const tail = logTail.trim();
       const details = tail ? `\n\nServer output:\n${tail}` : ' (no output captured)';
       const error = new Error(`Server exited before becoming healthy (code=${code}, signal=${signal})${details}`);
@@ -193,7 +195,7 @@ async function spawnServerOnce(port: number, extraEnv: NodeJS.ProcessEnv): Promi
       }
       reject(error);
     });
-    serverProcess!.on('error', (err) => {
+    proc.on('error', (err) => {
       reject(new Error(`Failed to spawn server: ${err.message}`));
     });
   });

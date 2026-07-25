@@ -10,7 +10,7 @@ export class DownloadTracker {
   constructor(private readonly broadcast: () => void) {}
 
   list(): ElectronBrowserDownload[] {
-    return Array.from(this.downloads.values()).sort((a, b) => b.createdAt - a.createdAt);
+    return Array.from(this.downloads.values()).toSorted((a, b) => b.createdAt - a.createdAt);
   }
 
   handleDownload(item: Electron.DownloadItem): void {

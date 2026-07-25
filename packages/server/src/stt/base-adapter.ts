@@ -99,7 +99,7 @@ export async function createManagedConnection(config: ManagedConnectionConfig): 
     nextChunkStartMs = endMs;
 
     while (totalBufferedMs > bufferConfig.maxBufferedMs && ringBuffer.length > 1) {
-      const dropped = ringBuffer.shift()!;
+      const [dropped] = ringBuffer.splice(0, 1);
       totalBufferedMs -= dropped.durationMs;
       log.warn('buffer overflow, dropping oldest chunk');
     }
@@ -111,7 +111,7 @@ export async function createManagedConnection(config: ManagedConnectionConfig): 
 
   function trimBufferBefore(offsetMs: number): void {
     while (ringBuffer.length > 1 && ringBuffer[0].endMs <= offsetMs) {
-      const dropped = ringBuffer.shift()!;
+      const [dropped] = ringBuffer.splice(0, 1);
       totalBufferedMs -= dropped.durationMs;
     }
   }

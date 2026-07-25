@@ -211,7 +211,7 @@ export class ToolsetManager {
     for (const [, entry] of this.getActiveEntries()) {
       Object.assign(merged, entry.tools);
     }
-    return Object.fromEntries(Object.entries(merged).sort(([a], [b]) => a.localeCompare(b)));
+    return Object.fromEntries(Object.entries(merged).toSorted(([a], [b]) => a.localeCompare(b)));
   }
 
   /**

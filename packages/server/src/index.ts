@@ -40,11 +40,12 @@ function parseArgs() {
   let hostname = process.env['HOSTNAME'] || '127.0.0.1';
 
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--port' && args[i + 1]) {
-      port = Number(args[i + 1]);
+    const next = args[i + 1];
+    if (args[i] === '--port' && next) {
+      port = Number(next);
       i++;
-    } else if (args[i] === '--hostname' && args[i + 1]) {
-      hostname = args[i + 1]!;
+    } else if (args[i] === '--hostname' && next) {
+      hostname = next;
       i++;
     }
   }

@@ -74,8 +74,9 @@ describe('splitSession', () => {
     expect(result.error).toBeNull();
     expect(result.data?.prefillText).toBe('Continue from here');
     expect(result.data?.session.parentSessionId).toBeNull();
+    if (!result.data) throw new Error('expected split session data');
 
-    const clonedSessionId = result.data!.session.id;
+    const clonedSessionId = result.data.session.id;
     const [clonedSession] = await getDb().select().from(sessions).where(eq(sessions.id, clonedSessionId));
     expect(clonedSession.parentSessionId).toBeNull();
 
@@ -158,7 +159,9 @@ describe('splitSession', () => {
     const result = await splitSession(sessionId, splitMessageId);
 
     expect(result.error).toBeNull();
-    const clonedSessionId = result.data!.session.id;
+    if (!result.data) throw new Error('expected split session data');
+
+    const clonedSessionId = result.data.session.id;
     const clonedMessages = await getDb().select().from(messages).where(eq(messages.sessionId, clonedSessionId));
 
     expect(clonedMessages).toHaveLength(1);

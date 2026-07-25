@@ -147,10 +147,10 @@ export class SessionStore {
       return undefined;
     }
 
-    const remaining = Array.from(this.tabs.keys());
-    if (remaining.length > 0) {
-      this.activeTabId = remaining[remaining.length - 1]!;
-      const next = this.tabs.get(this.activeTabId)!;
+    const remaining = Array.from(this.tabs.values());
+    const next = remaining[remaining.length - 1];
+    if (next) {
+      this.activeTabId = next.id;
       this.broadcast();
       this.debouncedPersist();
       return next;

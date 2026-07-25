@@ -71,7 +71,7 @@ export async function readPathContent(input: z.infer<typeof readInputSchema>): P
     const entries = await fs.readdir(targetPath, { withFileTypes: true });
     const output = entries
       .map((entry) => (entry.isDirectory() ? `${entry.name}/` : entry.name))
-      .sort((a, b) => a.localeCompare(b))
+      .toSorted((a, b) => a.localeCompare(b))
       .join('\n');
 
     return { output, filePath: targetPath };

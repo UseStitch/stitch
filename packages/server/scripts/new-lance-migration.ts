@@ -61,7 +61,7 @@ function getConstName(versionTag: string, slug: string): string {
 async function getLastMigrationId(migrationsDir: string): Promise<string | null> {
   const files = (await fs.readdir(migrationsDir))
     .filter((file) => /^\d{4}-.+\.ts$/.test(file))
-    .sort((a, b) => a.localeCompare(b));
+    .toSorted((a, b) => a.localeCompare(b));
 
   const last = files.at(-1);
   if (!last) return null;
@@ -77,7 +77,7 @@ async function getLastMigrationId(migrationsDir: string): Promise<string | null>
 
 async function rewriteManifest(migrationsDir: string): Promise<void> {
   const allFiles = await fs.readdir(migrationsDir);
-  const migrationFiles = allFiles.filter((file) => /^\d{4}-.+\.ts$/.test(file)).sort((a, b) => a.localeCompare(b));
+  const migrationFiles = allFiles.filter((file) => /^\d{4}-.+\.ts$/.test(file)).toSorted((a, b) => a.localeCompare(b));
 
   const imports = migrationFiles
     .map((file) => {

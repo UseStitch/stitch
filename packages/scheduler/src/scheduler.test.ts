@@ -206,8 +206,8 @@ describe('scheduler', () => {
     await scheduler.stop();
 
     const status = await store.getJob('concurrency-job');
-    expect(status!.totalRuns).toBeGreaterThanOrEqual(2);
-    expect(status!.runningCount).toBe(0);
+    expect(status?.totalRuns).toBeGreaterThanOrEqual(2);
+    expect(status?.runningCount).toBe(0);
   });
 
   test('catchup none drops backlog but runs the current due occurrence', async () => {

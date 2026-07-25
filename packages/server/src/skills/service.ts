@@ -208,7 +208,7 @@ export async function searchSkillsDirectory(query: string): Promise<ServiceResul
           },
         ];
       })
-      .sort((a, b) => b.installs - a.installs);
+      .toSorted((a, b) => b.installs - a.installs);
 
     return ok(results);
   } catch (error) {
