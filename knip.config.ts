@@ -14,20 +14,14 @@ const config: KnipConfig = {
       project: ['src/**/*.ts', 'functions/**/*.ts'],
       ignore: ['functions/**/*.ts'],
     },
-    'apps/desktop': {
-      entry: ['src/**/*.test.{ts,tsx}'],
-      project: ['src/**/*.{ts,tsx}'],
-    },
+    'apps/desktop': { entry: ['src/**/*.test.{ts,tsx}'], project: ['src/**/*.{ts,tsx}'] },
     'packages/shared': { entry: ['src/**/*.ts', 'src/**/*.test.{ts,tsx}'], project: ['src/**/*.ts'] },
     'packages/*': { entry: ['src/index.{ts,tsx}', 'src/**/*.test.{ts,tsx}'], project: ['src/**/*.{ts,tsx}'] },
     'packages/server': {
       entry: ['src/index.{ts,tsx}', 'src/code-mode/sandbox-process.ts', 'src/**/*.test.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
     },
-    'packages/audio-capture': {
-      entry: ['src/index.{ts,tsx}'],
-      project: ['src/**/*.{ts,tsx}'],
-    },
+    'packages/audio-capture': { entry: ['src/index.{ts,tsx}'], project: ['src/**/*.{ts,tsx}'] },
     'packages/mail': {
       entry: ['src/**/*.test.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
@@ -40,6 +34,7 @@ const config: KnipConfig = {
     'oxfmt',
     'oxlint',
     'oxlint-tsgolint',
+    '@tanstack/eslint-plugin-query',
     // Referenced via CSS @import / @plugin in apps/web/src/styles/global.css, not TS imports
     'katex',
     'shadcn',
