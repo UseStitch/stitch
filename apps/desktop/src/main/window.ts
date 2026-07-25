@@ -70,6 +70,9 @@ export async function createWindow(
       contextIsolation: true,
       nodeIntegration: false,
       webviewTag: true,
+      // The app lives in the tray with the window hidden; Chromium would
+      // otherwise throttle timers to 1/min, stalling the SSE reconnect watchdog.
+      backgroundThrottling: false,
     },
   });
 

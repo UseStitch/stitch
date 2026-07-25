@@ -49,4 +49,5 @@ export type SseHandlers = {
   [K in SseEventName]?: (data: SseEventPayloadMap[K]) => void;
 };
 
-export type UseSseResult = { isConnected: boolean; lastHeartbeat: Date | null };
+export type SseConnectionStatus = 'connecting' | 'connected' | 'reconnecting';
+export type UseSseResult = { status: SseConnectionStatus; lastHeartbeat: Date | null };
