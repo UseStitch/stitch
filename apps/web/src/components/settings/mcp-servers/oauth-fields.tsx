@@ -5,13 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+type OAuthFieldKey = 'oauthScopes' | 'oauthClientId' | 'oauthClientSecret';
+
 export function OAuthFields({
   form,
   set,
   expanded = false,
 }: {
-  form: AddFormState;
-  set: <K extends keyof AddFormState>(key: K, value: AddFormState[K]) => void;
+  form: Pick<AddFormState, OAuthFieldKey>;
+  set: (key: OAuthFieldKey, value: string) => void;
   expanded?: boolean;
 }) {
   const [showAdvanced, setShowAdvanced] = React.useState(

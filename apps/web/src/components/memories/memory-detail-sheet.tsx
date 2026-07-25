@@ -1,6 +1,10 @@
 import * as React from 'react';
+import { z } from 'zod';
 
+import { useForm } from '@tanstack/react-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { MEMORY_CATEGORIES, MEMORY_CONFIDENCES } from '@stitch/shared/memory/types';
 
 import { CATEGORY_LABELS, CONFIDENCE_LABELS } from '@/components/memories/constants';
 import { Badge } from '@/components/ui/badge';
@@ -16,93 +20,114 @@ import { deleteMemoryMutationOptions, updateMemoryMutationOptions } from '@/lib/
 
 const DEBOUNCE_MS = 600;
 
+const memoryDetailSchema = z.object({
+  content: z.string(),
+  category: z.enum(MEMORY_CATEGORIES),
+  confidence: z.enum(MEMORY_CONFIDENCES),
+});
+
+type MemoryDetailValues = z.infer<typeof memoryDetailSchema>;
+
+type MemoryUpdates = { content?: string; category?: MemoryCategory; confidence?: MemoryConfidence };
+type PendingContentSave = { id: string; content: string };
+type MemorySaveRequest = { id: string; updates: MemoryUpdates; started: boolean; cancelled: boolean };
+
 type Props = { memory: SemanticMemory | null; open: boolean; onOpenChange: (open: boolean) => void };
 
 export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
   const queryClient = useQueryClient();
-  const [content, setContent] = React.useState('');
-  const [category, setCategory] = React.useState<MemoryCategory>('fact');
-  const [confidence, setConfidence] = React.useState<MemoryConfidence>('stated');
   const [confirmDeleteOpen, setConfirmDeleteOpen] = React.useState(false);
 
   const updateMutation = useMutation(updateMemoryMutationOptions(queryClient));
   const deleteMutation = useMutation(deleteMemoryMutationOptions(queryClient));
-
-  const memoryRef = React.useRef(memory);
-  React.useEffect(() => {
-    memoryRef.current = memory;
-  }, [memory]);
-
-  const [syncedMemory, setSyncedMemory] = React.useState<SemanticMemory | null>(null);
-  if (memory && syncedMemory !== memory) {
-    setSyncedMemory(memory);
-    setContent(memory.content);
-    setCategory(memory.category);
-    setConfidence(memory.confidence);
-  }
-
-  function save(updates: { content?: string; category?: MemoryCategory; confidence?: MemoryConfidence }) {
-    if (!memoryRef.current) return;
-    updateMutation.mutate({ id: memoryRef.current.id, updates });
-  }
+  const form = useForm({
+    defaultValues: {
+      content: memory?.content ?? '',
+      category: memory?.category ?? 'fact',
+      confidence: memory?.confidence ?? 'stated',
+    } satisfies MemoryDetailValues,
+    validators: { onMount: memoryDetailSchema, onChange: memoryDetailSchema },
+  });
 
   const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingContentRef = React.useRef<PendingContentSave | null>(null);
+  const pendingSavesRef = React.useRef<MemorySaveRequest[]>([]);
+  const saveQueueRef = React.useRef(Promise.resolve());
 
-  function saveDebounced(nextContent: string) {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => save({ content: nextContent }), DEBOUNCE_MS);
+  function queueSave(id: string, updates: MemoryUpdates) {
+    const queued = pendingSavesRef.current.find((request) => request.id === id && !request.started);
+    if (queued) {
+      queued.updates = { ...queued.updates, ...updates };
+      return;
+    }
+
+    const request: MemorySaveRequest = { id, updates, started: false, cancelled: false };
+    pendingSavesRef.current.push(request);
+    saveQueueRef.current = saveQueueRef.current
+      .then(async () => {
+        if (request.cancelled) return;
+        request.started = true;
+        await updateMutation.mutateAsync({ id: request.id, updates: request.updates });
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        pendingSavesRef.current = pendingSavesRef.current.filter((pending) => pending !== request);
+      });
   }
 
-  function handleOpenChange(nextOpen: boolean) {
-    if (!nextOpen && debounceRef.current) {
-      clearTimeout(debounceRef.current);
+  function cancelPendingContent() {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = null;
+    pendingContentRef.current = null;
+  }
+
+  function flushPendingContent() {
+    const pending = pendingContentRef.current;
+    cancelPendingContent();
+    if (pending) queueSave(pending.id, { content: pending.content });
+  }
+
+  function scheduleContentSave(pending: PendingContentSave) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    pendingContentRef.current = pending;
+    debounceRef.current = setTimeout(() => {
       debounceRef.current = null;
-      const current = memoryRef.current;
-      if (current && content !== current.content) {
-        save({ content });
-      }
-    }
+      pendingContentRef.current = null;
+      queueSave(pending.id, { content: pending.content });
+    }, DEBOUNCE_MS);
+  }
+
+  const resetForm = React.useEffectEvent(() => {
+    if (!memory) return;
+    form.reset({ content: memory.content, category: memory.category, confidence: memory.confidence });
+  });
+
+  React.useEffect(() => {
+    cancelPendingContent();
+    resetForm();
+    return cancelPendingContent;
+  }, [memory?.id]);
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) flushPendingContent();
     onOpenChange(nextOpen);
   }
 
-  function handleContentChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    const next = e.target.value;
-    setContent(next);
-    if (memoryRef.current && next !== memoryRef.current.content) {
-      saveDebounced(next);
-    }
-  }
-
-  function handleCategoryChange(v: string | null) {
-    if (!v) return;
-    const next = v as MemoryCategory;
-    setCategory(next);
-    if (memoryRef.current && next !== memoryRef.current.category) {
-      save({ category: next });
-    }
-  }
-
-  function handleConfidenceChange(v: string | null) {
-    if (!v) return;
-    const next = v as MemoryConfidence;
-    setConfidence(next);
-    if (memoryRef.current && next !== memoryRef.current.confidence) {
-      save({ confidence: next });
-    }
-  }
-
-  function handleDelete() {
+  async function handleDelete() {
     if (!memory) return;
-    deleteMutation.mutate(memory.id, {
+    const id = memory.id;
+    cancelPendingContent();
+    for (const request of pendingSavesRef.current) {
+      if (request.id === id && !request.started) request.cancelled = true;
+    }
+    await saveQueueRef.current;
+    deleteMutation.mutate(id, {
       onSuccess: () => {
         setConfirmDeleteOpen(false);
         onOpenChange(false);
       },
     });
   }
-
-  const selectedCategoryLabel = CATEGORY_LABELS[category];
-  const selectedConfidenceLabel = CONFIDENCE_LABELS[confidence];
 
   if (!memory) return null;
 
@@ -116,49 +141,78 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
 
           <div className="flex flex-1 flex-col gap-5 px-4">
             {/* Content */}
-            <div className="flex flex-col gap-1.5">
-              <Label>Content</Label>
-              <Textarea
-                value={content}
-                onChange={handleContentChange}
-                className="min-h-28 resize-none"
-                placeholder="Memory content..."
-              />
-            </div>
+            <form.Field name="content">
+              {(field) => (
+                <div className="flex flex-col gap-1.5">
+                  <Label>Content</Label>
+                  <Textarea
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => {
+                      const content = event.target.value;
+                      field.handleChange(content);
+                      scheduleContentSave({ id: memory.id, content });
+                    }}
+                    className="min-h-28 resize-none"
+                    placeholder="Memory content..."
+                  />
+                </div>
+              )}
+            </form.Field>
 
             {/* Category */}
-            <div className="flex flex-col gap-1.5">
-              <Label>Category</Label>
-              <Select value={category} onValueChange={handleCategoryChange}>
-                <SelectTrigger className="w-full">
-                  <SelectValue>{selectedCategoryLabel}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(CATEGORY_LABELS) as MemoryCategory[]).map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {CATEGORY_LABELS[cat]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <form.Field name="category">
+              {(field) => (
+                <div className="flex flex-col gap-1.5">
+                  <Label>Category</Label>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={(value) => {
+                      if (!value) return;
+                      field.handleChange(value);
+                      queueSave(memory.id, { category: value });
+                    }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue>{CATEGORY_LABELS[field.state.value]}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MEMORY_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {CATEGORY_LABELS[cat]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </form.Field>
 
             {/* Confidence */}
-            <div className="flex flex-col gap-1.5">
-              <Label>Confidence</Label>
-              <Select value={confidence} onValueChange={handleConfidenceChange}>
-                <SelectTrigger className="w-full">
-                  <SelectValue>{selectedConfidenceLabel}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(CONFIDENCE_LABELS) as MemoryConfidence[]).map((conf) => (
-                    <SelectItem key={conf} value={conf}>
-                      {CONFIDENCE_LABELS[conf]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <form.Field name="confidence">
+              {(field) => (
+                <div className="flex flex-col gap-1.5">
+                  <Label>Confidence</Label>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={(value) => {
+                      if (!value) return;
+                      field.handleChange(value);
+                      queueSave(memory.id, { confidence: value });
+                    }}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue>{CONFIDENCE_LABELS[field.state.value]}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MEMORY_CONFIDENCES.map((conf) => (
+                        <SelectItem key={conf} value={conf}>
+                          {CONFIDENCE_LABELS[conf]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </form.Field>
 
             {/* Read-only metadata */}
             <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">

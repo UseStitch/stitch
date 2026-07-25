@@ -1,9 +1,10 @@
 import { DownloadIcon, EyeIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
 
+import { useForm } from '@tanstack/react-form';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
-import type { Skill } from '@stitch/shared/skills/types';
+import { createSkillSchema, type Skill } from '@stitch/shared/skills/types';
 
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
@@ -16,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
 import { Empty, EmptyDescription, EmptyTitle } from '@/components/ui/empty';
+import { FieldError, fieldErrorMessage } from '@/components/ui/field-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -105,24 +107,24 @@ function ImportSkillView({ onBack }: { onBack: () => void }) {
 function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => void }) {
   const createSkill = useCreateSkill();
   const updateSkill = useUpdateSkill();
-  const [draft, setDraft] = React.useState<SkillDraft>(() => toDraft(skill));
+
+  const form = useForm({
+    defaultValues: toDraft(skill),
+    validators: { onMount: createSkillSchema, onChange: createSkillSchema },
+    onSubmit: async ({ value }) => {
+      const input = { name: value.name.trim(), description: value.description.trim(), content: value.content.trim() };
+
+      if (skill) {
+        await updateSkill.mutateAsync({ name: skill.name, input });
+      } else {
+        await createSkill.mutateAsync(input);
+      }
+
+      onBack();
+    },
+  });
 
   const isEditing = !!skill;
-  const isSaving = createSkill.isPending || updateSkill.isPending;
-  const canSave =
-    draft.name.trim().length > 0 && draft.description.trim().length > 0 && draft.content.trim().length > 0;
-
-  async function handleSave() {
-    const input = { name: draft.name.trim(), description: draft.description.trim(), content: draft.content.trim() };
-
-    if (skill) {
-      await updateSkill.mutateAsync({ name: skill.name, input });
-    } else {
-      await createSkill.mutateAsync(input);
-    }
-
-    onBack();
-  }
 
   return (
     <SettingSubPage
@@ -130,51 +132,81 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
       description="Markdown instructions the agent can load when a task matches the description."
       onBack={onBack}
       backLabel="Back to skills">
-      <div className="flex min-h-0 flex-1 flex-col gap-5">
-        <div className="grid gap-2">
-          <Label htmlFor="skill-name">Name</Label>
-          <Input
-            id="skill-name"
-            value={draft.name}
-            placeholder="example-skill"
-            onChange={(event) => setDraft((prev) => ({ ...prev, name: event.target.value }))}
-          />
-          <p className="text-xs text-muted-foreground">
-            Lowercase letters, numbers, and single hyphens only. Names must be unique.
-          </p>
-        </div>
+      <form
+        className="flex min-h-0 flex-1 flex-col gap-5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void form.handleSubmit();
+        }}>
+        <form.Field name="name">
+          {(field) => (
+            <div className="grid gap-2">
+              <Label htmlFor="skill-name">Name</Label>
+              <Input
+                id="skill-name"
+                value={field.state.value}
+                placeholder="example-skill"
+                aria-invalid={!!fieldErrorMessage(field.state.meta)}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+              />
+              <FieldError meta={field.state.meta} />
+              <p className="text-xs text-muted-foreground">
+                Lowercase letters, numbers, and single hyphens only. Names must be unique.
+              </p>
+            </div>
+          )}
+        </form.Field>
 
-        <div className="grid gap-2">
-          <Label htmlFor="skill-description">Description</Label>
-          <Textarea
-            id="skill-description"
-            value={draft.description}
-            rows={3}
-            placeholder="What this skill does and when the agent should use it."
-            onChange={(event) => setDraft((prev) => ({ ...prev, description: event.target.value }))}
-          />
-        </div>
+        <form.Field name="description">
+          {(field) => (
+            <div className="grid gap-2">
+              <Label htmlFor="skill-description">Description</Label>
+              <Textarea
+                id="skill-description"
+                value={field.state.value}
+                rows={3}
+                placeholder="What this skill does and when the agent should use it."
+                aria-invalid={!!fieldErrorMessage(field.state.meta)}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+              />
+              <FieldError meta={field.state.meta} />
+            </div>
+          )}
+        </form.Field>
 
-        <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-2">
-          <Label htmlFor="skill-content">Markdown instructions</Label>
-          <Textarea
-            id="skill-content"
-            value={draft.content}
-            placeholder="# Skill Instructions\n\nDescribe the workflow, constraints, examples, and expected behavior."
-            className="thin-scrollbar min-h-0 resize-none overflow-auto font-mono text-xs"
-            onChange={(event) => setDraft((prev) => ({ ...prev, content: event.target.value }))}
-          />
-        </div>
+        <form.Field name="content">
+          {(field) => (
+            <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-2">
+              <Label htmlFor="skill-content">Markdown instructions</Label>
+              <Textarea
+                id="skill-content"
+                value={field.state.value}
+                placeholder="# Skill Instructions\n\nDescribe the workflow, constraints, examples, and expected behavior."
+                className="thin-scrollbar min-h-0 resize-none overflow-auto font-mono text-xs"
+                aria-invalid={!!fieldErrorMessage(field.state.meta)}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+              />
+              <FieldError meta={field.state.meta} />
+            </div>
+          )}
+        </form.Field>
 
-        <div className="mt-auto flex justify-end gap-2 border-t border-border/50 pt-4">
-          <Button variant="outline" onClick={onBack} disabled={isSaving}>
-            Cancel
-          </Button>
-          <Button onClick={() => void handleSave()} disabled={!canSave || isSaving}>
-            {isSaving ? 'Saving...' : 'Save skill'}
-          </Button>
-        </div>
-      </div>
+        <form.Subscribe selector={(state) => state.isSubmitting}>
+          {(isSubmitting) => (
+            <div className="mt-auto flex justify-end gap-2 border-t border-border/50 pt-4">
+              <Button type="button" variant="outline" onClick={onBack} disabled={isSubmitting}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Saving...' : 'Save skill'}
+              </Button>
+            </div>
+          )}
+        </form.Subscribe>
+      </form>
     </SettingSubPage>
   );
 }

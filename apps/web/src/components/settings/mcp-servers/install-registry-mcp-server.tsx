@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 
+import { useForm, useStore } from '@tanstack/react-form';
+
 import { MCP_AUTH_TYPES } from '@stitch/shared/mcp/types';
 import type { McpRegistryServer } from '@stitch/shared/mcp/types';
 
@@ -9,6 +11,7 @@ import { OAuthFields } from './oauth-fields';
 import {
   AUTH_TYPE_LABELS,
   EMPTY_ADD_FORM,
+  addMcpServerSchema,
   applyAuthConfigToForm,
   buildAuthConfig,
   describeAuthConfig,
@@ -17,6 +20,7 @@ import {
 
 import { SettingSubPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
+import { FieldError, fieldErrorMessage } from '@/components/ui/field-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -49,15 +53,45 @@ export function InstallRegistryMcpServer({
   }, [server.install.authConfig, server.install.optionalAuthConfigs]);
 
   const [selectedAuthId, setSelectedAuthId] = React.useState(authOptions[0]?.id ?? '0');
-  const [form, setForm] = React.useState<AddFormState>(() =>
-    applyAuthConfigToForm(
+  const form = useForm({
+    defaultValues: applyAuthConfigToForm(
       { ...EMPTY_ADD_FORM, name: server.install.name, url: server.install.url, transport: server.install.transport },
       authOptions[0]?.config ?? server.install.authConfig,
     ),
-  );
+    validators: { onMount: addMcpServerSchema, onChange: addMcpServerSchema },
+    onSubmit: async ({ value }) => {
+      let id: string;
+      try {
+        ({ id } = await addServer.mutateAsync({
+          name: value.name.trim(),
+          transport: value.transport,
+          url: value.url.trim(),
+          authConfig: buildAuthConfig(value),
+        }));
+      } catch (error) {
+        toast.error(getErrorMessage(error, 'Failed to install MCP server'), { id: 'mcp-install-error' });
+        return;
+      }
 
-  const set = <K extends keyof AddFormState>(key: K, value: AddFormState[K]) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+      toast.success(`${server.name} installed`, { id: 'mcp-install-success' });
+      onInstalled();
+
+      if (value.authType === 'oauth') {
+        try {
+          await startAuth.mutateAsync(id);
+          toast.success('Authorization started - complete it in your browser', { id: 'mcp-install-auth' });
+        } catch (error) {
+          toast.error(getErrorMessage(error, `${server.name} installed, but authorization failed to start`), {
+            id: 'mcp-install-auth',
+          });
+        }
+      }
+    },
+  });
+
+  const values = useStore(form.store, (state) => state.values);
+  const set = (key: 'oauthScopes' | 'oauthClientId' | 'oauthClientSecret', value: string) => {
+    form.setFieldValue(key, value);
   };
 
   const selectedAuthOption = authOptions.find((entry) => entry.id === selectedAuthId) ?? authOptions[0];
@@ -67,42 +101,10 @@ export function InstallRegistryMcpServer({
     const option = authOptions.find((entry) => entry.id === id);
     setSelectedAuthId(id);
     if (!option) return;
-    setForm((prev) => applyAuthConfigToForm(prev, option.config));
-  };
-
-  const handleInstall = async () => {
-    const name = form.name.trim();
-    const url = form.url.trim();
-
-    if (!name) {
-      toast.error('Name is required', { id: 'mcp-install-name' });
-      return;
-    }
-    if (!url) {
-      toast.error('URL is required', { id: 'mcp-install-url' });
-      return;
-    }
-    if (form.authType === 'api_key' && !form.apiKey.trim()) {
-      toast.error('API key is required', { id: 'mcp-install-apikey' });
-      return;
-    }
-
-    try {
-      const { id } = await addServer.mutateAsync({
-        name,
-        transport: form.transport,
-        url,
-        authConfig: buildAuthConfig(form),
-      });
-      if (form.authType === 'oauth') {
-        await startAuth.mutateAsync(id);
-        toast.success('Authorization started — complete it in your browser', { id: 'mcp-install-auth' });
-      } else {
-        toast.success(`${server.name} installed`, { id: 'mcp-install-success' });
-      }
-      onInstalled();
-    } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to install MCP server'), { id: 'mcp-install-error' });
+    const nextValues = applyAuthConfigToForm(values, option.config);
+    const authKeys = ['authType', 'apiKey', 'headers', 'oauthScopes', 'oauthClientId', 'oauthClientSecret'] as const;
+    for (const key of authKeys) {
+      form.setFieldValue(key, nextValues[key]);
     }
   };
 
@@ -123,12 +125,27 @@ export function InstallRegistryMcpServer({
           View docs
         </a>
       }>
-      <div className="space-y-4">
+      <form
+        className="space-y-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void form.handleSubmit();
+        }}>
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Name</Label>
-            <Input value={form.name} onChange={(e) => set('name', e.target.value)} />
-          </div>
+          <form.Field name="name">
+            {(field) => (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Name</Label>
+                <Input
+                  value={field.state.value}
+                  aria-invalid={!!fieldErrorMessage(field.state.meta)}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                />
+                <FieldError meta={field.state.meta} />
+              </div>
+            )}
+          </form.Field>
 
           {authOptions.length > 1 ? (
             <div className="space-y-1.5">
@@ -147,59 +164,92 @@ export function InstallRegistryMcpServer({
               </Select>
             </div>
           ) : (
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">Authentication</Label>
-              <Select value={form.authType} onValueChange={(v) => set('authType', v as AddFormState['authType'])}>
-                <SelectTrigger className="w-full">
-                  <SelectValue>{AUTH_TYPE_LABELS[form.authType].label}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {MCP_AUTH_TYPES.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {AUTH_TYPE_LABELS[type].label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <form.Field name="authType">
+              {(field) => (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Authentication</Label>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={(value) => field.handleChange(value as AddFormState['authType'])}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue>{AUTH_TYPE_LABELS[field.state.value].label}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MCP_AUTH_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {AUTH_TYPE_LABELS[type].label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </form.Field>
           )}
         </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">URL</Label>
-          <Input value={form.url} onChange={(e) => set('url', e.target.value)} type="url" />
-        </div>
+        <form.Field name="url">
+          {(field) => (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">URL</Label>
+              <Input
+                value={field.state.value}
+                type="url"
+                aria-invalid={!!fieldErrorMessage(field.state.meta)}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+              />
+              <FieldError meta={field.state.meta} />
+            </div>
+          )}
+        </form.Field>
 
-        {form.authType === 'api_key' && (
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">API Key</Label>
-            <Input
-              value={form.apiKey}
-              onChange={(e) => set('apiKey', e.target.value)}
-              placeholder="sk-..."
-              type="password"
-            />
-          </div>
+        {values.authType === 'api_key' && (
+          <form.Field name="apiKey">
+            {(field) => (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">API Key</Label>
+                <Input
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                  placeholder="sk-..."
+                  type="password"
+                  aria-invalid={!!fieldErrorMessage(field.state.meta)}
+                />
+                <FieldError meta={field.state.meta} />
+              </div>
+            )}
+          </form.Field>
         )}
 
-        {form.authType === 'headers' && (
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Headers</Label>
-            <HeaderRows rows={form.headers} onChange={(rows) => set('headers', rows)} />
-          </div>
+        {values.authType === 'headers' && (
+          <form.Field name="headers">
+            {(field) => (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Headers</Label>
+                <HeaderRows rows={field.state.value} onChange={field.handleChange} />
+                <FieldError meta={field.state.meta} />
+              </div>
+            )}
+          </form.Field>
         )}
 
-        {form.authType === 'oauth' && <OAuthFields form={form} set={set} />}
+        {values.authType === 'oauth' && <OAuthFields form={values} set={set} />}
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={onBack} disabled={isBusy}>
-            Cancel
-          </Button>
-          <Button onClick={() => void handleInstall()} disabled={isBusy}>
-            {isBusy ? 'Installing...' : 'Install server'}
-          </Button>
-        </div>
-      </div>
+        <form.Subscribe selector={(state) => state.isSubmitting}>
+          {(isSubmitting) => (
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={onBack} disabled={isBusy || isSubmitting}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isBusy || isSubmitting}>
+                {isBusy ? 'Installing...' : 'Install server'}
+              </Button>
+            </div>
+          )}
+        </form.Subscribe>
+      </form>
     </SettingSubPage>
   );
 }

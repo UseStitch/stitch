@@ -1,7 +1,9 @@
 import { PencilIcon, PlusIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
+import { z } from 'zod';
 
+import { useForm, useStore } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { LocalProviderId } from '@stitch/shared/providers/types';
@@ -10,6 +12,7 @@ import { SettingsIconButtonTooltip } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
 import { Checkbox } from '@/components/ui/checkbox';
+import { FieldError, fieldErrorMessage } from '@/components/ui/field-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -62,6 +65,23 @@ const DEFAULT_FORM: ModelFormState = {
   inputModalities: ['text'],
   outputModalities: ['text'],
 };
+
+const modelFormSchema = z.object({
+  id: z.string().trim().min(1, 'Model ID is required'),
+  name: z.string().trim().min(1, 'Display Name is required'),
+  contextWindow: z.string(),
+  inputLimit: z.string(),
+  outputLimit: z.string(),
+  inputCostPerMillion: z.string(),
+  outputCostPerMillion: z.string(),
+  cacheReadCostPerMillion: z.string(),
+  cacheWriteCostPerMillion: z.string(),
+  supportsToolCalls: z.boolean(),
+  supportsVision: z.boolean(),
+  supportsReasoning: z.boolean(),
+  inputModalities: z.array(z.enum(ALL_MODALITIES)),
+  outputModalities: z.array(z.enum(ALL_MODALITIES)),
+});
 
 function discoveredToForm(d: DiscoveredModel): ModelFormState {
   return {
@@ -143,41 +163,55 @@ function ModelForm({
   onCancel: () => void;
   isPending: boolean;
 }) {
-  const [form, setForm] = React.useState<ModelFormState>(initial);
-
-  function set<K extends keyof ModelFormState>(key: K, value: ModelFormState[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.id.trim() || !form.name.trim()) return;
-    onSave(formToInput(form));
-  }
+  const form = useForm({
+    defaultValues: initial,
+    validators: { onMount: modelFormSchema, onChange: modelFormSchema },
+    onSubmit: ({ value }) => onSave(formToInput(value)),
+  });
+  const values = useStore(form.store, (state) => state.values);
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-md border p-4">
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void form.handleSubmit();
+      }}
+      className="flex flex-col gap-3 rounded-md border p-4">
       <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="local-model-id">Model ID</Label>
-          <Input
-            id="local-model-id"
-            placeholder="llama3.2"
-            value={form.id}
-            onChange={(e) => set('id', e.target.value)}
-            required
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="local-model-name">Display Name</Label>
-          <Input
-            id="local-model-name"
-            placeholder="Llama 3.2"
-            value={form.name}
-            onChange={(e) => set('name', e.target.value)}
-            required
-          />
-        </div>
+        <form.Field name="id">
+          {(field) => (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="local-model-id">Model ID</Label>
+              <Input
+                id="local-model-id"
+                placeholder="llama3.2"
+                value={field.state.value}
+                aria-invalid={!!fieldErrorMessage(field.state.meta)}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                required
+              />
+              <FieldError meta={field.state.meta} />
+            </div>
+          )}
+        </form.Field>
+        <form.Field name="name">
+          {(field) => (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="local-model-name">Display Name</Label>
+              <Input
+                id="local-model-name"
+                placeholder="Llama 3.2"
+                value={field.state.value}
+                aria-invalid={!!fieldErrorMessage(field.state.meta)}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                required
+              />
+              <FieldError meta={field.state.meta} />
+            </div>
+          )}
+        </form.Field>
       </div>
 
       <p className="text-xs font-medium text-muted-foreground">Token limits</p>
@@ -191,8 +225,8 @@ function ModelForm({
             type="number"
             min={1}
             placeholder="8192"
-            value={form.contextWindow}
-            onChange={(e) => set('contextWindow', e.target.value)}
+            value={values.contextWindow}
+            onChange={(e) => form.setFieldValue('contextWindow', e.target.value)}
           />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -204,8 +238,8 @@ function ModelForm({
             type="number"
             min={1}
             placeholder="—"
-            value={form.inputLimit}
-            onChange={(e) => set('inputLimit', e.target.value)}
+            value={values.inputLimit}
+            onChange={(e) => form.setFieldValue('inputLimit', e.target.value)}
           />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -217,8 +251,8 @@ function ModelForm({
             type="number"
             min={1}
             placeholder="8192"
-            value={form.outputLimit}
-            onChange={(e) => set('outputLimit', e.target.value)}
+            value={values.outputLimit}
+            onChange={(e) => form.setFieldValue('outputLimit', e.target.value)}
           />
         </div>
       </div>
@@ -235,8 +269,8 @@ function ModelForm({
             min={0}
             step="any"
             placeholder="0"
-            value={form.inputCostPerMillion}
-            onChange={(e) => set('inputCostPerMillion', e.target.value)}
+            value={values.inputCostPerMillion}
+            onChange={(e) => form.setFieldValue('inputCostPerMillion', e.target.value)}
           />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -247,8 +281,8 @@ function ModelForm({
             min={0}
             step="any"
             placeholder="0"
-            value={form.outputCostPerMillion}
-            onChange={(e) => set('outputCostPerMillion', e.target.value)}
+            value={values.outputCostPerMillion}
+            onChange={(e) => form.setFieldValue('outputCostPerMillion', e.target.value)}
           />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -261,8 +295,8 @@ function ModelForm({
             min={0}
             step="any"
             placeholder="—"
-            value={form.cacheReadCostPerMillion}
-            onChange={(e) => set('cacheReadCostPerMillion', e.target.value)}
+            value={values.cacheReadCostPerMillion}
+            onChange={(e) => form.setFieldValue('cacheReadCostPerMillion', e.target.value)}
           />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -275,8 +309,8 @@ function ModelForm({
             min={0}
             step="any"
             placeholder="—"
-            value={form.cacheWriteCostPerMillion}
-            onChange={(e) => set('cacheWriteCostPerMillion', e.target.value)}
+            value={values.cacheWriteCostPerMillion}
+            onChange={(e) => form.setFieldValue('cacheWriteCostPerMillion', e.target.value)}
           />
         </div>
       </div>
@@ -286,24 +320,24 @@ function ModelForm({
         <div className="flex items-center gap-2">
           <Checkbox
             id="local-tool-calls"
-            checked={form.supportsToolCalls}
-            onCheckedChange={(v) => set('supportsToolCalls', Boolean(v))}
+            checked={values.supportsToolCalls}
+            onCheckedChange={(v) => form.setFieldValue('supportsToolCalls', Boolean(v))}
           />
           <Label htmlFor="local-tool-calls">Supports tool calls</Label>
         </div>
         <div className="flex items-center gap-2">
           <Checkbox
             id="local-vision"
-            checked={form.supportsVision}
-            onCheckedChange={(v) => set('supportsVision', Boolean(v))}
+            checked={values.supportsVision}
+            onCheckedChange={(v) => form.setFieldValue('supportsVision', Boolean(v))}
           />
           <Label htmlFor="local-vision">Supports vision (image input)</Label>
         </div>
         <div className="flex items-center gap-2">
           <Checkbox
             id="local-reasoning"
-            checked={form.supportsReasoning}
-            onCheckedChange={(v) => set('supportsReasoning', Boolean(v))}
+            checked={values.supportsReasoning}
+            onCheckedChange={(v) => form.setFieldValue('supportsReasoning', Boolean(v))}
           />
           <Label htmlFor="local-reasoning">Supports reasoning</Label>
         </div>
@@ -317,10 +351,13 @@ function ModelForm({
             <div key={m} className="flex items-center gap-2">
               <Checkbox
                 id={`local-input-mod-${m}`}
-                checked={form.inputModalities.includes(m)}
+                checked={values.inputModalities.includes(m)}
                 disabled={m === 'text'}
                 onCheckedChange={(v) =>
-                  set('inputModalities', v ? [...form.inputModalities, m] : form.inputModalities.filter((x) => x !== m))
+                  form.setFieldValue(
+                    'inputModalities',
+                    v ? [...values.inputModalities, m] : values.inputModalities.filter((x) => x !== m),
+                  )
                 }
               />
               <Label htmlFor={`local-input-mod-${m}`}>{m}</Label>
@@ -333,12 +370,12 @@ function ModelForm({
             <div key={m} className="flex items-center gap-2">
               <Checkbox
                 id={`local-output-mod-${m}`}
-                checked={form.outputModalities.includes(m)}
+                checked={values.outputModalities.includes(m)}
                 disabled={m === 'text'}
                 onCheckedChange={(v) =>
-                  set(
+                  form.setFieldValue(
                     'outputModalities',
-                    v ? [...form.outputModalities, m] : form.outputModalities.filter((x) => x !== m),
+                    v ? [...values.outputModalities, m] : values.outputModalities.filter((x) => x !== m),
                   )
                 }
               />
@@ -349,7 +386,7 @@ function ModelForm({
       </div>
 
       <div className="flex gap-2 pt-1">
-        <Button type="submit" size="sm" disabled={isPending || !form.id.trim() || !form.name.trim()}>
+        <Button type="submit" size="sm" disabled={isPending}>
           {isPending ? 'Saving...' : 'Save'}
         </Button>
         <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
