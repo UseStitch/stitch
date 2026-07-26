@@ -152,6 +152,7 @@ export { getHighlighterPromise } from '@/lib/shiki-highlighter';
 const STRIP_ROOT_COLORS: ShikiTransformer = {
   pre(node) {
     delete node.properties.style;
+    node.properties.class = `${String(node.properties.class ?? '')} thin-scrollbar`.trim();
   },
 };
 

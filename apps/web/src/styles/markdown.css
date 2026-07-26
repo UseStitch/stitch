@@ -101,8 +101,28 @@
   color: var(--foreground);
 }
 
+.prose :where(h5) {
+  font-size: 0.9375em;
+  font-weight: 600;
+  margin-top: 0.75em;
+  margin-bottom: 0.25em;
+  line-height: 1.4;
+  color: var(--foreground);
+}
+
+/* h6 drops to muted rather than shrinking further — 6 legible steps is not possible. */
+.prose :where(h6) {
+  font-size: 0.875em;
+  font-weight: 600;
+  margin-top: 0.75em;
+  margin-bottom: 0.25em;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  color: var(--muted-foreground);
+}
+
 /* Remove top margin on first heading in a message */
-.prose :where(h1, h2, h3, h4):first-child {
+.prose :where(h1, h2, h3, h4, h5, h6):first-child {
   margin-top: 0;
 }
 
@@ -160,6 +180,36 @@
   content: none;
 }
 
+/* GitHub-style callouts retain blockquote semantics while using semantic colors. */
+.prose :where(.markdown-callout) {
+  --markdown-callout-color: var(--info);
+  border-left-color: var(--markdown-callout-color);
+  background-color: color-mix(in oklch, var(--markdown-callout-color) 10%, transparent);
+  color: var(--foreground);
+  font-style: normal;
+}
+
+.prose :where(.markdown-callout-tip) {
+  --markdown-callout-color: var(--success);
+}
+
+.prose :where(.markdown-callout-important) {
+  --markdown-callout-color: var(--primary);
+}
+
+.prose :where(.markdown-callout-warning) {
+  --markdown-callout-color: var(--warning);
+}
+
+.prose :where(.markdown-callout-caution) {
+  --markdown-callout-color: var(--destructive);
+}
+
+.prose :where(.markdown-callout-title) {
+  color: var(--markdown-callout-color);
+  font-weight: 600;
+}
+
 /* ─── Links ─────────────────────────────────────────────────────────────────── */
 
 .prose :where(a) {
@@ -214,7 +264,9 @@
 /* ─── Horizontal rules ──────────────────────────────────────────────────────── */
 
 .prose :where(hr) {
-  border-color: color-mix(in srgb, var(--border) 40%, transparent);
+  height: 1px;
+  border: 0;
+  background-color: var(--border);
   margin-top: 1.5em;
   margin-bottom: 1.5em;
 }
@@ -272,6 +324,60 @@
 
 .prose :where(del) {
   text-decoration: line-through;
+  color: var(--muted-foreground);
+}
+
+/* Basic HTML and lightweight markdown extensions. */
+.prose :where(mark) {
+  border-radius: var(--radius-sm);
+  background-color: color-mix(in oklch, var(--warning) 28%, transparent);
+  color: var(--foreground);
+  padding: 0.05em 0.2em;
+}
+
+.prose :where(sub, sup) {
+  font-size: 0.75em;
+  line-height: 0;
+}
+
+.prose :where(abbr[title]) {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+.prose :where(kbd) {
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
+  background-color: var(--muted);
+  color: var(--foreground);
+  padding: 0.1em 0.35em;
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+}
+
+.prose :where(small) {
+  color: var(--muted-foreground);
+}
+
+.prose :where(ins) {
+  text-decoration-color: var(--success);
+  text-decoration-thickness: 2px;
+}
+
+.prose :where(dl) {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+
+.prose :where(dt) {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.prose :where(dd) {
+  margin-left: 1.25em;
   color: var(--muted-foreground);
 }
 

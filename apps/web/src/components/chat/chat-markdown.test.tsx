@@ -70,4 +70,70 @@ describe('ChatMarkdown', () => {
     expect(html).toContain('katex');
     expect(html).not.toContain('$\\rightarrow$');
   });
+
+  test('renders GitHub-style callouts', () => {
+    const html = renderToStaticMarkup(<ChatMarkdown text={'> [!WARNING]\n> Check this first.'} />);
+
+    expect(html).toContain('class="markdown-callout markdown-callout-warning"');
+    expect(html).toContain('class="markdown-callout-title"');
+    expect(html).toContain('Check this first.');
+    expect(html).not.toContain('[!WARNING]');
+  });
+
+  test('renders highlight, subscript, and superscript syntax', () => {
+    const html = renderToStaticMarkup(<ChatMarkdown text="==important== H~2~O x^2^ and ~~removed~~" />);
+
+    expect(html).toContain('<mark>important</mark>');
+    expect(html).toContain('H<sub>2</sub>O');
+    expect(html).toContain('x<sup>2</sup>');
+    expect(html).toContain('<del>removed</del>');
+  });
+
+  test('renders safe basic HTML and removes unsafe HTML', () => {
+    const html = renderToStaticMarkup(
+      <ChatMarkdown
+        text={
+          '<mark>safe</mark> <abbr title="HyperText Markup Language">HTML</abbr> <script>alert(1)</script> <span style="color: red" onclick="alert(2)">text</span>'
+        }
+      />,
+    );
+
+    expect(html).toContain('<mark>safe</mark>');
+    expect(html).toContain('<abbr title="HyperText Markup Language">HTML</abbr>');
+    expect(html).toContain('<span>text</span>');
+    expect(html).not.toContain('<script');
+    expect(html).not.toContain('alert(1)');
+    expect(html).not.toContain('style=');
+    expect(html).not.toContain('onclick');
+  });
+
+  test('renders safe basic HTML while streaming', () => {
+    const html = renderToStaticMarkup(<ChatMarkdown text={'Press <kbd>Ctrl</kbd> + <kbd>Shift</kbd>.'} isStreaming />);
+
+    expect(html).toContain('<kbd>Ctrl</kbd>');
+    expect(html).toContain('<kbd>Shift</kbd>');
+    expect(html).not.toContain('&lt;kbd&gt;');
+  });
+
+  test('preserves GFM task-list markup through sanitization', () => {
+    const html = renderToStaticMarkup(<ChatMarkdown text={'- [x] Done\n- [ ] Todo'} />);
+
+    expect(html).toContain('<ul class="contains-task-list">');
+    expect(html).toContain('<li class="task-list-item"><input type="checkbox" disabled="" checked=""/> Done</li>');
+    expect(html).toContain('<li class="task-list-item"><input type="checkbox" disabled=""/> Todo</li>');
+  });
+
+  test('preserves display math through sanitization', () => {
+    const html = renderToStaticMarkup(<ChatMarkdown text={'Before\n\n$$\nx^2\n$$\n\nAfter'} />);
+
+    expect(html).toContain('class="katex-display"');
+    expect(html).not.toContain('math-display');
+    expect(html).not.toContain('katex-error');
+  });
+
+  test('uses the shared thin scrollbar for streaming code blocks', () => {
+    const html = renderToStaticMarkup(<ChatMarkdown text={'```text\nlong code line\n```'} isStreaming />);
+
+    expect(html).toContain('<pre class="thin-scrollbar">');
+  });
 });

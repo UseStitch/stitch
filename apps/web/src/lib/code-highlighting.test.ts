@@ -22,6 +22,14 @@ describe('highlightToHast', () => {
     expect(pre.properties.style).toBeUndefined();
   });
 
+  test('uses the shared thin scrollbar utility', async () => {
+    const highlighter = await getHighlighterPromise('typescript', [GITHUB.light, GITHUB.dark]);
+
+    const pre = rootPre(highlightToHast(highlighter, 'const a = 1;', 'typescript', GITHUB));
+
+    expect(String(pre.properties.class)).toContain('thin-scrollbar');
+  });
+
   test('applies the theme pair supplied by the caller', async () => {
     const highlighter = await getHighlighterPromise('typescript', [DRACULA.light, DRACULA.dark]);
 
