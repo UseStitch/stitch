@@ -200,12 +200,11 @@ function buildSandboxedMailHtml(input: {
   });
 
   const emailStyles = Array.from(doc.querySelectorAll('head style, body style'))
-    .map((style) => {
+    .flatMap((style) => {
       const text = style.textContent ?? '';
       style.remove();
-      return text;
+      return text ? [text] : [];
     })
-    .filter(Boolean)
     .join('\n');
 
   const imgSrc = input.loadImages ? 'https: http: data: cid:' : 'data: cid:';

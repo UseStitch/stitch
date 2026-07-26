@@ -25,7 +25,7 @@ export function UpdaterSync() {
   const previousStatus = useRef<string>('idle');
 
   useEffect(() => {
-    const unsub = window.electron?.on('updater:event', (payload) => {
+    const unsub = window.electron?.subscribe('updater:event', (payload) => {
       if (!isDesktopUpdaterState(payload)) return;
 
       setUpdaterState(payload);

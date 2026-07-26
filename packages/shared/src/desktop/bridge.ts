@@ -33,25 +33,16 @@ export type DesktopBridge = {
     isMaximized: () => Promise<boolean>;
     isFullScreen: () => Promise<boolean>;
   };
-  devtools: {
-    toggle: () => Promise<void>;
-    inspect: (x: number, y: number) => Promise<void>;
-  };
+  devtools: { toggle: () => Promise<void>; inspect: (x: number, y: number) => Promise<void> };
   shell: { openExternal: (url: string) => Promise<void> };
-  files: {
-    writeTmp: (data: ArrayBuffer, ext: string) => Promise<string>;
-    openPath: () => Promise<string[]>;
-  };
+  files: { writeTmp: (data: ArrayBuffer, ext: string) => Promise<string>; openPath: () => Promise<string[]> };
   updater: {
     check: () => Promise<UpdaterStatePayload>;
     getState: () => Promise<UpdaterStatePayload>;
     install: () => Promise<boolean>;
     openManualUpdateAndQuit: () => Promise<boolean>;
   };
-  spellcheck: {
-    replaceMisspelling: (word: string) => Promise<void>;
-    addToDictionary: (word: string) => Promise<void>;
-  };
+  spellcheck: { replaceMisspelling: (word: string) => Promise<void>; addToDictionary: (word: string) => Promise<void> };
   permissions: {
     requestMicrophone: () => Promise<boolean>;
     getScreenCaptureStatus: () => Promise<string>;
@@ -100,5 +91,5 @@ export type DesktopBridge = {
 export type ElectronBridge = {
   platform: DesktopPlatform;
   send: (channel: string, data?: unknown) => void;
-  on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
+  subscribe: (channel: string, callback: (...args: unknown[]) => void) => () => void;
 };

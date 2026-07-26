@@ -535,7 +535,7 @@ function ConnectorAccountStep({
 
 function buildEnableApisUrl(scopeApiMap: Record<string, string> | undefined, selectedScopes: string[]): string | null {
   if (!scopeApiMap) return null;
-  const apiIds = [...new Set(selectedScopes.map((s) => scopeApiMap[s]).filter(Boolean))];
+  const apiIds = [...new Set(selectedScopes.flatMap((s) => scopeApiMap[s] ?? []))];
   if (apiIds.length === 0) return null;
   return `https://console.cloud.google.com/flows/enableapi?apiid=${apiIds.join(',')}`;
 }

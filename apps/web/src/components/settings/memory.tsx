@@ -72,7 +72,11 @@ function EmbeddingModelSelect({
     setPendingValue(undefined);
     if (!selection) return;
 
-    await resetMutation.mutateAsync();
+    try {
+      await resetMutation.mutateAsync();
+    } catch {
+      return;
+    }
     saveProviderMutation.mutate(selection.providerId);
     saveModelMutation.mutate(selection.modelId);
   }
