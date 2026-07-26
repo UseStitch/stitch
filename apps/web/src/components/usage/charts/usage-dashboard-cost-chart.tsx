@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import type { UsageDashboardResponse } from '@stitch/shared/usage/types';
 
 import { StackedBarChart } from '@/components/usage/charts/stacked-bar-chart';
@@ -28,18 +26,14 @@ export function UsageDashboardCostChart({ usageData }: UsageDashboardCostChartPr
   const sources = useSourceOrder(usageData?.sources ?? []);
   const labels = usageData?.buckets.map((b) => b.label) ?? [];
 
-  const datasets = React.useMemo(
-    () =>
-      sources.map((source) => ({
-        label: getSourceLabel(source),
-        data: usageData?.buckets.map((b) => b.costUsdBySource[source] ?? 0) ?? [],
-        backgroundColor: getSourceColor(source),
-        borderRadius: (ctx: import('chart.js').ScriptableContext<'bar'>) => getStackSegmentRadius(ctx),
-        borderSkipped: false as const,
-        inflateAmount: 0,
-      })),
-    [sources, usageData],
-  );
+  const datasets = sources.map((source) => ({
+    label: getSourceLabel(source),
+    data: usageData?.buckets.map((b) => b.costUsdBySource[source] ?? 0) ?? [],
+    backgroundColor: getSourceColor(source),
+    borderRadius: (ctx: import('chart.js').ScriptableContext<'bar'>) => getStackSegmentRadius(ctx),
+    borderSkipped: false as const,
+    inflateAmount: 0,
+  }));
 
   return (
     <StackedBarChart

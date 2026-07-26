@@ -1,5 +1,5 @@
 import { BookPlus, Scissors, Copy, ClipboardPaste, Terminal, ChevronRight, SpellCheck } from 'lucide-react';
-import { useEffect, useLayoutEffect, useCallback, useState, useRef, forwardRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState, useRef, forwardRef } from 'react';
 import { createPortal } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
@@ -150,56 +150,53 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
     };
   }, [params, close]);
 
-  const handleSpellingMouseEnter = useCallback(() => {
+  const handleSpellingMouseEnter = () => {
     if (spellingCloseTimer.current) clearTimeout(spellingCloseTimer.current);
     setSpellingOpen(true);
-  }, []);
+  };
 
-  const handleSpellingMouseLeave = useCallback(() => {
+  const handleSpellingMouseLeave = () => {
     spellingCloseTimer.current = setTimeout(() => setSpellingOpen(false), 150);
-  }, []);
+  };
 
-  const handleSubmenuMouseEnter = useCallback(() => {
+  const handleSubmenuMouseEnter = () => {
     if (spellingCloseTimer.current) clearTimeout(spellingCloseTimer.current);
-  }, []);
+  };
 
-  const handleSubmenuMouseLeave = useCallback(() => {
+  const handleSubmenuMouseLeave = () => {
     spellingCloseTimer.current = setTimeout(() => setSpellingOpen(false), 150);
-  }, []);
+  };
 
-  const handleReplaceMisspelling = useCallback(
-    (suggestion: string) => {
-      void window.api?.spellcheck?.replaceMisspelling(suggestion);
-      close();
-    },
-    [close],
-  );
+  const handleReplaceMisspelling = (suggestion: string) => {
+    void window.api?.spellcheck?.replaceMisspelling(suggestion);
+    close();
+  };
 
   const misspelledWord = params?.misspelledWord ?? null;
 
-  const handleAddToDictionary = useCallback(() => {
+  const handleAddToDictionary = () => {
     if (misspelledWord) {
       void window.api?.spellcheck?.addToDictionary(misspelledWord);
     }
     close();
-  }, [misspelledWord, close]);
+  };
 
-  const handleCut = useCallback(() => {
+  const handleCut = () => {
     document.execCommand('cut');
     close();
-  }, [close]);
-  const handleCopy = useCallback(() => {
+  };
+  const handleCopy = () => {
     document.execCommand('copy');
     close();
-  }, [close]);
-  const handlePaste = useCallback(() => {
+  };
+  const handlePaste = () => {
     document.execCommand('paste');
     close();
-  }, [close]);
-  const handleOpenDevTools = useCallback(() => {
+  };
+  const handleOpenDevTools = () => {
     void window.api?.devtools?.toggle();
     close();
-  }, [close]);
+  };
 
   const isMisspelled = !!misspelledWord;
   const isEditable = params?.isEditable ?? false;

@@ -140,14 +140,8 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
 
   const [activeTab, setActiveTab] = React.useState(defaultMethod);
   const hydrationRef = React.useRef<{ providerId: string; enabled: boolean; hydrated: boolean } | null>(null);
-  const activeMethodFields = React.useMemo(
-    () => enabledAuthMethods.find((method) => method.method === activeTab)?.fields ?? [],
-    [activeTab, enabledAuthMethods],
-  );
-  const providerConfigSchema = React.useMemo(
-    () => createProviderConfigSchema(meta?.extraFields ?? [], activeTab, activeMethodFields),
-    [activeMethodFields, activeTab, meta?.extraFields],
-  );
+  const activeMethodFields = enabledAuthMethods.find((method) => method.method === activeTab)?.fields ?? [];
+  const providerConfigSchema = createProviderConfigSchema(meta?.extraFields ?? [], activeTab, activeMethodFields);
 
   const saveMutation = useSaveProviderConfigMutation({
     providerId: provider.id,

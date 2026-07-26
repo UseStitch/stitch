@@ -39,18 +39,16 @@ export function InstallRegistryMcpServer({
   const addServer = useAddMcpServer();
   const startAuth = useStartMcpAuth();
 
-  const authOptions = React.useMemo(() => {
-    const configs = [server.install.authConfig, ...(server.install.optionalAuthConfigs ?? [])];
-    const uniqueByKey = new Map<string, (typeof configs)[number]>();
-    for (const config of configs) {
-      uniqueByKey.set(JSON.stringify(config), config);
-    }
-    return [...uniqueByKey.values()].map((config, index) => ({
-      id: String(index),
-      config,
-      label: index === 0 ? `Default (${describeAuthConfig(config)})` : describeAuthConfig(config),
-    }));
-  }, [server.install.authConfig, server.install.optionalAuthConfigs]);
+  const configs = [server.install.authConfig, ...(server.install.optionalAuthConfigs ?? [])];
+  const uniqueByKey = new Map<string, (typeof configs)[number]>();
+  for (const config of configs) {
+    uniqueByKey.set(JSON.stringify(config), config);
+  }
+  const authOptions = [...uniqueByKey.values()].map((config, index) => ({
+    id: String(index),
+    config,
+    label: index === 0 ? `Default (${describeAuthConfig(config)})` : describeAuthConfig(config),
+  }));
 
   const [selectedAuthId, setSelectedAuthId] = React.useState(authOptions[0]?.id ?? '0');
   const form = useForm({

@@ -26,14 +26,13 @@ export function McpRegistryList({
   const refreshRegistry = useRefreshMcpRegistry();
   const [search, setSearch] = React.useState('');
 
-  const filteredServers = React.useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return registryServers;
-    return registryServers.filter((server) => {
-      const haystack = [server.name, server.description, server.tags.join(' '), server.id].join(' ').toLowerCase();
-      return haystack.includes(query);
-    });
-  }, [registryServers, search]);
+  const query = search.trim().toLowerCase();
+  const filteredServers = !query
+    ? registryServers
+    : registryServers.filter((server) => {
+        const haystack = [server.name, server.description, server.tags.join(' '), server.id].join(' ').toLowerCase();
+        return haystack.includes(query);
+      });
 
   const handleRefresh = async () => {
     try {

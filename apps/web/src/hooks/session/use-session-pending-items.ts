@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import { useQuery } from '@tanstack/react-query';
 
 import {
@@ -14,15 +12,9 @@ export function useSessionPendingItems(sessionId: string) {
   const questionsQuery = useQuery(questionsQueryOptions(sessionId));
   const permissionResponsesQuery = useQuery(permissionResponsesQueryOptions(sessionId));
 
-  const pendingQuestions = React.useMemo(
-    () => questionsQuery.data?.filter((question) => question.status === 'pending') ?? [],
-    [questionsQuery.data],
-  );
+  const pendingQuestions = questionsQuery.data?.filter((question) => question.status === 'pending') ?? [];
 
-  const pendingPermissionResponses = React.useMemo(
-    () => permissionResponsesQuery.data ?? [],
-    [permissionResponsesQuery.data],
-  );
+  const pendingPermissionResponses = permissionResponsesQuery.data ?? [];
 
   return {
     pendingQuestions,

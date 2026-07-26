@@ -165,24 +165,19 @@ export function TextareaCompletions({
   const completionOptions = filterCompletionOptions(completionState);
   const isOpen = completionState !== null && completionOptions.length > 0 && !disabled;
 
-  const completionAnchor = React.useMemo(() => {
-    return {
-      getBoundingClientRect: () => {
-        const textarea = textareaRef.current;
-        if (!textarea || !completionState) return new DOMRect();
+  const completionAnchor = {
+    getBoundingClientRect: () => {
+      const textarea = textareaRef.current;
+      if (!textarea || !completionState) return new DOMRect();
 
-        return getTextareaCharacterRect(textarea, completionState.anchorIndex);
-      },
-    };
-  }, [completionState, textareaRef]);
-
-  const updateCompletionState = React.useCallback(
-    (textarea: HTMLTextAreaElement) => {
-      setCompletionState(getCompletionState(textarea, groups));
-      setActiveIndex(0);
+      return getTextareaCharacterRect(textarea, completionState.anchorIndex);
     },
-    [groups],
-  );
+  };
+
+  const updateCompletionState = (textarea: HTMLTextAreaElement) => {
+    setCompletionState(getCompletionState(textarea, groups));
+    setActiveIndex(0);
+  };
 
   function applyCompletion(textarea: HTMLTextAreaElement, option: TextareaCompletionOption) {
     if (!completionState) return;

@@ -154,11 +154,8 @@ export function MemoriesPage() {
   const isLoading = isSearching ? searchQuery.isLoading : listQuery.isLoading;
   const totalPages = pageData?.totalPages ?? 0;
   const currentPage = (pageData?.page ?? page) - 1;
-  const pageNumbers = React.useMemo(() => {
-    if (totalPages <= 1) {
-      return [] as number[];
-    }
-
+  let pageNumbers: number[] = [];
+  if (totalPages > 1) {
     const firstPage = 0;
     const lastPage = totalPages - 1;
     const start = Math.max(firstPage, currentPage - 1);
@@ -169,8 +166,8 @@ export function MemoriesPage() {
       pages.add(index);
     }
 
-    return [...pages].toSorted((a, b) => a - b);
-  }, [currentPage, totalPages]);
+    pageNumbers = [...pages].toSorted((a, b) => a - b);
+  }
 
   const allSelected = memories.length > 0 && selectedIds.size === memories.length;
   const someSelected = selectedIds.size > 0 && selectedIds.size < memories.length;

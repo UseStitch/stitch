@@ -1,5 +1,4 @@
 import { Settings2Icon } from 'lucide-react';
-import * as React from 'react';
 
 import { EmptyState, SectionCard } from './components';
 
@@ -23,33 +22,31 @@ export function useMcpToolsetGroups(
   knownTools: KnownTool[],
   mcpToolMetaByName: Map<string, McpToolMeta>,
 ): McpToolGroup[] {
-  return React.useMemo(() => {
-    const groups = new Map<string, McpToolGroup>();
+  const groups = new Map<string, McpToolGroup>();
 
-    for (const tool of knownTools) {
-      if (tool.toolType !== 'mcp') continue;
-      const meta = mcpToolMetaByName.get(tool.toolName);
-      if (!meta) continue;
+  for (const tool of knownTools) {
+    if (tool.toolType !== 'mcp') continue;
+    const meta = mcpToolMetaByName.get(tool.toolName);
+    if (!meta) continue;
 
-      const current = groups.get(meta.serverId) ?? {
-        serverId: meta.serverId,
-        serverName: meta.serverName,
-        serverIconPath: meta.serverIconPath,
-        tools: [],
-      };
+    const current = groups.get(meta.serverId) ?? {
+      serverId: meta.serverId,
+      serverName: meta.serverName,
+      serverIconPath: meta.serverIconPath,
+      tools: [],
+    };
 
-      current.tools.push({
-        toolName: tool.toolName,
-        displayName: tool.displayName,
-        iconPath: meta.toolIconPath ?? meta.serverIconPath,
-      });
-      groups.set(meta.serverId, current);
-    }
+    current.tools.push({
+      toolName: tool.toolName,
+      displayName: tool.displayName,
+      iconPath: meta.toolIconPath ?? meta.serverIconPath,
+    });
+    groups.set(meta.serverId, current);
+  }
 
-    return Array.from(groups.values())
-      .map((group) => ({ ...group, tools: group.tools.toSorted((a, b) => a.displayName.localeCompare(b.displayName)) }))
-      .toSorted((a, b) => a.serverName.localeCompare(b.serverName));
-  }, [knownTools, mcpToolMetaByName]);
+  return Array.from(groups.values())
+    .map((group) => ({ ...group, tools: group.tools.toSorted((a, b) => a.displayName.localeCompare(b.displayName)) }))
+    .toSorted((a, b) => a.serverName.localeCompare(b.serverName));
 }
 
 export function filterMcpGroups(groups: McpToolGroup[], query: string): McpToolGroup[] {

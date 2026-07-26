@@ -38,7 +38,7 @@ export function RecordingsPagination({
   onPageChange: (page: number) => void;
 }) {
   const currentPage = page - 1;
-  const pageNumbers = React.useMemo(() => getPageNumbers(currentPage, pageCount), [currentPage, pageCount]);
+  const pageNumbers = getPageNumbers(currentPage, pageCount);
 
   if (pageCount <= 1) return null;
 

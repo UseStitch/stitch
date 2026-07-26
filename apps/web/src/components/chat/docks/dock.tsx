@@ -178,14 +178,11 @@ export function DockContainer({ docks, className }: DockContainerProps) {
     return () => cancelAnimationFrame(frame);
   }, [hasDocks]);
 
-  const handleTransitionEnd = React.useCallback(
-    (event: React.TransitionEvent<HTMLDivElement>) => {
-      if (!hasDocks && !isOpen && event.target === event.currentTarget && event.propertyName === 'grid-template-rows') {
-        setRenderedDocks([]);
-      }
-    },
-    [hasDocks, isOpen],
-  );
+  const handleTransitionEnd = (event: React.TransitionEvent<HTMLDivElement>) => {
+    if (!hasDocks && !isOpen && event.target === event.currentTarget && event.propertyName === 'grid-template-rows') {
+      setRenderedDocks([]);
+    }
+  };
 
   if (renderedDocks.length === 0) return null;
 

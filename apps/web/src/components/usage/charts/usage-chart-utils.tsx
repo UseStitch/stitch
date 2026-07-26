@@ -1,5 +1,4 @@
 import { BarChart3Icon } from 'lucide-react';
-import * as React from 'react';
 
 import { getChartGridColor, getChartTickColor } from '@/lib/chart-colors';
 import type { ScriptableContext } from 'chart.js';
@@ -22,7 +21,7 @@ export function getStackSegmentRadius(ctx: ScriptableContext<'bar'>, radius = 5)
 }
 
 export function useChartTheme() {
-  return React.useMemo(() => ({ tickColor: getChartTickColor(), gridColor: getChartGridColor() }), []);
+  return { tickColor: getChartTickColor(), gridColor: getChartGridColor() };
 }
 
 export function EmptyChart({ message }: { message: string }) {

@@ -274,8 +274,8 @@ function UserLabelTreeItem({
 function MailLabelList({ accountId }: { accountId: MailAccountId }) {
   const { selectedLabelId, setSelectedLabelId } = useMailStore();
   const { data: labels = [] } = useQuery(mailLabelsQueryOptions(accountId));
-  const sortedLabels = React.useMemo(() => sortLabels(labels), [labels]);
-  const initialCollapsedState = React.useMemo(() => readCollapsedLabelState(accountId), [accountId]);
+  const sortedLabels = sortLabels(labels);
+  const initialCollapsedState = readCollapsedLabelState(accountId);
   const [collapsedLabels, setCollapsedLabels] = React.useState<Set<string>>(
     () => new Set(initialCollapsedState.labels),
   );
@@ -285,36 +285,27 @@ function MailLabelList({ accountId }: { accountId: MailAccountId }) {
   const primaryLabels = sortedLabels.filter((label) => getSystemLabelGroup(label) === 'primary');
   const categoryLabels = sortedLabels.filter((label) => getSystemLabelGroup(label) === 'category');
   const markerLabels = sortedLabels.filter((label) => getSystemLabelGroup(label) === 'marker');
-  const userLabelTree = React.useMemo(
-    () => buildUserLabelTree(sortedLabels.filter((label) => label.kind === 'user')),
-    [sortedLabels],
-  );
+  const userLabelTree = buildUserLabelTree(sortedLabels.filter((label) => label.kind === 'user'));
 
-  const toggleCollapsedLabel = React.useCallback(
-    (key: string) => {
-      setCollapsedLabels((currentLabels) => {
-        const nextLabels = new Set(currentLabels);
-        if (nextLabels.has(key)) nextLabels.delete(key);
-        else nextLabels.add(key);
-        writeCollapsedLabelState(accountId, nextLabels, collapsedSections);
-        return nextLabels;
-      });
-    },
-    [accountId, collapsedSections],
-  );
+  const toggleCollapsedLabel = (key: string) => {
+    setCollapsedLabels((currentLabels) => {
+      const nextLabels = new Set(currentLabels);
+      if (nextLabels.has(key)) nextLabels.delete(key);
+      else nextLabels.add(key);
+      writeCollapsedLabelState(accountId, nextLabels, collapsedSections);
+      return nextLabels;
+    });
+  };
 
-  const toggleSection = React.useCallback(
-    (section: LabelSection) => {
-      setCollapsedSections((currentSections) => {
-        const nextSections = new Set(currentSections);
-        if (nextSections.has(section)) nextSections.delete(section);
-        else nextSections.add(section);
-        writeCollapsedLabelState(accountId, collapsedLabels, nextSections);
-        return nextSections;
-      });
-    },
-    [accountId, collapsedLabels],
-  );
+  const toggleSection = (section: LabelSection) => {
+    setCollapsedSections((currentSections) => {
+      const nextSections = new Set(currentSections);
+      if (nextSections.has(section)) nextSections.delete(section);
+      else nextSections.add(section);
+      writeCollapsedLabelState(accountId, collapsedLabels, nextSections);
+      return nextSections;
+    });
+  };
 
   React.useEffect(() => {
     if (!selectedLabelId && labels.length > 0) setSelectedLabelId(getDefaultMailLabel(labels)?.id ?? null);

@@ -46,7 +46,7 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
 
   const isRunning = analysis?.status === 'processing';
 
-  const deleteRecordingById = React.useCallback(() => {
+  const deleteRecordingById = () => {
     void deleteRecording.mutateAsync(recordingId).then(
       () => {
         setShowDeleteConfirm(false);
@@ -56,7 +56,7 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
       (error: unknown) =>
         toast.error(getErrorMessage(error, 'Failed to delete recording'), { id: 'analysis-recording-delete' }),
     );
-  }, [deleteRecording, navigate, recordingId]);
+  };
 
   const handleStartAnalysis = () => {
     if (!selectedTemplate) {

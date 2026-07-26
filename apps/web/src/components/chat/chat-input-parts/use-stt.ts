@@ -106,164 +106,161 @@ export function useStt(onTranscriptUpdate?: (committedText: string, partialText:
     wsRef.current = null;
   }, []);
 
-  const send = React.useCallback((msg: SttInboundMessage) => {
+  const send = (msg: SttInboundMessage) => {
     wsRef.current?.send(JSON.stringify(msg));
-  }, []);
+  };
 
-  const start = React.useCallback(
-    async (providerId: string, modelId: string, sampleRateHz: number) => {
-      if (state !== 'idle') return;
+  const start = async (providerId: string, modelId: string, sampleRateHz: number) => {
+    if (state !== 'idle') return;
 
-      const serverUrl = await getServerUrl();
-      const sessionId = nextSessionId();
-      sessionIdRef.current = sessionId;
-      finalTextRef.current = '';
-      setCommittedText('');
-      setPartialText('');
+    const serverUrl = await getServerUrl();
+    const sessionId = nextSessionId();
+    sessionIdRef.current = sessionId;
+    finalTextRef.current = '';
+    setCommittedText('');
+    setPartialText('');
 
-      // Open mic
-      let stream: MediaStream;
+    // Open mic
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    } catch {
+      toast.error('Microphone access denied', { id: 'stt-mic-denied' });
+      return;
+    }
+    streamRef.current = stream;
+
+    // Set up AudioContext for PCM capture at the model's required sample rate
+    const audioCtx = new AudioContext({ sampleRate: sampleRateHz });
+    audioCtxRef.current = audioCtx;
+    const source = audioCtx.createMediaStreamSource(stream);
+
+    // Load AudioWorklet processor module
+    // Use relative path for Electron file:// compatibility
+    const workletUrl = new URL('pcm-capture-processor.js', window.location.href).href;
+    await audioCtx.audioWorklet.addModule(workletUrl);
+    const workletNode = new AudioWorkletNode(audioCtx, 'pcm-capture-processor', {
+      processorOptions: { chunkSize: Math.round(sampleRateHz * 0.1) },
+    });
+    workletRef.current = workletNode;
+
+    // Open WebSocket
+    const ws = new WebSocket(toWsUrl(serverUrl));
+    wsRef.current = ws;
+
+    await new Promise<void>((resolve, reject) => {
+      ws.onopen = () => resolve();
+      ws.onerror = () => reject(new Error('WebSocket connection failed'));
+    }).catch((err: Error) => {
+      cleanup();
+      toast.error(err.message, { id: 'stt-ws-error' });
+      throw err;
+    });
+
+    ws.onmessage = (event) => {
+      let msg: SttOutboundMessage;
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        msg = JSON.parse(event.data as string) as SttOutboundMessage;
       } catch {
-        toast.error('Microphone access denied', { id: 'stt-mic-denied' });
         return;
       }
-      streamRef.current = stream;
 
-      // Set up AudioContext for PCM capture at the model's required sample rate
-      const audioCtx = new AudioContext({ sampleRate: sampleRateHz });
-      audioCtxRef.current = audioCtx;
-      const source = audioCtx.createMediaStreamSource(stream);
-
-      // Load AudioWorklet processor module
-      // Use relative path for Electron file:// compatibility
-      const workletUrl = new URL('pcm-capture-processor.js', window.location.href).href;
-      await audioCtx.audioWorklet.addModule(workletUrl);
-      const workletNode = new AudioWorkletNode(audioCtx, 'pcm-capture-processor', {
-        processorOptions: { chunkSize: Math.round(sampleRateHz * 0.1) },
-      });
-      workletRef.current = workletNode;
-
-      // Open WebSocket
-      const ws = new WebSocket(toWsUrl(serverUrl));
-      wsRef.current = ws;
-
-      await new Promise<void>((resolve, reject) => {
-        ws.onopen = () => resolve();
-        ws.onerror = () => reject(new Error('WebSocket connection failed'));
-      }).catch((err: Error) => {
-        cleanup();
-        toast.error(err.message, { id: 'stt-ws-error' });
-        throw err;
-      });
-
-      ws.onmessage = (event) => {
-        let msg: SttOutboundMessage;
-        try {
-          msg = JSON.parse(event.data as string) as SttOutboundMessage;
-        } catch {
-          return;
-        }
-
-        switch (msg.type) {
-          case 'transcript': {
-            if (msg.kind === 'partial') {
-              setPartialText(msg.text);
-              onTranscriptUpdateRef.current?.(finalTextRef.current, msg.text);
-            } else {
-              finalTextRef.current += (finalTextRef.current ? ' ' : '') + msg.text;
-              setCommittedText(finalTextRef.current);
-              setPartialText('');
-              onTranscriptUpdateRef.current?.(finalTextRef.current, '');
-            }
-            break;
-          }
-          case 'done': {
-            const result = finalTextRef.current;
-            stopResolveRef.current?.(result);
-            stopResolveRef.current = null;
-            stopRejectRef.current = null;
-            setState('idle');
-            setCommittedText('');
+      switch (msg.type) {
+        case 'transcript': {
+          if (msg.kind === 'partial') {
+            setPartialText(msg.text);
+            onTranscriptUpdateRef.current?.(finalTextRef.current, msg.text);
+          } else {
+            finalTextRef.current += (finalTextRef.current ? ' ' : '') + msg.text;
+            setCommittedText(finalTextRef.current);
             setPartialText('');
-            cleanup();
-            break;
+            onTranscriptUpdateRef.current?.(finalTextRef.current, '');
           }
-          case 'error': {
-            const err = new Error(msg.message);
-            if (stopRejectRef.current) {
-              stopRejectRef.current(err);
-              stopResolveRef.current = null;
-              stopRejectRef.current = null;
-            } else {
-              toast.error(`STT error: ${msg.message}`, { id: 'stt-msg-error' });
-            }
-            setState('idle');
-            setCommittedText('');
-            setPartialText('');
-            cleanup();
-            break;
-          }
+          break;
         }
-      };
-
-      ws.onclose = (_event) => {
-        if (stopRejectRef.current) {
-          stopRejectRef.current(new Error('WebSocket closed unexpectedly'));
+        case 'done': {
+          const result = finalTextRef.current;
+          stopResolveRef.current?.(result);
           stopResolveRef.current = null;
           stopRejectRef.current = null;
+          setState('idle');
+          setCommittedText('');
+          setPartialText('');
+          cleanup();
+          break;
         }
-        setState('idle');
-        setCommittedText('');
-        setPartialText('');
-        cleanup();
-      };
-
-      // Send start message
-      send({
-        type: 'start',
-        sttSessionId: sessionId,
-        providerId,
-        modelId,
-        service: 'chat-input',
-        recordingId: sessionId,
-        capabilityRequest: { partials: 'preferred', native_vad: 'preferred' },
-        audioChunkConfig: { encoding: 'pcm_s16le', sampleRateHz },
-      });
-
-      // Wire up audio worklet message handler
-      workletNode.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
-        if (wsRef.current?.readyState !== WebSocket.OPEN) return;
-        const f32 = new Float32Array(e.data);
-        levelRef.current = computeAudioLevel(f32);
-        if (levelRafRef.current === null) {
-          levelRafRef.current = requestAnimationFrame(() => {
-            levelRafRef.current = null;
-            setAudioLevel(levelRef.current);
-          });
+        case 'error': {
+          const err = new Error(msg.message);
+          if (stopRejectRef.current) {
+            stopRejectRef.current(err);
+            stopResolveRef.current = null;
+            stopRejectRef.current = null;
+          } else {
+            toast.error(`STT error: ${msg.message}`, { id: 'stt-msg-error' });
+          }
+          setState('idle');
+          setCommittedText('');
+          setPartialText('');
+          cleanup();
+          break;
         }
-        const pcm = encodeF32ToPcmS16le(f32);
-        send({
-          type: 'chunk',
-          sttSessionId: sessionId,
-          source: 'mic',
-          samplesB64: int16ToBase64(pcm),
-          sampleRateHz,
-          numSamples: pcm.length,
+      }
+    };
+
+    ws.onclose = (_event) => {
+      if (stopRejectRef.current) {
+        stopRejectRef.current(new Error('WebSocket closed unexpectedly'));
+        stopResolveRef.current = null;
+        stopRejectRef.current = null;
+      }
+      setState('idle');
+      setCommittedText('');
+      setPartialText('');
+      cleanup();
+    };
+
+    // Send start message
+    send({
+      type: 'start',
+      sttSessionId: sessionId,
+      providerId,
+      modelId,
+      service: 'chat-input',
+      recordingId: sessionId,
+      capabilityRequest: { partials: 'preferred', native_vad: 'preferred' },
+      audioChunkConfig: { encoding: 'pcm_s16le', sampleRateHz },
+    });
+
+    // Wire up audio worklet message handler
+    workletNode.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
+      if (wsRef.current?.readyState !== WebSocket.OPEN) return;
+      const f32 = new Float32Array(e.data);
+      levelRef.current = computeAudioLevel(f32);
+      if (levelRafRef.current === null) {
+        levelRafRef.current = requestAnimationFrame(() => {
+          levelRafRef.current = null;
+          setAudioLevel(levelRef.current);
         });
-      };
+      }
+      const pcm = encodeF32ToPcmS16le(f32);
+      send({
+        type: 'chunk',
+        sttSessionId: sessionId,
+        source: 'mic',
+        samplesB64: int16ToBase64(pcm),
+        sampleRateHz,
+        numSamples: pcm.length,
+      });
+    };
 
-      source.connect(workletNode);
-      workletNode.connect(audioCtx.destination);
+    source.connect(workletNode);
+    workletNode.connect(audioCtx.destination);
 
-      setStartedAt(Date.now());
-      setState('recording');
-    },
-    [state, send, cleanup],
-  );
+    setStartedAt(Date.now());
+    setState('recording');
+  };
 
-  const stop = React.useCallback((): Promise<string> => {
+  const stop = (): Promise<string> => {
     if (state !== 'recording') return Promise.resolve('');
 
     setState('stopping');
@@ -274,10 +271,10 @@ export function useStt(onTranscriptUpdate?: (committedText: string, partialText:
       stopRejectRef.current = reject;
       send({ type: 'stop', sttSessionId: sessionIdRef.current });
     });
-  }, [state, send]);
+  };
 
   // Discard the in-progress recording without committing any transcript.
-  const cancel = React.useCallback(() => {
+  const cancel = () => {
     if (state === 'idle') return;
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       send({ type: 'stop', sttSessionId: sessionIdRef.current });
@@ -289,7 +286,7 @@ export function useStt(onTranscriptUpdate?: (committedText: string, partialText:
     setCommittedText('');
     setPartialText('');
     cleanup();
-  }, [state, send, cleanup]);
+  };
 
   // Clean up on unmount
   React.useEffect(() => {

@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import type { EmbeddingUsageDashboardResponse } from '@stitch/shared/usage/types';
 
 import { StackedBarChart } from '@/components/usage/charts/stacked-bar-chart';
@@ -15,30 +13,24 @@ function labelForModelKey(modelKey: string): string {
 type EmbeddingUsageCostChartProps = { usageData: EmbeddingUsageDashboardResponse | undefined };
 
 export function EmbeddingUsageCostChart({ usageData }: EmbeddingUsageCostChartProps) {
-  const modelKeys = React.useMemo(() => {
-    const keys = new Set<string>();
-    for (const bucket of usageData?.buckets ?? []) {
-      for (const key of Object.keys(bucket.costUsdByModel)) {
-        keys.add(key);
-      }
+  const keys = new Set<string>();
+  for (const bucket of usageData?.buckets ?? []) {
+    for (const key of Object.keys(bucket.costUsdByModel)) {
+      keys.add(key);
     }
-    return Array.from(keys).toSorted((a, b) => a.localeCompare(b));
-  }, [usageData?.buckets]);
+  }
+  const modelKeys = Array.from(keys).toSorted((a, b) => a.localeCompare(b));
 
   const labels = usageData?.buckets.map((b) => b.label) ?? [];
 
-  const datasets = React.useMemo(
-    () =>
-      modelKeys.map((key, i) => ({
-        label: labelForModelKey(key),
-        data: usageData?.buckets.map((b) => b.costUsdByModel[key] ?? 0) ?? [],
-        backgroundColor: getChartColor(i),
-        borderRadius: (ctx: import('chart.js').ScriptableContext<'bar'>) => getStackSegmentRadius(ctx),
-        borderSkipped: false as const,
-        inflateAmount: 0,
-      })),
-    [modelKeys, usageData],
-  );
+  const datasets = modelKeys.map((key, i) => ({
+    label: labelForModelKey(key),
+    data: usageData?.buckets.map((b) => b.costUsdByModel[key] ?? 0) ?? [],
+    backgroundColor: getChartColor(i),
+    borderRadius: (ctx: import('chart.js').ScriptableContext<'bar'>) => getStackSegmentRadius(ctx),
+    borderSkipped: false as const,
+    inflateAmount: 0,
+  }));
 
   return (
     <StackedBarChart

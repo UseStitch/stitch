@@ -20,12 +20,9 @@ type ModelSelectorPopoverProps = {
 export function ModelSelectorPopover({ selectedValue, onSelect, providerModels }: ModelSelectorPopoverProps) {
   const [search, setSearch] = React.useState('');
 
-  const allOptions = React.useMemo(() => buildProviderModelOptions(providerModels), [providerModels]);
-  const filtered = React.useMemo(() => filterProviderModels(providerModels, search), [providerModels, search]);
-  const selectedOption = React.useMemo(
-    () => findProviderModelOption(allOptions, selectedValue),
-    [allOptions, selectedValue],
-  );
+  const allOptions = buildProviderModelOptions(providerModels);
+  const filtered = filterProviderModels(providerModels, search);
+  const selectedOption = findProviderModelOption(allOptions, selectedValue);
 
   return (
     <PopoverPrimitive.Root>

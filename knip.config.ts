@@ -33,6 +33,7 @@ const config: KnipConfig = {
   ignoreDependencies: [
     'oxfmt',
     'oxlint',
+    'oxlint-plugin-react-doctor',
     'oxlint-tsgolint',
     '@tanstack/eslint-plugin-query',
     '@tanstack/eslint-plugin-router',

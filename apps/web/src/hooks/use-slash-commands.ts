@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import { useQueryClient } from '@tanstack/react-query';
 
 import type { ModelSpec } from '@/components/chat/chat-input-parts/types';
@@ -42,63 +40,48 @@ export function useSlashCommands({
   const queryClient = useQueryClient();
   const requestCompaction = useRequestCompaction();
 
-  const buildContext = React.useCallback(
-    (): CommandContext => ({
-      sessionId,
-      selectedModel,
-      isStreaming,
-      setInput,
-      queryClient,
-      actions: {
-        requestCompaction: async (id: string) => {
-          await requestCompaction.mutateAsync(id);
-        },
-        generateAutomation: async () => {
-          await onGenerateAutomation?.();
-        },
-        submitPrompt: onSubmitPrompt,
+  const buildContext = (): CommandContext => ({
+    sessionId,
+    selectedModel,
+    isStreaming,
+    setInput,
+    queryClient,
+    actions: {
+      requestCompaction: async (id: string) => {
+        await requestCompaction.mutateAsync(id);
       },
-    }),
-    [
-      sessionId,
-      selectedModel,
-      isStreaming,
-      setInput,
-      queryClient,
-      requestCompaction,
-      onSubmitPrompt,
-      onGenerateAutomation,
-    ],
-  );
+      generateAutomation: async () => {
+        await onGenerateAutomation?.();
+      },
+      submitPrompt: onSubmitPrompt,
+    },
+  });
 
-  const completionGroups = React.useMemo(() => [buildSlashCompletionGroup(buildContext())], [buildContext]);
+  const completionGroups = [buildSlashCompletionGroup(buildContext())];
 
-  const tryRun = React.useCallback(
-    (input: string): boolean => {
-      const parsed = parseSlashCommand(input);
-      if (!parsed) return false;
+  const tryRun = (input: string): boolean => {
+    const parsed = parseSlashCommand(input);
+    if (!parsed) return false;
 
-      const command = findCommand(parsed.name);
-      if (!command) return false;
+    const command = findCommand(parsed.name);
+    if (!command) return false;
 
-      const ctx = buildContext();
-      if (command.isAvailable && !command.isAvailable(ctx)) return false;
+    const ctx = buildContext();
+    if (command.isAvailable && !command.isAvailable(ctx)) return false;
 
-      if (command.kind === 'prompt') {
-        const prompt = command.buildPrompt(parsed.args, ctx);
-        void ctx.actions.submitPrompt(prompt).catch((error) => {
-          console.error(`Slash command "${command.name}" failed:`, error);
-        });
-        return true;
-      }
-
-      void Promise.resolve(command.run(parsed.args, ctx)).catch((error) => {
+    if (command.kind === 'prompt') {
+      const prompt = command.buildPrompt(parsed.args, ctx);
+      void ctx.actions.submitPrompt(prompt).catch((error) => {
         console.error(`Slash command "${command.name}" failed:`, error);
       });
       return true;
-    },
-    [buildContext],
-  );
+    }
+
+    void Promise.resolve(command.run(parsed.args, ctx)).catch((error) => {
+      console.error(`Slash command "${command.name}" failed:`, error);
+    });
+    return true;
+  };
 
   return { completionGroups, tryRun };
 }

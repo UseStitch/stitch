@@ -1,18 +1,7 @@
 import { toJsxRuntime } from 'hast-util-to-jsx-runtime';
 import { CheckIcon, CopyIcon } from 'lucide-react';
 import * as React from 'react';
-import {
-  Children,
-  Suspense,
-  isValidElement,
-  use,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  memo,
-} from 'react';
+import { Children, Suspense, isValidElement, use, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Fragment, jsx, jsxs } from 'react/jsx-runtime';
 import rehypeKatex from 'rehype-katex';
@@ -85,7 +74,7 @@ function MarkdownCodeBlock({ code, children }: { code: string; children: React.R
   const [copied, setCopied] = useState(false);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleCopy = useCallback(() => {
+  const handleCopy = () => {
     if (typeof navigator === 'undefined' || navigator.clipboard === null) {
       return;
     }
@@ -102,7 +91,7 @@ function MarkdownCodeBlock({ code, children }: { code: string; children: React.R
         }, 1200);
       })
       .catch(() => undefined);
-  }, [code]);
+  };
 
   useEffect(() => {
     return () => {
@@ -264,20 +253,17 @@ function transformLatexCommandTextNodes(node: MarkdownNode) {
 }
 
 function MarkdownAnchor({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
-  const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLAnchorElement>) => {
-      if (!href) return;
-      const isExternal = /^https?:\/\//i.test(href);
-      if (!isExternal) return;
-      e.preventDefault();
-      if (window.api?.shell?.openExternal) {
-        void window.api.shell.openExternal(href);
-      } else {
-        window.open(href, '_blank', 'noopener,noreferrer');
-      }
-    },
-    [href],
-  );
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!href) return;
+    const isExternal = /^https?:\/\//i.test(href);
+    if (!isExternal) return;
+    e.preventDefault();
+    if (window.api?.shell?.openExternal) {
+      void window.api.shell.openExternal(href);
+    } else {
+      window.open(href, '_blank', 'noopener,noreferrer');
+    }
+  };
 
   return (
     <a {...props} href={href} onClick={handleClick} rel="noopener noreferrer">
@@ -334,11 +320,11 @@ function HighlightedMarkdownPre({ node: _node, children, ...props }: MarkdownPre
 const STREAMING_COMPONENTS: Components = { img: MarkdownImage, a: MarkdownAnchor, pre: StreamingMarkdownPre };
 const HIGHLIGHTED_COMPONENTS: Components = { img: MarkdownImage, a: MarkdownAnchor, pre: HighlightedMarkdownPre };
 
-function ChatMarkdown({ text, className, isStreaming = false }: ChatMarkdownProps) {
+export default function ChatMarkdown({ text, className, isStreaming = false }: ChatMarkdownProps) {
   const markdownComponents = isStreaming ? STREAMING_COMPONENTS : HIGHLIGHTED_COMPONENTS;
 
   // During streaming: use remarkGfm only — skip remark-math + rehype-katex (heavy)
-  const remarkPlugins = useMemo(() => {
+  const remarkPlugins = (() => {
     if (isStreaming) return [remarkGfm, remarkStreamingSingleDollarLatexCommands];
 
     const remarkMathWithoutSingleDollar = [remarkMath, { singleDollarTextMath: false }] as [
@@ -346,9 +332,9 @@ function ChatMarkdown({ text, className, isStreaming = false }: ChatMarkdownProp
       { singleDollarTextMath: false },
     ];
     return [remarkGfm, remarkMathWithoutSingleDollar];
-  }, [isStreaming]);
-  const rehypePlugins = useMemo(() => (isStreaming ? [] : [rehypeKatex]), [isStreaming]);
-  const source = useMemo(() => (isStreaming ? text : normalizeInlineMath(text)), [text, isStreaming]);
+  })();
+  const rehypePlugins = isStreaming ? [] : [rehypeKatex];
+  const source = isStreaming ? text : normalizeInlineMath(text);
 
   return (
     <div className={cn('prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed', className)}>
@@ -358,5 +344,3 @@ function ChatMarkdown({ text, className, isStreaming = false }: ChatMarkdownProp
     </div>
   );
 }
-
-export default memo(ChatMarkdown);
