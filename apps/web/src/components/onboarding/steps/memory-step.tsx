@@ -41,7 +41,7 @@ export function MemoryStep({ onComplete, onBackToProviders }: Props) {
   );
   const saveModel = useMutation(saveSettingMutationOptions('memory.embedding.modelId', queryClient, { silent: true }));
 
-  const modelOptions = React.useMemo(() => buildModelOptions(providerModels), [providerModels]);
+  const modelOptions = buildModelOptions(providerModels);
 
   const [chosenValue, setChosenValue] = React.useState<string | null>(null);
 

@@ -42,7 +42,7 @@ export function ProviderStep({ onConnected }: Props) {
   const [selected, setSelected] = React.useState<ProviderSummary | null>(null);
   const [search, setSearch] = React.useState('');
 
-  const selectableProviders = React.useMemo(() => {
+  const selectableProviders = (() => {
     if (!providers) return [];
     return providers.filter((provider) => {
       if (provider.enabled) return false;
@@ -50,18 +50,18 @@ export function ProviderStep({ onConnected }: Props) {
       const meta = PROVIDER_META[provider.id as ProviderId];
       return meta.authMethods.some((method) => method.enabled);
     });
-  }, [providers]);
+  })();
 
-  const filteredProviders = React.useMemo(() => {
+  const filteredProviders = (() => {
     if (!search) return selectableProviders;
     const q = search.toLowerCase();
     return selectableProviders.filter((provider) => {
       const meta = PROVIDER_META[provider.id as ProviderId];
       return meta.displayName.toLowerCase().includes(q) || meta.description?.toLowerCase().includes(q);
     });
-  }, [selectableProviders, search]);
+  })();
 
-  const handleBack = React.useCallback(() => setSelected(null), []);
+  const handleBack = () => setSelected(null);
 
   if (!providers) {
     return <div className="text-sm text-muted-foreground">Loading providers...</div>;

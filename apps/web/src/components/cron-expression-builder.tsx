@@ -129,18 +129,17 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
   }
 
   // Calculate upcoming executions
-  const upcomingExecutions = React.useMemo(() => {
-    const options = { tz: timezone };
-    try {
-      return getUpcomingCronRuns(value, 5, options.tz).map((date) => ({
-        date: format(date, 'MMM d, yyyy'),
-        time: format(date, 'h:mm a'),
-        key: date.toISOString(),
-      }));
-    } catch {
-      return [];
-    }
-  }, [value, timezone]);
+  const options = { tz: timezone };
+  let upcomingExecutions: { date: string; time: string; key: string }[];
+  try {
+    upcomingExecutions = getUpcomingCronRuns(value, 5, options.tz).map((date) => ({
+      date: format(date, 'MMM d, yyyy'),
+      time: format(date, 'h:mm a'),
+      key: date.toISOString(),
+    }));
+  } catch {
+    upcomingExecutions = [];
+  }
 
   // Renderers for grid sections
   const renderMinutes = () => (

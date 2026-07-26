@@ -49,13 +49,13 @@ export function SessionPage({ sessionId }: SessionPageProps) {
   const rightPanel = requestedRightPanel === 'browser' && !hasBrowser ? 'closed' : requestedRightPanel;
   const rightPanelOpen = rightPanel !== 'closed';
 
-  const toggleDetails = React.useCallback(() => {
+  const toggleDetails = () => {
     setRequestedRightPanel((previous) => (previous === 'details' ? 'closed' : 'details'));
-  }, []);
+  };
 
-  const toggleBrowser = React.useCallback(() => {
+  const toggleBrowser = () => {
     setRequestedRightPanel((previous) => (previous === 'browser' ? 'closed' : 'browser'));
-  }, []);
+  };
 
   React.useEffect(() => {
     return window.api?.browser.onShowRequested(() => {
@@ -93,7 +93,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
     streamState.error,
   ]);
 
-  const handleGenerateAutomation = React.useCallback(async () => {
+  const handleGenerateAutomation = async () => {
     const toastId = toast.loading('Generating automation draft...');
     try {
       const draft = await generateAutomation.mutateAsync(sessionId);
@@ -103,7 +103,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
     } catch (error) {
       toast.error(getErrorMessage(error, 'Failed to generate automation draft'), { id: toastId });
     }
-  }, [generateAutomation, sessionId]);
+  };
 
   return (
     <>

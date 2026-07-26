@@ -24,11 +24,7 @@ type StreamingMessageBubbleProps = {
   onAbortTool?: () => void;
 };
 
-export const StreamingMessageBubble = React.memo(function StreamingMessageBubble({
-  partIds,
-  parts,
-  onAbortTool,
-}: StreamingMessageBubbleProps) {
+export function StreamingMessageBubble({ partIds, parts, onAbortTool }: StreamingMessageBubbleProps) {
   const visibleIds = partIds.filter((id) => id in parts);
 
   const hasAnyContent = visibleIds.some((partId) => {
@@ -111,4 +107,4 @@ export const StreamingMessageBubble = React.memo(function StreamingMessageBubble
   flushToolGroup();
 
   return <AssistantBubbleWrapper>{nodes}</AssistantBubbleWrapper>;
-});
+}

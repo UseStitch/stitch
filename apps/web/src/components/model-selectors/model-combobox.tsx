@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import {
   Combobox,
   ComboboxCollection,
@@ -52,8 +50,8 @@ export function ModelCombobox({
   placeholder = 'Search models...',
   showClear,
 }: ModelComboboxProps) {
-  const groups = React.useMemo(() => buildGroups(providerModels), [providerModels]);
-  const allOptions = React.useMemo(() => flattenGroups(groups), [groups]);
+  const groups = buildGroups(providerModels);
+  const allOptions = flattenGroups(groups);
 
   const selectedOption = value
     ? (allOptions.find((o) => o.providerId === value.providerId && o.modelId === value.modelId) ?? null)

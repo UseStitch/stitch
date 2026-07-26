@@ -30,14 +30,11 @@ type Props = {
 };
 
 export function ProfileStep({ initialName, initialTimezone, isSaving, onContinue }: Props) {
-  const detectedTimezone = React.useMemo(() => getDetectedTimezone(), []);
+  const detectedTimezone = getDetectedTimezone();
   const [name, setName] = React.useState(initialName);
   const [timezone, setTimezone] = React.useState(initialTimezone || detectedTimezone);
   const [touched, setTouched] = React.useState(false);
-  const timezoneOptions = React.useMemo(
-    () => getTimezoneOptions(initialTimezone || detectedTimezone),
-    [detectedTimezone, initialTimezone],
-  );
+  const timezoneOptions = getTimezoneOptions(initialTimezone || detectedTimezone);
 
   const trimmed = name.trim();
   const trimmedTimezone = timezone.trim();

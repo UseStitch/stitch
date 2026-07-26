@@ -28,13 +28,7 @@ const selectSidebarSessions = (data: InfiniteData<SessionsPage>) => ({
   })),
 });
 
-const SessionStatusIcon = React.memo(function SessionStatusIcon({
-  isStreaming,
-  isUnread,
-}: {
-  isStreaming: boolean;
-  isUnread: boolean;
-}) {
+function SessionStatusIcon({ isStreaming, isUnread }: { isStreaming: boolean; isUnread: boolean }) {
   if (isStreaming) {
     return (
       <div className="flex size-3.5 shrink-0 items-center justify-center">
@@ -52,7 +46,7 @@ const SessionStatusIcon = React.memo(function SessionStatusIcon({
   }
 
   return null;
-});
+}
 
 export function ChatSidebarContent() {
   const [search, setSearch] = React.useState('');
@@ -67,7 +61,7 @@ export function ChatSidebarContent() {
   const archiveSession = useArchiveSession();
   const deleteSession = useDeleteSession();
   const streamingIds = useStreamingSessionIds();
-  const streamingIdSet = React.useMemo(() => new Set(streamingIds), [streamingIds]);
+  const streamingIdSet = new Set(streamingIds);
   const sessions = data?.pages.flatMap((page) => page.sessions) ?? [];
   const deletingSession = sessions.find((session) => session.id === deletingSessionId);
 

@@ -7,7 +7,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { createMessageId, type PrefixedString } from '@stitch/shared/id';
 
 import { ChatInput } from '@/components/chat/chat-input';
-import type { Attachment, ModelSpec } from '@/components/chat/chat-input-parts/types';
+import type { Attachment } from '@/components/chat/chat-input-parts/types';
 import { DockContainer } from '@/components/chat/docks/dock';
 import { extractTextFromParts } from '@/components/chat/message-bubble/extract-text';
 import { MessageList } from '@/components/chat/message-list';
@@ -42,9 +42,9 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
   const isChildSession = session.parentSessionId !== null;
   const messagesQuery = useSuspenseInfiniteQuery(sessionMessagesInfiniteQueryOptions(id));
   const { data: todos } = useSuspenseQuery(sessionTodosQueryOptions(id));
-  const messages = React.useMemo(() => flattenMessages(messagesQuery.data), [messagesQuery.data]);
+  const messages = flattenMessages(messagesQuery.data);
 
-  const lastUsedModel = React.useMemo((): ModelSpec | null => findLastUsedModel(messages), [messages]);
+  const lastUsedModel = findLastUsedModel(messages);
   const { value, setValue } = useSeededInput();
   const [editingMsgId, setEditingMsgId] = React.useState<string | null>(null);
   const { selectedModel, handleModelChange } = useChatModel({ lastUsedModel });
@@ -73,32 +73,26 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
 
   const isStreaming = streamState.isStreaming;
   const canSend = !sendMessage.isPending && !redoMessage.isPending && !isStreaming && !isCompacting;
-  const editingMessage = React.useMemo(
-    () => (editingMsgId ? messages.find((message) => message.id === editingMsgId) : null),
-    [editingMsgId, messages],
-  );
-  const visibleMessages = React.useMemo(() => {
+  const editingMessage = editingMsgId ? messages.find((message) => message.id === editingMsgId) : null;
+  const visibleMessages = (() => {
     if (!editingMessage) return messages;
     return messages.filter((message) => message.createdAt < editingMessage.createdAt);
-  }, [editingMessage, messages]);
+  })();
 
-  const submitTextMessage = React.useCallback(
-    async (text: string) => {
-      if (!selectedModel || !canSend) return;
+  const submitTextMessage = async (text: string) => {
+    if (!selectedModel || !canSend) return;
 
-      const assistantMessageId = createMessageId();
-      startStream(id, assistantMessageId);
+    const assistantMessageId = createMessageId();
+    startStream(id, assistantMessageId);
 
-      await sendMessage.mutateAsync({
-        sessionId: id as PrefixedString<'ses'>,
-        content: text,
-        providerId: selectedModel.providerId,
-        modelId: selectedModel.modelId,
-        assistantMessageId,
-      });
-    },
-    [canSend, id, selectedModel, sendMessage, startStream],
-  );
+    await sendMessage.mutateAsync({
+      sessionId: id as PrefixedString<'ses'>,
+      content: text,
+      providerId: selectedModel.providerId,
+      modelId: selectedModel.modelId,
+      assistantMessageId,
+    });
+  };
 
   const slashCommands = useSlashCommands({
     sessionId: id,

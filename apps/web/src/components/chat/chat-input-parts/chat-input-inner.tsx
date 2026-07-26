@@ -85,16 +85,13 @@ export function ChatInputInner({
     consumeForSubmit,
   } = useAttachments({ pendingAttachments, onPendingAttachmentsConsumed });
 
-  const allOptions = React.useMemo(() => buildProviderModelOptions(providerModels), [providerModels]);
-  const selectedModelOption = React.useMemo(
-    () => findProviderModelOption(allOptions, selectedModel),
-    [allOptions, selectedModel],
-  );
+  const allOptions = buildProviderModelOptions(providerModels);
+  const selectedModelOption = findProviderModelOption(allOptions, selectedModel);
   const canAttach = supportsAnyAttachment(selectedModelOption?.modelSummary ?? null);
 
-  const submit = React.useCallback(() => {
+  const submit = () => {
     onSubmit(value, consumeForSubmit());
-  }, [consumeForSubmit, onSubmit, value]);
+  };
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === 'Enter' && !event.shiftKey) {

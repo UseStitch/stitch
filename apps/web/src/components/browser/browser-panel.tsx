@@ -75,13 +75,10 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
     };
   }, [registerWebview]);
 
-  const submitAddress = React.useCallback(
-    (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      void window.api?.browser.userNavigate(address);
-    },
-    [address],
-  );
+  const submitAddress = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void window.api?.browser.userNavigate(address);
+  };
 
   const controllerBadgeClass =
     state.controller === 'agent'

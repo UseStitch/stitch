@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useRef } from 'react';
 
 import { useStreamStore, INITIAL_SESSION_STATE } from '@/stores/stream-store';
 import type { SessionStreamState } from '@/stores/stream-store';
@@ -13,10 +13,7 @@ import type { SessionStreamState } from '@/stores/stream-store';
  */
 export function useSessionStreamState(sessionId: string): SessionStreamState {
   return useStreamStore(
-    useCallback(
-      (state: { sessions: Record<string, SessionStreamState> }) => state.sessions[sessionId] ?? INITIAL_SESSION_STATE,
-      [sessionId],
-    ),
+    (state: { sessions: Record<string, SessionStreamState> }) => state.sessions[sessionId] ?? INITIAL_SESSION_STATE,
   );
 }
 

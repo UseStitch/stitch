@@ -50,23 +50,19 @@ export function RecordingsPage() {
 
   const activeRecording = data.recordings.find((recording) => recording.id === data.activeRecordingId);
 
-  const deleteById = React.useCallback(
-    (recordingId: string, onSuccess?: () => void) => {
-      void deleteRecording.mutateAsync(recordingId).then(
-        () => {
-          onSuccess?.();
-          toast.success('Recording deleted', { id: 'recording-delete' });
-        },
-        (error: unknown) =>
-          toast.error(getErrorMessage(error, 'Failed to delete recording'), { id: 'recording-delete' }),
-      );
-    },
-    [deleteRecording],
-  );
+  const deleteById = (recordingId: string, onSuccess?: () => void) => {
+    void deleteRecording.mutateAsync(recordingId).then(
+      () => {
+        onSuccess?.();
+        toast.success('Recording deleted', { id: 'recording-delete' });
+      },
+      (error: unknown) => toast.error(getErrorMessage(error, 'Failed to delete recording'), { id: 'recording-delete' }),
+    );
+  };
 
-  const handleDelete = React.useCallback((recording: Recording) => {
+  const handleDelete = (recording: Recording) => {
     setRecordingToDelete(recording);
-  }, []);
+  };
 
   return (
     <Page>

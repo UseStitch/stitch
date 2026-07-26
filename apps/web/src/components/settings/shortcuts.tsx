@@ -241,30 +241,25 @@ function ShortcutsContent() {
     recorder.startRecording();
   }
 
-  const filtered = React.useMemo(() => {
-    const q = search.toLowerCase();
-    return q ? shortcuts.filter((e) => e.label.toLowerCase().includes(q)) : shortcuts;
-  }, [search, shortcuts]);
+  const q = search.toLowerCase();
+  const filtered = q ? shortcuts.filter((e) => e.label.toLowerCase().includes(q)) : shortcuts;
 
-  const groups = React.useMemo(() => groupByCategory(filtered), [filtered]);
+  const groups = groupByCategory(filtered);
 
-  const conflicts = React.useMemo(() => {
-    const map = new Map<string, string>();
-    const hotkeyToDef = new Map<string, ShortcutEntry>();
-    for (const entry of shortcuts) {
-      if (!entry.hotkey) continue;
-      // Use hotkey + isSequence as the conflict key so single-press and double-press don't clash
-      const conflictKey = `${entry.hotkey}:${entry.isSequence}`;
-      const existing = hotkeyToDef.get(conflictKey);
-      if (existing) {
-        map.set(entry.actionId, existing.label);
-        map.set(existing.actionId, entry.label);
-      } else {
-        hotkeyToDef.set(conflictKey, entry);
-      }
+  const conflicts = new Map<string, string>();
+  const hotkeyToDef = new Map<string, ShortcutEntry>();
+  for (const entry of shortcuts) {
+    if (!entry.hotkey) continue;
+    // Use hotkey + isSequence as the conflict key so single-press and double-press don't clash
+    const conflictKey = `${entry.hotkey}:${entry.isSequence}`;
+    const existing = hotkeyToDef.get(conflictKey);
+    if (existing) {
+      conflicts.set(entry.actionId, existing.label);
+      conflicts.set(existing.actionId, entry.label);
+    } else {
+      hotkeyToDef.set(conflictKey, entry);
     }
-    return map;
-  }, [shortcuts]);
+  }
 
   return (
     <div className="flex flex-col gap-8">

@@ -39,44 +39,33 @@ function ModelsListContent() {
   const [search, setSearch] = React.useState('');
   const [selectedProviderId, setSelectedProviderId] = React.useState('all');
 
-  const overridesMap = React.useMemo(
-    () => new Map(overridesList.map((o) => [`${o.providerId}:${o.modelId}`, o.visibility])),
-    [overridesList],
+  const overridesMap = new Map(overridesList.map((o) => [`${o.providerId}:${o.modelId}`, o.visibility]));
+
+  const defaultVisibleSet = buildDefaultVisibleSet(
+    allProviderModels.map((p) => ({
+      providerId: p.providerId,
+      models: p.models.map((m) => ({ id: m.id, family: m.family, release_date: m.release_date })),
+    })),
   );
 
-  const defaultVisibleSet = React.useMemo(
-    () =>
-      buildDefaultVisibleSet(
-        allProviderModels.map((p) => ({
-          providerId: p.providerId,
-          models: p.models.map((m) => ({ id: m.id, family: m.family, release_date: m.release_date })),
-        })),
-      ),
-    [allProviderModels],
-  );
+  const selectedProviderModels =
+    selectedProviderId === 'all'
+      ? allProviderModels
+      : allProviderModels.filter((provider) => provider.providerId === selectedProviderId);
 
-  const selectedProviderModels = React.useMemo(() => {
-    if (selectedProviderId === 'all') return allProviderModels;
-    return allProviderModels.filter((provider) => provider.providerId === selectedProviderId);
-  }, [allProviderModels, selectedProviderId]);
+  const selectedProvider = allProviderModels.find((provider) => provider.providerId === selectedProviderId);
 
-  const selectedProvider = React.useMemo(
-    () => allProviderModels.find((provider) => provider.providerId === selectedProviderId),
-    [allProviderModels, selectedProviderId],
-  );
-
-  const filtered = React.useMemo(() => {
-    if (!search.trim()) return selectedProviderModels;
-    const q = search.toLowerCase();
-    return selectedProviderModels
-      .map((provider) => ({
-        ...provider,
-        models: provider.models.filter(
-          (m) => m.name.toLowerCase().includes(q) || provider.providerName.toLowerCase().includes(q),
-        ),
-      }))
-      .filter((p) => p.models.length > 0);
-  }, [search, selectedProviderModels]);
+  const q = search.toLowerCase();
+  const filtered = !search.trim()
+    ? selectedProviderModels
+    : selectedProviderModels
+        .map((provider) => ({
+          ...provider,
+          models: provider.models.filter(
+            (m) => m.name.toLowerCase().includes(q) || provider.providerName.toLowerCase().includes(q),
+          ),
+        }))
+        .filter((p) => p.models.length > 0);
 
   async function handleToggle(provider: ProviderModels, modelId: string, checked: boolean) {
     const key = `${provider.providerId}:${modelId}`;
