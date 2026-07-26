@@ -28,18 +28,17 @@ export function SttModelSelectorPopover({
 }: SttModelSelectorPopoverProps) {
   const [search, setSearch] = React.useState('');
 
-  const filtered = React.useMemo(() => {
-    if (!search.trim()) return sttProviders;
-    const lower = search.toLowerCase();
-    return sttProviders
-      .map((provider) => ({
-        ...provider,
-        models: provider.models.filter(
-          (m) => m.name.toLowerCase().includes(lower) || provider.providerName.toLowerCase().includes(lower),
-        ),
-      }))
-      .filter((p) => p.models.length > 0);
-  }, [sttProviders, search]);
+  const lower = search.toLowerCase();
+  const filtered = !search.trim()
+    ? sttProviders
+    : sttProviders
+        .map((provider) => ({
+          ...provider,
+          models: provider.models.filter(
+            (m) => m.name.toLowerCase().includes(lower) || provider.providerName.toLowerCase().includes(lower),
+          ),
+        }))
+        .filter((p) => p.models.length > 0);
 
   return (
     <PopoverPrimitive.Root>

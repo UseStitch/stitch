@@ -350,10 +350,7 @@ export function MessageBody({
   const resizeObserverRef = React.useRef<ResizeObserver | null>(null);
   const mutationObserverRef = React.useRef<MutationObserver | null>(null);
   const isDark = useIsDarkMode();
-  const srcDoc = React.useMemo(
-    () => buildSandboxedMailHtml({ bodyHtml, bodyText, loadImages, isDark, collapseQuotedReplies }),
-    [bodyHtml, bodyText, collapseQuotedReplies, isDark, loadImages],
-  );
+  const srcDoc = buildSandboxedMailHtml({ bodyHtml, bodyText, loadImages, isDark, collapseQuotedReplies });
 
   React.useEffect(() => {
     return () => {

@@ -84,12 +84,10 @@ export function AgendaPage({ listId }: { listId?: string }) {
     }),
   );
 
-  const items = React.useMemo(() => {
-    const all = itemsData?.items ?? [];
-    const active = all.filter((i) => i.status !== 'done' && i.status !== 'cancelled');
-    const completed = all.filter((i) => i.status === 'done' || i.status === 'cancelled');
-    return [...active, ...completed];
-  }, [itemsData?.items]);
+  const all = itemsData?.items ?? [];
+  const active = all.filter((i) => i.status !== 'done' && i.status !== 'cancelled');
+  const completed = all.filter((i) => i.status === 'done' || i.status === 'cancelled');
+  const items = [...active, ...completed];
   const totalPages = itemsData?.totalPages ?? 0;
   const total = itemsData?.total ?? 0;
 
@@ -253,8 +251,10 @@ export function AgendaPage({ listId }: { listId?: string }) {
   }
 
   const currentPage = (itemsData?.page ?? page) - 1;
-  const pageNumbers = React.useMemo(() => {
-    if (totalPages <= 1) return [] as number[];
+  let pageNumbers: number[];
+  if (totalPages <= 1) {
+    pageNumbers = [];
+  } else {
     const firstPage = 0;
     const lastPage = totalPages - 1;
     const start = Math.max(firstPage, currentPage - 1);
@@ -263,8 +263,8 @@ export function AgendaPage({ listId }: { listId?: string }) {
     for (let index = start; index <= end; index += 1) {
       pages.add(index);
     }
-    return [...pages].toSorted((a, b) => a - b);
-  }, [currentPage, totalPages]);
+    pageNumbers = [...pages].toSorted((a, b) => a - b);
+  }
 
   const allSelected = items.length > 0 && selectedIds.size === items.length;
   const someSelected = selectedIds.size > 0 && selectedIds.size < items.length;

@@ -110,39 +110,29 @@ function ToolsContent() {
   const [scope, setScope] = React.useState<ScopeFilter>('stitch');
   const [editingTarget, setEditingTarget] = React.useState<EditingTarget | null>(null);
 
-  const mcpToolMetaByName = React.useMemo(() => {
-    return new Map(
-      knownMcpTools.map((tool) => [
-        tool.name,
-        {
-          serverId: tool.serverId,
-          serverName: tool.serverName,
-          serverIconPath: tool.serverIconPath,
-          toolIconPath: tool.toolIconPath,
-        },
-      ]),
-    );
-  }, [knownMcpTools]);
-
-  const enabledMap = React.useMemo(() => {
-    return new Map(enabledStates.map((state) => [`${state.scope}:${state.identifier}`, state.enabled]));
-  }, [enabledStates]);
-
-  const getEnabled = React.useCallback(
-    (kind: 'tool' | 'toolset' | 'mcp_tool', identifier: string) => {
-      return enabledMap.get(`${kind}:${identifier}`) ?? true;
-    },
-    [enabledMap],
+  const mcpToolMetaByName = new Map(
+    knownMcpTools.map((tool) => [
+      tool.name,
+      {
+        serverId: tool.serverId,
+        serverName: tool.serverName,
+        serverIconPath: tool.serverIconPath,
+        toolIconPath: tool.toolIconPath,
+      },
+    ]),
   );
 
-  const updateEnabled = React.useCallback(
-    (kind: 'tool' | 'toolset' | 'mcp_tool', identifier: string, enabled: boolean) => {
-      void setToolEnabledState.mutateAsync({ scope: kind, identifier, enabled }).catch((error: unknown) => {
-        toast.error(getErrorMessage(error, 'Failed to update tool state'), { id: 'tool-state' });
-      });
-    },
-    [setToolEnabledState],
-  );
+  const enabledMap = new Map(enabledStates.map((state) => [`${state.scope}:${state.identifier}`, state.enabled]));
+
+  const getEnabled = (kind: 'tool' | 'toolset' | 'mcp_tool', identifier: string) => {
+    return enabledMap.get(`${kind}:${identifier}`) ?? true;
+  };
+
+  const updateEnabled = (kind: 'tool' | 'toolset' | 'mcp_tool', identifier: string, enabled: boolean) => {
+    void setToolEnabledState.mutateAsync({ scope: kind, identifier, enabled }).catch((error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to update tool state'), { id: 'tool-state' });
+    });
+  };
 
   const query = search.trim().toLowerCase();
   const stitchTools = filterCoreTools(knownTools, query);

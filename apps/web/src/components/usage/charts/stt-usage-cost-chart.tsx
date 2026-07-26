@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import type { SttUsageDashboardResponse } from '@stitch/shared/usage/types';
 
 import { StackedBarChart } from '@/components/usage/charts/stacked-bar-chart';
@@ -23,24 +21,17 @@ function getServiceLabel(service: string): string {
 type SttUsageCostChartProps = { usageData: SttUsageDashboardResponse | undefined };
 
 export function SttUsageCostChart({ usageData }: SttUsageCostChartProps) {
-  const services = React.useMemo(
-    () => [...(usageData?.services ?? [])].toSorted((a, b) => a.localeCompare(b)),
-    [usageData?.services],
-  );
+  const services = [...(usageData?.services ?? [])].toSorted((a, b) => a.localeCompare(b));
   const labels = usageData?.buckets.map((b) => b.label) ?? [];
 
-  const datasets = React.useMemo(
-    () =>
-      services.map((service) => ({
-        label: getServiceLabel(service),
-        data: usageData?.buckets.map((b) => b.costUsdByService[service] ?? 0) ?? [],
-        backgroundColor: getServiceColor(service),
-        borderRadius: (ctx: import('chart.js').ScriptableContext<'bar'>) => getStackSegmentRadius(ctx),
-        borderSkipped: false as const,
-        inflateAmount: 0,
-      })),
-    [services, usageData],
-  );
+  const datasets = services.map((service) => ({
+    label: getServiceLabel(service),
+    data: usageData?.buckets.map((b) => b.costUsdByService[service] ?? 0) ?? [],
+    backgroundColor: getServiceColor(service),
+    borderRadius: (ctx: import('chart.js').ScriptableContext<'bar'>) => getStackSegmentRadius(ctx),
+    borderSkipped: false as const,
+    inflateAmount: 0,
+  }));
 
   return (
     <StackedBarChart

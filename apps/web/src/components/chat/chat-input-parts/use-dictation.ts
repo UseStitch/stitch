@@ -53,38 +53,32 @@ export function useDictation({
   // push-to-talk taps). Finalizes as soon as the session reaches 'recording'.
   const pendingStopRef = React.useRef(false);
 
-  const resolveModel = React.useCallback(
-    (model?: SttModelSelection) => {
-      const providerId = model?.providerId ?? defaultProviderId;
-      const modelId = model?.modelId ?? defaultModelId;
-      if (!providerId || !modelId) {
-        toast.error('No STT model configured. Set one in Settings → General → STT Model.', { id: 'stt-no-model' });
-        return null;
-      }
-      const provider = sttProviders.find((p) => p.providerId === providerId);
-      const found = provider?.models.find((m) => m.id === modelId);
-      if (!found) {
-        toast.error('Configured STT model not found. Check Settings → General → STT Model.', {
-          id: 'stt-model-not-found',
-        });
-        return null;
-      }
-      return { providerId, modelId, sampleRateHz: found.sampleRateHz };
-    },
-    [sttProviders, defaultProviderId, defaultModelId],
-  );
+  const resolveModel = (model?: SttModelSelection) => {
+    const providerId = model?.providerId ?? defaultProviderId;
+    const modelId = model?.modelId ?? defaultModelId;
+    if (!providerId || !modelId) {
+      toast.error('No STT model configured. Set one in Settings → General → STT Model.', { id: 'stt-no-model' });
+      return null;
+    }
+    const provider = sttProviders.find((p) => p.providerId === providerId);
+    const found = provider?.models.find((m) => m.id === modelId);
+    if (!found) {
+      toast.error('Configured STT model not found. Check Settings → General → STT Model.', {
+        id: 'stt-model-not-found',
+      });
+      return null;
+    }
+    return { providerId, modelId, sampleRateHz: found.sampleRateHz };
+  };
 
-  const start = React.useCallback(
-    (model?: SttModelSelection) => {
-      if (stt.state !== 'idle') return;
-      const resolved = resolveModel(model);
-      if (!resolved) return;
-      pendingStopRef.current = false;
-      baseOffsetRef.current = value.length;
-      void stt.start(resolved.providerId, resolved.modelId, resolved.sampleRateHz);
-    },
-    [stt, resolveModel, value],
-  );
+  const start = (model?: SttModelSelection) => {
+    if (stt.state !== 'idle') return;
+    const resolved = resolveModel(model);
+    if (!resolved) return;
+    pendingStopRef.current = false;
+    baseOffsetRef.current = value.length;
+    void stt.start(resolved.providerId, resolved.modelId, resolved.sampleRateHz);
+  };
 
   const stopAndCommit = React.useCallback(async () => {
     // Release requested before the session finished starting up — finalize
@@ -96,7 +90,7 @@ export function useDictation({
     const transcript = await stt.stop();
     const base = value.slice(0, baseOffsetRef.current);
     onChange(spliceTranscript(base, transcript));
-  }, [stt, onChange, value]);
+  }, [stt, value, onChange]);
 
   // Honor a stop requested during the startup window.
   React.useEffect(() => {
@@ -106,16 +100,13 @@ export function useDictation({
     }
   }, [stt.state, stopAndCommit]);
 
-  const toggle = React.useCallback(
-    (model?: SttModelSelection) => {
-      if (stt.state === 'recording') {
-        void stopAndCommit();
-        return;
-      }
-      start(model);
-    },
-    [stt.state, start, stopAndCommit],
-  );
+  const toggle = (model?: SttModelSelection) => {
+    if (stt.state === 'recording') {
+      void stopAndCommit();
+      return;
+    }
+    start(model);
+  };
 
   // Splice live partial + committed text into the input while recording.
   React.useEffect(() => {
@@ -128,10 +119,10 @@ export function useDictation({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stt.committedText, stt.partialText, stt.state]);
 
-  const cancel = React.useCallback(() => {
+  const cancel = () => {
     pendingStopRef.current = false;
     stt.cancel();
-  }, [stt]);
+  };
 
   return {
     state: stt.state,

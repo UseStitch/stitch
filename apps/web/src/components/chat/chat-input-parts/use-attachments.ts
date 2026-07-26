@@ -97,71 +97,62 @@ export function useAttachments(options: UseAttachmentsOptions) {
     }
   }, [pendingAttachments, onPendingAttachmentsConsumed]);
 
-  const addFiles = React.useCallback(async (files: FileList | File[]) => {
+  const addFiles = async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
     const processed = await Promise.all(fileArray.map(fileToAttachment));
     const valid = processed.filter((attachment): attachment is Attachment => attachment !== null);
     setAttachments((previous) => [...previous, ...valid]);
-  }, []);
+  };
 
-  const removeAttachment = React.useCallback((id: string) => {
+  const removeAttachment = (id: string) => {
     setAttachments((previous) => {
       const attachment = previous.find((item) => item.id === id);
       if (attachment?.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
       return previous.filter((item) => item.id !== id);
     });
-  }, []);
+  };
 
-  const handlePaste = React.useCallback(
-    async (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
-      const items = Array.from(event.clipboardData.items);
-      const imageItems = items.filter((item) => item.type.startsWith('image/'));
-      if (imageItems.length === 0) return;
+  const handlePaste = async (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = Array.from(event.clipboardData.items);
+    const imageItems = items.filter((item) => item.type.startsWith('image/'));
+    if (imageItems.length === 0) return;
 
-      event.preventDefault();
-      const files = imageItems.map((item) => item.getAsFile()).filter((file): file is File => file !== null);
-      await addFiles(files);
-    },
-    [addFiles],
-  );
+    event.preventDefault();
+    const files = imageItems.map((item) => item.getAsFile()).filter((file): file is File => file !== null);
+    await addFiles(files);
+  };
 
-  const handleDragOver = React.useCallback((event: React.DragEvent) => {
+  const handleDragOver = (event: React.DragEvent) => {
     event.preventDefault();
     setIsDragging(true);
-  }, []);
+  };
 
-  const handleDragLeave = React.useCallback((event: React.DragEvent) => {
+  const handleDragLeave = (event: React.DragEvent) => {
     if (!event.currentTarget.contains(event.relatedTarget as Node)) {
       setIsDragging(false);
     }
-  }, []);
+  };
 
-  const handleDrop = React.useCallback(
-    async (event: React.DragEvent) => {
-      event.preventDefault();
-      setIsDragging(false);
-      if (event.dataTransfer.files.length > 0) {
-        await addFiles(event.dataTransfer.files);
-      }
-    },
-    [addFiles],
-  );
+  const handleDrop = async (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragging(false);
+    if (event.dataTransfer.files.length > 0) {
+      await addFiles(event.dataTransfer.files);
+    }
+  };
 
-  const handleFileInputChange = React.useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      if (event.target.files && event.target.files.length > 0) {
-        await addFiles(event.target.files);
-      }
-      event.target.value = '';
-    },
-    [addFiles],
-  );
+  const handleFileInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      await addFiles(event.target.files);
+    }
+    event.target.value = '';
+  };
 
-  const consumeForSubmit = React.useCallback(() => {
+  const consumeForSubmit = () => {
     const next = attachments;
     setAttachments([]);
     return next;
-  }, [attachments]);
+  };
 
   return {
     attachments,

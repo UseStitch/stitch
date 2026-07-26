@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import { useQueryClient } from '@tanstack/react-query';
 
 import { toolKeys } from '@/lib/queries/tools';
@@ -8,10 +6,8 @@ type KnownTool = { toolName: string; displayName: string };
 
 export function useStitchToolDisplayName(toolName: string): string {
   const queryClient = useQueryClient();
-  return React.useMemo(() => {
-    const knownTools = queryClient.getQueryData<KnownTool[]>(toolKeys.knownTools());
-    return knownTools?.find((t) => t.toolName === toolName)?.displayName ?? formatToolDisplayName(toolName);
-  }, [queryClient, toolName]);
+  const knownTools = queryClient.getQueryData<KnownTool[]>(toolKeys.knownTools());
+  return knownTools?.find((t) => t.toolName === toolName)?.displayName ?? formatToolDisplayName(toolName);
 }
 
 export function truncateText(value: string, max = 84): string {

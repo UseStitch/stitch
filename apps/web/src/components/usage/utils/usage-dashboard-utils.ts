@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import { USAGE_SOURCES, type UsageDateRange } from '@stitch/shared/usage/types';
 
 import { formatUsdCost } from '@/lib/format-cost';
@@ -46,13 +44,11 @@ export function decodeModelFilter(value: string): { providerId: string; modelId:
 }
 
 export function useSourceOrder(sources: string[]): string[] {
-  return React.useMemo(() => {
-    const order = new Map<string, number>(USAGE_SOURCES.map((source, index) => [source, index]));
-    return [...sources].toSorted((a, b) => {
-      const aOrder = order.get(a) ?? Number.MAX_SAFE_INTEGER;
-      const bOrder = order.get(b) ?? Number.MAX_SAFE_INTEGER;
-      if (aOrder !== bOrder) return aOrder - bOrder;
-      return a.localeCompare(b);
-    });
-  }, [sources]);
+  const order = new Map<string, number>(USAGE_SOURCES.map((source, index) => [source, index]));
+  return [...sources].toSorted((a, b) => {
+    const aOrder = order.get(a) ?? Number.MAX_SAFE_INTEGER;
+    const bOrder = order.get(b) ?? Number.MAX_SAFE_INTEGER;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return a.localeCompare(b);
+  });
 }

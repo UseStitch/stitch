@@ -1,5 +1,5 @@
 import { PlugIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
@@ -36,15 +36,13 @@ export function ConnectorsPage() {
   const [search, setSearch] = useState('');
   const pendingUpdates = instances.filter((instance) => instance.upgrade?.available).length;
 
-  const filteredDefinitions = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return definitions;
-
-    return definitions.filter((definition) => {
-      const searchableText = `${definition.name} ${definition.description}`.toLowerCase();
-      return searchableText.includes(query);
-    });
-  }, [definitions, search]);
+  const query = search.trim().toLowerCase();
+  const filteredDefinitions = !query
+    ? definitions
+    : definitions.filter((definition) => {
+        const searchableText = `${definition.name} ${definition.description}`.toLowerCase();
+        return searchableText.includes(query);
+      });
 
   return (
     <Page>
