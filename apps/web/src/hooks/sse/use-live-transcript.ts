@@ -16,18 +16,6 @@ const FLUSH_GRACE_MS = 2000;
 export function useLiveTranscript(recordingId: string, isRecording: boolean) {
   const [entries, setEntries] = React.useState<LiveTranscriptEntry[]>([]);
   const counterRef = React.useRef(0);
-  const prevRecordingIdRef = React.useRef(recordingId);
-
-  // Clear entries when switching to a different recording
-  React.useEffect(() => {
-    const prev = prevRecordingIdRef.current;
-    prevRecordingIdRef.current = recordingId;
-
-    if (recordingId !== prev) {
-      setEntries([]);
-      counterRef.current = 0;
-    }
-  }, [recordingId]);
 
   // After recording stops, wait for flush then promote remaining partials
   React.useEffect(() => {

@@ -139,6 +139,7 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
 
           <div className="min-h-0 lg:col-span-4 xl:col-span-4 2xl:col-span-3">
             <TranscriptSidebar
+              key={recordingId}
               analysis={analysis}
               isRunning={isRunning}
               recordingId={recordingId}
