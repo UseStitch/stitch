@@ -22,6 +22,7 @@ import {
   estimateHighlightedSize,
 } from '@/lib/code-highlighting';
 import { remarkGithubCallouts } from '@/lib/markdown-callouts';
+import { rehypeNormalizeUrlProtocols } from '@/lib/markdown-normalize-urls';
 import { markdownSanitizeSchema } from '@/lib/markdown-sanitize-schema';
 import { remarkTextMarks } from '@/lib/markdown-text-marks';
 import { normalizeInlineMath } from '@/lib/normalize-inline-math';
@@ -335,10 +336,19 @@ const REMARK_PLUGINS: Options['remarkPlugins'] = [
 ];
 
 /** Raw HTML must be parsed before it can be sanitized, and sanitizing must not touch KaTeX output. */
-const REHYPE_PLUGINS: Options['rehypePlugins'] = [rehypeRaw, [rehypeSanitize, markdownSanitizeSchema], rehypeKatex];
+const REHYPE_PLUGINS: Options['rehypePlugins'] = [
+  rehypeRaw,
+  rehypeNormalizeUrlProtocols,
+  [rehypeSanitize, markdownSanitizeSchema],
+  rehypeKatex,
+];
 
 /** Streaming still sanitizes HTML but skips the more expensive KaTeX typesetting pass. */
-const STREAMING_REHYPE_PLUGINS: Options['rehypePlugins'] = [rehypeRaw, [rehypeSanitize, markdownSanitizeSchema]];
+const STREAMING_REHYPE_PLUGINS: Options['rehypePlugins'] = [
+  rehypeRaw,
+  rehypeNormalizeUrlProtocols,
+  [rehypeSanitize, markdownSanitizeSchema],
+];
 
 export default function ChatMarkdown({ text, className, isStreaming = false }: ChatMarkdownProps) {
   const markdownComponents = isStreaming ? STREAMING_COMPONENTS : HIGHLIGHTED_COMPONENTS;

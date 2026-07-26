@@ -136,4 +136,33 @@ describe('ChatMarkdown', () => {
 
     expect(html).toContain('<pre class="thin-scrollbar">');
   });
+
+  test('keeps safe URL schemes regardless of casing', () => {
+    const html = renderToStaticMarkup(
+      <ChatMarkdown text={'[safe](HTTPS://example.com) <a href="JaVaScRiPt:alert(1)">unsafe</a>'} />,
+    );
+
+    expect(html).toContain('href="https://example.com"');
+    expect(html).toContain('>unsafe</a>');
+    expect(html).not.toContain('javascript:');
+  });
+
+  test('keeps escaped text-mark delimiters literal', () => {
+    const html = renderToStaticMarkup(<ChatMarkdown text={String.raw`\~sub\~ \^sup\^ \==mark\==`} />);
+
+    expect(html).toContain('<p>~sub~ ^sup^ ==mark==</p>');
+    expect(html).not.toContain('<sub>');
+    expect(html).not.toContain('<sup>');
+    expect(html).not.toContain('<mark>');
+  });
+
+  test('does not highlight delimiters around math while streaming', () => {
+    const streamingHtml = renderToStaticMarkup(<ChatMarkdown text="==$x^2$==" isStreaming />);
+    const completedHtml = renderToStaticMarkup(<ChatMarkdown text="==$x^2$==" />);
+
+    expect(streamingHtml).toContain('==$x^2$==');
+    expect(streamingHtml).not.toContain('<mark>');
+    expect(completedHtml).toContain('katex');
+    expect(completedHtml).not.toContain('<mark>');
+  });
 });

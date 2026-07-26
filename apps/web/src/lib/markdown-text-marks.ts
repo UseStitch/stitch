@@ -14,26 +14,62 @@ import type { Delete, PhrasingContent, Root, Text } from 'mdast';
 
 const MARK_PATTERN = /==(?<mark>[^\s=][^=\n]*?)==|~(?<sub>[^\s~]{1,24})~|\^(?<sup>[^\s^]{1,24})\^/g;
 
-function toMarkNode(groups: Record<string, string | undefined>): Delete | undefined {
+interface MarkDetails {
+  node: Delete;
+  delimiter: string;
+  value: string;
+  tagName: string;
+}
+
+function toMarkDetails(groups: Record<string, string | undefined>): MarkDetails | undefined {
   for (const [tagName, value] of Object.entries(groups)) {
     if (value === undefined) continue;
-    return { type: 'delete', data: { hName: tagName }, children: [{ type: 'text', value }] };
+    return {
+      node: { type: 'delete', data: { hName: tagName }, children: [{ type: 'text', value }] },
+      delimiter: tagName === 'mark' ? '==' : tagName === 'sub' ? '~' : '^',
+      value,
+      tagName,
+    };
   }
   return undefined;
 }
 
-function splitMarks(node: Text): PhrasingContent[] | undefined {
+function findRawMark(raw: string, delimiter: string, value: string, fromIndex: number) {
+  const candidates = [
+    { value: `${delimiter}${value}${delimiter}`, escaped: false },
+    { value: `\\${delimiter}${value}${delimiter}`, escaped: true },
+    { value: `${delimiter}${value}\\${delimiter}`, escaped: true },
+    { value: `\\${delimiter}${value}\\${delimiter}`, escaped: true },
+  ];
+  let found: { index: number; length: number; escaped: boolean } | undefined;
+
+  for (const candidate of candidates) {
+    const index = raw.indexOf(candidate.value, fromIndex);
+    if (index === -1 || (found !== undefined && index >= found.index)) continue;
+    found = { index, length: candidate.value.length, escaped: candidate.escaped };
+  }
+
+  return found;
+}
+
+function splitMarks(node: Text, raw: string): PhrasingContent[] | undefined {
   const nodes: PhrasingContent[] = [];
   let lastIndex = 0;
+  let rawIndex = 0;
 
   for (const match of node.value.matchAll(MARK_PATTERN)) {
-    const markNode = toMarkNode(match.groups ?? {});
-    if (markNode === undefined) continue;
+    const details = toMarkDetails(match.groups ?? {});
+    if (details === undefined) continue;
+
+    const rawMark = findRawMark(raw, details.delimiter, details.value, rawIndex);
+    if (rawMark === undefined) continue;
+    rawIndex = rawMark.index + rawMark.length;
+    if (rawMark.escaped || (details.tagName === 'mark' && details.value.includes('$'))) continue;
 
     if (match.index > lastIndex) {
       nodes.push({ type: 'text', value: node.value.slice(lastIndex, match.index) });
     }
-    nodes.push(markNode);
+    nodes.push(details.node);
     lastIndex = match.index + match[0].length;
   }
 
@@ -47,11 +83,16 @@ function splitMarks(node: Text): PhrasingContent[] | undefined {
 }
 
 export function remarkTextMarks() {
-  return (tree: Root) => {
+  return (tree: Root, file: { value: unknown }) => {
+    const source = String(file.value);
+
     visit(tree, 'text', (node, index, parent) => {
       if (parent === undefined || index === undefined) return undefined;
 
-      const replacement = splitMarks(node);
+      const start = node.position?.start.offset;
+      const end = node.position?.end.offset;
+      const raw = start === undefined || end === undefined ? node.value : source.slice(start, end);
+      const replacement = splitMarks(node, raw);
       if (replacement === undefined) return undefined;
 
       // Every parent of a `text` node holds phrasing content.
