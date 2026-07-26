@@ -1,5 +1,5 @@
 import { ExternalLinkIcon, CheckIcon, ArrowRightIcon, ArrowLeftIcon } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -72,10 +72,11 @@ function getInitialServiceAccess(
   selectedScopes: string[],
 ): Record<string, 'none' | 'read' | 'write'> {
   if (!options) return {};
+  const selectedScopeSet = new Set(selectedScopes);
   return Object.fromEntries(
     options.map((option) => {
-      const hasWrite = (option.writeScopes ?? []).some((scope) => selectedScopes.includes(scope));
-      const hasRead = option.readScopes.some((scope) => selectedScopes.includes(scope));
+      const hasWrite = (option.writeScopes ?? []).some((scope) => selectedScopeSet.has(scope));
+      const hasRead = option.readScopes.some((scope) => selectedScopeSet.has(scope));
       return [option.id, hasWrite ? 'write' : hasRead ? 'read' : 'none'];
     }),
   ) as Record<string, 'none' | 'read' | 'write'>;
@@ -588,6 +589,7 @@ function ScopesStep({
   });
   const values = useStore(form.store, (state) => state.values);
   const { selectedScopes, serviceAccess } = values;
+  const selectedScopeSet = useMemo(() => new Set(selectedScopes), [selectedScopes]);
   const computedScopes = getComputedScopes(config, values);
 
   const enableApisUrl = buildEnableApisUrl(config.scopeApiMap, computedScopes);
@@ -662,11 +664,11 @@ function ScopesStep({
                   className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 text-sm hover:bg-muted/50">
                   <Checkbox
                     id={scope}
-                    checked={selectedScopes.includes(scope)}
+                    checked={selectedScopeSet.has(scope)}
                     onCheckedChange={() =>
                       form.setFieldValue(
                         'selectedScopes',
-                        selectedScopes.includes(scope)
+                        selectedScopeSet.has(scope)
                           ? selectedScopes.filter((selectedScope) => selectedScope !== scope)
                           : [...selectedScopes, scope],
                       )

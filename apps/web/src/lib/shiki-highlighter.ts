@@ -13,15 +13,15 @@ async function getSharedHighlighter(themes: string[], langs: string[]): Promise<
   if (cached) return cached;
 
   const promise = (async () => {
+    const currentThemeSet = new Set(currentThemes);
     const themesChanged =
       sharedHighlighter === null ||
       themes.length !== currentThemes.length ||
-      themes.some((t) => !currentThemes.includes(t));
+      themes.some((t) => !currentThemeSet.has(t));
 
+    const currentLangSet = new Set(currentLangs);
     const langsChanged =
-      sharedHighlighter === null ||
-      langs.length !== currentLangs.length ||
-      langs.some((l) => !currentLangs.includes(l));
+      sharedHighlighter === null || langs.length !== currentLangs.length || langs.some((l) => !currentLangSet.has(l));
 
     if (sharedHighlighter && !themesChanged && !langsChanged) {
       return sharedHighlighter;
