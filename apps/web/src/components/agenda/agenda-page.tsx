@@ -161,7 +161,10 @@ export function AgendaPage({ listId }: { listId?: string }) {
       return;
     }
 
-    const newOrder = items.map((i) => i.id as string).filter((id) => id !== droppedItemId);
+    const newOrder = items.reduce<string[]>((acc, i) => {
+      if (i.id !== droppedItemId) acc.push(i.id);
+      return acc;
+    }, []);
     const insertAt = dropIndex > currentIndex ? dropIndex - 1 : dropIndex;
     newOrder.splice(insertAt, 0, droppedItemId);
     reorderMutation.mutate(newOrder);

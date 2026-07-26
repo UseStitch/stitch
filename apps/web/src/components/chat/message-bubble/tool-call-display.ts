@@ -45,7 +45,9 @@ export function buildStoredToolCallDisplayItems(
   resultsByCallId: Map<string, StoredToolResult>,
   wasAborted: boolean,
 ): ToolCallDisplayItem[] {
-  return parts.filter(isVisibleStoredToolCallPart).map((part) => {
+  return parts.reduce<ToolCallDisplayItem[]>((acc, part) => {
+    if (!isVisibleStoredToolCallPart(part)) return acc;
+
     const result = resultsByCallId.get(part.toolCallId);
     const output = result && 'output' in result ? result.output : undefined;
     const isError = isToolResultError(output);
@@ -60,8 +62,16 @@ export function buildStoredToolCallDisplayItems(
       toolError = wasAborted ? 'Interrupted' : 'Blocked or failed before completion';
     }
 
-    return { id: part.toolCallId, toolName: part.toolName, status, args: part.input, result: output, error: toolError };
-  });
+    acc.push({
+      id: part.toolCallId,
+      toolName: part.toolName,
+      status,
+      args: part.input,
+      result: output,
+      error: toolError,
+    });
+    return acc;
+  }, []);
 }
 
 export function buildStreamingToolCallDisplayItems(

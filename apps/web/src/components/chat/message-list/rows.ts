@@ -100,10 +100,10 @@ export function estimateRowHeight(row: RowData): number {
   if (row.kind === 'error') return 80;
 
   if (row.kind === 'message') {
-    const textContent = row.parts
-      .filter((part) => part.type === 'text-delta')
-      .map((part) => (part as { type: 'text-delta'; text: string }).text)
-      .join('');
+    const textContent = row.parts.reduce((acc, part) => {
+      if (part.type !== 'text-delta') return acc;
+      return acc + (part as { type: 'text-delta'; text: string }).text;
+    }, '');
 
     const charCount = textContent.length;
     const hasCodeBlocks = textContent.includes('```');

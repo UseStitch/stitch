@@ -31,14 +31,13 @@ export function SttModelSelectorPopover({
   const filtered = React.useMemo(() => {
     if (!search.trim()) return sttProviders;
     const lower = search.toLowerCase();
-    return sttProviders
-      .map((provider) => ({
-        ...provider,
-        models: provider.models.filter(
-          (m) => m.name.toLowerCase().includes(lower) || provider.providerName.toLowerCase().includes(lower),
-        ),
-      }))
-      .filter((p) => p.models.length > 0);
+    return sttProviders.reduce<typeof sttProviders>((acc, provider) => {
+      const models = provider.models.filter(
+        (m) => m.name.toLowerCase().includes(lower) || provider.providerName.toLowerCase().includes(lower),
+      );
+      if (models.length > 0) acc.push({ ...provider, models });
+      return acc;
+    }, []);
   }, [sttProviders, search]);
 
   return (

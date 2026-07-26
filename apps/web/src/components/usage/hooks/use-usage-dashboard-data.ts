@@ -52,9 +52,12 @@ export function useUsageDashboardData() {
 
   const availableProviders = React.useMemo<ProviderOption[]>(() => {
     const used = new Set(usageRangeData?.usedProviders ?? []);
-    return providerModels
-      .filter((provider) => used.has(provider.providerId))
-      .map((provider) => ({ providerId: provider.providerId, providerName: provider.providerName }));
+    return providerModels.reduce<ProviderOption[]>((acc, provider) => {
+      if (used.has(provider.providerId)) {
+        acc.push({ providerId: provider.providerId, providerName: provider.providerName });
+      }
+      return acc;
+    }, []);
   }, [providerModels, usageRangeData?.usedProviders]);
 
   // A selection falls back to ALL_FILTER once its provider/model drops out of the active range.
@@ -64,20 +67,20 @@ export function useUsageDashboardData() {
 
   const availableModels = React.useMemo<ModelOption[]>(() => {
     const usedModels = usageRangeData?.usedModels ?? [];
-    return usedModels
-      .filter((model) => providerFilter === ALL_FILTER || model.providerId === providerFilter)
-      .map((model) => {
-        const provider = providerById.get(model.providerId);
-        const key = encodeModelFilter(model.providerId, model.modelId);
-        const modelName = modelNameByKey.get(key) ?? model.modelId;
-        return {
-          label: modelName,
-          providerId: model.providerId,
-          providerName: provider?.providerName ?? model.providerId,
-          modelId: model.modelId,
-          modelName,
-        };
+    return usedModels.reduce<ModelOption[]>((acc, model) => {
+      if (providerFilter !== ALL_FILTER && model.providerId !== providerFilter) return acc;
+      const provider = providerById.get(model.providerId);
+      const key = encodeModelFilter(model.providerId, model.modelId);
+      const modelName = modelNameByKey.get(key) ?? model.modelId;
+      acc.push({
+        label: modelName,
+        providerId: model.providerId,
+        providerName: provider?.providerName ?? model.providerId,
+        modelId: model.modelId,
+        modelName,
       });
+      return acc;
+    }, []);
   }, [modelNameByKey, providerById, providerFilter, usageRangeData?.usedModels]);
 
   const modelFilter = availableModels.some((m) => encodeModelFilter(m.providerId, m.modelId) === selectedModel)

@@ -55,18 +55,20 @@ export function useMcpToolsetGroups(
 export function filterMcpGroups(groups: McpToolGroup[], query: string): McpToolGroup[] {
   if (!query) return groups;
 
-  return groups
-    .map((group) => {
-      const serverMatch = group.serverName.toLowerCase().includes(query);
-      if (serverMatch) return group;
+  return groups.reduce<McpToolGroup[]>((acc, group) => {
+    const serverMatch = group.serverName.toLowerCase().includes(query);
+    if (serverMatch) {
+      acc.push(group);
+      return acc;
+    }
 
-      const matchingTools = group.tools.filter(
-        (tool) => tool.displayName.toLowerCase().includes(query) || tool.toolName.toLowerCase().includes(query),
-      );
+    const matchingTools = group.tools.filter(
+      (tool) => tool.displayName.toLowerCase().includes(query) || tool.toolName.toLowerCase().includes(query),
+    );
 
-      return { ...group, tools: matchingTools };
-    })
-    .filter((group) => group.tools.length > 0);
+    if (matchingTools.length > 0) acc.push({ ...group, tools: matchingTools });
+    return acc;
+  }, []);
 }
 
 type McpToolsTabProps = {
