@@ -194,7 +194,10 @@ export function AgendaSidebarContent() {
     } else if (listSourceId && dropIndex !== null) {
       const currentIndex = lists.findIndex((l) => l.id === listSourceId);
       if (currentIndex !== -1 && currentIndex !== dropIndex && currentIndex + 1 !== dropIndex) {
-        const newOrder = lists.map((l) => l.id as string).filter((id) => id !== listSourceId);
+        const newOrder = lists.reduce<string[]>((acc, l) => {
+          if (l.id !== listSourceId) acc.push(l.id);
+          return acc;
+        }, []);
         const insertAt = dropIndex > currentIndex ? dropIndex - 1 : dropIndex;
         newOrder.splice(insertAt, 0, listSourceId);
         reorderMutation.mutate(newOrder);

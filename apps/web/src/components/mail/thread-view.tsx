@@ -149,11 +149,11 @@ export function ThreadView({ accountId, threadId, onClose }: ThreadViewProps) {
   React.useEffect(() => {
     if (!thread || markedThreadRef.current === thread.id) return;
     markedThreadRef.current = thread.id;
-    thread.messages
-      .filter((message) => message.isUnread)
-      .forEach((message) => {
+    for (const message of thread.messages) {
+      if (message.isUnread) {
         modifyMutation.mutate({ id: message.id, accountId, threadId: thread.id, markRead: true });
-      });
+      }
+    }
   }, [accountId, modifyMutation, thread]);
 
   if (isLoading || !thread) return <div className="p-6 text-sm text-muted-foreground">Loading thread…</div>;

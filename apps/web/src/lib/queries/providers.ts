@@ -106,14 +106,13 @@ export const visibleProviderModelsQueryOptions = queryOptions({
 
     const overridesMap = new Map(overridesList.map((o) => [`${o.providerId}:${o.modelId}`, o.visibility]));
 
-    return allProviderModels
-      .map((provider) => ({
-        ...provider,
-        models: provider.models.filter((m) =>
-          isModelVisible(provider.providerId, m.id, overridesMap, defaultVisibleSet),
-        ),
-      }))
-      .filter((p) => p.models.length > 0);
+    return allProviderModels.reduce<typeof allProviderModels>((acc, provider) => {
+      const models = provider.models.filter((m) =>
+        isModelVisible(provider.providerId, m.id, overridesMap, defaultVisibleSet),
+      );
+      if (models.length > 0) acc.push({ ...provider, models });
+      return acc;
+    }, []);
   },
 });
 

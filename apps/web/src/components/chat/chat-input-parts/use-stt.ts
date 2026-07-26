@@ -60,12 +60,19 @@ function nextSessionId(): string {
   return `stt-${Date.now()}-${++SESSION_ID_COUNTER.value}`;
 }
 
-export function useStt(): UseSttReturn {
+export function useStt(onTranscriptUpdate?: (committedText: string, partialText: string) => void): UseSttReturn {
   const [state, setState] = React.useState<SttState>('idle');
   const [committedText, setCommittedText] = React.useState('');
   const [partialText, setPartialText] = React.useState('');
   const [audioLevel, setAudioLevel] = React.useState(0);
   const [startedAt, setStartedAt] = React.useState<number | null>(null);
+
+  // Latest callback ref so the WebSocket message handler (set up once per
+  // session) always notifies with the freshest closure, without re-wiring.
+  const onTranscriptUpdateRef = React.useRef(onTranscriptUpdate);
+  React.useEffect(() => {
+    onTranscriptUpdateRef.current = onTranscriptUpdate;
+  });
 
   // Refs hold the live session state so callbacks don't capture stale closures.
   const wsRef = React.useRef<WebSocket | null>(null);
@@ -162,10 +169,12 @@ export function useStt(): UseSttReturn {
         case 'transcript': {
           if (msg.kind === 'partial') {
             setPartialText(msg.text);
+            onTranscriptUpdateRef.current?.(finalTextRef.current, msg.text);
           } else {
             finalTextRef.current += (finalTextRef.current ? ' ' : '') + msg.text;
             setCommittedText(finalTextRef.current);
             setPartialText('');
+            onTranscriptUpdateRef.current?.(finalTextRef.current, '');
           }
           break;
         }

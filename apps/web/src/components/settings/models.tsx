@@ -58,14 +58,13 @@ function ModelsListContent() {
   const q = search.toLowerCase();
   const filtered = !search.trim()
     ? selectedProviderModels
-    : selectedProviderModels
-        .map((provider) => ({
-          ...provider,
-          models: provider.models.filter(
-            (m) => m.name.toLowerCase().includes(q) || provider.providerName.toLowerCase().includes(q),
-          ),
-        }))
-        .filter((p) => p.models.length > 0);
+    : selectedProviderModels.reduce<typeof selectedProviderModels>((acc, provider) => {
+        const models = provider.models.filter(
+          (m) => m.name.toLowerCase().includes(q) || provider.providerName.toLowerCase().includes(q),
+        );
+        if (models.length > 0) acc.push({ ...provider, models });
+        return acc;
+      }, []);
 
   async function handleToggle(provider: ProviderModels, modelId: string, checked: boolean) {
     const key = `${provider.providerId}:${modelId}`;

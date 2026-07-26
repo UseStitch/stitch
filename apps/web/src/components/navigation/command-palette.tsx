@@ -6,6 +6,7 @@ import { Kbd } from '@/components/ui/kbd';
 import { useDialogContext } from '@/context/dialog-context';
 import type { Action } from '@/lib/actions';
 import { useShortcuts } from '@/lib/shortcuts';
+import type { ReactNode } from 'react';
 
 type CommandPaletteProps = { actions: Action[] };
 
@@ -41,42 +42,43 @@ export function CommandPalette({ actions }: CommandPaletteProps) {
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup heading="Actions">
-              {actions
-                .filter((a) => a.id !== 'command-palette')
-                .map((action) => {
-                  const info = shortcuts.get(action.id);
-                  const hotkey = info?.hotkey ?? null;
-                  const isLeaderShortcut = typeof hotkey === 'string' && hotkey.startsWith('LEADER+');
-                  const leaderSuffix = isLeaderShortcut ? hotkey.slice('LEADER+'.length) : null;
-                  const keyItems = toKeyItems(
-                    hotkey === null
-                      ? []
-                      : isLeaderShortcut
-                        ? [
-                            'Leader',
-                            ...formatForDisplay(leaderSuffix ?? '')
-                              .split('+')
-                              .filter(Boolean),
-                          ]
-                        : info?.isSequence
-                          ? [...formatForDisplay(hotkey).split('+'), ...formatForDisplay(hotkey).split('+')]
-                          : formatForDisplay(hotkey).split('+'),
-                  );
-                  return (
-                    <CommandItem key={action.id} onSelect={() => handleSelect(action)}>
-                      <span className="flex-1">{action.label}</span>
-                      {hotkey && (
-                        <span className="ml-auto flex items-center gap-1.5">
-                          {keyItems.map((item) => (
-                            <Kbd key={item.id} size="sm">
-                              {item.label}
-                            </Kbd>
-                          ))}
-                        </span>
-                      )}
-                    </CommandItem>
-                  );
-                })}
+              {actions.reduce<ReactNode[]>((acc, action) => {
+                if (action.id === 'command-palette') return acc;
+
+                const info = shortcuts.get(action.id);
+                const hotkey = info?.hotkey ?? null;
+                const isLeaderShortcut = typeof hotkey === 'string' && hotkey.startsWith('LEADER+');
+                const leaderSuffix = isLeaderShortcut ? hotkey.slice('LEADER+'.length) : null;
+                const keyItems = toKeyItems(
+                  hotkey === null
+                    ? []
+                    : isLeaderShortcut
+                      ? [
+                          'Leader',
+                          ...formatForDisplay(leaderSuffix ?? '')
+                            .split('+')
+                            .filter(Boolean),
+                        ]
+                      : info?.isSequence
+                        ? [...formatForDisplay(hotkey).split('+'), ...formatForDisplay(hotkey).split('+')]
+                        : formatForDisplay(hotkey).split('+'),
+                );
+                acc.push(
+                  <CommandItem key={action.id} onSelect={() => handleSelect(action)}>
+                    <span className="flex-1">{action.label}</span>
+                    {hotkey && (
+                      <span className="ml-auto flex items-center gap-1.5">
+                        {keyItems.map((item) => (
+                          <Kbd key={item.id} size="sm">
+                            {item.label}
+                          </Kbd>
+                        ))}
+                      </span>
+                    )}
+                  </CommandItem>,
+                );
+                return acc;
+              }, [])}
             </CommandGroup>
           </CommandList>
         </Command>

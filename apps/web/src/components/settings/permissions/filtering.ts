@@ -12,12 +12,11 @@ function includesQuery(value: string, query: string): boolean {
 }
 
 export function filterCoreTools(tools: KnownToolSummary[], query: string): KnownToolSummary[] {
-  return tools
-    .filter((tool) => tool.toolType === 'stitch')
-    .filter((tool) => {
-      if (!query) return true;
-      return includesQuery(tool.displayName, query) || includesQuery(tool.toolName, query);
-    });
+  return tools.filter((tool) => {
+    if (tool.toolType !== 'stitch') return false;
+    if (!query) return true;
+    return includesQuery(tool.displayName, query) || includesQuery(tool.toolName, query);
+  });
 }
 
 export function filterToolsetsByQuery<T extends KnownToolsetSummary>(toolsets: T[], query: string): T[] {

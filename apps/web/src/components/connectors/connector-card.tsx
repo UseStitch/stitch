@@ -13,7 +13,7 @@ export function ConnectorCard({ definition, instanceCount, onSetup }: ConnectorC
   const isConnected = instanceCount > 0;
 
   return (
-    <Card className="border-border/60 bg-card/70 transition-all hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/5">
+    <Card className="border-border/60 bg-card/70 transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/5">
       <CardHeader className="gap-3 border-b border-border/40 pb-3">
         <div className="flex items-start gap-3">
           <div className="shrink-0 rounded-lg border border-border/70 bg-muted/70 p-1.5">

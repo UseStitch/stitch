@@ -27,14 +27,13 @@ export function filterProviderModels(providerModels: ProviderModels[], query: st
   if (!trimmedQuery) return providerModels;
   const lowered = trimmedQuery.toLowerCase();
 
-  return providerModels
-    .map((provider) => ({
-      ...provider,
-      models: provider.models.filter(
-        (model) => model.name.toLowerCase().includes(lowered) || provider.providerName.toLowerCase().includes(lowered),
-      ),
-    }))
-    .filter((provider) => provider.models.length > 0);
+  return providerModels.reduce<ProviderModels[]>((acc, provider) => {
+    const models = provider.models.filter(
+      (model) => model.name.toLowerCase().includes(lowered) || provider.providerName.toLowerCase().includes(lowered),
+    );
+    if (models.length > 0) acc.push({ ...provider, models });
+    return acc;
+  }, []);
 }
 
 export function findProviderModelOption(

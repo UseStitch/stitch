@@ -137,7 +137,10 @@ export function ActivityBar() {
   const isMac = window.electron?.platform === 'darwin';
   const isFullScreen = useFullScreen();
   const showTrafficLightPadding = isMac && !isFullScreen;
-  const disabledAppIds = new Set(appEnabledStates.filter((state) => !state.enabled).map((state) => state.appId));
+  const disabledAppIds = appEnabledStates.reduce<Set<string>>((acc, state) => {
+    if (!state.enabled) acc.add(state.appId);
+    return acc;
+  }, new Set());
   const topItems = TOP_ITEMS.filter((item) => !item.appId || !disabledAppIds.has(item.appId));
 
   return (

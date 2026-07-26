@@ -47,11 +47,20 @@ export function useDictation({
   defaultProviderId,
   defaultModelId,
 }: UseDictationArgs): UseDictationReturn {
-  const stt = useStt();
   const baseOffsetRef = React.useRef(0);
   // Set when stop is requested before recording has actually started (fast
   // push-to-talk taps). Finalizes as soon as the session reaches 'recording'.
   const pendingStopRef = React.useRef(false);
+
+  // Splice live partial + committed text into the input as transcripts arrive.
+  const handleTranscriptUpdate = (committedText: string, partialText: string) => {
+    const base = value.slice(0, baseOffsetRef.current);
+    const transcript = [committedText, partialText].filter(Boolean).join(' ');
+    const next = spliceTranscript(base, transcript);
+    if (next !== value) onChange(next);
+  };
+
+  const stt = useStt(handleTranscriptUpdate);
 
   const resolveModel = (model?: SttModelSelection) => {
     const providerId = model?.providerId ?? defaultProviderId;
@@ -107,17 +116,6 @@ export function useDictation({
     }
     start(model);
   };
-
-  // Splice live partial + committed text into the input while recording.
-  React.useEffect(() => {
-    if (stt.state !== 'recording') return;
-    const base = value.slice(0, baseOffsetRef.current);
-    const transcript = [stt.committedText, stt.partialText].filter(Boolean).join(' ');
-    const next = spliceTranscript(base, transcript);
-    if (next !== value) onChange(next);
-    // Only re-run when STT text changes — value intentionally omitted to avoid loops.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stt.committedText, stt.partialText, stt.state]);
 
   const cancel = () => {
     pendingStopRef.current = false;
