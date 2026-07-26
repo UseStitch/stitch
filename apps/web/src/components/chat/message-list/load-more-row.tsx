@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 
 type LoadMoreRowProps = {
@@ -17,12 +18,13 @@ export function LoadMoreRow({ isFetchingMore, onLoadMore, sentinelRef }: LoadMor
           Loading older messages...
         </div>
       ) : (
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={onLoadMore}
-          className="text-xs text-muted-foreground transition-colors hover:text-foreground">
+          className="h-auto p-0 text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-foreground">
           Load older messages
-        </button>
+        </Button>
       )}
     </div>
   );

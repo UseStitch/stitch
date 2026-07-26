@@ -1,4 +1,7 @@
+import { z } from 'zod';
+
 import type { McpAuthConfig, McpAuthType, McpRegistryServer, McpServer, McpTransport } from '@stitch/shared/mcp/types';
+import { MCP_AUTH_TYPES, MCP_TRANSPORT_TYPES } from '@stitch/shared/mcp/types';
 
 export const AUTH_TYPE_LABELS: Record<McpAuthType, { label: string; description: string }> = {
   none: { label: 'No auth', description: 'Open server, no credentials needed' },
@@ -41,6 +44,38 @@ export const EMPTY_ADD_FORM: AddFormState = {
   oauthClientSecret: '',
 };
 
+export const addMcpServerSchema = z
+  .object({
+    name: z.string().trim().min(1, 'Name is required'),
+    url: z
+      .url('Enter a valid URL, e.g. https://mcp.example.com')
+      .refine((url) => ['http:', 'https:'].includes(new URL(url).protocol), 'URL must use http or https'),
+    transport: z.enum(MCP_TRANSPORT_TYPES),
+    authType: z.enum(MCP_AUTH_TYPES),
+    apiKey: z.string(),
+    headers: z.array(z.object({ id: z.string(), key: z.string(), value: z.string() })),
+    oauthScopes: z.string(),
+    oauthClientId: z.string(),
+    oauthClientSecret: z.string(),
+  })
+  .refine((value) => value.authType !== 'api_key' || value.apiKey.trim().length > 0, {
+    message: 'API key is required',
+    path: ['apiKey'],
+  })
+  .refine(
+    (value) =>
+      value.authType !== 'headers' ||
+      value.headers.some(({ key, value: headerValue }) => key.trim() && headerValue.trim()),
+    { message: 'At least one header name and value is required', path: ['headers'] },
+  );
+
+function clearCredentialPlaceholder(value: string): string {
+  const trimmed = value.trim();
+  if (/^YOUR(?:[_ -]|$)/i.test(trimmed)) return '';
+  if (/^(?:<[^>]+>|\$\{[^}]+\}|\{\{[^}]+\}\})$/.test(trimmed)) return '';
+  return value;
+}
+
 function parseScopes(raw: string): string[] | undefined {
   const scopes = raw
     .split(/[\s,]+/)
@@ -51,12 +86,12 @@ function parseScopes(raw: string): string[] | undefined {
 
 export function buildAuthConfig(form: AddFormState): McpAuthConfig {
   if (form.authType === 'api_key') {
-    return { type: 'api_key', apiKey: form.apiKey };
+    return { type: 'api_key', apiKey: form.apiKey.trim() };
   }
   if (form.authType === 'headers') {
     const headers: Record<string, string> = {};
     for (const { key, value } of form.headers) {
-      if (key.trim()) headers[key.trim()] = value;
+      if (key.trim() && value.trim()) headers[key.trim()] = value.trim();
     }
     return { type: 'headers', headers };
   }
@@ -73,7 +108,7 @@ export function buildAuthConfig(form: AddFormState): McpAuthConfig {
 
 export function applyAuthConfigToForm(form: AddFormState, authConfig: McpAuthConfig): AddFormState {
   if (authConfig.type === 'api_key') {
-    return { ...form, authType: 'api_key', apiKey: authConfig.apiKey, headers: [] };
+    return { ...form, authType: 'api_key', apiKey: clearCredentialPlaceholder(authConfig.apiKey), headers: [] };
   }
 
   if (authConfig.type === 'headers') {
@@ -81,7 +116,11 @@ export function applyAuthConfigToForm(form: AddFormState, authConfig: McpAuthCon
       ...form,
       authType: 'headers',
       apiKey: '',
-      headers: Object.entries(authConfig.headers).map(([key, value]) => ({ id: crypto.randomUUID(), key, value })),
+      headers: Object.entries(authConfig.headers).map(([key, value]) => ({
+        id: crypto.randomUUID(),
+        key,
+        value: clearCredentialPlaceholder(value),
+      })),
     };
   }
 
@@ -92,8 +131,8 @@ export function applyAuthConfigToForm(form: AddFormState, authConfig: McpAuthCon
       apiKey: '',
       headers: [],
       oauthScopes: authConfig.scopes?.join(' ') ?? '',
-      oauthClientId: authConfig.clientId ?? '',
-      oauthClientSecret: authConfig.clientSecret ?? '',
+      oauthClientId: clearCredentialPlaceholder(authConfig.clientId ?? ''),
+      oauthClientSecret: clearCredentialPlaceholder(authConfig.clientSecret ?? ''),
     };
   }
 

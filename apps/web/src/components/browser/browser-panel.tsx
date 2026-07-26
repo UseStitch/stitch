@@ -106,20 +106,23 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
                 'group flex h-6 max-w-40 shrink-0 items-center rounded text-xs',
                 tab.active ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted/60',
               )}>
-              <button
-                className="min-w-0 flex-1 truncate px-2 py-0.5 text-left"
+              <Button
+                variant="ghost"
+                className="h-auto min-w-0 flex-1 justify-start truncate px-2 py-0.5 text-left font-normal hover:bg-transparent"
                 onClick={() => void window.api?.browser.focusTab(tab.id)}
                 type="button"
                 title={tab.url}>
                 {tab.title || tab.url || 'New tab'}
-              </button>
-              <button
-                className="mr-0.5 flex size-4 shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-60 hover:bg-muted hover:opacity-100!"
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                className="mr-0.5 size-4 shrink-0 rounded opacity-0 group-hover:opacity-60 hover:bg-muted hover:opacity-100!"
                 onClick={() => void window.api?.browser.closeTab(tab.id)}
                 type="button"
                 aria-label="Close tab">
                 <XIcon className="size-2.5" />
-              </button>
+              </Button>
             </div>
           ))
         )}

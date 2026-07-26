@@ -1,5 +1,8 @@
 import { CalendarIcon, Trash2Icon, XIcon } from 'lucide-react';
 import * as React from 'react';
+import { z } from 'zod';
+
+import { useForm } from '@tanstack/react-form';
 
 import type { AgendaItem, AgendaItemPriority, AgendaItemStatus } from '@stitch/shared/agenda/types';
 import { AGENDA_ITEM_PRIORITIES, AGENDA_ITEM_STATUSES } from '@stitch/shared/agenda/types';
@@ -20,22 +23,113 @@ import { cn } from '@/lib/utils';
 
 const DEBOUNCE_MS = 600;
 
+const agendaItemDetailSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  status: z.enum(AGENDA_ITEM_STATUSES),
+  priority: z.enum(AGENDA_ITEM_PRIORITIES),
+  dueDate: z.date().nullable(),
+});
+
+type AgendaItemDetailValues = z.infer<typeof agendaItemDetailSchema>;
+
+type AgendaItemUpdates = {
+  title?: string;
+  description?: string;
+  status?: AgendaItemStatus;
+  priority?: AgendaItemPriority;
+  dueAt?: number | null;
+};
+
+type PendingTextSave = { id: string; title: string; description: string };
+type AgendaSaveRequest = { id: string; updates: AgendaItemUpdates; started: boolean; cancelled: boolean };
+
 type Props = { item: AgendaItem | null; open: boolean; onOpenChange: (open: boolean) => void };
 
 export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
   const timeZone = useUserTimezone();
-  const [title, setTitle] = React.useState(item?.title ?? '');
-  const [description, setDescription] = React.useState(item?.description ?? '');
-  const [status, setStatus] = React.useState<AgendaItemStatus>(item?.status ?? 'open');
-  const [priority, setPriority] = React.useState<AgendaItemPriority>(item?.priority ?? 'medium');
-  const [dueDate, setDueDate] = React.useState<Date | undefined>(() =>
-    item?.dueAt ? new Date(item.dueAt) : undefined,
-  );
   const [confirmDeleteOpen, setConfirmDeleteOpen] = React.useState(false);
   const [datePickerOpen, setDatePickerOpen] = React.useState(false);
 
   const updateMutation = useUpdateAgendaItem();
   const deleteMutation = useDeleteAgendaItem();
+  const form = useForm({
+    defaultValues: {
+      title: item?.title ?? '',
+      description: item?.description ?? '',
+      status: item?.status ?? 'open',
+      priority: item?.priority ?? 'medium',
+      dueDate: item?.dueAt ? new Date(item.dueAt) : null,
+    } satisfies AgendaItemDetailValues,
+    validators: { onMount: agendaItemDetailSchema, onChange: agendaItemDetailSchema },
+  });
+
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingTextRef = React.useRef<PendingTextSave | null>(null);
+  const pendingSavesRef = React.useRef<AgendaSaveRequest[]>([]);
+  const saveQueueRef = React.useRef(Promise.resolve());
+
+  function queueSave(id: string, updates: AgendaItemUpdates) {
+    const queued = pendingSavesRef.current.find((request) => request.id === id && !request.started);
+    if (queued) {
+      queued.updates = { ...queued.updates, ...updates };
+      return;
+    }
+
+    const request: AgendaSaveRequest = { id, updates, started: false, cancelled: false };
+    pendingSavesRef.current.push(request);
+    saveQueueRef.current = saveQueueRef.current
+      .then(async () => {
+        if (request.cancelled) return;
+        request.started = true;
+        await updateMutation.mutateAsync({ id: request.id, updates: request.updates });
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        pendingSavesRef.current = pendingSavesRef.current.filter((pending) => pending !== request);
+      });
+  }
+
+  function cancelPendingText() {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = null;
+    pendingTextRef.current = null;
+  }
+
+  function flushPendingText() {
+    const pending = pendingTextRef.current;
+    cancelPendingText();
+    if (pending) {
+      queueSave(pending.id, { title: pending.title, description: pending.description });
+    }
+  }
+
+  function scheduleTextSave(pending: PendingTextSave) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    pendingTextRef.current = pending;
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
+      pendingTextRef.current = null;
+      queueSave(pending.id, { title: pending.title, description: pending.description });
+    }, DEBOUNCE_MS);
+  }
+
+  const resetForm = React.useEffectEvent(() => {
+    if (!item) return;
+    form.reset({
+      title: item.title,
+      description: item.description,
+      status: item.status,
+      priority: item.priority,
+      dueDate: item.dueAt ? new Date(item.dueAt) : null,
+    });
+  });
+
+  React.useEffect(() => {
+    cancelPendingText();
+    resetForm();
+    return cancelPendingText;
+  }, [item?.id]);
 
   function dateToMs(date: Date): number {
     const y = date.getFullYear();
@@ -44,95 +138,20 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
     return new Date(y, m, d, 12, 0, 0).getTime();
   }
 
-  function save(updates: {
-    title?: string;
-    description?: string;
-    status?: AgendaItemStatus;
-    priority?: AgendaItemPriority;
-    dueAt?: number | null;
-  }) {
-    if (!item) return;
-    updateMutation.mutate({ id: item.id, updates });
-  }
-
-  // Debounced save for text fields
-  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  function saveDebounced(updates: { title?: string; description?: string }) {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => save(updates), DEBOUNCE_MS);
-  }
-
-  // Flush any pending debounced save when the sheet closes
   function handleOpenChange(nextOpen: boolean) {
-    if (!nextOpen && debounceRef.current) {
-      clearTimeout(debounceRef.current);
-      debounceRef.current = null;
-      if (item) {
-        const pendingTitle = title !== item.title ? title : undefined;
-        const pendingDescription = description !== item.description ? description : undefined;
-        if (pendingTitle !== undefined || pendingDescription !== undefined) {
-          save({ title: pendingTitle, description: pendingDescription });
-        }
-      }
-    }
+    if (!nextOpen) flushPendingText();
     onOpenChange(nextOpen);
   }
 
-  function handleTitleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const next = e.target.value;
-    setTitle(next);
-    if (item && next !== item.title) {
-      saveDebounced({ title: next, description: undefined });
-    }
-  }
-
-  function handleDescriptionChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    const next = e.target.value;
-    setDescription(next);
-    if (item && next !== item.description) {
-      saveDebounced({ title: undefined, description: next });
-    }
-  }
-
-  function handleStatusChange(v: string | null) {
-    if (!v) return;
-    const next = v as AgendaItemStatus;
-    setStatus(next);
-    if (item && next !== item.status) {
-      save({ status: next });
-    }
-  }
-
-  function handlePriorityChange(v: string | null) {
-    if (!v) return;
-    const next = v as AgendaItemPriority;
-    setPriority(next);
-    if (item && next !== item.priority) {
-      save({ priority: next });
-    }
-  }
-
-  function handleDateSelect(date: Date | undefined) {
-    setDueDate(date);
-    setDatePickerOpen(false);
+  async function handleDelete() {
     if (!item) return;
-    const newDueMs = date ? dateToMs(date) : null;
-    if (newDueMs !== item.dueAt) {
-      save({ dueAt: newDueMs });
+    const id = item.id;
+    cancelPendingText();
+    for (const request of pendingSavesRef.current) {
+      if (request.id === id && !request.started) request.cancelled = true;
     }
-  }
-
-  function handleClearDate() {
-    setDueDate(undefined);
-    if (item && item.dueAt !== null) {
-      save({ dueAt: null });
-    }
-  }
-
-  function handleDelete() {
-    if (!item) return;
-    deleteMutation.mutate(item.id, {
+    await saveQueueRef.current;
+    deleteMutation.mutate(id, {
       onSuccess: () => {
         setConfirmDeleteOpen(false);
         onOpenChange(false);
@@ -165,82 +184,140 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
             </div>
 
             {/* Title */}
-            <div className="flex flex-col gap-1.5">
-              <Label>Title</Label>
-              <Input value={title} onChange={handleTitleChange} placeholder="Item title..." />
-            </div>
+            <form.Field name="title">
+              {(field) => (
+                <div className="flex flex-col gap-1.5">
+                  <Label>Title</Label>
+                  <Input
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => {
+                      const title = event.target.value;
+                      field.handleChange(title);
+                      scheduleTextSave({ id: item.id, title, description: form.state.values.description });
+                    }}
+                    placeholder="Item title..."
+                  />
+                </div>
+              )}
+            </form.Field>
 
             {/* Description */}
-            <div className="flex flex-col gap-1.5">
-              <Label>Description</Label>
-              <Textarea
-                value={description}
-                onChange={handleDescriptionChange}
-                className="min-h-20 resize-none"
-                placeholder="Details..."
-              />
-            </div>
+            <form.Field name="description">
+              {(field) => (
+                <div className="flex flex-col gap-1.5">
+                  <Label>Description</Label>
+                  <Textarea
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => {
+                      const description = event.target.value;
+                      field.handleChange(description);
+                      scheduleTextSave({ id: item.id, title: form.state.values.title, description });
+                    }}
+                    className="min-h-20 resize-none"
+                    placeholder="Details..."
+                  />
+                </div>
+              )}
+            </form.Field>
 
             {/* Status + Priority row */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1.5">
-                <Label>Status</Label>
-                <Select value={status} onValueChange={handleStatusChange}>
-                  <SelectTrigger className="w-full">{STATUS_LABELS[status]}</SelectTrigger>
-                  <SelectContent>
-                    {AGENDA_ITEM_STATUSES.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {STATUS_LABELS[s]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <form.Field name="status">
+                {(field) => (
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Status</Label>
+                    <Select
+                      value={field.state.value}
+                      onValueChange={(value) => {
+                        if (!value) return;
+                        field.handleChange(value);
+                        queueSave(item.id, { status: value });
+                      }}>
+                      <SelectTrigger className="w-full">{STATUS_LABELS[field.state.value]}</SelectTrigger>
+                      <SelectContent>
+                        {AGENDA_ITEM_STATUSES.map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {STATUS_LABELS[s]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </form.Field>
 
-              <div className="flex flex-col gap-1.5">
-                <Label>Priority</Label>
-                <Select value={priority} onValueChange={handlePriorityChange}>
-                  <SelectTrigger className="w-full">{PRIORITY_LABELS[priority]}</SelectTrigger>
-                  <SelectContent>
-                    {AGENDA_ITEM_PRIORITIES.map((p) => (
-                      <SelectItem key={p} value={p}>
-                        {PRIORITY_LABELS[p]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <form.Field name="priority">
+                {(field) => (
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Priority</Label>
+                    <Select
+                      value={field.state.value}
+                      onValueChange={(value) => {
+                        if (!value) return;
+                        field.handleChange(value);
+                        queueSave(item.id, { priority: value });
+                      }}>
+                      <SelectTrigger className="w-full">{PRIORITY_LABELS[field.state.value]}</SelectTrigger>
+                      <SelectContent>
+                        {AGENDA_ITEM_PRIORITIES.map((p) => (
+                          <SelectItem key={p} value={p}>
+                            {PRIORITY_LABELS[p]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </form.Field>
             </div>
 
             {/* Due date */}
-            <div className="flex flex-col gap-1.5">
-              <Label>Due Date</Label>
-              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                <div className="flex items-center gap-1.5">
-                  <PopoverTrigger
-                    className={cn(
-                      'flex h-8 w-full items-center gap-2 rounded-lg border border-input bg-transparent px-2.5 text-sm transition-colors hover:bg-muted/50',
-                      !dueDate && 'text-muted-foreground',
-                    )}>
-                    <CalendarIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                    {dueDate ? formatDateInTz(dateToMs(dueDate), timeZone) : 'Pick a date'}
-                  </PopoverTrigger>
-                  {dueDate && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-xs"
-                      className="shrink-0 text-muted-foreground hover:text-foreground"
-                      onClick={handleClearDate}>
-                      <XIcon className="size-3" />
-                    </Button>
-                  )}
+            <form.Field name="dueDate">
+              {(field) => (
+                <div className="flex flex-col gap-1.5">
+                  <Label>Due Date</Label>
+                  <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                    <div className="flex items-center gap-1.5">
+                      <PopoverTrigger
+                        className={cn(
+                          'flex h-8 w-full items-center gap-2 rounded-lg border border-input bg-transparent px-2.5 text-sm transition-colors hover:bg-muted/50',
+                          !field.state.value && 'text-muted-foreground',
+                        )}>
+                        <CalendarIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                        {field.state.value ? formatDateInTz(dateToMs(field.state.value), timeZone) : 'Pick a date'}
+                      </PopoverTrigger>
+                      {field.state.value && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-xs"
+                          className="shrink-0 text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            field.handleChange(null);
+                            queueSave(item.id, { dueAt: null });
+                          }}>
+                          <XIcon className="size-3" />
+                        </Button>
+                      )}
+                    </div>
+                    <PopoverContent align="start" className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={field.state.value ?? undefined}
+                        onSelect={(date) => {
+                          field.handleChange(date ?? null);
+                          setDatePickerOpen(false);
+                          queueSave(item.id, { dueAt: date ? dateToMs(date) : null });
+                        }}
+                        defaultMonth={field.state.value ?? undefined}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
-                <PopoverContent align="start" className="w-auto p-0">
-                  <Calendar mode="single" selected={dueDate} onSelect={handleDateSelect} defaultMonth={dueDate} />
-                </PopoverContent>
-              </Popover>
-            </div>
+              )}
+            </form.Field>
           </div>
 
           <SheetFooter className="flex flex-row items-center justify-between gap-2">

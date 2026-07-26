@@ -1,16 +1,19 @@
 import * as React from 'react';
 
 import type { AddFormState } from './shared';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+
+type OAuthFieldKey = 'oauthScopes' | 'oauthClientId' | 'oauthClientSecret';
 
 export function OAuthFields({
   form,
   set,
   expanded = false,
 }: {
-  form: AddFormState;
-  set: <K extends keyof AddFormState>(key: K, value: AddFormState[K]) => void;
+  form: Pick<AddFormState, OAuthFieldKey>;
+  set: (key: OAuthFieldKey, value: string) => void;
   expanded?: boolean;
 }) {
   const [showAdvanced, setShowAdvanced] = React.useState(
@@ -52,12 +55,13 @@ export function OAuthFields({
           </div>
         </div>
       ) : (
-        <button
+        <Button
           type="button"
-          className="text-xs text-muted-foreground underline hover:text-foreground"
+          variant="ghost"
+          className="h-auto p-0 text-xs font-normal text-muted-foreground underline hover:bg-transparent hover:text-foreground"
           onClick={() => setShowAdvanced(true)}>
           Advanced: provide a pre-registered client
-        </button>
+        </Button>
       )}
     </div>
   );

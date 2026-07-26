@@ -15,10 +15,9 @@ import {
 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { StatusDot } from '@/components/ui/status-dot';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSSE } from '@/hooks/sse/sse-context';
 import { serverFetch, type ServerConnectionConfig } from '@/lib/api';
-
-type Tab = 'servers' | 'info';
 
 const HEALTH_POLL_INTERVAL_MS = 10_000;
 const HEALTH_TIMEOUT_MS = 5_000;
@@ -46,7 +45,6 @@ function useTicker(active: boolean) {
 }
 
 export function ServerStatus() {
-  const [activeTab, setActiveTab] = useState<Tab>('servers');
   const [isOpen, setIsOpen] = useState(false);
   const serverConfig = useServerConfig();
 
@@ -89,27 +87,29 @@ export function ServerStatus() {
         side="bottom"
         align="start"
         className="w-70 overflow-hidden rounded-xl border-border p-0 shadow-lg">
-        {/* Header Tabs */}
-        <div className="flex items-center gap-5 border-b border-border bg-muted/30 px-4 pt-3 text-sm">
-          <TabButton label="Servers" active={activeTab === 'servers'} onClick={() => setActiveTab('servers')} />
-          <TabButton label="Info" active={activeTab === 'info'} onClick={() => setActiveTab('info')} />
-        </div>
-
-        {/* Tab Content */}
-        <div className="flex flex-col gap-4 bg-popover p-4">
-          {activeTab === 'servers' ? (
-            <>
-              <StatusItem state={serverState} label={serverLabel} subtitle={serverSubtitle} />
-              <StatusItem
-                state={eventBusState}
-                label="Event Bus"
-                subtitle={formatEventBusSubtitle(sseStatus, lastHeartbeat)}
-              />
-            </>
-          ) : (
+        <Tabs defaultValue="servers" className="gap-0">
+          <div className="bg-muted/30 px-4 pt-3">
+            <TabsList variant="line" className="h-auto gap-5 p-0">
+              <TabsTrigger value="servers" className="h-auto flex-none cursor-default rounded-none px-0 pb-2.5">
+                Servers
+              </TabsTrigger>
+              <TabsTrigger value="info" className="h-auto flex-none cursor-default rounded-none px-0 pb-2.5">
+                Info
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          <TabsContent value="servers" className="flex flex-col gap-4 bg-popover p-4">
+            <StatusItem state={serverState} label={serverLabel} subtitle={serverSubtitle} />
+            <StatusItem
+              state={eventBusState}
+              label="Event Bus"
+              subtitle={formatEventBusSubtitle(sseStatus, lastHeartbeat)}
+            />
+          </TabsContent>
+          <TabsContent value="info" className="bg-popover p-4">
             <InfoPanel />
-          )}
-        </div>
+          </TabsContent>
+        </Tabs>
       </PopoverContent>
     </Popover>
   );
@@ -130,23 +130,6 @@ function StatusItem({ state, label, subtitle }: StatusItemProps) {
       </div>
       {isOk && <Check className="h-3.5 w-3.5 text-muted-foreground" />}
     </div>
-  );
-}
-
-type TabButtonProps = { label: string; active: boolean; onClick: () => void };
-
-function TabButton({ label, active, onClick }: TabButtonProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`cursor-default border-b-2 pb-2.5 transition-colors ${
-        active
-          ? 'border-primary font-medium text-foreground'
-          : 'border-transparent text-muted-foreground hover:text-foreground'
-      }`}>
-      {label}
-    </button>
   );
 }
 

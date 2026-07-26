@@ -50,9 +50,12 @@
         "@tanstack/query/no-void-query-fn": "error",
         "@tanstack/query/mutation-property-order": "error",
         "@tanstack/router/create-route-property-order": "warn",
-        "@tanstack/router/route-param-names": "error"
+        "@tanstack/router/route-param-names": "error",
+        "stitch/no-native-button": "error",
+        "stitch/no-window-confirm": "error"
       }
     },
+    { "files": ["apps/web/src/components/ui/**/*.{ts,tsx}"], "rules": { "stitch/no-native-button": "off" } },
     {
       "files": [
         "apps/web/src/components/automations/automation-runs-table.tsx",

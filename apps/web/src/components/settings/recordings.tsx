@@ -1,6 +1,8 @@
 import { HelpCircleIcon, PlusIcon, SaveIcon, TrashIcon } from 'lucide-react';
 import * as React from 'react';
+import { z } from 'zod';
 
+import { useForm, useStore } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
@@ -27,6 +29,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { FieldError, fieldErrorMessage } from '@/components/ui/field-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -68,6 +71,11 @@ const SYSTEM_DEFAULT_VALUE = '__system_default__';
 
 const EMPTY_TEMPLATE_CONTENT = '# Meeting Notes\n\n## Summary\n- \n\n## Decisions\n- \n\n## Action Items\n- [ ] \n';
 
+const meetingNoteTemplateSchema = z.object({
+  name: z.string().trim().min(1, 'Title is required'),
+  content: z.string(),
+});
+
 function PermissionStatus() {
   const { data: permissions, refetch } = useQuery(audioPermissionsQueryOptions);
   const [requesting, setRequesting] = React.useState(false);
@@ -108,13 +116,14 @@ function PermissionStatus() {
             {screenDenied ? <li>System audio recording access is required to capture system audio.</li> : null}
           </ul>
         </div>
-        <button
+        <Button
           type="button"
-          className="shrink-0 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          size="sm"
+          className="shrink-0 text-xs hover:bg-primary/90"
           disabled={requesting}
           onClick={() => void handleGrantPermissions()}>
           {requesting ? 'Requesting...' : 'Grant Permissions'}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -305,7 +314,7 @@ function MarkdownHelpDialog() {
           render={
             <TooltipTrigger
               render={
-                <Button variant="outline" size="icon-sm" aria-label="Markdown help">
+                <Button type="button" variant="outline" size="icon-sm" aria-label="Markdown help">
                   <HelpCircleIcon />
                 </Button>
               }
@@ -352,33 +361,31 @@ function MeetingNoteTemplatesSettings() {
   const [deleteOpen, setDeleteOpen] = React.useState(false);
 
   const selectedTemplate = data.templates.find((template) => template.id === selectedId) ?? null;
-  const [name, setName] = React.useState(selectedTemplate?.name ?? '');
-  const [content, setContent] = React.useState(selectedTemplate?.content ?? EMPTY_TEMPLATE_CONTENT);
-  const [syncedTemplate, setSyncedTemplate] = React.useState(selectedTemplate);
+  const form = useForm({
+    defaultValues: { name: selectedTemplate?.name ?? '', content: selectedTemplate?.content ?? EMPTY_TEMPLATE_CONTENT },
+    validators: { onMount: meetingNoteTemplateSchema, onChange: meetingNoteTemplateSchema },
+    onSubmit: ({ value }) => {
+      if (!selectedTemplate) return;
+      updateMutation.mutate({ id: selectedTemplate.id, template: value });
+    },
+  });
+  const content = useStore(form.store, (state) => state.values.content);
 
   if (!selectedId && data.templates[0]) {
     setSelectedId(data.templates[0].id);
   }
 
-  if (syncedTemplate !== selectedTemplate) {
-    setSyncedTemplate(selectedTemplate);
-    setName(selectedTemplate?.name ?? '');
-    setContent(selectedTemplate?.content ?? EMPTY_TEMPLATE_CONTENT);
-  }
-
-  const canSave = name.trim().length > 0 && selectedTemplate !== null;
   const isSaving = createMutation.isPending || updateMutation.isPending;
+
+  React.useEffect(() => {
+    form.reset({ name: selectedTemplate?.name ?? '', content: selectedTemplate?.content ?? EMPTY_TEMPLATE_CONTENT });
+  }, [form, selectedTemplate]);
 
   function handleCreateTemplate() {
     createMutation.mutate(
       { name: 'New Template', content: EMPTY_TEMPLATE_CONTENT },
       { onSuccess: (response) => setSelectedId(response.template.id) },
     );
-  }
-
-  function handleSaveTemplate() {
-    if (!selectedTemplate) return;
-    updateMutation.mutate({ id: selectedTemplate.id, template: { name, content } });
   }
 
   function handleDeleteTemplate() {
@@ -394,7 +401,12 @@ function MeetingNoteTemplatesSettings() {
   }
 
   return (
-    <div className="space-y-4">
+    <form
+      className="space-y-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void form.handleSubmit();
+      }}>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <Select value={selectedId ?? undefined} onValueChange={setSelectedId}>
           <SelectTrigger className="w-full sm:w-80">
@@ -410,7 +422,7 @@ function MeetingNoteTemplatesSettings() {
         </Select>
 
         <ButtonGroup className="shrink-0">
-          <Button size="sm" onClick={handleCreateTemplate}>
+          <Button type="button" size="sm" onClick={handleCreateTemplate}>
             <PlusIcon />
             New Template
           </Button>
@@ -419,6 +431,7 @@ function MeetingNoteTemplatesSettings() {
             <TooltipTrigger
               render={
                 <Button
+                  type="button"
                   variant="destructive"
                   size="icon-sm"
                   aria-label="Delete template"
@@ -442,31 +455,42 @@ function MeetingNoteTemplatesSettings() {
             isPending={deleteMutation.isPending}
           />
           <SettingsIconButtonTooltip label="Save template">
-            <Button
-              size="icon-sm"
-              aria-label="Save template"
-              disabled={!canSave || isSaving}
-              onClick={handleSaveTemplate}>
+            <Button type="submit" size="icon-sm" aria-label="Save template" disabled={!selectedTemplate || isSaving}>
               <SaveIcon />
             </Button>
           </SettingsIconButtonTooltip>
         </ButtonGroup>
       </div>
 
-      <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Title</Label>
-        <Input value={name} onChange={(event) => setName(event.target.value)} />
-      </div>
+      <form.Field name="name">
+        {(field) => (
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Title</Label>
+            <Input
+              value={field.state.value}
+              aria-invalid={!!fieldErrorMessage(field.state.meta)}
+              onBlur={field.handleBlur}
+              onChange={(event) => field.handleChange(event.target.value)}
+            />
+            <FieldError meta={field.state.meta} />
+          </div>
+        )}
+      </form.Field>
 
       <div className="grid gap-3 xl:grid-cols-2">
         <div className="space-y-2">
           <p className="text-xs font-medium text-muted-foreground">Editor</p>
-          <Textarea
-            value={content}
-            onChange={(event) => setContent(event.target.value)}
-            className="min-h-96 resize-y font-mono text-sm"
-            placeholder="Write the markdown structure for this meeting note template."
-          />
+          <form.Field name="content">
+            {(field) => (
+              <Textarea
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                className="min-h-96 resize-y font-mono text-sm"
+                placeholder="Write the markdown structure for this meeting note template."
+              />
+            )}
+          </form.Field>
         </div>
         <div className="space-y-2">
           <p className="text-xs font-medium text-muted-foreground">Preview</p>
@@ -479,7 +503,7 @@ function MeetingNoteTemplatesSettings() {
           </div>
         </div>
       </div>
-    </div>
+    </form>
   );
 }
 
