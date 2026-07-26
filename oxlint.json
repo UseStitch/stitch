@@ -105,12 +105,9 @@
     { "files": ["apps/web/src/components/ui/**/*.{ts,tsx}"], "rules": { "stitch/no-native-button": "off" } },
     {
       "files": [
-        "apps/web/src/components/automations/automation-runs-table.tsx",
-        "apps/web/src/components/automations/automations-table.tsx",
         "apps/web/src/components/chat/message-list.tsx",
         "apps/web/src/components/mail/thread-list.tsx",
-        "apps/web/src/components/recordings/analysis/transcript-sidebar.tsx",
-        "apps/web/src/components/recordings/list/recordings-table.tsx"
+        "apps/web/src/components/recordings/analysis/transcript-sidebar.tsx"
       ],
       "rules": { "react/react-compiler": "off" }
     },

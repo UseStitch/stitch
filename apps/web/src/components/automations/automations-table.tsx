@@ -5,11 +5,14 @@ import { Link } from '@tanstack/react-router';
 import {
   type CellContext,
   createColumnHelper,
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
+  createSortedRowModel,
+  metaHelper,
+  rowSortingFeature,
+  sortFn_alphanumeric,
+  sortFn_text,
   type SortingState,
-  useReactTable,
+  tableFeatures,
+  useTable,
 } from '@tanstack/react-table';
 
 import type { Automation } from '@stitch/shared/automations/types';
@@ -42,7 +45,14 @@ type AutomationsTableProps = {
   onDelete: (automation: Automation) => void;
 };
 
-const columnHelper = createColumnHelper<Automation>();
+const features = tableFeatures({
+  rowSortingFeature,
+  sortedRowModel: createSortedRowModel(),
+  sortFns: { alphanumeric: sortFn_alphanumeric, text: sortFn_text },
+  tableMeta: metaHelper<AutomationsTableMeta>(),
+});
+
+const columnHelper = createColumnHelper<typeof features, Automation>();
 
 type AutomationsTableMeta = {
   modelLabelByKey: Map<string, string>;
@@ -53,7 +63,7 @@ type AutomationsTableMeta = {
   onDelete: (automation: Automation) => void;
 };
 
-function TitleCell({ row }: CellContext<Automation, Automation['title']>) {
+function TitleCell({ row }: CellContext<typeof features, Automation, Automation['title']>) {
   return (
     <Table.Title className="block">
       <Link
@@ -66,26 +76,26 @@ function TitleCell({ row }: CellContext<Automation, Automation['title']>) {
   );
 }
 
-function ModelCell({ row, table }: CellContext<Automation, unknown>) {
+function ModelCell({ row, table }: CellContext<typeof features, Automation, unknown>) {
   const { modelLabelByKey } = table.options.meta as AutomationsTableMeta;
   const automation = row.original;
   const label = modelLabelByKey.get(`${automation.providerId}:${automation.modelId}`) ?? automation.modelId;
   return <Table.Badge>{label}</Table.Badge>;
 }
 
-function RunCountCell({ getValue }: CellContext<Automation, Automation['runCount']>) {
+function RunCountCell({ getValue }: CellContext<typeof features, Automation, Automation['runCount']>) {
   return <Table.Number value={getValue()} />;
 }
 
-function ScheduleCell({ row }: CellContext<Automation, unknown>) {
+function ScheduleCell({ row }: CellContext<typeof features, Automation, unknown>) {
   return <Table.Text>{getAutomationScheduleLabel(row.original.schedule)}</Table.Text>;
 }
 
-function UpdatedAtCell({ getValue }: CellContext<Automation, Automation['updatedAt']>) {
+function UpdatedAtCell({ getValue }: CellContext<typeof features, Automation, Automation['updatedAt']>) {
   return <Table.Time value={getValue()} />;
 }
 
-function ActionsCell({ row, table }: CellContext<Automation, unknown>) {
+function ActionsCell({ row, table }: CellContext<typeof features, Automation, unknown>) {
   const { runPending, deletePending, onRun, onEdit, onDelete } = table.options.meta as AutomationsTableMeta;
 
   return (
@@ -117,14 +127,14 @@ function ActionsCell({ row, table }: CellContext<Automation, unknown>) {
   );
 }
 
-const columns = [
+const columns = columnHelper.columns([
   columnHelper.accessor('title', { header: 'Title', cell: TitleCell }),
   columnHelper.display({ id: 'model', header: 'Model', cell: ModelCell }),
   columnHelper.accessor('runCount', { header: 'Runs', cell: RunCountCell }),
   columnHelper.display({ id: 'schedule', header: 'Schedule', cell: ScheduleCell }),
   columnHelper.accessor('updatedAt', { header: 'Updated', cell: UpdatedAtCell }),
   columnHelper.display({ id: 'actions', header: '', cell: ActionsCell }),
-];
+]);
 
 export function AutomationsTable({
   automations,
@@ -150,14 +160,13 @@ export function AutomationsTable({
     return map;
   }, [providerModels]);
 
-  const table = useReactTable({
+  const table = useTable({
+    features,
     data: automations,
     columns,
     state: { sorting },
     onSortingChange: setSorting,
-    meta: { modelLabelByKey, runPending, deletePending, onRun, onEdit, onDelete } satisfies AutomationsTableMeta,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+    meta: { modelLabelByKey, runPending, deletePending, onRun, onEdit, onDelete },
   });
 
   const currentPage = page - 1;
@@ -188,7 +197,7 @@ export function AutomationsTable({
               <Table.Row key={headerGroup.id} className="hover:bg-transparent">
                 {headerGroup.headers.map((header) => (
                   <Table.Head key={header.id}>
-                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                    {header.isPlaceholder ? null : <table.FlexRender header={header} />}
                   </Table.Head>
                 ))}
               </Table.Row>
@@ -208,8 +217,10 @@ export function AutomationsTable({
             ) : (
               table.getRowModel().rows.map((row) => (
                 <Table.Row key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <Table.Cell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</Table.Cell>
+                  {row.getAllCells().map((cell) => (
+                    <Table.Cell key={cell.id}>
+                      <table.FlexRender cell={cell} />
+                    </Table.Cell>
                   ))}
                 </Table.Row>
               ))

@@ -4,11 +4,14 @@ import * as React from 'react';
 import {
   type CellContext,
   createColumnHelper,
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
+  createSortedRowModel,
+  metaHelper,
+  rowSortingFeature,
+  sortFn_alphanumeric,
+  sortFn_text,
   type SortingState,
-  useReactTable,
+  tableFeatures,
+  useTable,
 } from '@tanstack/react-table';
 
 import type { Session } from '@stitch/shared/chat/messages';
@@ -18,19 +21,26 @@ import { Table } from '@/components/ui/table';
 
 type AutomationRunsTableProps = { sessions: Session[]; onOpen: (sessionId: string) => void };
 
-const columnHelper = createColumnHelper<Session>();
-
 type AutomationRunsTableMeta = { onOpen: (sessionId: string) => void };
 
-function TitleCell({ row }: CellContext<Session, Session['title']>) {
+const features = tableFeatures({
+  rowSortingFeature,
+  sortedRowModel: createSortedRowModel(),
+  sortFns: { alphanumeric: sortFn_alphanumeric, text: sortFn_text },
+  tableMeta: metaHelper<AutomationRunsTableMeta>(),
+});
+
+const columnHelper = createColumnHelper<typeof features, Session>();
+
+function TitleCell({ row }: CellContext<typeof features, Session, Session['title']>) {
   return <Table.Title>{row.original.title ?? 'Untitled run'}</Table.Title>;
 }
 
-function TimeCell({ getValue }: CellContext<Session, number>) {
+function TimeCell({ getValue }: CellContext<typeof features, Session, number>) {
   return <Table.Time value={getValue()} />;
 }
 
-function ActionsCell({ row, table }: CellContext<Session, unknown>) {
+function ActionsCell({ row, table }: CellContext<typeof features, Session, unknown>) {
   const { onOpen } = table.options.meta as AutomationRunsTableMeta;
 
   return (
@@ -43,24 +53,23 @@ function ActionsCell({ row, table }: CellContext<Session, unknown>) {
   );
 }
 
-const columns = [
+const columns = columnHelper.columns([
   columnHelper.accessor('title', { header: 'Run', cell: TitleCell }),
   columnHelper.accessor('createdAt', { header: 'Started', cell: TimeCell }),
   columnHelper.accessor('updatedAt', { header: 'Updated', cell: TimeCell }),
   columnHelper.display({ id: 'actions', header: '', cell: ActionsCell }),
-];
+]);
 
 export function AutomationRunsTable({ sessions, onOpen }: AutomationRunsTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'updatedAt', desc: true }]);
 
-  const table = useReactTable({
+  const table = useTable({
+    features,
     data: sessions,
     columns,
     state: { sorting },
     onSortingChange: setSorting,
-    meta: { onOpen } satisfies AutomationRunsTableMeta,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+    meta: { onOpen },
   });
 
   return (
@@ -72,7 +81,7 @@ export function AutomationRunsTable({ sessions, onOpen }: AutomationRunsTablePro
               <Table.Row key={headerGroup.id} className="hover:bg-transparent">
                 {headerGroup.headers.map((header) => (
                   <Table.Head key={header.id}>
-                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                    {header.isPlaceholder ? null : <table.FlexRender header={header} />}
                   </Table.Head>
                 ))}
               </Table.Row>
@@ -81,8 +90,10 @@ export function AutomationRunsTable({ sessions, onOpen }: AutomationRunsTablePro
           <Table.Body>
             {table.getRowModel().rows.map((row) => (
               <Table.Row key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <Table.Cell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</Table.Cell>
+                {row.getAllCells().map((cell) => (
+                  <Table.Cell key={cell.id}>
+                    <table.FlexRender cell={cell} />
+                  </Table.Cell>
                 ))}
               </Table.Row>
             ))}
