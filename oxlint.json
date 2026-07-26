@@ -135,6 +135,7 @@
         "react-doctor/client-passive-event-listeners": "error"
       }
     },
+    { "files": ["**/*.test.{ts,tsx}"], "rules": { "stitch/no-call-only-assertions": "error" } },
     { "files": ["apps/web/src/components/ui/**/*.{ts,tsx}"], "rules": { "stitch/no-native-button": "off" } },
     {
       "files": [

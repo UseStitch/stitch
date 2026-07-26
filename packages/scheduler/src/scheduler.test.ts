@@ -233,7 +233,9 @@ describe('scheduler', () => {
     await advanceTime(1_100, 100);
     await scheduler.stop();
 
+    const status = await store.getJob('catchup-none');
     expect(callback).toHaveBeenCalledTimes(3);
+    expect(status?.totalRuns).toBe(3);
   });
 
   test('catchup all replays backlog up to limit', async () => {
@@ -260,7 +262,9 @@ describe('scheduler', () => {
     await Promise.resolve();
     await scheduler.stop();
 
+    const status = await store.getJob('catchup-all');
     expect(callback).toHaveBeenCalledTimes(5);
+    expect(status?.totalRuns).toBe(5);
   });
 
   test('supports cron schedule', async () => {
@@ -280,7 +284,9 @@ describe('scheduler', () => {
     await advanceTime(130_000, 5_000);
     await scheduler.stop();
 
+    const status = await store.getJob('cron-job');
     expect(callback).toHaveBeenCalledTimes(2);
+    expect(status?.totalRuns).toBe(2);
   });
 
   test('unregister disables persisted job status', async () => {
