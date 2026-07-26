@@ -112,7 +112,7 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
   const spellingCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const unsub = window.electron?.on('context-menu', (raw) => {
+    const unsub = window.electron?.subscribe('context-menu', (raw) => {
       setParams(raw as ContextMenuParams);
       setSpellingOpen(false);
     });

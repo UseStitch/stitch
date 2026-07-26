@@ -12,7 +12,7 @@ export function useFullScreen() {
     };
     void checkFullScreen();
 
-    const unsubscribe = window.electron?.on('window:fullscreen-changed', (value) => {
+    const unsubscribe = window.electron?.subscribe('window:fullscreen-changed', (value) => {
       setIsFullScreen(value as boolean);
     });
 

@@ -35,7 +35,7 @@ function onIpc<TKey extends keyof IpcEventContract>(
 const electronBridge = {
   platform: process.platform,
   send: (channel: string, data?: unknown) => ipcRenderer.send(channel, data),
-  on: (channel: string, callback: (...args: unknown[]) => void) => {
+  subscribe: (channel: string, callback: (...args: unknown[]) => void) => {
     const subscription = (_event: Electron.IpcRendererEvent, ...args: unknown[]) => callback(...args);
     ipcRenderer.on(channel, subscription);
     return () => ipcRenderer.removeListener(channel, subscription);

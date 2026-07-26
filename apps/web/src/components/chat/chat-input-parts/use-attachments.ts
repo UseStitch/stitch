@@ -4,6 +4,8 @@ import type { Attachment } from './types';
 
 type ElectronFile = File & { path?: string };
 
+const previewUrls = new Map<string, string>();
+
 function mimeToExt(mime: string): string {
   const map: Record<string, string> = {
     'image/png': 'png',
@@ -18,13 +20,14 @@ function mimeToExt(mime: string): string {
 
 async function fileToAttachment(file: File): Promise<Attachment | null> {
   const electronFile = file as ElectronFile;
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   if (electronFile.path && electronFile.path.length > 0) {
-    const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+    if (file.type.startsWith('image/')) previewUrls.set(id, URL.createObjectURL(file));
     return {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      id,
       path: electronFile.path,
-      previewUrl,
+      previewUrl: previewUrls.get(id) ?? null,
       mime: file.type || 'application/octet-stream',
       filename: file.name,
     };
@@ -35,12 +38,12 @@ async function fileToAttachment(file: File): Promise<Attachment | null> {
   const arrayBuffer = await file.arrayBuffer();
   const ext = mimeToExt(file.type);
   const filePath = await window.api.files.writeTmp(arrayBuffer, ext);
-  const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+  if (file.type.startsWith('image/')) previewUrls.set(id, URL.createObjectURL(file));
 
   return {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    id,
     path: filePath,
-    previewUrl,
+    previewUrl: previewUrls.get(id) ?? null,
     mime: file.type,
     filename: file.name || `paste.${ext}`,
   };
@@ -105,11 +108,12 @@ export function useAttachments(options: UseAttachmentsOptions) {
   };
 
   const removeAttachment = (id: string) => {
-    setAttachments((previous) => {
-      const attachment = previous.find((item) => item.id === id);
-      if (attachment?.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
-      return previous.filter((item) => item.id !== id);
-    });
+    const url = previewUrls.get(id);
+    if (url) {
+      URL.revokeObjectURL(url);
+      previewUrls.delete(id);
+    }
+    setAttachments((previous) => previous.filter((item) => item.id !== id));
   };
 
   const handlePaste = async (event: React.ClipboardEvent<HTMLTextAreaElement>) => {

@@ -145,8 +145,8 @@ export function useStt(onTranscriptUpdate?: (committedText: string, partialText:
     workletRef.current = workletNode;
 
     // Open WebSocket
-    const ws = new WebSocket(toWsUrl(serverUrl));
-    wsRef.current = ws;
+    wsRef.current = new WebSocket(toWsUrl(serverUrl));
+    const ws = wsRef.current;
 
     await new Promise<void>((resolve, reject) => {
       ws.onopen = () => resolve();

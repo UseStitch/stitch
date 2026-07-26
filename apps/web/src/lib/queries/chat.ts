@@ -244,6 +244,7 @@ export function useMarkSessionRead() {
 }
 
 export function useRespondDoomLoop() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: DoomLoopResponseInput) =>
       serverRequest<void>(`/chat/sessions/${input.sessionId}/doom-loop-response`, {
@@ -251,6 +252,9 @@ export function useRespondDoomLoop() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ response: input.response }),
       }),
+    onSuccess: (_data, input) => {
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.detail(input.sessionId) });
+    },
     onError: (error) => {
       console.error('Failed to respond to repeated action:', error);
     },
@@ -258,9 +262,13 @@ export function useRespondDoomLoop() {
 }
 
 export function useRequestCompaction() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (sessionId: string) =>
       serverRequest<{ ok: true }>(`/chat/sessions/${sessionId}/compact`, { method: 'POST' }),
+    onSuccess: (_data, sessionId) => {
+      void queryClient.invalidateQueries({ queryKey: sessionKeys.messages(sessionId) });
+    },
   });
 }
 
