@@ -4,11 +4,14 @@ import * as React from 'react';
 import {
   type CellContext,
   createColumnHelper,
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
+  createSortedRowModel,
+  metaHelper,
+  rowSortingFeature,
+  sortFn_alphanumeric,
+  sortFn_text,
   type SortingState,
-  useReactTable,
+  tableFeatures,
+  useTable,
 } from '@tanstack/react-table';
 
 import type { Recording } from '@stitch/shared/recordings/types';
@@ -21,11 +24,18 @@ import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Table } from '@/components/ui/table';
 
-const columnHelper = createColumnHelper<Recording>();
-
 type RecordingsTableMeta = { activeRecordingId: string | null; onDelete: (recording: Recording) => void };
 
-function TitleCell({ row }: CellContext<Recording, string>) {
+const features = tableFeatures({
+  rowSortingFeature,
+  sortedRowModel: createSortedRowModel(),
+  sortFns: { alphanumeric: sortFn_alphanumeric, text: sortFn_text },
+  tableMeta: metaHelper<RecordingsTableMeta>(),
+});
+
+const columnHelper = createColumnHelper<typeof features, Recording>();
+
+function TitleCell({ row }: CellContext<typeof features, Recording, string>) {
   return (
     <div className="flex min-w-0 flex-col">
       <Table.Title>{getRecordingDisplayTitle(row.original)}</Table.Title>
@@ -33,19 +43,19 @@ function TitleCell({ row }: CellContext<Recording, string>) {
   );
 }
 
-function PlatformCell({ getValue }: CellContext<Recording, Recording['platform']>) {
+function PlatformCell({ getValue }: CellContext<typeof features, Recording, Recording['platform']>) {
   return <PlatformBadge platform={getValue()} />;
 }
 
-function StatusCell({ getValue }: CellContext<Recording, Recording['status']>) {
+function StatusCell({ getValue }: CellContext<typeof features, Recording, Recording['status']>) {
   return <Table.Badge variant={STATUS_VARIANTS[getValue()]}>{STATUS_LABELS[getValue()]}</Table.Badge>;
 }
 
-function StartedAtCell({ getValue }: CellContext<Recording, Recording['startedAt']>) {
+function StartedAtCell({ getValue }: CellContext<typeof features, Recording, Recording['startedAt']>) {
   return <Table.Time value={getValue()} />;
 }
 
-function DurationCell({ row, table }: CellContext<Recording, unknown>) {
+function DurationCell({ row, table }: CellContext<typeof features, Recording, unknown>) {
   const { activeRecordingId } = table.options.meta as RecordingsTableMeta;
   const recording = row.original;
   if (recording.id === activeRecordingId) {
@@ -54,7 +64,7 @@ function DurationCell({ row, table }: CellContext<Recording, unknown>) {
   return <Table.Duration>{formatClockDuration(recording.durationMs)}</Table.Duration>;
 }
 
-function CostCell({ getValue }: CellContext<Recording, Recording['costUsd']>) {
+function CostCell({ getValue }: CellContext<typeof features, Recording, Recording['costUsd']>) {
   return <Table.Money value={getValue()} />;
 }
 
@@ -62,7 +72,7 @@ function ActionsHeader() {
   return <div className="pr-1 text-right">Actions</div>;
 }
 
-function ActionsCell({ row, table }: CellContext<Recording, unknown>) {
+function ActionsCell({ row, table }: CellContext<typeof features, Recording, unknown>) {
   const { activeRecordingId, onDelete } = table.options.meta as RecordingsTableMeta;
 
   return (
@@ -85,7 +95,7 @@ function ActionsCell({ row, table }: CellContext<Recording, unknown>) {
   );
 }
 
-const columns = [
+const columns = columnHelper.columns([
   columnHelper.accessor('title', { header: 'Title', cell: TitleCell }),
   columnHelper.accessor('platform', { header: 'Platform', cell: PlatformCell }),
   columnHelper.accessor('status', { header: 'Capturing', cell: StatusCell }),
@@ -93,7 +103,7 @@ const columns = [
   columnHelper.display({ id: 'duration', header: 'Duration', cell: DurationCell }),
   columnHelper.accessor('costUsd', { header: 'Cost', cell: CostCell }),
   columnHelper.display({ id: 'actions', header: ActionsHeader, cell: ActionsCell }),
-];
+]);
 
 interface RecordingsTableProps {
   recordings: Recording[];
@@ -112,15 +122,14 @@ export function RecordingsTable({
   onDelete,
   onNavigate,
 }: RecordingsTableProps) {
-  const table = useReactTable({
+  const table = useTable({
+    features,
     data: recordings,
     columns,
     getRowId: (row) => row.id,
     state: { sorting },
     onSortingChange,
-    meta: { activeRecordingId, onDelete } satisfies RecordingsTableMeta,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+    meta: { activeRecordingId, onDelete },
   });
 
   return (
@@ -137,7 +146,7 @@ export function RecordingsTable({
                       ? 'w-full max-w-xs min-w-48 px-4 py-2 font-medium'
                       : 'px-4 py-2 font-medium whitespace-nowrap'
                   }>
-                  {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                  {header.isPlaceholder ? null : <table.FlexRender header={header} />}
                 </Table.Head>
               ))}
             </Table.Row>
@@ -157,13 +166,13 @@ export function RecordingsTable({
           ) : (
             table.getRowModel().rows.map((row) => (
               <Table.Row key={row.id} className="cursor-pointer" onClick={() => onNavigate(row.original.id)}>
-                {row.getVisibleCells().map((cell) => (
+                {row.getAllCells().map((cell) => (
                   <Table.Cell
                     key={cell.id}
                     className={
                       cell.column.id === 'title' ? 'w-full max-w-xs min-w-48 px-4 py-3' : 'px-4 py-3 whitespace-nowrap'
                     }>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    <table.FlexRender cell={cell} />
                   </Table.Cell>
                 ))}
               </Table.Row>
