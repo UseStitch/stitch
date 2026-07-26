@@ -188,6 +188,13 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
     },
   });
 
+  // Read through a ref in the hydration effect below so `form` (recreated each
+  // render by useForm) doesn't need to sit in that effect's dependency array.
+  const formRef = React.useRef(form);
+  React.useEffect(() => {
+    formRef.current = form;
+  });
+
   React.useEffect(() => {
     if (!meta || enabledAuthMethods.length === 0) return;
 
@@ -195,7 +202,7 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
       hydrationRef.current?.providerId !== provider.id || hydrationRef.current.enabled !== provider.enabled;
     if (providerChanged) {
       setActiveTab(defaultMethod);
-      form.reset(EMPTY_PROVIDER_FORM);
+      formRef.current.reset(EMPTY_PROVIDER_FORM);
       hydrationRef.current = { providerId: provider.id, enabled: provider.enabled, hydrated: !provider.enabled };
     }
 
@@ -206,12 +213,12 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
       : null;
     const activeMethod = hydrated?.activeMethod ?? defaultMethod;
     setActiveTab(activeMethod);
-    form.reset({
+    formRef.current.reset({
       fieldsByMethod: hydrated?.activeMethod ? { [hydrated.activeMethod]: hydrated.authFields } : {},
       extraFields: hydrated?.extraFields ?? {},
     });
     hydrationRef.current = { providerId: provider.id, enabled: provider.enabled, hydrated: true };
-  }, [defaultMethod, enabledAuthMethods, existingConfig, form, meta, provider.enabled, provider.id]);
+  }, [defaultMethod, enabledAuthMethods, existingConfig, meta, provider.enabled, provider.id]);
 
   if (!meta || enabledAuthMethods.length === 0) return null;
 
