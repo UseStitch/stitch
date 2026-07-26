@@ -2,23 +2,13 @@
 /* Scoped to .prose containers used in chat message bubbles.                    */
 /* All colors reference existing theme tokens — no new tokens needed.           */
 
-/* ─── Shiki dual-theme dark mode activation ─────────────────────────────────── */
-/* Shiki generates CSS variables for the dark theme but needs CSS to activate   */
-/* them. The app uses class-based dark mode (.dark on root).                    */
-
-.dark .shiki,
-.dark .shiki span {
-  color: var(--shiki-dark) !important;
-  background-color: var(--shiki-dark-bg) !important;
-  font-style: var(--shiki-dark-font-style) !important;
-  font-weight: var(--shiki-dark-font-weight) !important;
-}
-
 /* ─── Code blocks (pre > code) ──────────────────────────────────────────────── */
-/* Shiki outputs <pre class="shiki ..."> with inline background colors.         */
-/* We add container styling: rounded corners, padding, border, overflow.        */
+/* Theme tokens own the container so the plain `pre` shown while streaming is    */
+/* identical to Shiki's; Shiki contributes only token colors.                   */
 
 .prose pre {
+  background-color: var(--muted);
+  color: var(--foreground);
   border-radius: var(--radius);
   border: 1px solid var(--border);
   padding: 1rem;
@@ -37,6 +27,18 @@
   font-weight: inherit;
   color: inherit;
   border-radius: 0;
+}
+
+/* ─── Shiki dual-theme dark mode activation ─────────────────────────────────── */
+/* Dark mode is class-based, not a media query, so the swap happens here. The    */
+/* var() fallbacks are required: an undefined custom property makes the whole    */
+/* declaration invalid at computed-value time.                                  */
+
+.dark .prose .shiki span {
+  color: var(--shiki-dark, inherit) !important;
+  font-style: var(--shiki-dark-font-style, normal) !important;
+  font-weight: var(--shiki-dark-font-weight, inherit) !important;
+  text-decoration: var(--shiki-dark-text-decoration, none) !important;
 }
 
 /* ─── Inline code (:not(pre) > code) ────────────────────────────────────────── */

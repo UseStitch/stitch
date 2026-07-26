@@ -2,6 +2,7 @@
   "name": "default",
   "label": "Default",
   "radius": "0.625rem",
+  "code": { "light": "github-light", "dark": "github-dark" },
   "light": {
     "background": "oklch(1 0 0)",
     "foreground": "oklch(0.145 0 0)",
