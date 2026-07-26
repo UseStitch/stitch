@@ -1,4 +1,5 @@
-import type { BundledLanguage, Highlighter } from 'shiki';
+import type { CodeTheme } from '@/lib/theme';
+import type { BundledLanguage, Highlighter, ShikiTransformer } from 'shiki';
 
 export type HighlightedCodeHast = ReturnType<Highlighter['codeToHast']>;
 
@@ -146,3 +147,30 @@ function normalizeLanguage(raw: string): SupportedLanguage {
 export { normalizeLanguage };
 
 export { getHighlighterPromise } from '@/lib/shiki-highlighter';
+
+/** Drops Shiki's inline background/foreground so the theme tokens in CSS own the container. */
+const STRIP_ROOT_COLORS: ShikiTransformer = {
+  pre(node) {
+    delete node.properties.style;
+    node.properties.class = `${String(node.properties.class ?? '')} thin-scrollbar`.trim();
+  },
+};
+
+export function highlightToHast(
+  highlighter: Highlighter,
+  code: string,
+  language: SupportedLanguage,
+  themes: CodeTheme,
+): HighlightedCodeHast {
+  const options = { themes, transformers: [STRIP_ROOT_COLORS] };
+
+  try {
+    return highlighter.codeToHast(code, { ...options, lang: language });
+  } catch (error) {
+    console.warn(
+      `Code highlighting failed for language "${language}", falling back to plain text.`,
+      error instanceof Error ? error.message : error,
+    );
+    return highlighter.codeToHast(code, { ...options, lang: 'text' });
+  }
+}

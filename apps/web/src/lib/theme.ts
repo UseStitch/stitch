@@ -50,7 +50,17 @@ const THEME_TOKEN_KEYS = [
 type ThemeTokenKey = (typeof THEME_TOKEN_KEYS)[number];
 export type ThemeTokens = Record<ThemeTokenKey, string>;
 
-type ThemeDefinition = { name: string; label: string; radius: string; light: ThemeTokens; dark: ThemeTokens };
+/** Shiki bundled theme ids for each appearance mode. */
+export type CodeTheme = { light: string; dark: string };
+
+type ThemeDefinition = {
+  name: string;
+  label: string;
+  radius: string;
+  code: CodeTheme;
+  light: ThemeTokens;
+  dark: ThemeTokens;
+};
 
 export const THEMES: ThemeDefinition[] = [
   defaultTheme satisfies ThemeDefinition,
@@ -101,6 +111,26 @@ export function injectThemeCss(theme: ThemeDefinition): void {
   }
   el.textContent = buildThemeCss(theme);
   cacheSplashBackground(theme);
+  setCodeTheme(theme.code);
+}
+
+// Published from injectThemeCss so highlighting can never disagree with the token CSS on the page.
+let currentCodeTheme: CodeTheme = getTheme(DEFAULT_THEME).code;
+const codeThemeListeners = new Set<() => void>();
+
+function setCodeTheme(code: CodeTheme): void {
+  if (currentCodeTheme === code) return;
+  currentCodeTheme = code;
+  for (const listener of codeThemeListeners) listener();
+}
+
+export function getCodeTheme(): CodeTheme {
+  return currentCodeTheme;
+}
+
+export function subscribeCodeTheme(listener: () => void): () => void {
+  codeThemeListeners.add(listener);
+  return () => codeThemeListeners.delete(listener);
 }
 
 export function applyAppearanceMode(mode: AppearanceMode): void {

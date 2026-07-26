@@ -1,61 +1,40 @@
-import { createHighlighter, type Highlighter } from 'shiki';
+import { createHighlighter, type BundledLanguage, type BundledTheme, type Highlighter } from 'shiki';
 
-let sharedHighlighter: Highlighter | null = null;
-let currentThemes: string[] = [];
-let currentLangs: string[] = [];
+/**
+ * Never disposed: `use()` callers hold resolved promises, so replacing the instance would
+ * hand them a disposed highlighter that throws on the next render.
+ */
+let highlighterPromise: Promise<Highlighter> | null = null;
 
-const highlighterPromiseCache = new Map<string, Promise<Highlighter>>();
+const readyCache = new Map<string, Promise<Highlighter>>();
 
-async function getSharedHighlighter(themes: string[], langs: string[]): Promise<Highlighter> {
-  const cacheKey = `${themes.toSorted().join(',')}-${langs.toSorted().join(',')}`;
+// Shiki resolves plain text without a grammar, and `loadLanguage('text')` throws.
+const PLAIN_TEXT_LANGUAGES = new Set(['text', 'plaintext', 'txt']);
 
-  const cached = highlighterPromiseCache.get(cacheKey);
-  if (cached) return cached;
-
-  const promise = (async () => {
-    const currentThemeSet = new Set(currentThemes);
-    const themesChanged =
-      sharedHighlighter === null ||
-      themes.length !== currentThemes.length ||
-      themes.some((t) => !currentThemeSet.has(t));
-
-    const currentLangSet = new Set(currentLangs);
-    const langsChanged =
-      sharedHighlighter === null || langs.length !== currentLangs.length || langs.some((l) => !currentLangSet.has(l));
-
-    if (sharedHighlighter && !themesChanged && !langsChanged) {
-      return sharedHighlighter;
-    }
-
-    const newThemes = themesChanged ? themes : currentThemes;
-    const newLangs = langsChanged ? langs : currentLangs;
-
-    if (sharedHighlighter) {
-      sharedHighlighter.dispose();
-    }
-
-    sharedHighlighter = await createHighlighter({ themes: newThemes, langs: newLangs });
-
-    currentThemes = newThemes;
-    currentLangs = newLangs;
-
-    return sharedHighlighter;
-  })();
-
-  highlighterPromiseCache.set(cacheKey, promise);
-  return promise;
+function getHighlighter(): Promise<Highlighter> {
+  highlighterPromise ??= createHighlighter({ themes: [], langs: [] });
+  return highlighterPromise;
 }
 
-export function getHighlighterPromise(language: string): Promise<Highlighter> {
-  const themes = ['github-light', 'github-dark'];
-  const langs = [language];
+async function loadInto(language: string, themes: readonly string[]): Promise<Highlighter> {
+  const highlighter = await getHighlighter();
 
-  const cacheKey = `${themes.join(',')}-${langs.join(',')}`;
+  await Promise.all([
+    PLAIN_TEXT_LANGUAGES.has(language) ? Promise.resolve() : highlighter.loadLanguage(language as BundledLanguage),
+    ...themes.map((theme) => highlighter.loadTheme(theme as BundledTheme)),
+  ]);
 
-  const cached = highlighterPromiseCache.get(cacheKey);
+  return highlighter;
+}
+
+/** Stable promise per language/theme pair so React's `use()` sees a consistent reference. */
+export function getHighlighterPromise(language: string, themes: readonly string[]): Promise<Highlighter> {
+  const cacheKey = `${language}|${themes.join(',')}`;
+
+  const cached = readyCache.get(cacheKey);
   if (cached) return cached;
 
-  const promise = getSharedHighlighter(themes, langs);
-  highlighterPromiseCache.set(cacheKey, promise);
+  const promise = loadInto(language, themes);
+  readyCache.set(cacheKey, promise);
   return promise;
 }

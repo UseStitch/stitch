@@ -2,23 +2,13 @@
 /* Scoped to .prose containers used in chat message bubbles.                    */
 /* All colors reference existing theme tokens — no new tokens needed.           */
 
-/* ─── Shiki dual-theme dark mode activation ─────────────────────────────────── */
-/* Shiki generates CSS variables for the dark theme but needs CSS to activate   */
-/* them. The app uses class-based dark mode (.dark on root).                    */
-
-.dark .shiki,
-.dark .shiki span {
-  color: var(--shiki-dark) !important;
-  background-color: var(--shiki-dark-bg) !important;
-  font-style: var(--shiki-dark-font-style) !important;
-  font-weight: var(--shiki-dark-font-weight) !important;
-}
-
 /* ─── Code blocks (pre > code) ──────────────────────────────────────────────── */
-/* Shiki outputs <pre class="shiki ..."> with inline background colors.         */
-/* We add container styling: rounded corners, padding, border, overflow.        */
+/* Theme tokens own the container so the plain `pre` shown while streaming is    */
+/* identical to Shiki's; Shiki contributes only token colors.                   */
 
 .prose pre {
+  background-color: var(--muted);
+  color: var(--foreground);
   border-radius: var(--radius);
   border: 1px solid var(--border);
   padding: 1rem;
@@ -37,6 +27,18 @@
   font-weight: inherit;
   color: inherit;
   border-radius: 0;
+}
+
+/* ─── Shiki dual-theme dark mode activation ─────────────────────────────────── */
+/* Dark mode is class-based, not a media query, so the swap happens here. The    */
+/* var() fallbacks are required: an undefined custom property makes the whole    */
+/* declaration invalid at computed-value time.                                  */
+
+.dark .prose .shiki span {
+  color: var(--shiki-dark, inherit) !important;
+  font-style: var(--shiki-dark-font-style, normal) !important;
+  font-weight: var(--shiki-dark-font-weight, inherit) !important;
+  text-decoration: var(--shiki-dark-text-decoration, none) !important;
 }
 
 /* ─── Inline code (:not(pre) > code) ────────────────────────────────────────── */
@@ -99,8 +101,28 @@
   color: var(--foreground);
 }
 
+.prose :where(h5) {
+  font-size: 0.9375em;
+  font-weight: 600;
+  margin-top: 0.75em;
+  margin-bottom: 0.25em;
+  line-height: 1.4;
+  color: var(--foreground);
+}
+
+/* h6 drops to muted rather than shrinking further — 6 legible steps is not possible. */
+.prose :where(h6) {
+  font-size: 0.875em;
+  font-weight: 600;
+  margin-top: 0.75em;
+  margin-bottom: 0.25em;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  color: var(--muted-foreground);
+}
+
 /* Remove top margin on first heading in a message */
-.prose :where(h1, h2, h3, h4):first-child {
+.prose :where(h1, h2, h3, h4, h5, h6):first-child {
   margin-top: 0;
 }
 
@@ -158,6 +180,36 @@
   content: none;
 }
 
+/* GitHub-style callouts retain blockquote semantics while using semantic colors. */
+.prose :where(.markdown-callout) {
+  --markdown-callout-color: var(--info);
+  border-left-color: var(--markdown-callout-color);
+  background-color: color-mix(in oklch, var(--markdown-callout-color) 10%, transparent);
+  color: var(--foreground);
+  font-style: normal;
+}
+
+.prose :where(.markdown-callout-tip) {
+  --markdown-callout-color: var(--success);
+}
+
+.prose :where(.markdown-callout-important) {
+  --markdown-callout-color: var(--primary);
+}
+
+.prose :where(.markdown-callout-warning) {
+  --markdown-callout-color: var(--warning);
+}
+
+.prose :where(.markdown-callout-caution) {
+  --markdown-callout-color: var(--destructive);
+}
+
+.prose :where(.markdown-callout-title) {
+  color: var(--markdown-callout-color);
+  font-weight: 600;
+}
+
 /* ─── Links ─────────────────────────────────────────────────────────────────── */
 
 .prose :where(a) {
@@ -212,7 +264,9 @@
 /* ─── Horizontal rules ──────────────────────────────────────────────────────── */
 
 .prose :where(hr) {
-  border-color: color-mix(in srgb, var(--border) 40%, transparent);
+  height: 1px;
+  border: 0;
+  background-color: var(--border);
   margin-top: 1.5em;
   margin-bottom: 1.5em;
 }
@@ -273,6 +327,60 @@
   color: var(--muted-foreground);
 }
 
+/* Basic HTML and lightweight markdown extensions. */
+.prose :where(mark) {
+  border-radius: var(--radius-sm);
+  background-color: color-mix(in oklch, var(--warning) 28%, transparent);
+  color: var(--foreground);
+  padding: 0.05em 0.2em;
+}
+
+.prose :where(sub, sup) {
+  font-size: 0.75em;
+  line-height: 0;
+}
+
+.prose :where(abbr[title]) {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+.prose :where(kbd) {
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
+  background-color: var(--muted);
+  color: var(--foreground);
+  padding: 0.1em 0.35em;
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+}
+
+.prose :where(small) {
+  color: var(--muted-foreground);
+}
+
+.prose :where(ins) {
+  text-decoration-color: var(--success);
+  text-decoration-thickness: 2px;
+}
+
+.prose :where(dl) {
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+
+.prose :where(dt) {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.prose :where(dd) {
+  margin-left: 1.25em;
+  color: var(--muted-foreground);
+}
+
 /* ─── Task list checkboxes (GFM) ────────────────────────────────────────────── */
 /* remark-gfm generates <ul> with .contains-task-list and <li> with             */
 /* .task-list-item containing <input type="checkbox">.                          */
@@ -323,17 +431,16 @@
   background-color: var(--primary);
 }
 
-/* Checkmark: matches Lucide CheckIcon stroke style */
+/* Checkmark: Lucide CheckIcon at size-3.5, centered like <Checkbox /> */
 .prose :where(.task-list-item > input[type='checkbox']:checked)::after {
   content: '';
   position: absolute;
-  left: 3px;
-  top: 1px;
-  width: 5px;
-  height: 8px;
-  border: solid var(--primary-foreground);
-  border-width: 0 1.5px 1.5px 0;
-  transform: rotate(45deg);
+  inset: 0;
+  background-color: var(--primary-foreground);
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23fff'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M20%206%209%2017l-5-5'/%3E%3C/svg%3E");
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: 0.875rem;
 }
 
 .prose :where(.task-list-item > p) {

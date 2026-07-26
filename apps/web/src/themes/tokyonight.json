@@ -2,6 +2,7 @@
   "name": "tokyonight",
   "label": "Tokyo Night",
   "radius": "0.5rem",
+  "code": { "light": "one-light", "dark": "tokyo-night" },
   "light": {
     "background": "oklch(0.913 0.002 277.2)",
     "foreground": "oklch(0.322 0.031 270.2)",

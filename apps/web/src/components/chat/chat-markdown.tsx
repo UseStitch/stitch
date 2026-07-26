@@ -5,22 +5,29 @@ import { Children, Suspense, isValidElement, use, useEffect, useRef, useState } 
 import ReactMarkdown from 'react-markdown';
 import { Fragment, jsx, jsxs } from 'react/jsx-runtime';
 import rehypeKatex from 'rehype-katex';
+import rehypeRaw from 'rehype-raw';
+import rehypeSanitize from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
 import { Button } from '@/components/ui/button';
+import { useCodeTheme } from '@/hooks/ui/use-code-theme';
 import {
   getHighlighterPromise,
-  type HighlightedCodeHast,
+  highlightToHast,
   type SupportedLanguage,
   normalizeLanguage,
   highlightedCodeCache,
   createHighlightCacheKey,
   estimateHighlightedSize,
 } from '@/lib/code-highlighting';
+import { remarkGithubCallouts } from '@/lib/markdown-callouts';
+import { rehypeNormalizeUrlProtocols } from '@/lib/markdown-normalize-urls';
+import { markdownSanitizeSchema } from '@/lib/markdown-sanitize-schema';
+import { remarkTextMarks } from '@/lib/markdown-text-marks';
 import { normalizeInlineMath } from '@/lib/normalize-inline-math';
 import { cn } from '@/lib/utils';
-import type { Components, ExtraProps } from 'react-markdown';
+import type { Components, ExtraProps, Options } from 'react-markdown';
 
 const JSX_RUNTIME = { Fragment, jsx, jsxs };
 
@@ -122,53 +129,27 @@ function MarkdownCodeBlock({ code, children }: { code: string; children: React.R
 interface SuspenseShikiCodeBlockProps {
   className: string | undefined;
   code: string;
-  isStreaming: boolean;
 }
 
-function SuspenseShikiCodeBlock({ className, code, isStreaming }: SuspenseShikiCodeBlockProps) {
+function SuspenseShikiCodeBlock({ className, code }: SuspenseShikiCodeBlockProps) {
+  const codeTheme = useCodeTheme();
   const language = extractFenceLanguage(className);
-  const cacheKey = createHighlightCacheKey(code, language, 'dual');
-  const cachedHighlightedHast = !isStreaming ? (highlightedCodeCache.get(cacheKey) ?? null) : null;
+  const cacheKey = createHighlightCacheKey(code, language, `${codeTheme.light}-${codeTheme.dark}`);
+  const cachedHighlightedHast = highlightedCodeCache.get(cacheKey) ?? null;
 
   if (cachedHighlightedHast !== null) {
-    return (
-      <div className="chat-markdown-shiki overflow-x-auto rounded-lg bg-muted/50 p-3 text-sm">
-        {toJsxRuntime(cachedHighlightedHast, JSX_RUNTIME)}
-      </div>
-    );
+    return toJsxRuntime(cachedHighlightedHast, JSX_RUNTIME);
   }
 
-  const highlighter = use(getHighlighterPromise(language));
+  const highlighter = use(getHighlighterPromise(language, [codeTheme.light, codeTheme.dark]));
+  const highlightedHast = highlightToHast(highlighter, code, language, codeTheme);
 
-  let highlightedHast: HighlightedCodeHast;
-  try {
-    highlightedHast = highlighter.codeToHast(code, {
-      lang: language as SupportedLanguage,
-      themes: { light: 'github-light', dark: 'github-dark' },
-    });
-  } catch (error) {
-    console.warn(
-      `Code highlighting failed for language "${language}", falling back to plain text.`,
-      error instanceof Error ? error.message : error,
-    );
-    highlightedHast = highlighter.codeToHast(code, {
-      lang: 'text',
-      themes: { light: 'github-light', dark: 'github-dark' },
-    });
-  }
+  highlightedCodeCache.set(cacheKey, highlightedHast, estimateHighlightedSize(highlightedHast, code));
 
-  if (!isStreaming) {
-    highlightedCodeCache.set(cacheKey, highlightedHast, estimateHighlightedSize(highlightedHast, code));
-  }
-
-  return (
-    <div className="chat-markdown-shiki overflow-x-auto rounded-lg bg-muted/50 p-3 text-sm">
-      {toJsxRuntime(highlightedHast, JSX_RUNTIME)}
-    </div>
-  );
+  return toJsxRuntime(highlightedHast, JSX_RUNTIME);
 }
 
-function extractFenceLanguage(className: string | undefined): string {
+function extractFenceLanguage(className: string | undefined): SupportedLanguage {
   const match = className?.match(/(?:^|\s)language-([^\s]+)/);
   const raw = match?.[1] ?? 'text';
   return normalizeLanguage(raw);
@@ -290,12 +271,18 @@ function MarkdownImage({ alt, ...props }: React.ImgHTMLAttributes<HTMLImageEleme
 function StreamingMarkdownPre({ node: _node, children, ...props }: MarkdownPreProps) {
   const codeBlock = extractCodeBlock(children);
   if (!codeBlock) {
-    return <pre {...props}>{children}</pre>;
+    return (
+      <pre {...props} className={cn('thin-scrollbar', props.className)}>
+        {children}
+      </pre>
+    );
   }
 
   return (
     <MarkdownCodeBlock code={codeBlock.code}>
-      <pre {...props}>{children}</pre>
+      <pre {...props} className={cn('thin-scrollbar', props.className)}>
+        {children}
+      </pre>
     </MarkdownCodeBlock>
   );
 }
@@ -303,14 +290,25 @@ function StreamingMarkdownPre({ node: _node, children, ...props }: MarkdownPrePr
 function HighlightedMarkdownPre({ node: _node, children, ...props }: MarkdownPreProps) {
   const codeBlock = extractCodeBlock(children);
   if (!codeBlock) {
-    return <pre {...props}>{children}</pre>;
+    return (
+      <pre {...props} className={cn('thin-scrollbar', props.className)}>
+        {children}
+      </pre>
+    );
   }
+
+  // Styled identically to Shiki's output, so only token colors appear once highlighting resolves.
+  const plainFallback = (
+    <pre {...props} className={cn('thin-scrollbar', props.className)}>
+      {children}
+    </pre>
+  );
 
   return (
     <MarkdownCodeBlock code={codeBlock.code}>
-      <CodeBlockErrorBoundary fallback={<pre {...props}>{children}</pre>}>
-        <Suspense fallback={<pre {...props}>{children}</pre>}>
-          <SuspenseShikiCodeBlock className={codeBlock.className} code={codeBlock.code} isStreaming={false} />
+      <CodeBlockErrorBoundary fallback={plainFallback}>
+        <Suspense fallback={plainFallback}>
+          <SuspenseShikiCodeBlock className={codeBlock.className} code={codeBlock.code} />
         </Suspense>
       </CodeBlockErrorBoundary>
     </MarkdownCodeBlock>
@@ -320,20 +318,42 @@ function HighlightedMarkdownPre({ node: _node, children, ...props }: MarkdownPre
 const STREAMING_COMPONENTS: Components = { img: MarkdownImage, a: MarkdownAnchor, pre: StreamingMarkdownPre };
 const HIGHLIGHTED_COMPONENTS: Components = { img: MarkdownImage, a: MarkdownAnchor, pre: HighlightedMarkdownPre };
 
+// `singleTilde: false` frees `~sub~` for remarkTextMarks; `~~strike~~` is unaffected.
+const GFM_PLUGIN: [typeof remarkGfm, { singleTilde: false }] = [remarkGfm, { singleTilde: false }];
+
+const STREAMING_REMARK_PLUGINS: Options['remarkPlugins'] = [
+  GFM_PLUGIN,
+  remarkGithubCallouts,
+  remarkTextMarks,
+  remarkStreamingSingleDollarLatexCommands,
+];
+
+const REMARK_PLUGINS: Options['remarkPlugins'] = [
+  GFM_PLUGIN,
+  remarkGithubCallouts,
+  remarkTextMarks,
+  [remarkMath, { singleDollarTextMath: false }],
+];
+
+/** Raw HTML must be parsed before it can be sanitized, and sanitizing must not touch KaTeX output. */
+const REHYPE_PLUGINS: Options['rehypePlugins'] = [
+  rehypeRaw,
+  rehypeNormalizeUrlProtocols,
+  [rehypeSanitize, markdownSanitizeSchema],
+  rehypeKatex,
+];
+
+/** Streaming still sanitizes HTML but skips the more expensive KaTeX typesetting pass. */
+const STREAMING_REHYPE_PLUGINS: Options['rehypePlugins'] = [
+  rehypeRaw,
+  rehypeNormalizeUrlProtocols,
+  [rehypeSanitize, markdownSanitizeSchema],
+];
+
 export default function ChatMarkdown({ text, className, isStreaming = false }: ChatMarkdownProps) {
   const markdownComponents = isStreaming ? STREAMING_COMPONENTS : HIGHLIGHTED_COMPONENTS;
-
-  // During streaming: use remarkGfm only — skip remark-math + rehype-katex (heavy)
-  const remarkPlugins = (() => {
-    if (isStreaming) return [remarkGfm, remarkStreamingSingleDollarLatexCommands];
-
-    const remarkMathWithoutSingleDollar = [remarkMath, { singleDollarTextMath: false }] as [
-      typeof remarkMath,
-      { singleDollarTextMath: false },
-    ];
-    return [remarkGfm, remarkMathWithoutSingleDollar];
-  })();
-  const rehypePlugins = isStreaming ? [] : [rehypeKatex];
+  const remarkPlugins = isStreaming ? STREAMING_REMARK_PLUGINS : REMARK_PLUGINS;
+  const rehypePlugins = isStreaming ? STREAMING_REHYPE_PLUGINS : REHYPE_PLUGINS;
   const source = isStreaming ? text : normalizeInlineMath(text);
 
   return (

@@ -2,6 +2,7 @@
   "name": "dracula",
   "label": "Dracula",
   "radius": "0.625rem",
+  "code": { "light": "catppuccin-latte", "dark": "dracula" },
   "light": {
     "background": "oklch(0.977 0.002 106.5)",
     "foreground": "oklch(0.247 0.015 284.0)",

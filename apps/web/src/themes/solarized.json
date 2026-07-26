@@ -2,6 +2,7 @@
   "name": "solarized",
   "label": "Solarized",
   "radius": "0.5rem",
+  "code": { "light": "solarized-light", "dark": "solarized-dark" },
   "light": {
     "background": "oklch(0.974 0.008 90.1)",
     "foreground": "oklch(0.454 0.014 219.1)",
