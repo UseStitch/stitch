@@ -13,7 +13,7 @@ import type { Delete, PhrasingContent, Root, Text } from 'mdast';
  */
 
 const MARK_PATTERN = /==(?<mark>[^\s=][^=\n]*?)==|~(?<sub>[^\s~]{1,24})~|\^(?<sup>[^\s^]{1,24})\^/g;
-const ENTIRE_MATH_SPAN = /^(?:\$\$[^\n]+\$\$|\$[^$\n]+\$)$/;
+const CONTAINS_MATH_SPAN = /(?:\$\$[^\n]+\$\$|\$[^$\n]+\$)/;
 
 interface MarkDetails {
   node: Delete;
@@ -66,7 +66,7 @@ function splitMarks(node: Text, raw: string): PhrasingContent[] | undefined {
     const rawMark = findRawMark(raw, details.delimiter, rawIndex);
     if (rawMark === undefined) continue;
     rawIndex = rawMark.end;
-    if (rawMark.escaped || (details.tagName === 'mark' && ENTIRE_MATH_SPAN.test(details.value))) continue;
+    if (rawMark.escaped || (details.tagName === 'mark' && CONTAINS_MATH_SPAN.test(details.value))) continue;
 
     if (match.index > lastIndex) {
       nodes.push({ type: 'text', value: node.value.slice(lastIndex, match.index) });

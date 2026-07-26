@@ -177,4 +177,14 @@ describe('ChatMarkdown', () => {
 
     expect(html).toContain('<mark>cost $5</mark>');
   });
+
+  test('does not highlight text containing embedded math while streaming', () => {
+    const text = '==before $$x^2$$ after==';
+    const streamingHtml = renderToStaticMarkup(<ChatMarkdown text={text} isStreaming />);
+    const completedHtml = renderToStaticMarkup(<ChatMarkdown text={text} />);
+
+    expect(streamingHtml).not.toContain('<mark>');
+    expect(completedHtml).toContain('katex');
+    expect(completedHtml).not.toContain('<mark>');
+  });
 });
