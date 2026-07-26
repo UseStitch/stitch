@@ -135,10 +135,10 @@ export function MessageList({
         </div>
       )}
 
-      {nonVirtualizedRows.map((row, index) => {
+      {nonVirtualizedRows.map((row) => {
         const rowKey =
           row.kind === 'streaming' || row.kind === 'error' || row.kind === 'load-more'
-            ? `tail-${row.kind}-${index}`
+            ? `tail-${row.kind}`
             : `tail-${row.id}`;
 
         return (
