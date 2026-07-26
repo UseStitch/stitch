@@ -156,6 +156,12 @@ describe('ChatMarkdown', () => {
     expect(html).not.toContain('<mark>');
   });
 
+  test('respects escape parity for text-mark delimiters', () => {
+    const html = renderToStaticMarkup(<ChatMarkdown text={String.raw`\\~sub~`} />);
+
+    expect(html).toContain('\\<sub>sub</sub>');
+  });
+
   test('does not highlight delimiters around math while streaming', () => {
     const streamingHtml = renderToStaticMarkup(<ChatMarkdown text="==$x^2$==" isStreaming />);
     const completedHtml = renderToStaticMarkup(<ChatMarkdown text="==$x^2$==" />);
@@ -164,5 +170,11 @@ describe('ChatMarkdown', () => {
     expect(streamingHtml).not.toContain('<mark>');
     expect(completedHtml).toContain('katex');
     expect(completedHtml).not.toContain('<mark>');
+  });
+
+  test('highlights ordinary currency text', () => {
+    const html = renderToStaticMarkup(<ChatMarkdown text="==cost $5==" />);
+
+    expect(html).toContain('<mark>cost $5</mark>');
   });
 });

@@ -13,6 +13,7 @@ import type { Delete, PhrasingContent, Root, Text } from 'mdast';
  */
 
 const MARK_PATTERN = /==(?<mark>[^\s=][^=\n]*?)==|~(?<sub>[^\s~]{1,24})~|\^(?<sup>[^\s^]{1,24})\^/g;
+const ENTIRE_MATH_SPAN = /^(?:\$\$[^\n]+\$\$|\$[^$\n]+\$)$/;
 
 interface MarkDetails {
   node: Delete;
@@ -34,22 +35,23 @@ function toMarkDetails(groups: Record<string, string | undefined>): MarkDetails 
   return undefined;
 }
 
-function findRawMark(raw: string, delimiter: string, value: string, fromIndex: number) {
-  const candidates = [
-    { value: `${delimiter}${value}${delimiter}`, escaped: false },
-    { value: `\\${delimiter}${value}${delimiter}`, escaped: true },
-    { value: `${delimiter}${value}\\${delimiter}`, escaped: true },
-    { value: `\\${delimiter}${value}\\${delimiter}`, escaped: true },
-  ];
-  let found: { index: number; length: number; escaped: boolean } | undefined;
+function precedingBackslashes(raw: string, index: number): number {
+  let count = 0;
+  while (raw[index - count - 1] === '\\') count++;
+  return count;
+}
 
-  for (const candidate of candidates) {
-    const index = raw.indexOf(candidate.value, fromIndex);
-    if (index === -1 || (found !== undefined && index >= found.index)) continue;
-    found = { index, length: candidate.value.length, escaped: candidate.escaped };
-  }
+function findRawMark(raw: string, delimiter: string, fromIndex: number) {
+  const opening = raw.indexOf(delimiter, fromIndex);
+  if (opening === -1) return undefined;
 
-  return found;
+  const closing = raw.indexOf(delimiter, opening + delimiter.length);
+  if (closing === -1) return undefined;
+
+  return {
+    end: closing + delimiter.length,
+    escaped: precedingBackslashes(raw, opening) % 2 === 1 || precedingBackslashes(raw, closing) % 2 === 1,
+  };
 }
 
 function splitMarks(node: Text, raw: string): PhrasingContent[] | undefined {
@@ -61,10 +63,10 @@ function splitMarks(node: Text, raw: string): PhrasingContent[] | undefined {
     const details = toMarkDetails(match.groups ?? {});
     if (details === undefined) continue;
 
-    const rawMark = findRawMark(raw, details.delimiter, details.value, rawIndex);
+    const rawMark = findRawMark(raw, details.delimiter, rawIndex);
     if (rawMark === undefined) continue;
-    rawIndex = rawMark.index + rawMark.length;
-    if (rawMark.escaped || (details.tagName === 'mark' && details.value.includes('$'))) continue;
+    rawIndex = rawMark.end;
+    if (rawMark.escaped || (details.tagName === 'mark' && ENTIRE_MATH_SPAN.test(details.value))) continue;
 
     if (match.index > lastIndex) {
       nodes.push({ type: 'text', value: node.value.slice(lastIndex, match.index) });
