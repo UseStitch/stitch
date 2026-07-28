@@ -57,7 +57,7 @@
         "@tanstack/router/route-param-names": "error",
         "stitch/no-arbitrary-design-values": "error",
         "stitch/no-component-style-overrides": "off",
-        "stitch/no-direct-ui-primitives": "off",
+        "stitch/no-direct-ui-primitives": "error",
         "stitch/no-native-button": "error",
         "stitch/no-native-form-controls": "off",
         "stitch/no-raw-tailwind-colors": "off",
