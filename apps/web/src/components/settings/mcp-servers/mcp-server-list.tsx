@@ -141,7 +141,6 @@ export function McpServerList({ onAdd, onPreview }: { onAdd: () => void; onPrevi
                         <Button
                           size="icon-sm"
                           variant="outline"
-                          className="text-foreground"
                           onClick={() => void handleLogout(server)}
                           disabled={logout.isPending}
                           aria-label={`Disconnect ${server.name}`}>
@@ -153,7 +152,6 @@ export function McpServerList({ onAdd, onPreview }: { onAdd: () => void; onPrevi
                         <Button
                           size="icon-sm"
                           variant="outline"
-                          className="text-foreground"
                           onClick={() => void handleAuth(server)}
                           disabled={startAuth.isPending}
                           aria-label={`Authenticate ${server.name}`}>
@@ -165,7 +163,6 @@ export function McpServerList({ onAdd, onPreview }: { onAdd: () => void; onPrevi
                     <Button
                       size="icon-sm"
                       variant="outline"
-                      className="text-foreground"
                       onClick={() => onPreview(server)}
                       aria-label={`Preview tools`}>
                       <Icon as={EyeIcon} size="s" />

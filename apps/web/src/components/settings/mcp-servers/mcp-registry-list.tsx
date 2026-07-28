@@ -94,20 +94,14 @@ export function McpRegistryList({
                         {server.name}
                       </Text>
                       {server.tags.slice(0, 4).map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant="outline"
-                          size="sm"
-                          className="border-border-subtle bg-background text-muted-foreground capitalize">
+                        <Badge key={tag} variant="soft" size="sm">
                           {tag}
                         </Badge>
                       ))}
                     </Stack>
-                    <div className="line-clamp-2">
-                      <Text variant="caption" tone="muted">
-                        {server.description}
-                      </Text>
-                    </div>
+                    <Text variant="caption" tone="muted" lineClamp="2">
+                      {server.description}
+                    </Text>
                   </div>
                 </Stack>
               </div>
@@ -117,7 +111,6 @@ export function McpRegistryList({
                   <Button
                     size="icon-sm"
                     variant="outline"
-                    className="text-foreground"
                     onClick={() => window.open(server.docsUrl, '_blank', 'noopener,noreferrer')}
                     aria-label={`Open Docs`}>
                     <Icon as={ExternalLinkIcon} size="s" />

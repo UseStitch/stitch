@@ -101,12 +101,14 @@ function SyncProgress({ status }: { status: MailSyncStatusView }) {
 
   return (
     <div className="space-y-space-s">
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>Backfill progress</span>
-        <span className="tabular-nums">
+      <Stack direction="row" align="center" justify="between">
+        <Text as="span" variant="caption" tone="muted">
+          Backfill progress
+        </Text>
+        <Text as="span" variant="caption" tone="muted" tabular>
           {progress.processed.toLocaleString()} / {progress.estimatedTotal.toLocaleString()}
-        </span>
-      </div>
+        </Text>
+      </Stack>
       <Progress value={percent} aria-label="Backfill progress" />
     </div>
   );
@@ -122,7 +124,7 @@ function AccountErrorBanner({ account, error }: { account: MailAccountView; erro
   }
 
   return (
-    <div className="rounded-lg border border-destructive-subtle bg-destructive-subtle p-space-l text-sm text-destructive">
+    <div className="rounded-lg border border-destructive-subtle bg-destructive-subtle p-space-l">
       <Stack direction="row" align="start" justify="between" gap="l">
         <div className="min-w-0">
           <Stack direction="row" gap="m">
@@ -209,9 +211,11 @@ export function MailAccountCard({ account, status }: { account: MailAccountView;
         <SyncProgress status={status} />
       </div>
       <div className="mt-space-m flex flex-wrap items-center justify-between gap-space-m border-t border-border-subtle pt-space-m">
-        <div className="flex flex-wrap gap-space-l text-xs text-muted-foreground">
+        <Stack direction="row" gap="l" wrap>
           <label className="flex items-center gap-space-s" htmlFor={`${account.id}-sync-frequency`}>
-            <span>Every</span>
+            <Text as="span" variant="caption" tone="muted">
+              Every
+            </Text>
             <MailNumberInput
               id={`${account.id}-sync-frequency`}
               value={account.syncFrequencySeconds}
@@ -219,10 +223,14 @@ export function MailAccountCard({ account, status }: { account: MailAccountView;
               disabled={controlsDisabled}
               onSave={(syncFrequencySeconds) => handleUpdate({ syncFrequencySeconds })}
             />
-            <span>sec</span>
+            <Text as="span" variant="caption" tone="muted">
+              sec
+            </Text>
           </label>
           <label className="flex items-center gap-space-s" htmlFor={`${account.id}-backfill-days`}>
-            <span>Backfill</span>
+            <Text as="span" variant="caption" tone="muted">
+              Backfill
+            </Text>
             <MailNumberInput
               id={`${account.id}-backfill-days`}
               value={account.backfillDays}
@@ -230,25 +238,21 @@ export function MailAccountCard({ account, status }: { account: MailAccountView;
               disabled={controlsDisabled}
               onSave={(backfillDays) => handleUpdate({ backfillDays })}
             />
-            <span>days</span>
+            <Text as="span" variant="caption" tone="muted">
+              days
+            </Text>
           </label>
-        </div>
+        </Stack>
         <Stack direction="row" gap="s">
           <Button
             variant="outline"
             size="sm"
-            className="px-space-m text-xs"
             disabled={resyncMutation.isPending}
             onClick={() => handleResync('incremental')}>
             <Icon as={RefreshCwIcon} size="s" />
             Sync
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="px-space-m text-xs"
-            disabled={resyncMutation.isPending}
-            onClick={() => handleResync('full')}>
+          <Button variant="outline" size="sm" disabled={resyncMutation.isPending} onClick={() => handleResync('full')}>
             <Icon as={RefreshCwIcon} size="s" />
             Full
           </Button>

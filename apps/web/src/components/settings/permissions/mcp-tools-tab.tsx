@@ -104,8 +104,9 @@ export function McpToolsTab({ groups, getEnabled, updateEnabled, isMutating, onE
               </div>
               <Button
                 size="sm"
-                variant="ghost"
-                className="w-full justify-start px-space-m text-muted-foreground hover:text-foreground"
+                variant="quiet"
+                width="full"
+                align="start"
                 onClick={() =>
                   onEditTarget({
                     type: 'toolset',

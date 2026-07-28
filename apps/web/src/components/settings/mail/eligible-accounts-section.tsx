@@ -59,8 +59,10 @@ export function EligibleAccountsSection() {
           key={account.connectorInstanceId}
           className="-mx-space-m flex items-center justify-between border-b border-border-subtle px-space-m py-space-l last:border-0">
           <div className="flex min-w-0 items-center gap-space-xl">
-            <div className="shrink-0 text-muted-foreground">
-              <SimpleIcon slug="gmail" className="size-5 bg-foreground" fallback={<Icon as={MailIcon} size="l" />} />
+            <div className="shrink-0">
+              <Text as="span" tone="muted">
+                <SimpleIcon slug="gmail" className="size-5 bg-foreground" fallback={<Icon as={MailIcon} size="l" />} />
+              </Text>
             </div>
             <div className="flex min-w-0 flex-col gap-space-xs">
               <Text as="span" variant="body-strong" truncate>
@@ -74,12 +76,12 @@ export function EligibleAccountsSection() {
           <Button
             variant="outline"
             size="sm"
-            className="ml-space-xl shrink-0 rounded-md border-border-subtle bg-transparent text-xs font-semibold text-foreground transition-colors hover:bg-accent"
+            className="ml-space-xl shrink-0"
             disabled={enrollMutation.isPending}
             onClick={() => handleEnroll(account.connectorInstanceId)}>
-            <div className="mr-space-2xs text-muted-foreground">
+            <Text as="div" tone="muted">
               <Icon as={PlusIcon} size="s" />
-            </div>
+            </Text>
             Enroll
           </Button>
         </div>

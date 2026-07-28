@@ -178,11 +178,10 @@ function ToolPermissionEditor({
                     <SettingsIconButtonTooltip label="Delete rule">
                       <Button
                         size="icon-sm"
-                        variant="ghost"
+                        variant="destructive-quiet"
                         onClick={() => handleDeleteRule(rule)}
                         disabled={isMutating}
-                        aria-label="Delete rule"
-                        className="text-text-faint hover:text-destructive">
+                        aria-label="Delete rule">
                         <Icon as={Trash2Icon} size="s" />
                       </Button>
                     </SettingsIconButtonTooltip>
@@ -255,9 +254,9 @@ function ToolPermissionEditor({
                     <SettingsIconButtonTooltip label="Browse for path">
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="quiet"
                         size="icon-sm"
-                        className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
+                        className="absolute top-1/2 right-1 -translate-y-1/2"
                         onClick={handleBrowse}
                         aria-label="Browse for path"
                         tabIndex={-1}>
@@ -350,14 +349,12 @@ export function PermissionPolicyEditor({ target, onBack, getEnabled, onToggleEna
                     {tool.displayName}
                   </Text>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setEditingMcpTool(tool)}
-                  className="h-7 w-20 justify-center text-muted-foreground hover:text-foreground">
-                  <Icon as={Settings2Icon} size="s" />
-                  Settings
-                </Button>
+                <div className="w-20">
+                  <Button size="sm" variant="quiet" width="full" onClick={() => setEditingMcpTool(tool)}>
+                    <Icon as={Settings2Icon} size="s" />
+                    Settings
+                  </Button>
+                </div>
                 {target.perToolEnabledScope
                   ? (() => {
                       const perToolEnabledScope = target.perToolEnabledScope;

@@ -41,10 +41,12 @@ export function SettingSubPage({
     <div className="flex h-full flex-col">
       <div className="mb-space-2xl">
         <div className="mb-space-l flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={onBack} className="-ml-space-m w-fit px-space-m">
-            <Icon as={ArrowLeftIcon} size="s" />
-            {backLabel}
-          </Button>
+          <div className="-ml-space-m">
+            <Button variant="ghost" size="sm" onClick={onBack}>
+              <Icon as={ArrowLeftIcon} size="s" />
+              {backLabel}
+            </Button>
+          </div>
           {actions}
         </div>
         <Text variant="heading-s">{title}</Text>
@@ -109,7 +111,11 @@ type SettingSectionProps = { title?: string; description?: string; className?: s
 export function SettingSection({ title, description, className, children }: SettingSectionProps) {
   return (
     <section className={cn('mt-space-3xl first:mt-space-none space-y-space-l', className)}>
-      {title ? <h3 className="text-sm font-medium">{title}</h3> : null}
+      {title ? (
+        <Text as="h3" variant="label">
+          {title}
+        </Text>
+      ) : null}
       {description ? (
         <Text variant="caption" tone="muted">
           {description}

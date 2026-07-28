@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/ui/use-theme';
 import { THEMES } from '@/lib/theme';
 import type { ThemeTokens } from '@/lib/theme';
-import { cn } from '@/lib/utils';
 
 const MODE_LABELS: Record<AppearanceMode, string> = { light: 'Light', dark: 'Dark', system: 'System' };
 
@@ -38,15 +37,15 @@ export function AppearanceSelector() {
             <Button
               key={m}
               type="button"
-              variant="ghost"
-              onClick={() => setMode(m)}
-              className={cn(
-                'h-auto flex-1 rounded-xl px-space-l py-space-l text-center',
-                mode === m
-                  ? 'border-primary bg-primary-subtle ring-2 ring-primary-subtle text-foreground shadow-sm'
-                  : 'border-border bg-background text-muted-foreground hover:text-foreground hover:bg-accent',
-              )}>
-              {MODE_LABELS[m]}
+              variant={mode === m ? 'secondary' : 'outline'}
+              size="inline"
+              width="full"
+              onClick={() => setMode(m)}>
+              <Stack width="full" align="center" padding="l">
+                <Text as="span" variant="body-strong">
+                  {MODE_LABELS[m]}
+                </Text>
+              </Stack>
             </Button>
           ))}
         </Stack>
@@ -58,18 +57,17 @@ export function AppearanceSelector() {
             <Button
               key={t.name}
               type="button"
-              variant="ghost"
-              onClick={() => setTheme(t.name)}
-              className={cn(
-                'h-auto flex-col items-stretch space-y-space-m rounded-xl p-space-l text-left',
-                themeName === t.name
-                  ? 'border-primary bg-primary-subtle ring-2 ring-primary-subtle shadow-sm'
-                  : 'border-border bg-background hover:bg-accent hover:border-border-subtle',
-              )}>
-              <ThemePreview tokens={effectiveMode === 'dark' ? t.dark : t.light} />
-              <Text as="span" variant="label">
-                {t.label}
-              </Text>
+              variant={themeName === t.name ? 'secondary' : 'outline'}
+              size="inline"
+              width="full"
+              align="start"
+              onClick={() => setTheme(t.name)}>
+              <Stack width="full" gap="m" padding="l">
+                <ThemePreview tokens={effectiveMode === 'dark' ? t.dark : t.light} />
+                <Text as="span" variant="label">
+                  {t.label}
+                </Text>
+              </Stack>
             </Button>
           ))}
         </div>
@@ -80,14 +78,11 @@ export function AppearanceSelector() {
 
 function ThemePreview({ tokens }: { tokens: ThemeTokens }) {
   return (
-    <div
-      className="flex h-12 gap-space-xs overflow-hidden rounded-md p-space-s"
-      style={{ background: tokens['background'], border: `1px solid ${tokens['border']}` }}>
-      <div className="w-5 shrink-0 rounded-sm" style={{ background: tokens['sidebar'] }} />
-      <div className="flex flex-1 flex-col gap-space-xs">
-        <div className="h-2 w-3/4 rounded-sm" style={{ background: tokens['muted'] }} />
-        <div className="h-2 w-1/2 rounded-sm" style={{ background: tokens['primary'] }} />
-      </div>
-    </div>
+    <svg viewBox="0 0 120 48" className="h-12 w-full rounded-md" aria-hidden="true">
+      <rect x="0.5" y="0.5" width="119" height="47" rx="6" fill={tokens['background']} stroke={tokens['border']} />
+      <rect x="7" y="7" width="22" height="34" rx="3" fill={tokens['sidebar']} />
+      <rect x="36" y="10" width="58" height="8" rx="3" fill={tokens['muted']} />
+      <rect x="36" y="25" width="39" height="8" rx="3" fill={tokens['primary']} />
+    </svg>
   );
 }

@@ -56,12 +56,12 @@ export function OAuthFields({
           </div>
         </div>
       ) : (
-        <Button
-          type="button"
-          variant="ghost"
-          className="h-auto p-space-none text-xs font-normal text-muted-foreground underline hover:bg-transparent hover:text-foreground"
-          onClick={() => setShowAdvanced(true)}>
-          Advanced: provide a pre-registered client
+        <Button type="button" variant="quiet" size="inline" onClick={() => setShowAdvanced(true)}>
+          <u>
+            <Text as="span" variant="caption" tone="muted">
+              Advanced: provide a pre-registered client
+            </Text>
+          </u>
         </Button>
       )}
     </div>

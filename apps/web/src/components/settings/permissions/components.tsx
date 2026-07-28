@@ -3,6 +3,7 @@ import * as React from 'react';
 
 import { RemoteImageIcon } from '@/components/icons/remote-icon';
 import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyMedia } from '@/components/ui/empty';
@@ -61,11 +62,7 @@ export function ToolRow({
           </Text>
         </div>
       </div>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={onConfigure}
-        className="w-full justify-start px-space-m text-muted-foreground hover:text-foreground">
+      <Button size="sm" variant="quiet" width="full" align="start" onClick={onConfigure}>
         <Icon as={Settings2Icon} size="s" />
         Settings
       </Button>
@@ -91,9 +88,9 @@ export function ToolsetRow({
     <div className="grid grid-cols-[minmax(0,1fr)_5rem_2.5rem] items-center gap-space-l px-space-l py-space-m sm:px-space-xl">
       <div className="flex min-w-0 items-center gap-space-m">
         {icon ?? (
-          <div className="text-muted-foreground">
+          <Text as="div" tone="muted">
             <Icon as={ServerIcon} size="m" />
-          </div>
+          </Text>
         )}
         <div className="min-w-0">
           <Text variant="body-strong" truncate>
@@ -104,17 +101,12 @@ export function ToolsetRow({
           </Text>
         </div>
       </div>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={onConfigure}
-        className={cn(
-          'w-full px-space-m text-muted-foreground hover:text-foreground',
-          settingsAlign === 'end' ? 'justify-end' : 'justify-start',
-        )}>
-        <Icon as={Settings2Icon} size="s" />
-        Settings
-      </Button>
+      <Stack direction="row" justify={settingsAlign === 'end' ? 'end' : 'start'}>
+        <Button size="sm" variant="quiet" onClick={onConfigure}>
+          <Icon as={Settings2Icon} size="s" />
+          Settings
+        </Button>
+      </Stack>
       <div className="flex w-10 justify-end">
         <Switch checked={enabled} onCheckedChange={onToggleEnabled} disabled={isMutating} />
       </div>
@@ -157,9 +149,9 @@ export function EmptyState() {
   return (
     <Empty surface="bordered" size="compact">
       <EmptyMedia>
-        <div className="text-muted-foreground">
+        <Text as="div" tone="muted">
           <Icon as={WrenchIcon} size="m" />
-        </div>
+        </Text>
       </EmptyMedia>
       <EmptyDescription>No tools match your current filters.</EmptyDescription>
     </Empty>

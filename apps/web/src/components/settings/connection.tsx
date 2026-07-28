@@ -12,7 +12,6 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import type { ServerMode } from '@/lib/api';
 import { serverConfigQueryOptions, useSaveServerConfig, useTestRemoteConnection } from '@/lib/queries/connection';
-import { cn } from '@/lib/utils';
 
 type TestState = { status: 'idle' } | { status: 'success'; message: string } | { status: 'error'; message: string };
 
@@ -84,22 +83,19 @@ function ConnectionContent() {
               <Button
                 key={option.mode}
                 type="button"
-                variant="ghost"
-                onClick={() => setMode(option.mode)}
-                className={cn(
-                  'h-auto flex-col items-stretch rounded-xl p-space-xl text-left',
-                  mode === option.mode
-                    ? 'border-primary bg-primary-subtle shadow-sm ring-2 ring-primary-subtle'
-                    : 'border-border bg-background hover:bg-accent',
-                )}>
-                <Text as="span" variant="body-strong">
-                  {option.label}
-                </Text>
-                <span className="mt-space-xs block">
+                variant={mode === option.mode ? 'secondary' : 'outline'}
+                size="inline"
+                width="full"
+                align="start"
+                onClick={() => setMode(option.mode)}>
+                <Stack gap="xs" width="full" padding="xl">
+                  <Text as="span" variant="body-strong">
+                    {option.label}
+                  </Text>
                   <Text variant="caption" tone="muted">
                     {option.description}
                   </Text>
-                </span>
+                </Stack>
               </Button>
             ))}
           </div>

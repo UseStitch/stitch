@@ -42,8 +42,10 @@ export function ProviderRow({ provider, onSelect }: Props) {
   return (
     <div className="group -mx-space-m flex items-center justify-between border-b border-border-subtle px-space-m py-space-l last:border-0">
       <div className="flex min-w-0 items-center gap-space-xl">
-        <div className="shrink-0 text-muted-foreground">
-          <ProviderLogo providerId={provider.id} providerName={meta.displayName} />
+        <div className="shrink-0">
+          <Text as="span" tone="muted">
+            <ProviderLogo providerId={provider.id} providerName={meta.displayName} />
+          </Text>
         </div>
         <div className="flex min-w-0 flex-col gap-space-xs">
           <Text as="span" variant="body-strong">
@@ -73,12 +75,7 @@ export function ProviderRow({ provider, onSelect }: Props) {
                 </Button>
               </SettingsIconButtonTooltip>
             )}
-            <Button
-              variant="destructive"
-              size="sm"
-              className="px-space-l text-sm font-semibold"
-              onClick={handleDisconnect}
-              disabled={deleteMutation.isPending}>
+            <Button variant="destructive" size="sm" onClick={handleDisconnect} disabled={deleteMutation.isPending}>
               {deleteMutation.isPending ? 'Disconnecting...' : 'Disconnect'}
             </Button>
           </>
@@ -86,14 +83,13 @@ export function ProviderRow({ provider, onSelect }: Props) {
           <Button
             variant="outline"
             size="sm"
-            className="rounded-md border-border-subtle bg-transparent text-xs font-semibold text-foreground transition-colors hover:bg-accent"
             onClick={(e) => {
               e.stopPropagation();
               onSelect();
             }}>
-            <div className="mr-space-2xs text-muted-foreground">
+            <Text as="div" tone="muted">
               <Icon as={PlusIcon} size="s" />
-            </div>
+            </Text>
             Connect
           </Button>
         )}

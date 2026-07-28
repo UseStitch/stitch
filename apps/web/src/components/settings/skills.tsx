@@ -7,6 +7,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { createSkillSchema, type Skill } from '@stitch/shared/skills/types';
 
 import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
@@ -73,12 +74,16 @@ function ImportSkillView({ onBack }: { onBack: () => void }) {
         />
         <div className="thin-scrollbar min-h-0 flex-1 overflow-auto rounded-lg border border-border-subtle">
           {search.trim().length < 2 ? (
-            <div className="px-space-xl py-space-2xl text-center text-xs text-muted-foreground">
-              Type at least 2 characters to search
+            <div className="px-space-xl py-space-2xl">
+              <Text variant="caption" tone="muted" align="center">
+                Type at least 2 characters to search
+              </Text>
             </div>
           ) : searchResults.length === 0 ? (
-            <div className="px-space-xl py-space-2xl text-center text-xs text-muted-foreground">
-              {isSearching ? 'Searching...' : 'No skills found'}
+            <div className="px-space-xl py-space-2xl">
+              <Text variant="caption" tone="muted" align="center">
+                {isSearching ? 'Searching...' : 'No skills found'}
+              </Text>
             </div>
           ) : (
             searchResults.map((skill) => (
@@ -139,8 +144,10 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
       description="Markdown instructions the agent can load when a task matches the description."
       onBack={onBack}
       backLabel="Back to skills">
-      <form
-        className="flex min-h-0 flex-1 flex-col gap-space-xl"
+      <Stack
+        as="form"
+        gap="xl"
+        grow
         onSubmit={(event) => {
           event.preventDefault();
           void form.handleSubmit();
@@ -213,7 +220,7 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
             </div>
           )}
         </form.Subscribe>
-      </form>
+      </Stack>
     </SettingSubPage>
   );
 }
@@ -285,11 +292,9 @@ export function SkillsSettings() {
                   <Text variant="body-strong" truncate>
                     {skill.name}
                   </Text>
-                  <div className="mt-space-2xs line-clamp-2">
-                    <Text variant="caption" tone="muted">
-                      {skill.description}
-                    </Text>
-                  </div>
+                  <Text variant="caption" tone="muted" lineClamp="2">
+                    {skill.description}
+                  </Text>
                 </div>
                 <ButtonGroup>
                   <SettingsIconButtonTooltip label={`View Skill`}>

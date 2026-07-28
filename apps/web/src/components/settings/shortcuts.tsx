@@ -25,7 +25,6 @@ import {
   useResetAllShortcuts,
   type ShortcutEntry,
 } from '@/lib/queries/shortcuts';
-import { cn } from '@/lib/utils';
 
 const BLOCKED_HOTKEYS = new Set(['Mod+C', 'Mod+V', 'Mod+R', 'Mod+M']);
 const LEADER_KEY_RECORDING_ID = '__leader-key__';
@@ -126,25 +125,17 @@ function ShortcutRow({
             {entry.label}
           </Text>
           {!isDefault && (
-            <Badge variant="soft" size="xs" className="font-bold tracking-wider uppercase">
+            <Badge variant="soft" size="xs" className="uppercase">
               Custom
             </Badge>
           )}
         </Stack>
         <Button
           type="button"
-          variant="ghost"
+          variant={conflict ? 'destructive-quiet' : isRecording ? 'secondary' : 'ghost'}
+          size="sm"
           onClick={() => !isLeaderShortcut && onStartRecording(entry.actionId)}
-          className={cn(
-            'rounded-md px-space-m py-space-s',
-            isLeaderShortcut
-              ? 'cursor-default'
-              : isRecording
-                ? 'text-foreground bg-accent shadow-inner ring-1 ring-ring'
-                : conflict
-                  ? 'text-destructive'
-                  : 'hover:bg-accent hover:text-accent-foreground cursor-pointer',
-          )}>
+          className={isLeaderShortcut ? 'cursor-default' : 'cursor-pointer'}>
           {isRecording ? (
             <span className="italic">
               <Text variant="label" tone="muted">
@@ -289,9 +280,9 @@ function ShortcutsContent() {
           onChange={(e) => setSearch(e.target.value)}
         />
         <Button
-          variant="outline"
+          variant="quiet"
           size="sm"
-          className="shrink-0 font-medium text-muted-foreground hover:text-foreground"
+          className="shrink-0"
           onClick={() => resetAll.mutate()}
           disabled={resetAll.isPending}>
           Reset to defaults
@@ -303,12 +294,10 @@ function ShortcutsContent() {
           <SettingRow label="Leader key" description="Used as the prefix for LEADER+ shortcuts">
             <Button
               type="button"
-              variant="ghost"
+              variant={recordingId === LEADER_KEY_RECORDING_ID ? 'secondary' : 'ghost'}
+              size="sm"
               onClick={handleStartLeaderKeyRecording}
-              className={cn(
-                'cursor-pointer rounded-md px-space-m py-space-s hover:bg-accent',
-                recordingId === LEADER_KEY_RECORDING_ID && 'text-foreground bg-accent shadow-inner ring-1 ring-ring',
-              )}>
+              className="cursor-pointer">
               {recordingId === LEADER_KEY_RECORDING_ID ? (
                 <span className="italic">
                   <Text variant="label" tone="muted">

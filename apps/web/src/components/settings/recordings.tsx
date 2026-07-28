@@ -123,7 +123,7 @@ function PermissionStatus() {
         <Button
           type="button"
           size="sm"
-          className="shrink-0 text-xs hover:brightness-95"
+          className="shrink-0"
           disabled={requesting}
           onClick={() => void handleGrantPermissions()}>
           {requesting ? 'Requesting...' : 'Grant Permissions'}
@@ -333,24 +333,32 @@ function MarkdownHelpDialog() {
             <DialogTitle>Markdown basics</DialogTitle>
             <DialogDescription>Use Markdown to shape how the note template should be filled in.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-space-l text-sm">
+          <Stack gap="l">
             <div>
               <Text variant="body-strong">Headings</Text>
-              <code className="text-xs text-muted-foreground"># Title, ## Section</code>
+              <Text variant="code" tone="muted">
+                # Title, ## Section
+              </Text>
             </div>
             <div>
               <Text variant="body-strong">Lists</Text>
-              <code className="text-xs text-muted-foreground">- Bullet item</code>
+              <Text variant="code" tone="muted">
+                - Bullet item
+              </Text>
             </div>
             <div>
               <Text variant="body-strong">Tasks</Text>
-              <code className="text-xs text-muted-foreground">- [ ] Owner: action item</code>
+              <Text variant="code" tone="muted">
+                - [ ] Owner: action item
+              </Text>
             </div>
             <div>
               <Text variant="body-strong">Emphasis</Text>
-              <code className="text-xs text-muted-foreground">**important** or _note_</code>
+              <Text variant="code" tone="muted">
+                **important** or _note_
+              </Text>
             </div>
-          </div>
+          </Stack>
           <DialogFooter showCloseButton />
         </DialogContent>
       </Dialog>

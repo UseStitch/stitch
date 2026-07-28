@@ -174,254 +174,257 @@ function ModelForm({
   const values = useStore(form.store, (state) => state.values);
 
   return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        void form.handleSubmit();
-      }}
-      className="flex flex-col gap-space-l rounded-md border p-space-xl">
-      <div className="grid grid-cols-2 gap-space-l">
-        <form.Field name="id">
-          {(field) => (
-            <Stack gap="s">
-              <Label htmlFor="local-model-id">Model ID</Label>
-              <Input
-                id="local-model-id"
-                placeholder="llama3.2"
-                value={field.state.value}
-                aria-invalid={!!fieldErrorMessage(field.state.meta)}
-                onBlur={field.handleBlur}
-                onChange={(event) => field.handleChange(event.target.value)}
-                required
-              />
-              <FieldError meta={field.state.meta} />
-            </Stack>
-          )}
-        </form.Field>
-        <form.Field name="name">
-          {(field) => (
-            <Stack gap="s">
-              <Label htmlFor="local-model-name">Display Name</Label>
-              <Input
-                id="local-model-name"
-                placeholder="Llama 3.2"
-                value={field.state.value}
-                aria-invalid={!!fieldErrorMessage(field.state.meta)}
-                onBlur={field.handleBlur}
-                onChange={(event) => field.handleChange(event.target.value)}
-                required
-              />
-              <FieldError meta={field.state.meta} />
-            </Stack>
-          )}
-        </form.Field>
-      </div>
+    <div className="rounded-md border p-space-xl">
+      <Stack
+        as="form"
+        gap="l"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void form.handleSubmit();
+        }}>
+        <div className="grid grid-cols-2 gap-space-l">
+          <form.Field name="id">
+            {(field) => (
+              <Stack gap="s">
+                <Label htmlFor="local-model-id">Model ID</Label>
+                <Input
+                  id="local-model-id"
+                  placeholder="llama3.2"
+                  value={field.state.value}
+                  aria-invalid={!!fieldErrorMessage(field.state.meta)}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                  required
+                />
+                <FieldError meta={field.state.meta} />
+              </Stack>
+            )}
+          </form.Field>
+          <form.Field name="name">
+            {(field) => (
+              <Stack gap="s">
+                <Label htmlFor="local-model-name">Display Name</Label>
+                <Input
+                  id="local-model-name"
+                  placeholder="Llama 3.2"
+                  value={field.state.value}
+                  aria-invalid={!!fieldErrorMessage(field.state.meta)}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                  required
+                />
+                <FieldError meta={field.state.meta} />
+              </Stack>
+            )}
+          </form.Field>
+        </div>
 
-      <Text variant="label" tone="muted">
-        Token limits
-      </Text>
-      <div className="grid grid-cols-3 gap-space-l">
-        <Stack gap="s">
-          <Label htmlFor="local-context-window">
-            Context{' '}
-            <Text variant="caption" tone="muted">
-              (tokens)
-            </Text>
-          </Label>
-          <Input
-            id="local-context-window"
-            type="number"
-            min={1}
-            placeholder="8192"
-            value={values.contextWindow}
-            onChange={(e) => form.setFieldValue('contextWindow', e.target.value)}
-          />
-        </Stack>
-        <Stack gap="s">
-          <Label htmlFor="local-input-limit">
-            Input limit{' '}
-            <Text variant="caption" tone="muted">
-              (optional)
-            </Text>
-          </Label>
-          <Input
-            id="local-input-limit"
-            type="number"
-            min={1}
-            placeholder="—"
-            value={values.inputLimit}
-            onChange={(e) => form.setFieldValue('inputLimit', e.target.value)}
-          />
-        </Stack>
-        <Stack gap="s">
-          <Label htmlFor="local-output-limit">
-            Output limit{' '}
-            <Text variant="caption" tone="muted">
-              (tokens)
-            </Text>
-          </Label>
-          <Input
-            id="local-output-limit"
-            type="number"
-            min={1}
-            placeholder="8192"
-            value={values.outputLimit}
-            onChange={(e) => form.setFieldValue('outputLimit', e.target.value)}
-          />
-        </Stack>
-      </div>
+        <Text variant="label" tone="muted">
+          Token limits
+        </Text>
+        <div className="grid grid-cols-3 gap-space-l">
+          <Stack gap="s">
+            <Label htmlFor="local-context-window">
+              Context{' '}
+              <Text variant="caption" tone="muted">
+                (tokens)
+              </Text>
+            </Label>
+            <Input
+              id="local-context-window"
+              type="number"
+              min={1}
+              placeholder="8192"
+              value={values.contextWindow}
+              onChange={(e) => form.setFieldValue('contextWindow', e.target.value)}
+            />
+          </Stack>
+          <Stack gap="s">
+            <Label htmlFor="local-input-limit">
+              Input limit{' '}
+              <Text variant="caption" tone="muted">
+                (optional)
+              </Text>
+            </Label>
+            <Input
+              id="local-input-limit"
+              type="number"
+              min={1}
+              placeholder="—"
+              value={values.inputLimit}
+              onChange={(e) => form.setFieldValue('inputLimit', e.target.value)}
+            />
+          </Stack>
+          <Stack gap="s">
+            <Label htmlFor="local-output-limit">
+              Output limit{' '}
+              <Text variant="caption" tone="muted">
+                (tokens)
+              </Text>
+            </Label>
+            <Input
+              id="local-output-limit"
+              type="number"
+              min={1}
+              placeholder="8192"
+              value={values.outputLimit}
+              onChange={(e) => form.setFieldValue('outputLimit', e.target.value)}
+            />
+          </Stack>
+        </div>
 
-      <Text variant="label" tone="muted">
-        Cost ($ per million tokens, 0 for local/free)
-      </Text>
-      <div className="grid grid-cols-2 gap-space-l">
-        <Stack gap="s">
-          <Label htmlFor="local-input-cost">Input</Label>
-          <Input
-            id="local-input-cost"
-            type="number"
-            min={0}
-            step="any"
-            placeholder="0"
-            value={values.inputCostPerMillion}
-            onChange={(e) => form.setFieldValue('inputCostPerMillion', e.target.value)}
-          />
-        </Stack>
-        <Stack gap="s">
-          <Label htmlFor="local-output-cost">Output</Label>
-          <Input
-            id="local-output-cost"
-            type="number"
-            min={0}
-            step="any"
-            placeholder="0"
-            value={values.outputCostPerMillion}
-            onChange={(e) => form.setFieldValue('outputCostPerMillion', e.target.value)}
-          />
-        </Stack>
-        <Stack gap="s">
-          <Label htmlFor="local-cache-read-cost">
-            Cache read{' '}
-            <Text variant="caption" tone="muted">
-              (optional)
-            </Text>
-          </Label>
-          <Input
-            id="local-cache-read-cost"
-            type="number"
-            min={0}
-            step="any"
-            placeholder="—"
-            value={values.cacheReadCostPerMillion}
-            onChange={(e) => form.setFieldValue('cacheReadCostPerMillion', e.target.value)}
-          />
-        </Stack>
-        <Stack gap="s">
-          <Label htmlFor="local-cache-write-cost">
-            Cache write{' '}
-            <Text variant="caption" tone="muted">
-              (optional)
-            </Text>
-          </Label>
-          <Input
-            id="local-cache-write-cost"
-            type="number"
-            min={0}
-            step="any"
-            placeholder="—"
-            value={values.cacheWriteCostPerMillion}
-            onChange={(e) => form.setFieldValue('cacheWriteCostPerMillion', e.target.value)}
-          />
-        </Stack>
-      </div>
+        <Text variant="label" tone="muted">
+          Cost ($ per million tokens, 0 for local/free)
+        </Text>
+        <div className="grid grid-cols-2 gap-space-l">
+          <Stack gap="s">
+            <Label htmlFor="local-input-cost">Input</Label>
+            <Input
+              id="local-input-cost"
+              type="number"
+              min={0}
+              step="any"
+              placeholder="0"
+              value={values.inputCostPerMillion}
+              onChange={(e) => form.setFieldValue('inputCostPerMillion', e.target.value)}
+            />
+          </Stack>
+          <Stack gap="s">
+            <Label htmlFor="local-output-cost">Output</Label>
+            <Input
+              id="local-output-cost"
+              type="number"
+              min={0}
+              step="any"
+              placeholder="0"
+              value={values.outputCostPerMillion}
+              onChange={(e) => form.setFieldValue('outputCostPerMillion', e.target.value)}
+            />
+          </Stack>
+          <Stack gap="s">
+            <Label htmlFor="local-cache-read-cost">
+              Cache read{' '}
+              <Text variant="caption" tone="muted">
+                (optional)
+              </Text>
+            </Label>
+            <Input
+              id="local-cache-read-cost"
+              type="number"
+              min={0}
+              step="any"
+              placeholder="—"
+              value={values.cacheReadCostPerMillion}
+              onChange={(e) => form.setFieldValue('cacheReadCostPerMillion', e.target.value)}
+            />
+          </Stack>
+          <Stack gap="s">
+            <Label htmlFor="local-cache-write-cost">
+              Cache write{' '}
+              <Text variant="caption" tone="muted">
+                (optional)
+              </Text>
+            </Label>
+            <Input
+              id="local-cache-write-cost"
+              type="number"
+              min={0}
+              step="any"
+              placeholder="—"
+              value={values.cacheWriteCostPerMillion}
+              onChange={(e) => form.setFieldValue('cacheWriteCostPerMillion', e.target.value)}
+            />
+          </Stack>
+        </div>
 
-      <Text variant="label" tone="muted">
-        Capabilities
-      </Text>
-      <Stack gap="m">
-        <Stack direction="row" align="center" gap="m">
-          <Checkbox
-            id="local-tool-calls"
-            checked={values.supportsToolCalls}
-            onCheckedChange={(v) => form.setFieldValue('supportsToolCalls', Boolean(v))}
-          />
-          <Label htmlFor="local-tool-calls">Supports tool calls</Label>
+        <Text variant="label" tone="muted">
+          Capabilities
+        </Text>
+        <Stack gap="m">
+          <Stack direction="row" align="center" gap="m">
+            <Checkbox
+              id="local-tool-calls"
+              checked={values.supportsToolCalls}
+              onCheckedChange={(v) => form.setFieldValue('supportsToolCalls', Boolean(v))}
+            />
+            <Label htmlFor="local-tool-calls">Supports tool calls</Label>
+          </Stack>
+          <Stack direction="row" align="center" gap="m">
+            <Checkbox
+              id="local-vision"
+              checked={values.supportsVision}
+              onCheckedChange={(v) => form.setFieldValue('supportsVision', Boolean(v))}
+            />
+            <Label htmlFor="local-vision">Supports vision (image input)</Label>
+          </Stack>
+          <Stack direction="row" align="center" gap="m">
+            <Checkbox
+              id="local-reasoning"
+              checked={values.supportsReasoning}
+              onCheckedChange={(v) => form.setFieldValue('supportsReasoning', Boolean(v))}
+            />
+            <Label htmlFor="local-reasoning">Supports reasoning</Label>
+          </Stack>
         </Stack>
-        <Stack direction="row" align="center" gap="m">
-          <Checkbox
-            id="local-vision"
-            checked={values.supportsVision}
-            onCheckedChange={(v) => form.setFieldValue('supportsVision', Boolean(v))}
-          />
-          <Label htmlFor="local-vision">Supports vision (image input)</Label>
-        </Stack>
-        <Stack direction="row" align="center" gap="m">
-          <Checkbox
-            id="local-reasoning"
-            checked={values.supportsReasoning}
-            onCheckedChange={(v) => form.setFieldValue('supportsReasoning', Boolean(v))}
-          />
-          <Label htmlFor="local-reasoning">Supports reasoning</Label>
-        </Stack>
+
+        <Text variant="label" tone="muted">
+          Modalities
+        </Text>
+        <div className="grid grid-cols-2 gap-x-space-2xl gap-y-space-m">
+          <Stack gap="s">
+            <Text variant="caption" tone="muted">
+              Input
+            </Text>
+            {ALL_MODALITIES.map((m) => (
+              <Stack key={m} direction="row" align="center" gap="m">
+                <Checkbox
+                  id={`local-input-mod-${m}`}
+                  checked={values.inputModalities.includes(m)}
+                  disabled={m === 'text'}
+                  onCheckedChange={(v) =>
+                    form.setFieldValue(
+                      'inputModalities',
+                      v ? [...values.inputModalities, m] : values.inputModalities.filter((x) => x !== m),
+                    )
+                  }
+                />
+                <Label htmlFor={`local-input-mod-${m}`}>{m}</Label>
+              </Stack>
+            ))}
+          </Stack>
+          <Stack gap="s">
+            <Text variant="caption" tone="muted">
+              Output
+            </Text>
+            {ALL_MODALITIES.map((m) => (
+              <Stack key={m} direction="row" align="center" gap="m">
+                <Checkbox
+                  id={`local-output-mod-${m}`}
+                  checked={values.outputModalities.includes(m)}
+                  disabled={m === 'text'}
+                  onCheckedChange={(v) =>
+                    form.setFieldValue(
+                      'outputModalities',
+                      v ? [...values.outputModalities, m] : values.outputModalities.filter((x) => x !== m),
+                    )
+                  }
+                />
+                <Label htmlFor={`local-output-mod-${m}`}>{m}</Label>
+              </Stack>
+            ))}
+          </Stack>
+        </div>
+
+        <div className="flex gap-space-m pt-space-xs">
+          <Button type="submit" size="sm" disabled={isPending}>
+            {isPending ? 'Saving...' : 'Save'}
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+            Cancel
+          </Button>
+        </div>
       </Stack>
-
-      <Text variant="label" tone="muted">
-        Modalities
-      </Text>
-      <div className="grid grid-cols-2 gap-x-space-2xl gap-y-space-m">
-        <Stack gap="s">
-          <Text variant="caption" tone="muted">
-            Input
-          </Text>
-          {ALL_MODALITIES.map((m) => (
-            <Stack key={m} direction="row" align="center" gap="m">
-              <Checkbox
-                id={`local-input-mod-${m}`}
-                checked={values.inputModalities.includes(m)}
-                disabled={m === 'text'}
-                onCheckedChange={(v) =>
-                  form.setFieldValue(
-                    'inputModalities',
-                    v ? [...values.inputModalities, m] : values.inputModalities.filter((x) => x !== m),
-                  )
-                }
-              />
-              <Label htmlFor={`local-input-mod-${m}`}>{m}</Label>
-            </Stack>
-          ))}
-        </Stack>
-        <Stack gap="s">
-          <Text variant="caption" tone="muted">
-            Output
-          </Text>
-          {ALL_MODALITIES.map((m) => (
-            <Stack key={m} direction="row" align="center" gap="m">
-              <Checkbox
-                id={`local-output-mod-${m}`}
-                checked={values.outputModalities.includes(m)}
-                disabled={m === 'text'}
-                onCheckedChange={(v) =>
-                  form.setFieldValue(
-                    'outputModalities',
-                    v ? [...values.outputModalities, m] : values.outputModalities.filter((x) => x !== m),
-                  )
-                }
-              />
-              <Label htmlFor={`local-output-mod-${m}`}>{m}</Label>
-            </Stack>
-          ))}
-        </Stack>
-      </div>
-
-      <div className="flex gap-space-m pt-space-xs">
-        <Button type="submit" size="sm" disabled={isPending}>
-          {isPending ? 'Saving...' : 'Save'}
-        </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
-    </form>
+    </div>
   );
 }
 
@@ -481,7 +484,9 @@ export function LocalModelsPanel({ provider }: Props) {
       <Separator />
 
       <Stack direction="row" align="center" justify="between">
-        <h3 className="text-sm font-semibold">Models</h3>
+        <Text as="h3" variant="body-strong">
+          Models
+        </Text>
         <ButtonGroup>
           <Button variant="outline" size="sm" onClick={handleDiscover} disabled={discoverQuery.isFetching}>
             <span className="mr-space-s">
@@ -515,7 +520,9 @@ export function LocalModelsPanel({ provider }: Props) {
                 key={d.id}
                 type="button"
                 variant="ghost"
-                className="h-auto justify-between rounded-sm px-space-m py-space-s hover:bg-accent"
+                size="sm"
+                width="full"
+                align="between"
                 onClick={() => {
                   const input = formToInput(discoveredToForm(d));
                   upsertMutation.mutate(input);
@@ -523,9 +530,9 @@ export function LocalModelsPanel({ provider }: Props) {
                 <Text as="span" variant="code">
                   {d.id}
                 </Text>
-                <div className="text-muted-foreground">
+                <Text as="div" tone="muted">
                   <Icon as={PlusIcon} size="s" />
-                </div>
+                </Text>
               </Button>
             ))}
           </Stack>
@@ -589,9 +596,9 @@ export function LocalModelsPanel({ provider }: Props) {
                           aria-label={`Delete model`}
                           onClick={() => deleteMutation.mutate(model.id)}
                           disabled={deleteMutation.isPending}>
-                          <div className="text-destructive">
+                          <Text as="div" tone="destructive">
                             <Icon as={Trash2Icon} size="s" />
-                          </div>
+                          </Text>
                         </Button>
                       </SettingsIconButtonTooltip>
                     </ButtonGroup>

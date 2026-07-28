@@ -18,6 +18,7 @@ import {
   type AddFormState,
 } from './shared';
 
+import { Text } from '@/components/primitives/text';
 import { SettingSubPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { FieldError, fieldErrorMessage } from '@/components/ui/field-error';
@@ -115,13 +116,14 @@ export function InstallRegistryMcpServer({
       onBack={onBack}
       backLabel="Back to marketplace"
       actions={
-        <a
-          href={server.docsUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="text-xs text-muted-foreground underline hover:text-foreground">
-          View docs
-        </a>
+        <Button
+          variant="link"
+          size="inline"
+          render={<a href={server.docsUrl} target="_blank" rel="noreferrer" aria-label="View docs" />}>
+          <Text as="span" variant="caption" tone="primary">
+            View docs
+          </Text>
+        </Button>
       }>
       <form
         className="space-y-space-xl"

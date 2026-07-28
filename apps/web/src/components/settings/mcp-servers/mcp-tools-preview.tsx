@@ -28,12 +28,14 @@ export function McpToolsPreview({ server, onBack }: { server: McpServer; onBack:
             <li key={tool.name} className="border-b border-border-subtle last:border-b-0">
               <details className="group">
                 <summary className="flex cursor-pointer list-none items-center gap-space-m px-space-l py-space-m hover:bg-surface-sunken">
-                  <div className="text-muted-foreground transition-transform group-open:rotate-90">
-                    <Icon as={ChevronRightIcon} size="s" />
-                  </div>
-                  <div className="text-muted-foreground">
+                  <span className="inline-flex transition-transform group-open:rotate-90">
+                    <Text as="span" tone="muted">
+                      <Icon as={ChevronRightIcon} size="s" />
+                    </Text>
+                  </span>
+                  <Text as="div" tone="muted">
                     <Icon as={WrenchIcon} size="s" />
-                  </div>
+                  </Text>
                   <Text as="span" variant="body-strong">
                     {tool.title ?? tool.name}
                   </Text>
