@@ -2,6 +2,7 @@ import { RefreshCwIcon } from 'lucide-react';
 
 import { Dock } from '@/components/chat/docks/dock';
 import { Icon } from '@/components/primitives/icon.js';
+import { Text } from '@/components/primitives/text.js';
 import { Button } from '@/components/ui/button';
 import { useRespondDoomLoop } from '@/lib/queries/chat';
 
@@ -17,8 +18,13 @@ export function DoomLoopDock({ sessionId, toolName }: DoomLoopDockProps) {
       </Dock.Icon>
       <Dock.Body>
         <Dock.Title>
-          Repeating <code className="rounded-sm bg-muted px-space-xs py-space-2xs text-xs">{toolName}</code> with
-          identical input
+          Repeating{' '}
+          <span className="rounded-sm bg-muted px-space-xs py-space-2xs">
+            <Text as="code" variant="code">
+              {toolName}
+            </Text>
+          </span>{' '}
+          with identical input
         </Dock.Title>
         <Dock.Description>The assistant may be stuck in a loop</Dock.Description>
       </Dock.Body>

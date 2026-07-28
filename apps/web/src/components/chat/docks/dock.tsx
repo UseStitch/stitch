@@ -3,6 +3,7 @@ import * as React from 'react';
 
 import { Icon } from '@/components/primitives/icon.js';
 import { Stack } from '@/components/primitives/stack.js';
+import { Text } from '@/components/primitives/text.js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -25,9 +26,9 @@ type DockIconProps = React.ComponentProps<'div'>;
 
 type DockBodyProps = React.ComponentProps<'div'>;
 
-type DockTitleProps = React.ComponentProps<'div'>;
+type DockTitleProps = { children: React.ReactNode; title?: string; tone?: 'default' | 'destructive'; lineClamp?: '2' };
 
-type DockDescriptionProps = React.ComponentProps<'div'>;
+type DockDescriptionProps = { children: React.ReactNode; tone?: 'muted' | 'destructive'; flush?: boolean };
 
 type DockActionsProps = React.ComponentProps<'div'>;
 
@@ -47,8 +48,8 @@ const variantStyles = {
 
 type DockContainerProps = { docks: DockItem[]; className?: string };
 
-function DockRoot({ className, ...props }: DockRootProps) {
-  return <div className={cn('flex flex-col gap-space-l text-sm', className)} {...props} />;
+function DockRoot({ children }: DockRootProps) {
+  return <Stack gap="l">{children}</Stack>;
 }
 
 function DockInline({ className, ...props }: DockRootProps) {
@@ -70,12 +71,16 @@ function DockBody({ className, ...props }: DockBodyProps) {
   return <div className={cn('min-w-0 flex-1', className)} {...props} />;
 }
 
-function DockTitle({ className, ...props }: DockTitleProps) {
-  return <div className={cn('text-sm text-foreground', className)} {...props} />;
+function DockTitle({ tone = 'default', lineClamp, ...props }: DockTitleProps) {
+  return <Text as="div" variant="body" tone={tone} lineClamp={lineClamp} {...props} />;
 }
 
-function DockDescription({ className, ...props }: DockDescriptionProps) {
-  return <div className={cn('mt-space-xs text-xs text-muted-foreground', className)} {...props} />;
+function DockDescription({ tone = 'muted', flush = false, ...props }: DockDescriptionProps) {
+  return (
+    <div className={flush ? undefined : 'mt-space-xs'}>
+      <Text as="div" variant="caption" tone={tone} {...props} />
+    </div>
+  );
 }
 
 function DockActions({ className, ...props }: DockActionsProps) {
@@ -105,12 +110,10 @@ function DockSelectable({ selected, description, children, className, ...props }
   return (
     <Button
       type="button"
-      variant="ghost"
-      className={cn(
-        'h-auto w-full items-start justify-start gap-space-m rounded-md p-space-m text-left',
-        selected ? 'border-primary bg-primary-subtle' : 'border-border hover:bg-accent',
-        className,
-      )}
+      variant={selected ? 'secondary' : 'outline'}
+      width="full"
+      align="start"
+      className={cn('items-start gap-space-m', className)}
       {...props}>
       <div
         className={cn(
@@ -120,8 +123,14 @@ function DockSelectable({ selected, description, children, className, ...props }
         {selected ? <Icon as={CheckIcon} size="xs" color="var(--primary-foreground)" /> : null}
       </div>
       <div className="min-w-0">
-        <div className="truncate text-foreground">{children}</div>
-        {description ? <div className="truncate text-xs text-muted-foreground">{description}</div> : null}
+        <Text as="div" variant="body" truncate>
+          {children}
+        </Text>
+        {description ? (
+          <Text as="div" variant="caption" tone="muted" truncate>
+            {description}
+          </Text>
+        ) : null}
       </div>
     </Button>
   );
@@ -145,18 +154,15 @@ function CollapsibleDockItem({ title, defaultExpanded = true, children, isLast, 
 
   return (
     <div className={cn('overflow-hidden bg-transparent', !isLast && 'border-b border-border-subtle')}>
-      <Stack direction="row" align="center">
+      <div className={styles.header}>
         <Button
           type="button"
-          variant="ghost"
+          variant="quiet"
+          width="full"
+          align="start"
           onClick={() => setIsExpanded((prev) => !prev)}
           aria-expanded={isExpanded}
-          className={cn(
-            'h-auto flex-1 justify-start gap-space-l px-space-xl py-space-l text-left',
-            'transition-colors duration-fast ease-standard',
-            styles.header,
-            'focus-visible:outline-none',
-          )}>
+          className="gap-space-l">
           <span
             className={cn(
               'transition-transform duration-fast ease-standard',
@@ -165,9 +171,11 @@ function CollapsibleDockItem({ title, defaultExpanded = true, children, isLast, 
             )}>
             <Icon as={ChevronDownIcon} size="m" />
           </span>
-          <span>{title}</span>
+          <Text as="span" variant="body-strong">
+            {title}
+          </Text>
         </Button>
-      </Stack>
+      </div>
 
       <div
         className={cn(

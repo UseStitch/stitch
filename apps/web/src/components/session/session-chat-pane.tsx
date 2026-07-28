@@ -11,6 +11,7 @@ import type { Attachment } from '@/components/chat/chat-input-parts/types';
 import { DockContainer } from '@/components/chat/docks/dock';
 import { extractTextFromParts } from '@/components/chat/message-bubble/extract-text';
 import { MessageList } from '@/components/chat/message-list';
+import { Text } from '@/components/primitives/text';
 import { findLastUsedModel } from '@/components/session/session-chat-pane/session-message-context';
 import { useSeededInput } from '@/components/session/session-chat-pane/use-seeded-input';
 import { Button } from '@/components/ui/button';
@@ -217,8 +218,10 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
                   <div className="streaming-border-content shadow-sm" style={{ viewTransitionName: 'chat-input' }}>
                     <DockContainer docks={docks} />
                     {editingMessage && (
-                      <div className="flex items-center justify-between gap-space-l border-b border-border-subtle px-space-l py-space-m text-xs text-muted-foreground">
-                        <span>Editing this message will redo the conversation from that point.</span>
+                      <div className="flex items-center justify-between gap-space-l border-b border-border-subtle px-space-l py-space-m">
+                        <Text as="span" variant="caption" tone="muted">
+                          Editing this message will redo the conversation from that point.
+                        </Text>
                         <Button type="button" variant="ghost" size="xs" onClick={cancelEdit}>
                           Cancel
                         </Button>

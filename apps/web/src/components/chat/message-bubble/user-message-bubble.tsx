@@ -92,10 +92,10 @@ export function UserMessageBubble({ parts, onSplit, onEdit }: UserMessageBubbleP
             {isOverflowing && (
               <Button
                 type="button"
-                variant="ghost"
-                size="xs"
+                variant="quiet"
+                size="inline"
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="mt-space-xs h-auto px-space-none py-space-2xs text-xs text-muted-foreground hover:text-foreground">
+                className="mt-space-xs">
                 {isExpanded ? (
                   <>
                     <Icon as={ChevronsDownUpIcon} size="xs" />
@@ -120,8 +120,8 @@ export function UserMessageBubble({ parts, onSplit, onEdit }: UserMessageBubbleP
           {onEdit && (
             <Button
               type="button"
-              variant="ghost"
-              size="xs"
+              variant="quiet"
+              size="inline"
               onClick={onEdit}
               aria-label="Edit and redo from here"
               className={MESSAGE_ACTION_BUTTON_CLASS}>
@@ -133,8 +133,8 @@ export function UserMessageBubble({ parts, onSplit, onEdit }: UserMessageBubbleP
           {onSplit && (
             <Button
               type="button"
-              variant="ghost"
-              size="xs"
+              variant="quiet"
+              size="inline"
               onClick={onSplit}
               aria-label="Split from here"
               className={MESSAGE_ACTION_BUTTON_CLASS}>

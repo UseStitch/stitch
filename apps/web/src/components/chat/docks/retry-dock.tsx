@@ -26,13 +26,13 @@ export function RetryDock({ retry }: { retry: RetryInfo }) {
   return (
     <Dock.Inline>
       <Dock.Icon>
-        <Spinner className="text-destructive" />
+        <Spinner tone="destructive" />
       </Dock.Icon>
       <Dock.Body>
-        <Dock.Title className="line-clamp-2 text-destructive" title={retry.message}>
+        <Dock.Title tone="destructive" lineClamp="2" title={retry.message}>
           {retry.message}
         </Dock.Title>
-        <Dock.Description className="text-destructive">{retryText}</Dock.Description>
+        <Dock.Description tone="destructive">{retryText}</Dock.Description>
       </Dock.Body>
     </Dock.Inline>
   );

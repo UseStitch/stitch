@@ -4,7 +4,6 @@ import type { Attachment } from './types';
 import { Icon } from '@/components/primitives/icon.js';
 import { Text } from '@/components/primitives/text.js';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 type AttachmentPreviewProps = { attachment: Attachment; onRemove: (id: string) => void };
 
@@ -30,19 +29,11 @@ export function AttachmentPreview({ attachment, onRemove }: AttachmentPreviewPro
           </Text>
         </div>
       )}
-      <Button
-        type="button"
-        variant="destructive"
-        size="icon-xs"
-        onClick={() => onRemove(attachment.id)}
-        className={cn(
-          'absolute -top-1.5 -right-1.5 size-4 rounded-full',
-          'bg-foreground text-background flex items-center justify-center',
-          'opacity-0 group-hover:opacity-100 transition-opacity',
-          'focus-visible:opacity-100 focus-visible:outline-none',
-        )}>
-        <Icon as={XIcon} size="xs" />
-      </Button>
+      <span className="absolute -top-1.5 -right-1.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+        <Button type="button" variant="destructive" size="icon-xs" onClick={() => onRemove(attachment.id)}>
+          <Icon as={XIcon} size="xs" />
+        </Button>
+      </span>
     </div>
   );
 }

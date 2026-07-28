@@ -160,9 +160,8 @@ export function ChatSidebarContent() {
                       </Button>
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="destructive-quiet"
                         size="icon-xs"
-                        className="text-destructive hover:bg-destructive-subtle hover:text-destructive"
                         aria-label={`Delete ${session.title ?? 'conversation'}`}
                         disabled={archiveSession.isPending || deleteSession.isPending}
                         onClick={(event) => {
@@ -179,7 +178,7 @@ export function ChatSidebarContent() {
             </InternalSidebar.List>
             {hasNextPage ? (
               <div ref={loadMoreRef} className="flex h-9 items-center justify-center">
-                {isFetchingNextPage ? <Spinner className="text-muted-foreground" /> : null}
+                {isFetchingNextPage ? <Spinner tone="muted" /> : null}
               </div>
             ) : null}
           </InternalSidebar.Group>

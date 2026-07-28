@@ -216,7 +216,7 @@ export function ChatInputInner({
               'placeholder:text-text-faint',
               'max-h-48 overflow-y-auto thin-scrollbar',
               'field-sizing-content',
-              'focus-visible:ring-0 dark:bg-transparent disabled:bg-transparent dark:disabled:bg-transparent',
+              'focus-visible:ring-0 disabled:bg-transparent',
             )}
           />
         )}
@@ -247,10 +247,9 @@ export function ChatInputInner({
               <Button
                 type="button"
                 size="icon-xs"
-                variant="ghost"
+                variant="quiet"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={disabled}
-                className="text-muted-foreground hover:text-foreground"
                 title="Attach files">
                 <Icon as={PaperclipIcon} size="s" />
               </Button>
@@ -261,13 +260,9 @@ export function ChatInputInner({
                 <Button
                   type="button"
                   size="icon-xs"
-                  variant="ghost"
+                  variant="quiet"
                   onClick={() => dictation.toggle()}
                   disabled={disabled}
-                  className={cn(
-                    'text-muted-foreground hover:text-foreground',
-                    disabled && 'pointer-events-none opacity-50',
-                  )}
                   title="Speak to type">
                   <Icon as={MicIcon} size="s" />
                 </Button>
@@ -277,11 +272,7 @@ export function ChatInputInner({
                   onSelect={(model) => dictation.start(model)}
                   sttProviders={sttProviders}
                   triggerRender={
-                    <Button
-                      type="button"
-                      size="icon-xs"
-                      variant="ghost"
-                      className="w-4 text-muted-foreground hover:text-foreground">
+                    <Button type="button" size="icon-xs" variant="quiet">
                       <Icon as={ChevronDownIcon} size="xs" />
                     </Button>
                   }
@@ -307,7 +298,7 @@ export function ChatInputInner({
               onClick={() => {
                 if (canSend) submit();
               }}
-              className={cn('shrink-0 transition-all', canSend && 'shadow-sm')}
+              className="shrink-0"
               title="Send message">
               <Icon as={ArrowUpIcon} size="s" />
             </Button>

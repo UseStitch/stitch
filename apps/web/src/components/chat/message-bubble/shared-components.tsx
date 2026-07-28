@@ -5,8 +5,7 @@ import { Icon } from '@/components/primitives/icon.js';
 import { Text } from '@/components/primitives/text.js';
 import { CopyButton } from '@/components/ui/copy-button';
 
-export const MESSAGE_ACTION_BUTTON_CLASS =
-  'h-auto items-center gap-space-xs rounded-none p-space-none text-xs leading-none font-normal text-muted-foreground hover:bg-transparent hover:text-foreground';
+export const MESSAGE_ACTION_BUTTON_CLASS = 'items-center gap-space-xs leading-none';
 
 export function InterruptedLabel() {
   return (
@@ -20,9 +19,11 @@ export function InterruptedLabel() {
 
 export function FileBlock({ mediaType }: { mediaType: string }) {
   return (
-    <div className="my-space-m inline-flex items-center gap-space-s rounded-lg border border-border-subtle bg-surface-sunken px-space-l py-space-s text-xs text-muted-foreground">
+    <div className="my-space-m inline-flex items-center gap-space-s rounded-lg border border-border-subtle bg-surface-sunken px-space-l py-space-s">
       <Icon as={FileIcon} size="xs" />
-      <span>{mediaType}</span>
+      <Text as="span" variant="caption" tone="muted">
+        {mediaType}
+      </Text>
     </div>
   );
 }
@@ -42,8 +43,8 @@ export function MessageCopyButton({ text }: { text: string }) {
       copyLabel="Copy"
       copiedLabel="Copied"
       showLabel
-      variant="ghost"
-      size="xs"
+      variant="quiet"
+      size="inline"
       className={MESSAGE_ACTION_BUTTON_CLASS}
       aria-label="Copy message"
       title={undefined}

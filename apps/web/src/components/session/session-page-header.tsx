@@ -25,7 +25,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useDialogContext } from '@/context/dialog-context';
 import { sessionQueryOptions } from '@/lib/queries/chat';
-import { cn } from '@/lib/utils';
 
 export type SessionPageHeaderProps = {
   sessionId: string;
@@ -67,7 +66,7 @@ export function SessionPageHeader({
               <span className="hidden sm:inline">Back to parent</span>
             </Link>
           ) : null}
-          <h1 className="flex min-w-0 items-center gap-space-m truncate text-base font-medium">
+          <Stack direction="row" align="center" gap="m" grow>
             {isChildSession ? (
               <Badge variant="soft" size="xs">
                 <Icon as={BotIcon} size="xs" />
@@ -77,24 +76,24 @@ export function SessionPageHeader({
             <Text as="span" variant="heading-s" truncate>
               {session.title ?? 'New conversation'}
             </Text>
-          </h1>
+          </Stack>
         </div>
 
         <Stack direction="row" align="center" gap="xs">
           {!isChildSession && hasBrowser ? (
             <Button
-              variant="ghost"
+              variant={rightPanel === 'browser' ? 'secondary' : 'ghost'}
               size="icon-sm"
-              className={cn('hidden lg:inline-flex', rightPanel === 'browser' && 'bg-accent')}
+              className="hidden lg:inline-flex"
               onClick={onToggleBrowser}
               aria-label={rightPanel === 'browser' ? 'Hide browser' : 'Show browser'}>
               <Icon as={GlobeIcon} size="m" />
             </Button>
           ) : null}
           <Button
-            variant="ghost"
+            variant={rightPanel === 'details' ? 'secondary' : 'ghost'}
             size="icon-sm"
-            className={cn('hidden lg:inline-flex', rightPanel === 'details' && 'bg-accent')}
+            className="hidden lg:inline-flex"
             onClick={onToggleDetails}
             aria-label={rightPanel === 'details' ? 'Hide session details' : 'Show session details'}>
             <Icon as={InfoIcon} size="m" />

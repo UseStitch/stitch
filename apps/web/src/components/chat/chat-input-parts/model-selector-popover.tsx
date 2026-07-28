@@ -53,7 +53,7 @@ export function ModelSelectorPopover({ selectedValue, onSelect, providerModels }
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search models"
-            className="h-auto flex-1 rounded-none border-0 bg-transparent px-space-none py-space-none text-sm focus-visible:ring-0 dark:bg-transparent"
+            className="h-auto flex-1 rounded-none border-0 bg-transparent px-space-none py-space-none text-sm focus-visible:ring-0"
           />
         </div>
 

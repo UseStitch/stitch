@@ -5,6 +5,8 @@ import type { QuestionRequest } from '@stitch/shared/questions/types';
 
 import { Dock } from '@/components/chat/docks/dock';
 import { Icon } from '@/components/primitives/icon.js';
+import { Stack } from '@/components/primitives/stack.js';
+import { Text } from '@/components/primitives/text.js';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
@@ -82,7 +84,7 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
   const allAnswered = items.every((_, idx) => isAnswered(idx));
 
   return (
-    <form className="flex flex-col gap-space-m" onSubmit={handleSubmit}>
+    <Stack as="form" gap="m" onSubmit={handleSubmit}>
       <Tabs value={String(tab)} onValueChange={(v) => setTab(Number(v))}>
         {total > 1 && (
           <TabsList variant="line" className="w-full justify-start">
@@ -101,9 +103,15 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
 
           return (
             <TabsContent key={item.question} value={String(idx)} className="mt-space-none">
-              <div className="mb-space-xs text-sm text-foreground">{item.question}</div>
-              <div className="mb-space-m text-2xs text-muted-foreground">
-                {isMultiQ ? 'Select all that apply' : 'Select one option'}
+              <div className="mb-space-xs">
+                <Text as="div" variant="body">
+                  {item.question}
+                </Text>
+              </div>
+              <div className="mb-space-m">
+                <Text as="div" variant="micro" tone="muted">
+                  {isMultiQ ? 'Select all that apply' : 'Select one option'}
+                </Text>
               </div>
 
               <div className="space-y-space-s">
@@ -131,16 +139,16 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
       </Tabs>
 
       <div className="flex items-center justify-between gap-space-m pt-space-xs">
-        <Button variant="ghost" size="sm" onClick={() => onReject(request.id)} className="px-space-m">
+        <Button variant="ghost" size="sm" onClick={() => onReject(request.id)}>
           <span className="mr-space-xs">
             <Icon as={XIcon} size="xs" />
           </span>
           Dismiss
         </Button>
-        <Button variant="default" size="sm" type="submit" disabled={!allAnswered} className="h-7">
+        <Button variant="default" size="sm" type="submit" disabled={!allAnswered}>
           Submit
         </Button>
       </div>
-    </form>
+    </Stack>
   );
 }

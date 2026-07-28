@@ -72,7 +72,9 @@ export function NewSessionPage() {
       <div className="w-full max-w-4xl">
         <Stack gap="3xl">
           <div className="space-y-space-l text-center">
-            <h1 className="text-3xl font-bold tracking-tight">What can I help you with?</h1>
+            <Text as="h1" variant="heading-l" align="center">
+              What can I help you with?
+            </Text>
             <Text as="p" variant="heading-s" tone="muted">
               Select a model and start a conversation
             </Text>

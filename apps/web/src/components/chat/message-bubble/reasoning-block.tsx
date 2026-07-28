@@ -14,9 +14,12 @@ export function ReasoningBlock({ text, isStreaming }: ReasoningBlockProps) {
   return (
     <div className="my-space-m overflow-hidden rounded-lg border border-border-subtle bg-surface-sunken">
       <Button
-        variant="ghost"
+        variant="quiet"
+        size="inline"
+        width="full"
+        align="start"
         onClick={() => setOpen((o) => !o)}
-        className="h-auto w-full justify-start gap-space-m rounded-none px-space-l py-space-m text-xs text-muted-foreground hover:bg-transparent hover:text-foreground">
+        className="gap-space-m">
         {open ? <Icon as={ChevronDownIcon} size="s" /> : <Icon as={ChevronRightIcon} size="s" />}
         <Text as="span" variant="label" tone="muted">
           {isStreaming ? 'Thinking...' : 'Reasoning'}
@@ -24,8 +27,10 @@ export function ReasoningBlock({ text, isStreaming }: ReasoningBlockProps) {
         {isStreaming && <StatusDot color="info" size="sm" pulse className="ml-auto" />}
       </Button>
       {open && (
-        <div className="border-t border-border-subtle px-space-l py-space-m text-xs leading-relaxed text-muted-foreground italic">
-          {text}
+        <div className="border-t border-border-subtle px-space-l py-space-m italic">
+          <Text as="div" variant="caption" tone="muted">
+            {text}
+          </Text>
         </div>
       )}
     </div>

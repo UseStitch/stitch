@@ -113,16 +113,17 @@ function MarkdownCodeBlock({ code, children }: { code: string; children: React.R
 
   return (
     <div className="group relative">
-      <Button
-        type="button"
-        variant="ghost"
-        size="xs"
-        className="absolute top-2 right-2 z-10 border-border-subtle bg-background text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-background hover:text-foreground"
-        onClick={handleCopy}
-        title={copied ? 'Copied' : 'Copy code'}
-        aria-label={copied ? 'Copied' : 'Copy code'}>
-        {copied ? <Icon as={CheckIcon} size="s" /> : <Icon as={CopyIcon} size="s" />}
-      </Button>
+      <span className="absolute top-2 right-2 z-10 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-xs"
+          onClick={handleCopy}
+          title={copied ? 'Copied' : 'Copy code'}
+          aria-label={copied ? 'Copied' : 'Copy code'}>
+          {copied ? <Icon as={CheckIcon} size="s" /> : <Icon as={CopyIcon} size="s" />}
+        </Button>
+      </span>
       {children}
     </div>
   );
@@ -260,7 +261,7 @@ function MarkdownImage({ alt, ...props }: React.ImgHTMLAttributes<HTMLImageEleme
 
   if (broken) {
     return (
-      <div className="my-space-s inline-flex items-center gap-space-s rounded-lg border border-border-subtle bg-surface-sunken px-space-l py-space-s text-xs text-muted-foreground">
+      <div className="my-space-s inline-flex items-center gap-space-s rounded-lg border border-border-subtle bg-surface-sunken px-space-l py-space-s">
         <Text as="span" variant="caption" tone="muted">
           Image
         </Text>
@@ -361,10 +362,12 @@ export default function ChatMarkdown({ text, className, isStreaming = false }: C
   const source = isStreaming ? text : normalizeInlineMath(text);
 
   return (
-    <div className={cn('prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed', className)}>
-      <ReactMarkdown remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins} components={markdownComponents}>
-        {source}
-      </ReactMarkdown>
-    </div>
+    <Text as="div" variant="body">
+      <section className={cn('prose prose-sm prose-neutral dark:prose-invert max-w-none leading-relaxed', className)}>
+        <ReactMarkdown remarkPlugins={remarkPlugins} rehypePlugins={rehypePlugins} components={markdownComponents}>
+          {source}
+        </ReactMarkdown>
+      </section>
+    </Text>
   );
 }

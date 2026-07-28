@@ -45,13 +45,13 @@ export function PermissionResponseDock({
 
   return (
     <Dock.Root>
-      <Dock.Title className="text-foreground">
+      <Dock.Title>
         <Text as="span" variant="body-strong">
           Tool:
         </Text>{' '}
         {toolLabel}
       </Dock.Title>
-      <Dock.Description className="mt-space-none">{permissionResponse.systemReminder}</Dock.Description>
+      <Dock.Description flush>{permissionResponse.systemReminder}</Dock.Description>
 
       <Dock.Actions>
         <Button size="sm" disabled={isPending} onClick={() => void onAllow(permissionResponse.id)}>
@@ -85,10 +85,11 @@ export function PermissionResponseDock({
       {suggestion && isDirectorySuggestion ? (
         <Button
           type="button"
-          variant="ghost"
+          variant="quiet"
+          size="inline"
           disabled={isPending}
           onClick={() => void onApplySuggestion(permissionResponse.id, suggestion.pattern)}
-          className="group h-auto w-fit items-baseline gap-space-s p-space-none text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-foreground">
+          className="group items-baseline gap-space-s">
           <span className="underline-offset-2 group-hover:underline">
             <Text as="span" variant="caption" tone="muted">
               Always allow in directory

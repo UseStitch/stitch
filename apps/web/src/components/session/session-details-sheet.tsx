@@ -69,9 +69,9 @@ function parsePercent(value: string) {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="border-t border-border-subtle pt-space-xl first:border-t-0 first:pt-space-none">
-      <div className="mb-space-l tracking-wide uppercase">
+      <div className="mb-space-l">
         <Text variant="label" tone="muted">
-          {title}
+          {title.toUpperCase()}
         </Text>
       </div>
       <div className="space-y-space-m">{children}</div>
@@ -81,22 +81,26 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-space-xl text-sm">
+    <div className="flex items-baseline justify-between gap-space-xl">
       <Text as="span" variant="body" tone="muted">
         {label}
       </Text>
-      <div className="min-w-0 text-right font-medium text-foreground [font-variant-numeric:tabular-nums]">{value}</div>
+      <Text as="div" variant="body-strong" align="right" tabular>
+        {value}
+      </Text>
     </div>
   );
 }
 
 function SecondaryDetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-space-xl pl-space-xl text-sm">
+    <div className="flex items-baseline justify-between gap-space-xl pl-space-xl">
       <Text as="span" variant="body" tone="muted">
         {label}
       </Text>
-      <div className="min-w-0 text-right text-muted-foreground [font-variant-numeric:tabular-nums]">{value}</div>
+      <Text as="div" variant="body" tone="muted" align="right" tabular>
+        {value}
+      </Text>
     </div>
   );
 }

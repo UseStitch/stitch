@@ -58,11 +58,10 @@ export function RecordingBar({ audioLevel, startedAt, isStopping, onCancel, onSt
       <Button
         type="button"
         size="icon-xs"
-        variant="ghost"
+        variant="quiet"
         onClick={onCancel}
         disabled={isStopping}
-        title="Discard recording"
-        className="text-muted-foreground hover:text-foreground">
+        title="Discard recording">
         <Icon as={XIcon} size="s" />
       </Button>
       <Button

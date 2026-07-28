@@ -31,12 +31,12 @@ type ToolCallGroupProps = { calls: ToolCallDisplayItem[]; onAbort?: () => void }
 
 type ToolErrorDetails = { toolName: string; label: string; error: string };
 
-const STATUS_CLASS: Record<ToolCallStatus, string> = {
-  pending: 'text-muted-foreground',
-  'in-progress': 'text-info',
-  completed: 'text-success',
-  error: 'text-destructive',
-};
+const STATUS_TONE = {
+  pending: 'muted',
+  'in-progress': 'primary',
+  completed: 'success',
+  error: 'destructive',
+} as const satisfies Record<ToolCallStatus, 'muted' | 'primary' | 'success' | 'destructive'>;
 
 const STATUS_LABEL: Record<ToolCallStatus, string> = {
   pending: 'Pending',
@@ -66,23 +66,25 @@ export function ToolCallGroup({ calls, onAbort }: ToolCallGroupProps) {
   if (calls.length === 0) return null;
 
   return (
-    <div className="my-space-m border-l-2 border-border-subtle pl-space-l text-xs">
+    <div className="my-space-m border-l-2 border-border-subtle pl-space-l">
       {hiddenCount > 0 ? (
-        <Button
-          key={hiddenCount}
-          type="button"
-          variant="ghost"
-          size="xs"
-          onClick={() => setExpanded((current) => !current)}
-          className={cn(
-            'w-full justify-start px-space-s text-muted-foreground hover:bg-accent',
-            hiddenCountIncreased && 'animate-in fade-in slide-in-from-top-1 duration-base',
-          )}>
-          <span className={cn('transition-transform', expanded && 'rotate-180')}>
-            <Icon as={ChevronDownIcon} size="xs" />
-          </span>
-          {expanded ? 'Hide earlier tool calls' : `Show ${hiddenCount} earlier tool calls`}
-        </Button>
+        <div className={cn(hiddenCountIncreased && 'animate-in fade-in slide-in-from-top-1 duration-base')}>
+          <Button
+            key={hiddenCount}
+            type="button"
+            variant="ghost"
+            size="xs"
+            width="full"
+            align="start"
+            onClick={() => setExpanded((current) => !current)}>
+            <span className={cn('transition-transform', expanded && 'rotate-180')}>
+              <Icon as={ChevronDownIcon} size="xs" />
+            </span>
+            <Text as="span" variant="caption" tone="muted">
+              {expanded ? 'Hide earlier tool calls' : `Show ${hiddenCount} earlier tool calls`}
+            </Text>
+          </Button>
+        </div>
       ) : null}
 
       <div className="space-y-space-2xs">
@@ -173,7 +175,7 @@ function ToolCallRowRoot({
     <ToolCallRowContext.Provider value={contextValue}>
       <div
         className={cn(
-          'group flex min-h-7 min-w-0 items-center gap-space-m rounded-md px-space-s text-xs transition-colors hover:bg-accent',
+          'group flex min-h-7 min-w-0 items-center gap-space-m rounded-md px-space-s transition-colors hover:bg-accent',
           animateIn && 'animate-in fade-in slide-in-from-top-1 duration-base',
         )}>
         {children}
@@ -214,11 +216,15 @@ function ToolCallRowPreview() {
   return (
     <Button
       type="button"
-      variant="ghost"
+      variant="quiet"
+      size="inline"
+      align="start"
       onClick={() => onViewErrorDetails(errorDetails)}
-      className="h-auto min-w-0 flex-1 justify-start truncate p-space-none text-left font-normal text-muted-foreground hover:bg-transparent hover:text-destructive"
+      className="min-w-0 flex-1 truncate"
       title="View full error">
-      {summary.preview}
+      <Text as="span" variant="caption" tone="muted" truncate>
+        {summary.preview}
+      </Text>
     </Button>
   );
 }
@@ -226,8 +232,8 @@ function ToolCallRowPreview() {
 function ToolCallRowMeta() {
   const { summary } = useToolCallRow();
   return (
-    <div className="hidden h-5 w-44 shrink-0 items-center justify-end text-right leading-none sm:flex">
-      <Text as="span" variant="micro" tone="faint" truncate>
+    <div className="hidden h-5 w-44 shrink-0 items-center justify-end sm:flex">
+      <Text as="span" variant="micro" tone="faint" align="right" truncate>
         {summary.meta}
       </Text>
     </div>
@@ -236,36 +242,35 @@ function ToolCallRowMeta() {
 
 function ToolCallRowStatus() {
   const { call, errorDetails, onViewErrorDetails } = useToolCallRow();
-  const className = cn(
-    'flex h-5 w-12 shrink-0 items-center justify-end text-right text-2xs leading-none font-medium',
-    STATUS_CLASS[call.status],
-  );
 
   if (!errorDetails) {
-    return <span className={className}>{STATUS_LABEL[call.status]}</span>;
+    return (
+      <span className="flex h-5 w-12 shrink-0 items-center justify-end">
+        <Text as="span" variant="micro" tone={STATUS_TONE[call.status]} align="right">
+          {STATUS_LABEL[call.status]}
+        </Text>
+      </span>
+    );
   }
 
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      onClick={() => onViewErrorDetails(errorDetails)}
-      className={cn(className, 'h-auto p-space-none hover:bg-transparent hover:underline')}
-      title="View full error">
-      {STATUS_LABEL[call.status]}
-    </Button>
+    <span className="flex h-5 w-12 shrink-0 items-center justify-end">
+      <Button
+        type="button"
+        variant="destructive-quiet"
+        size="inline"
+        onClick={() => onViewErrorDetails(errorDetails)}
+        className="hover:underline"
+        title="View full error">
+        {STATUS_LABEL[call.status]}
+      </Button>
+    </span>
   );
 }
 
 function ToolCallRowStopButton({ onAbort }: { onAbort: () => void }) {
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="xs"
-      onClick={onAbort}
-      className="h-5 pr-space-none pl-space-s text-2xs leading-none text-destructive hover:text-destructive"
-      title="Stop running response">
+    <Button type="button" variant="destructive-quiet" size="xs" onClick={onAbort} title="Stop running response">
       <Icon as={SquareIcon} size="xs" />
       <Text as="span" variant="micro" tone="destructive">
         Stop
@@ -281,9 +286,8 @@ function ToolCallRowActions({ actions }: { actions: ToolCallAction[] }) {
         return (
           <Button
             key={`${action.type}-${action.sessionId}`}
-            variant="ghost"
+            variant="quiet"
             size="xs"
-            className="h-5 px-space-s text-2xs leading-3 text-muted-foreground"
             title="Open child session"
             nativeButton={false}
             render={<Link to="/session/$id" params={{ id: action.sessionId }} />}>
@@ -340,7 +344,7 @@ function ToolStatusIcon({ status, summary }: { status: ToolCallStatus; summary: 
   }
 
   if (status === 'in-progress') {
-    return <Spinner size="sm" className="shrink-0 text-info" />;
+    return <Spinner size="sm" tone="primary" className="shrink-0" />;
   }
 
   if (summary.connectorIconSlug) {

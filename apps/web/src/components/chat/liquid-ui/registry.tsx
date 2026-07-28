@@ -51,11 +51,11 @@ const badgeVariantClasses = {
   info: 'bg-info-subtle text-info border-info',
 } as const;
 
-const textVariantClasses = {
-  body: 'text-sm text-foreground',
-  muted: 'text-sm text-muted-foreground',
-  heading: 'text-base font-semibold text-foreground',
-  caption: 'text-xs text-muted-foreground',
+const textVariants = {
+  body: { variant: 'body', tone: 'default' },
+  muted: { variant: 'body', tone: 'muted' },
+  heading: { variant: 'heading-s', tone: 'default' },
+  caption: { variant: 'caption', tone: 'muted' },
 } as const;
 
 function LiquidStack({ node, renderChildren }: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Stack' }>>) {
@@ -109,11 +109,19 @@ function LiquidStat({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { comp
 
   return (
     <div className="rounded-lg border bg-card p-space-l">
-      <div className="text-xs font-medium text-muted-foreground">{node.label}</div>
-      <div className="mt-space-xs text-2xl font-semibold tracking-tight text-foreground">{node.value}</div>
+      <Text as="div" variant="label" tone="muted">
+        {node.label}
+      </Text>
+      <div className="mt-space-xs">
+        <Text as="div" variant="metric">
+          {node.value}
+        </Text>
+      </div>
       {(node.caption || trendText) && (
-        <div className="mt-space-xs text-xs text-muted-foreground">
-          {[node.caption, trendText].filter(Boolean).join(' · ')}
+        <div className="mt-space-xs">
+          <Text as="div" variant="caption" tone="muted">
+            {[node.caption, trendText].filter(Boolean).join(' · ')}
+          </Text>
         </div>
       )}
     </div>
@@ -122,7 +130,7 @@ function LiquidStat({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { comp
 
 function LiquidKeyValue({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'KeyValue' }>>) {
   return (
-    <div className="flex items-start justify-between gap-space-xl rounded-md border bg-surface-sunken px-space-l py-space-m text-sm">
+    <div className="flex items-start justify-between gap-space-xl rounded-md border bg-surface-sunken px-space-l py-space-m">
       <Text as="span" variant="body" tone="muted">
         {node.label}
       </Text>
@@ -136,7 +144,12 @@ function LiquidKeyValue({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { 
 }
 
 function LiquidText({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Text' }>>) {
-  return <p className={textVariantClasses[node.variant]}>{node.text}</p>;
+  const text = textVariants[node.variant];
+  return (
+    <Text as="p" variant={text.variant} tone={text.tone}>
+      {node.text}
+    </Text>
+  );
 }
 
 function LiquidDivider() {
@@ -172,7 +185,13 @@ function LiquidChart({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { com
 
   return (
     <div className="rounded-lg border bg-card p-space-l">
-      {node.title && <div className="mb-space-l text-sm font-medium text-foreground">{node.title}</div>}
+      {node.title && (
+        <div className="mb-space-l">
+          <Text as="div" variant="body-strong">
+            {node.title}
+          </Text>
+        </div>
+      )}
       <div className="h-64">{chart}</div>
     </div>
   );
