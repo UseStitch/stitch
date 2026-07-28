@@ -9,6 +9,7 @@ import { TranscriptSidebar } from './analysis/transcript-sidebar';
 import { DeleteRecordingDialog } from './shared/delete-recording-dialog';
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
+import { Text } from '@/components/primitives/text';
 import { Empty, EmptyDescription } from '@/components/ui/empty';
 import { Page, PageContent } from '@/components/ui/page';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -111,8 +112,8 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
         />
 
         {analysis?.error ? (
-          <div className="shrink-0 rounded-lg border border-destructive-subtle bg-destructive-subtle px-space-xl py-space-l text-sm text-destructive">
-            {analysis.error}
+          <div className="shrink-0 rounded-lg border border-destructive-subtle bg-destructive-subtle px-space-xl py-space-l">
+            <Text tone="destructive">{analysis.error}</Text>
           </div>
         ) : null}
 

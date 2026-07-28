@@ -80,7 +80,7 @@ function ActionsCell({ row, table }: CellContext<typeof features, Recording, unk
     <Table.Actions className="-mr-space-s">
       <Button
         type="button"
-        variant="ghost"
+        variant="destructive-quiet"
         size="icon-sm"
         onClick={(e) => {
           e.stopPropagation();
@@ -88,8 +88,7 @@ function ActionsCell({ row, table }: CellContext<typeof features, Recording, unk
         }}
         title="Delete recording"
         aria-label="Delete recording"
-        disabled={row.original.id === activeRecordingId}
-        className="text-destructive hover:text-destructive">
+        disabled={row.original.id === activeRecordingId}>
         <Icon as={Trash2Icon} size="m" />
       </Button>
     </Table.Actions>

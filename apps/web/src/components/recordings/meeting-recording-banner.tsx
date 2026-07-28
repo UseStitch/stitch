@@ -189,17 +189,19 @@ export function MeetingRecordingBanner() {
     <div className="border-b border-border-subtle bg-card px-space-xl py-space-l shadow-sm backdrop-blur transition-colors">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-space-xl">
         <Stack direction="row" align="center" gap="l">
-          <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-primary-subtle text-primary ring-1 ring-primary-subtle">
+          <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-primary-subtle ring-1 ring-primary-subtle">
             <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary"></span>
             </span>
-            <Video className="h-4 w-4" />
+            <Icon as={Video} size="m" tone="primary" />
           </div>
           <Text variant="body" tone="muted">
             Active call detected in{' '}
-            <strong className="font-medium text-foreground">{PLATFORM_CONFIG[detection.platform].label}</strong>. Would
-            you like to start recording?
+            <Text as="span" variant="body-strong">
+              {PLATFORM_CONFIG[detection.platform].label}
+            </Text>
+            . Would you like to start recording?
           </Text>
         </Stack>
         <Stack direction="row" align="center" gap="m">
@@ -221,8 +223,7 @@ export function MeetingRecordingBanner() {
                     },
                   );
                 }}
-                disabled={startRecording.isPending}
-                className="text-primary-foreground hover:brightness-95">
+                disabled={startRecording.isPending}>
                 Start recording
               </Button>
               <ButtonGroupSeparator className="bg-primary-foreground" />
@@ -251,9 +252,8 @@ export function MeetingRecordingBanner() {
                 triggerRender={
                   <Button
                     type="button"
-                    size="sm"
+                    size="icon-sm"
                     disabled={startRecording.isPending}
-                    className="px-space-s text-primary-foreground hover:brightness-95"
                     title="Choose transcription model and start">
                     <Icon as={ChevronDownIcon} size="s" />
                   </Button>
@@ -275,19 +275,17 @@ export function MeetingRecordingBanner() {
                   },
                 );
               }}
-              disabled={startRecording.isPending}
-              className="rounded-lg shadow-sm shadow-primary-subtle">
+              disabled={startRecording.isPending}>
               Start recording
             </Button>
           )}
           <Button
             type="button"
             size="sm"
-            variant="ghost"
+            variant="quiet"
             onClick={() => {
               requestDismissMeeting(detection.key);
-            }}
-            className="text-muted-foreground hover:bg-muted hover:text-foreground">
+            }}>
             Dismiss
           </Button>
         </Stack>

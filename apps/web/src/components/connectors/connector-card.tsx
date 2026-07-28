@@ -36,7 +36,7 @@ export function ConnectorCard({ definition, instanceCount, onSetup }: ConnectorC
       <CardContent>
         <div className="space-y-space-l">
           <Stack direction="row" align="center" justify="between" gap="l">
-            <div className="text-xs text-muted-foreground">
+            <div>
               {isConnected ? (
                 <span className="inline-flex items-center gap-space-xs">
                   <Icon as={CheckCircle2Icon} size="xs" />
@@ -45,7 +45,9 @@ export function ConnectorCard({ definition, instanceCount, onSetup }: ConnectorC
                   </Text>
                 </span>
               ) : (
-                <span>Not connected</span>
+                <Text as="span" variant="caption" tone="muted">
+                  Not connected
+                </Text>
               )}
             </div>
             <Button variant={isConnected ? 'outline' : 'default'} size="sm" onClick={onSetup}>

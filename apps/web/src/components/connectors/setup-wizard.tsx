@@ -280,7 +280,7 @@ export function SetupWizard({ definition, connectors, onClose }: Props) {
                   </>
                 ) : (
                   <>
-                    <Spinner size="lg" className="text-primary" />
+                    <Spinner size="lg" tone="primary" />
                     <Text as="p" variant="body" tone="muted">
                       Setting up connection...
                     </Text>
@@ -293,8 +293,8 @@ export function SetupWizard({ definition, connectors, onClose }: Props) {
           {step === 'done' && (
             <div className="h-full min-h-0 overflow-y-auto py-space-2xl">
               <Stack align="center" gap="l">
-                <div className="grid size-12 place-items-center rounded-full bg-success-subtle text-success">
-                  <CheckIcon width={24} height={24} />
+                <div className="grid size-12 place-items-center rounded-full bg-success-subtle">
+                  <Icon as={CheckIcon} size="l" tone="success" />
                 </div>
                 {isOAuth ? (
                   <>
@@ -330,17 +330,19 @@ function InstructionsStep({ instructions, onNext }: { instructions: ConnectorSet
     <div className="h-full min-h-0 *:h-full">
       <Stack gap="l">
         <ScrollArea className="max-h-[45vh] min-h-0 flex-1 rounded-lg border border-border-subtle bg-surface-sunken p-space-l">
-          <ol className="list-inside list-decimal space-y-space-m text-sm text-foreground">
+          <ol className="list-inside list-decimal space-y-space-m">
             {instructions.map((instruction) => {
               const href = instruction.href;
               return (
-                <li key={instruction.text} className="leading-relaxed">
-                  <span>{instruction.text}</span>
+                <li key={instruction.text}>
+                  <Text as="span" variant="body">
+                    {instruction.text}
+                  </Text>
                   {href ? (
                     <Button
                       type="button"
-                      variant="ghost"
-                      className="ml-space-xs h-auto gap-space-xs p-space-none font-normal text-primary hover:bg-transparent hover:underline"
+                      variant="link"
+                      size="inline"
                       onClick={() => {
                         void (window.api?.shell?.openExternal(href) ?? window.open(href, '_blank'));
                       }}>
@@ -392,122 +394,127 @@ function ConnectorCredentialsStep({
   const isCreatingConnector = values.selectedConnectorRefId === 'new';
 
   return (
-    <form
-      className="flex h-full min-h-0 flex-col gap-space-l"
-      onSubmit={(event) => {
-        event.preventDefault();
-        void form.handleSubmit();
-      }}>
-      <div className="min-h-0 flex-1 space-y-space-l overflow-y-auto pr-space-xs">
-        {isOAuth ? (
-          <>
-            <form.Field name="selectedConnectorRefId">
+    <div className="h-full min-h-0">
+      <Stack
+        as="form"
+        height="full"
+        gap="l"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void form.handleSubmit();
+        }}>
+        <div className="min-h-0 flex-1 space-y-space-l overflow-y-auto pr-space-xs">
+          {isOAuth ? (
+            <>
+              <form.Field name="selectedConnectorRefId">
+                {(field) => (
+                  <div className="space-y-space-s">
+                    <Label>Connector Credentials</Label>
+                    <Select value={field.state.value} onValueChange={(value) => field.handleChange(value ?? 'new')}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue>
+                          {isCreatingConnector
+                            ? 'Create new connector credentials'
+                            : connectors.find((connector) => connector.id === field.state.value)?.label}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {connectors.map((connector) => (
+                          <SelectItem key={connector.id} value={connector.id}>
+                            {connector.label}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="new">Create new connector credentials</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </form.Field>
+              {isCreatingConnector ? (
+                <>
+                  <form.Field name="clientId">
+                    {(field) => (
+                      <div className="space-y-space-s">
+                        <Label htmlFor="clientId">Client ID</Label>
+                        <Input
+                          id="clientId"
+                          placeholder="Your OAuth Client ID"
+                          value={field.state.value}
+                          aria-invalid={!!fieldErrorMessage(field.state.meta)}
+                          onBlur={field.handleBlur}
+                          onChange={(event) => field.handleChange(event.target.value)}
+                        />
+                        <FieldError meta={field.state.meta} />
+                      </div>
+                    )}
+                  </form.Field>
+                  <form.Field name="clientSecret">
+                    {(field) => (
+                      <div className="space-y-space-s">
+                        <Label htmlFor="clientSecret">Client Secret</Label>
+                        <Input
+                          id="clientSecret"
+                          type="password"
+                          placeholder="Your OAuth Client Secret"
+                          value={field.state.value}
+                          aria-invalid={!!fieldErrorMessage(field.state.meta)}
+                          onBlur={field.handleBlur}
+                          onChange={(event) => field.handleChange(event.target.value)}
+                        />
+                        <FieldError meta={field.state.meta} />
+                      </div>
+                    )}
+                  </form.Field>
+                </>
+              ) : null}
+            </>
+          ) : (
+            <form.Field name="apiKey">
               {(field) => (
                 <div className="space-y-space-s">
-                  <Label>Connector Credentials</Label>
-                  <Select value={field.state.value} onValueChange={(value) => field.handleChange(value ?? 'new')}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue>
-                        {isCreatingConnector
-                          ? 'Create new connector credentials'
-                          : connectors.find((connector) => connector.id === field.state.value)?.label}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {connectors.map((connector) => (
-                        <SelectItem key={connector.id} value={connector.id}>
-                          {connector.label}
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="new">Create new connector credentials</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="apiKey">{apiKeyConfig?.keyLabel ?? 'API Key'}</Label>
+                  <Input
+                    id="apiKey"
+                    type="password"
+                    placeholder={apiKeyConfig?.placeholder ?? 'Your API Key'}
+                    value={field.state.value}
+                    aria-invalid={!!fieldErrorMessage(field.state.meta)}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                  />
+                  <FieldError meta={field.state.meta} />
+                  {helpUrl && (
+                    <Button
+                      variant="link"
+                      size="inline"
+                      render={
+                        <a href={helpUrl} target="_blank" rel="noopener noreferrer" aria-label="Get your API key" />
+                      }
+                      onClick={(event) => {
+                        event.preventDefault();
+                        void (window.api?.shell?.openExternal(helpUrl) ?? window.open(helpUrl, '_blank'));
+                      }}>
+                      <Icon as={ExternalLinkIcon} size="xs" />
+                      Get your API key
+                    </Button>
+                  )}
                 </div>
               )}
             </form.Field>
-            {isCreatingConnector ? (
-              <>
-                <form.Field name="clientId">
-                  {(field) => (
-                    <div className="space-y-space-s">
-                      <Label htmlFor="clientId">Client ID</Label>
-                      <Input
-                        id="clientId"
-                        placeholder="Your OAuth Client ID"
-                        value={field.state.value}
-                        aria-invalid={!!fieldErrorMessage(field.state.meta)}
-                        onBlur={field.handleBlur}
-                        onChange={(event) => field.handleChange(event.target.value)}
-                      />
-                      <FieldError meta={field.state.meta} />
-                    </div>
-                  )}
-                </form.Field>
-                <form.Field name="clientSecret">
-                  {(field) => (
-                    <div className="space-y-space-s">
-                      <Label htmlFor="clientSecret">Client Secret</Label>
-                      <Input
-                        id="clientSecret"
-                        type="password"
-                        placeholder="Your OAuth Client Secret"
-                        value={field.state.value}
-                        aria-invalid={!!fieldErrorMessage(field.state.meta)}
-                        onBlur={field.handleBlur}
-                        onChange={(event) => field.handleChange(event.target.value)}
-                      />
-                      <FieldError meta={field.state.meta} />
-                    </div>
-                  )}
-                </form.Field>
-              </>
-            ) : null}
-          </>
-        ) : (
-          <form.Field name="apiKey">
-            {(field) => (
-              <div className="space-y-space-s">
-                <Label htmlFor="apiKey">{apiKeyConfig?.keyLabel ?? 'API Key'}</Label>
-                <Input
-                  id="apiKey"
-                  type="password"
-                  placeholder={apiKeyConfig?.placeholder ?? 'Your API Key'}
-                  value={field.state.value}
-                  aria-invalid={!!fieldErrorMessage(field.state.meta)}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                />
-                <FieldError meta={field.state.meta} />
-                {helpUrl && (
-                  <a
-                    href={helpUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-space-xs text-xs text-primary hover:underline"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      void (window.api?.shell?.openExternal(helpUrl) ?? window.open(helpUrl, '_blank'));
-                    }}>
-                    <Icon as={ExternalLinkIcon} size="xs" />
-                    Get your API key
-                  </a>
-                )}
-              </div>
-            )}
-          </form.Field>
-        )}
-      </div>
-      <DialogFooter className="shrink-0">
-        <Button type="button" variant="outline" onClick={() => onBack(values)}>
-          <Icon as={ArrowLeftIcon} size="s" />
-          Back
-        </Button>
-        <Button type="submit">
-          {isOAuth ? 'Continue' : 'Connect'}
-          <Icon as={ArrowRightIcon} size="s" />
-        </Button>
-      </DialogFooter>
-    </form>
+          )}
+        </div>
+        <DialogFooter className="shrink-0">
+          <Button type="button" variant="outline" onClick={() => onBack(values)}>
+            <Icon as={ArrowLeftIcon} size="s" />
+            Back
+          </Button>
+          <Button type="submit">
+            {isOAuth ? 'Continue' : 'Connect'}
+            <Icon as={ArrowRightIcon} size="s" />
+          </Button>
+        </DialogFooter>
+      </Stack>
+    </div>
   );
 }
 
@@ -525,34 +532,38 @@ function ConnectorAccountStep({
   const [value, setValue] = useState(label);
 
   return (
-    <form
-      className="flex h-full min-h-0 flex-col gap-space-l"
-      onSubmit={(event) => {
-        event.preventDefault();
-        onNext(value);
-      }}>
-      <div className="min-h-0 flex-1 space-y-space-l overflow-y-auto pr-space-xs">
-        <div className="space-y-space-s">
-          <Label htmlFor="label">Account Label</Label>
-          <Input
-            id="label"
-            placeholder={`e.g. Work ${definitionName}, Personal ${definitionName}`}
-            value={value}
-            onChange={(event) => setValue(event.target.value)}
-          />
+    <div className="h-full min-h-0">
+      <Stack
+        as="form"
+        height="full"
+        gap="l"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onNext(value);
+        }}>
+        <div className="min-h-0 flex-1 space-y-space-l overflow-y-auto pr-space-xs">
+          <div className="space-y-space-s">
+            <Label htmlFor="label">Account Label</Label>
+            <Input
+              id="label"
+              placeholder={`e.g. Work ${definitionName}, Personal ${definitionName}`}
+              value={value}
+              onChange={(event) => setValue(event.target.value)}
+            />
+          </div>
         </div>
-      </div>
-      <DialogFooter className="shrink-0">
-        <Button type="button" variant="outline" onClick={() => onBack(value)}>
-          <Icon as={ArrowLeftIcon} size="s" />
-          Back
-        </Button>
-        <Button type="submit">
-          Choose Scopes
-          <Icon as={ArrowRightIcon} size="s" />
-        </Button>
-      </DialogFooter>
-    </form>
+        <DialogFooter className="shrink-0">
+          <Button type="button" variant="outline" onClick={() => onBack(value)}>
+            <Icon as={ArrowLeftIcon} size="s" />
+            Back
+          </Button>
+          <Button type="submit">
+            Choose Scopes
+            <Icon as={ArrowRightIcon} size="s" />
+          </Button>
+        </DialogFooter>
+      </Stack>
+    </div>
   );
 }
 
@@ -618,122 +629,132 @@ function ScopesStep({
   const enableApisUrl = buildEnableApisUrl(config.scopeApiMap, computedScopes);
 
   return (
-    <form
-      className="flex h-full min-h-0 flex-col gap-space-l"
-      onSubmit={(event) => {
-        event.preventDefault();
-        void form.handleSubmit();
-      }}>
-      <div className="min-h-0 flex-1 space-y-space-l overflow-y-auto pr-space-xs">
-        {enableApisUrl && (
-          <div className="rounded-lg border border-primary-subtle bg-primary-subtle p-space-l">
-            <div className="mb-space-s">
-              <Text as="p" variant="label">
-                Before connecting, enable the APIs for the services you select below:
-              </Text>
+    <div className="h-full min-h-0">
+      <Stack
+        as="form"
+        height="full"
+        gap="l"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void form.handleSubmit();
+        }}>
+        <div className="min-h-0 flex-1 space-y-space-l overflow-y-auto pr-space-xs">
+          {enableApisUrl && (
+            <div className="rounded-lg border border-primary-subtle bg-primary-subtle p-space-l">
+              <div className="mb-space-s">
+                <Text as="p" variant="label">
+                  Before connecting, enable the APIs for the services you select below:
+                </Text>
+              </div>
+              <Button
+                type="button"
+                variant="link"
+                size="inline"
+                onClick={() => {
+                  void (window.api?.shell?.openExternal(enableApisUrl) ?? window.open(enableApisUrl, '_blank'));
+                }}>
+                <Icon as={ExternalLinkIcon} size="s" />
+                Enable required Google APIs in Cloud Console
+              </Button>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              className="h-auto gap-space-s p-space-none text-primary hover:bg-transparent hover:underline"
-              onClick={() => {
-                void (window.api?.shell?.openExternal(enableApisUrl) ?? window.open(enableApisUrl, '_blank'));
-              }}>
-              <Icon as={ExternalLinkIcon} size="s" />
-              Enable required Google APIs in Cloud Console
-            </Button>
-          </div>
-        )}
-        {config.serviceAccessOptions && config.serviceAccessOptions.length > 0 ? (
-          <div className="space-y-space-l">
-            {config.serviceAccessOptions.map((option) => {
-              const value = serviceAccess[option.id] ?? 'none';
-              return (
-                <div key={option.id} className="rounded-lg border border-border-subtle p-space-l">
-                  <Text as="p" variant="body-strong">
-                    {option.label}
-                  </Text>
-                  {option.description ? (
-                    <Text as="p" variant="caption" tone="muted">
-                      {option.description}
+          )}
+          {config.serviceAccessOptions && config.serviceAccessOptions.length > 0 ? (
+            <div className="space-y-space-l">
+              {config.serviceAccessOptions.map((option) => {
+                const value = serviceAccess[option.id] ?? 'none';
+                return (
+                  <div key={option.id} className="rounded-lg border border-border-subtle p-space-l">
+                    <Text as="p" variant="body-strong">
+                      {option.label}
                     </Text>
-                  ) : null}
-                  <div className="mt-space-m">
-                    <Stack direction="row" gap="m" wrap>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={value === 'none' ? 'default' : 'outline'}
-                        onClick={() => form.setFieldValue('serviceAccess', { ...serviceAccess, [option.id]: 'none' })}>
-                        Off
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={value === 'read' ? 'default' : 'outline'}
-                        onClick={() => form.setFieldValue('serviceAccess', { ...serviceAccess, [option.id]: 'read' })}>
-                        Read
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={value === 'write' ? 'default' : 'outline'}
-                        onClick={() => form.setFieldValue('serviceAccess', { ...serviceAccess, [option.id]: 'write' })}>
-                        Read + Write
-                      </Button>
-                    </Stack>
+                    {option.description ? (
+                      <Text as="p" variant="caption" tone="muted">
+                        {option.description}
+                      </Text>
+                    ) : null}
+                    <div className="mt-space-m">
+                      <Stack direction="row" gap="m" wrap>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={value === 'none' ? 'default' : 'outline'}
+                          onClick={() =>
+                            form.setFieldValue('serviceAccess', { ...serviceAccess, [option.id]: 'none' })
+                          }>
+                          Off
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={value === 'read' ? 'default' : 'outline'}
+                          onClick={() =>
+                            form.setFieldValue('serviceAccess', { ...serviceAccess, [option.id]: 'read' })
+                          }>
+                          Read
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={value === 'write' ? 'default' : 'outline'}
+                          onClick={() =>
+                            form.setFieldValue('serviceAccess', { ...serviceAccess, [option.id]: 'write' })
+                          }>
+                          Read + Write
+                        </Button>
+                      </Stack>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <ScrollArea className="max-h-[42vh] min-h-0">
-            <div className="space-y-space-s">
-              {Object.entries(config.scopeDescriptions).map(([scope, description]) => (
-                <label
-                  key={scope}
-                  htmlFor={scope}
-                  className="flex cursor-pointer items-start gap-space-m rounded-lg p-space-m text-sm hover:bg-accent">
-                  <Checkbox
-                    id={scope}
-                    checked={selectedScopeSet.has(scope)}
-                    onCheckedChange={() =>
-                      form.setFieldValue(
-                        'selectedScopes',
-                        selectedScopeSet.has(scope)
-                          ? selectedScopes.filter((selectedScope) => selectedScope !== scope)
-                          : [...selectedScopes, scope],
-                      )
-                    }
-                    className="mt-space-2xs"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <Text as="p" variant="label">
-                      {description}
-                    </Text>
-                    <Text as="p" variant="micro" tone="muted" truncate>
-                      {scope}
-                    </Text>
-                  </div>
-                </label>
-              ))}
+                );
+              })}
             </div>
-          </ScrollArea>
-        )}
-        <form.Field name="selectedScopes">{(field) => <FieldError meta={field.state.meta} />}</form.Field>
-      </div>
-      <DialogFooter className="shrink-0">
-        <Button type="button" variant="outline" onClick={() => onBack(values)}>
-          <Icon as={ArrowLeftIcon} size="s" />
-          Back
-        </Button>
-        <Button type="submit">
-          Connect & Authorize
-          <Icon as={ExternalLinkIcon} size="s" />
-        </Button>
-      </DialogFooter>
-    </form>
+          ) : (
+            <ScrollArea className="max-h-[42vh] min-h-0">
+              <div className="space-y-space-s">
+                {Object.entries(config.scopeDescriptions).map(([scope, description]) => (
+                  <label
+                    key={scope}
+                    htmlFor={scope}
+                    className="flex cursor-pointer items-start gap-space-m rounded-lg p-space-m hover:bg-accent">
+                    <Checkbox
+                      id={scope}
+                      checked={selectedScopeSet.has(scope)}
+                      onCheckedChange={() =>
+                        form.setFieldValue(
+                          'selectedScopes',
+                          selectedScopeSet.has(scope)
+                            ? selectedScopes.filter((selectedScope) => selectedScope !== scope)
+                            : [...selectedScopes, scope],
+                        )
+                      }
+                      className="mt-space-2xs"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <Text as="p" variant="label">
+                        {description}
+                      </Text>
+                      <Text as="p" variant="micro" tone="muted" truncate>
+                        {scope}
+                      </Text>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+          <form.Field name="selectedScopes">{(field) => <FieldError meta={field.state.meta} />}</form.Field>
+        </div>
+        <DialogFooter className="shrink-0">
+          <Button type="button" variant="outline" onClick={() => onBack(values)}>
+            <Icon as={ArrowLeftIcon} size="s" />
+            Back
+          </Button>
+          <Button type="submit">
+            Connect & Authorize
+            <Icon as={ExternalLinkIcon} size="s" />
+          </Button>
+        </DialogFooter>
+      </Stack>
+    </div>
   );
 }
 

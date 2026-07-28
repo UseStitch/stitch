@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { APP_IDS, type AppId } from '@stitch/shared/apps/types';
 
+import { Icon } from '@/components/primitives/icon';
 import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
@@ -26,7 +27,7 @@ export function AppsStep({ onContinue }: Props) {
   return (
     <div className="mx-auto flex h-full w-full max-w-xl flex-col justify-center gap-space-2xl">
       <div className="space-y-space-m text-center">
-        <h2 className="text-2xl font-semibold tracking-tight">Choose your mini-apps</h2>
+        <Text variant="heading-l">Choose your mini-apps</Text>
         <Text variant="body" tone="muted">
           Pick what should appear in Stitch. You can change these later in Settings.
         </Text>
@@ -35,19 +36,21 @@ export function AppsStep({ onContinue }: Props) {
       <div className="space-y-space-l">
         {APP_IDS.map((appId) => {
           const page = SETTINGS_PAGE_BY_ID[appId];
-          const Icon = page.icon;
+          const PageIcon = page.icon;
           const toggleId = `onboarding-${appId}-app-toggle`;
           return (
             <div
               key={appId}
               className="flex items-center justify-between gap-space-xl rounded-xl border border-border-subtle bg-card px-space-xl py-space-l">
               <div className="flex min-w-0 items-start gap-space-l">
-                <div className="mt-space-2xs flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                  <Icon className="size-4" />
+                <div className="mt-space-2xs flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+                  <Icon as={PageIcon} size="m" tone="muted" />
                 </div>
                 <div className="min-w-0">
-                  <label htmlFor={toggleId} className="text-sm font-medium">
-                    {page.label}
+                  <label htmlFor={toggleId}>
+                    <Text as="span" variant="body-strong">
+                      {page.label}
+                    </Text>
                   </label>
                   <div className="mt-space-xs">
                     <Text variant="body" tone="muted">

@@ -87,16 +87,18 @@ export function RecordingsSidebarContent() {
                           </Text>
                         </div>
                       </Stack>
-                      <div className="flex items-center justify-between gap-space-m text-2xs text-muted-foreground">
-                        <span>
+                      <Stack direction="row" align="center" justify="between" gap="m">
+                        <Text as="span" variant="micro" tone="muted">
                           {formatReadableDuration(recording.durationMs)}
                           {' · '}
                           <Text as="span" variant="micro" tone={isAnalyzed ? 'success' : 'muted'}>
                             {isAnalyzed ? 'Analyzed' : 'Not analyzed'}
                           </Text>
-                        </span>
-                        <span>{formatRecordingTime(recording.startedAt)}</span>
-                      </div>
+                        </Text>
+                        <Text as="span" variant="micro" tone="muted">
+                          {formatRecordingTime(recording.startedAt)}
+                        </Text>
+                      </Stack>
                     </div>
                   </InternalSidebar.Item>
                 );
@@ -104,7 +106,7 @@ export function RecordingsSidebarContent() {
             </InternalSidebar.List>
             {hasNextPage ? (
               <div ref={loadMoreRef} className="flex h-9 items-center justify-center">
-                {isFetchingNextPage ? <Spinner className="text-muted-foreground" /> : null}
+                {isFetchingNextPage ? <Spinner tone="muted" /> : null}
               </div>
             ) : null}
           </InternalSidebar.Group>

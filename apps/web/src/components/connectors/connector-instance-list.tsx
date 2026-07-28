@@ -146,7 +146,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
         return (
           <div
             key={instance.id}
-            className="rounded-xl border border-border-subtle bg-card px-space-xl py-space-xl text-sm sm:*:flex-row sm:*:items-center">
+            className="rounded-xl border border-border-subtle bg-card px-space-xl py-space-xl sm:*:flex-row sm:*:items-center">
             <Stack gap="xl">
               <div className="min-w-0 flex-1">
                 <Stack direction="row" align="start" gap="xl">
@@ -158,12 +158,12 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
                   </div>
 
                   <div className="min-w-0 flex-1 space-y-space-m">
-                    <div className="leading-6">
+                    <div>
                       <Text as="span" variant="body-strong">
                         {instance.label}
                       </Text>
                     </div>
-                    <div className="min-w-0 text-xs *:gap-x-space-m *:gap-y-space-xs">
+                    <div className="min-w-0 *:gap-x-space-m *:gap-y-space-xs">
                       <Stack direction="row" align="center" wrap>
                         <span className="inline-flex items-center gap-space-s">
                           <StatusDot color={statusConfig.dotColor} glow={statusConfig.glow} size="sm" />

@@ -63,16 +63,13 @@ export function RecordingStartStopBar({
         </div>
 
         {activeRecording ? (
-          <Button onClick={onStop} disabled={isStopping} variant="destructive" className="shadow-sm">
+          <Button onClick={onStop} disabled={isStopping} variant="destructive">
             <Icon as={SquareIcon} size="m" data-icon="inline-start" />
             Stop recording (<LiveDurationText startedAt={activeRecording.startedAt} />)
           </Button>
         ) : sttProviders.length > 0 ? (
           <ButtonGroup className="overflow-hidden rounded-lg border border-primary-subtle bg-primary shadow-sm shadow-primary-subtle">
-            <Button
-              onClick={() => onStart()}
-              disabled={isStarting}
-              className="text-primary-foreground hover:brightness-95">
+            <Button onClick={() => onStart()} disabled={isStarting}>
               <Icon as={MicIcon} size="m" data-icon="inline-start" />
               Start recording
             </Button>
@@ -82,17 +79,14 @@ export function RecordingStartStopBar({
               onSelect={(value) => onStart(value)}
               sttProviders={sttProviders}
               triggerRender={
-                <Button
-                  disabled={isStarting}
-                  className="px-space-s text-primary-foreground hover:brightness-95"
-                  title="Choose transcription model and start">
+                <Button size="icon-sm" disabled={isStarting} title="Choose transcription model and start">
                   <Icon as={ChevronDownIcon} size="s" />
                 </Button>
               }
             />
           </ButtonGroup>
         ) : (
-          <Button onClick={() => onStart()} disabled={isStarting} className="shadow-sm">
+          <Button onClick={() => onStart()} disabled={isStarting}>
             <Icon as={MicIcon} size="m" data-icon="inline-start" />
             Start recording
           </Button>

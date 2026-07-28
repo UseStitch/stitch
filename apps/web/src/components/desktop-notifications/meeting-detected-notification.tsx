@@ -25,7 +25,7 @@ export function MeetingDetectedNotification({ event, exiting, onDismiss }: Meeti
   return (
     <DesktopNotification exiting={exiting} onDismiss={() => onDismiss(event.id)}>
       <DesktopNotification.Icon>
-        <Icon as={VideoIcon} size="m" />
+        <Icon as={VideoIcon} size="m" tone="primary" />
       </DesktopNotification.Icon>
       <DesktopNotification.Content>
         <DesktopNotification.Title>Meeting detected</DesktopNotification.Title>

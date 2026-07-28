@@ -9,6 +9,7 @@ import { ConnectorCard } from '@/components/connectors/connector-card';
 import { ConnectorInstanceList } from '@/components/connectors/connector-instance-list';
 import { SetupWizard } from '@/components/connectors/setup-wizard';
 import { Icon } from '@/components/primitives/icon';
+import { Text } from '@/components/primitives/text';
 import { Badge } from '@/components/ui/badge';
 import { Empty, EmptyDescription, EmptyTitle } from '@/components/ui/empty';
 import {
@@ -65,7 +66,7 @@ export function ConnectorsPage() {
             <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
             <TabsTrigger value="connected" className="gap-space-m">
               Connected
-              <Badge variant="secondary" size="sm" className="rounded-full">
+              <Badge variant="secondary" size="sm">
                 {instances.length}
               </Badge>
               {pendingUpdates > 0 ? <StatusDot color="warning" aria-label="Upgrades available" /> : null}
@@ -73,7 +74,9 @@ export function ConnectorsPage() {
           </TabsList>
 
           <TabsContent value="marketplace" className="space-y-space-l">
-            <h2 className="text-sm font-medium text-muted-foreground">Available Connectors</h2>
+            <Text variant="body-strong" tone="muted">
+              Available Connectors
+            </Text>
             <SearchInput
               placeholder="Search connectors"
               value={search}
@@ -103,7 +106,9 @@ export function ConnectorsPage() {
           </TabsContent>
 
           <TabsContent value="connected" className="space-y-space-l">
-            <h2 className="text-sm font-medium text-muted-foreground">Connected Instances</h2>
+            <Text variant="body-strong" tone="muted">
+              Connected Instances
+            </Text>
             {instances.length > 0 ? (
               <ConnectorInstanceList instances={instances} definitions={definitions} />
             ) : (

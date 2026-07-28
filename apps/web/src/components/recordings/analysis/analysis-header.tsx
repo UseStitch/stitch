@@ -75,7 +75,7 @@ export function AnalysisHeader({
       </PageHeaderContent>
       <Stack direction="row" align="center" gap="l">
         {showRecordingControls ? (
-          <Button onClick={onStopRecording} disabled={isStopping} variant="destructive" className="shadow-sm">
+          <Button onClick={onStopRecording} disabled={isStopping} variant="destructive">
             <Icon as={SquareIcon} size="m" data-icon="inline-start" />
             Stop
           </Button>
@@ -122,17 +122,16 @@ export function AnalysisHeader({
         ) : null}
         {!showRecordingControls ? (
           <Button
-            variant="outline"
+            variant="destructive-quiet"
             size="icon"
             onClick={onDelete}
             disabled={isDeleting || isRunning || isRecording}
-            aria-label="Delete recording"
-            className="text-destructive shadow-sm hover:text-destructive">
+            aria-label="Delete recording">
             {isDeleting ? <Spinner /> : <Icon as={Trash2Icon} size="m" />}
           </Button>
         ) : null}
         {!showRecordingControls && isRunning ? (
-          <Button variant="destructive" onClick={onCancelAnalysis} disabled={isCancelling} className="shadow-sm">
+          <Button variant="destructive" onClick={onCancelAnalysis} disabled={isCancelling}>
             {isCancelling ? <Spinner data-icon="inline-start" /> : null}
             Cancel
           </Button>

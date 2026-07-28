@@ -24,9 +24,9 @@ function ProviderRow({ provider, onSelect }: ProviderRowProps) {
   return (
     <div className="flex items-center justify-between border-b border-border-subtle px-space-xs py-space-l last:border-0">
       <div className="flex min-w-0 items-center gap-space-l">
-        <div className="shrink-0 text-muted-foreground">
+        <Text as="div" variant="body" tone="muted">
           <ProviderLogo providerId={provider.id} providerName={meta.displayName} />
-        </div>
+        </Text>
         <div className="min-w-0">
           <Text variant="body-strong" truncate>
             {meta.displayName}
@@ -75,7 +75,11 @@ export function ProviderStep({ onConnected }: Props) {
   const handleBack = () => setSelected(null);
 
   if (!providers) {
-    return <div className="text-sm text-muted-foreground">Loading providers...</div>;
+    return (
+      <Text as="div" variant="body" tone="muted">
+        Loading providers...
+      </Text>
+    );
   }
 
   if (selected) {
@@ -93,7 +97,7 @@ export function ProviderStep({ onConnected }: Props) {
   return (
     <Stack gap="2xl">
       <div>
-        <h2 className="text-lg font-semibold">Setup Provider</h2>
+        <Text variant="heading-s">Setup Provider</Text>
         <div className="mt-space-xs">
           <Text variant="body" tone="muted">
             Connect one provider to unlock models and start chatting.

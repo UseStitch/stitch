@@ -9,7 +9,7 @@ export function AppearanceStep({ onContinue }: Props) {
   return (
     <div className="mx-auto flex h-full w-full max-w-xl flex-col justify-center gap-space-2xl">
       <div className="space-y-space-m text-center">
-        <h2 className="text-2xl font-semibold tracking-tight">Make Stitch yours</h2>
+        <Text variant="heading-l">Make Stitch yours</Text>
         <Text variant="body" tone="muted">
           Choose a mode and theme now. You can change this later in Settings.
         </Text>

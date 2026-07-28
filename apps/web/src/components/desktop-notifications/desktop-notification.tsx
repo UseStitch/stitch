@@ -16,22 +16,18 @@ function DesktopNotificationRoot({ children, exiting, onDismiss }: DesktopNotifi
         exiting ? 'translate-x-8 opacity-0' : 'translate-x-0 opacity-100',
       )}>
       {children}
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-xs"
-        aria-label="Dismiss notification"
-        onClick={onDismiss}
-        className="absolute top-1.5 right-1.5 rounded-full text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-muted hover:text-foreground">
-        <Icon as={XIcon} size="s" />
-      </Button>
+      <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100">
+        <Button type="button" variant="quiet" size="icon-xs" aria-label="Dismiss notification" onClick={onDismiss}>
+          <Icon as={XIcon} size="s" />
+        </Button>
+      </div>
     </article>
   );
 }
 
 function DesktopNotificationIcon({ children }: { children: ReactNode }) {
   return (
-    <div className="mt-space-2xs flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary ring-1 ring-primary-subtle">
+    <div className="mt-space-2xs flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-subtle ring-1 ring-primary-subtle">
       {children}
     </div>
   );
@@ -42,7 +38,11 @@ function DesktopNotificationContent({ children }: { children: ReactNode }) {
 }
 
 function DesktopNotificationTitle({ children }: { children: ReactNode }) {
-  return <h2 className="truncate text-sm font-medium text-foreground">{children}</h2>;
+  return (
+    <Text as="h2" variant="body-strong" truncate>
+      {children}
+    </Text>
+  );
 }
 
 function DesktopNotificationDescription({ children }: { children: ReactNode }) {
@@ -69,12 +69,7 @@ function DesktopNotificationAction({
   variant?: 'default' | 'ghost';
 }) {
   return (
-    <Button
-      type="button"
-      size="sm"
-      variant={variant}
-      onClick={onClick}
-      className="min-w-0 px-space-m text-xs shadow-sm">
+    <Button type="button" size="xs" variant={variant} onClick={onClick}>
       {children}
     </Button>
   );

@@ -56,7 +56,11 @@ export function MemoryStep({ onComplete, onBackToProviders }: Props) {
   const selectedValue = chosenValue ?? defaultValue;
 
   if (!settings || !providerModels) {
-    return <div className="text-sm text-muted-foreground">Loading memory settings...</div>;
+    return (
+      <Text as="div" variant="body" tone="muted">
+        Loading memory settings...
+      </Text>
+    );
   }
 
   const hasModels = modelOptions.length > 0;
@@ -84,7 +88,7 @@ export function MemoryStep({ onComplete, onBackToProviders }: Props) {
   return (
     <div className="mx-auto flex h-full w-full max-w-lg flex-col justify-center gap-space-2xl">
       <div className="space-y-space-m text-center">
-        <h2 className="text-2xl font-semibold tracking-tight">Enable memories?</h2>
+        <Text variant="heading-l">Enable memories?</Text>
         <Text variant="body" tone="muted">
           Memories help Stitch remember preferences and recurring context across sessions.
         </Text>
