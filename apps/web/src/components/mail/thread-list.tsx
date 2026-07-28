@@ -6,6 +6,9 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 
 import type { MailAccountId, MailLabelId, MailThreadId, MailThreadListItem } from '@stitch/shared/mail/types';
 
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { mailThreadsInfiniteQueryOptions } from '@/lib/queries/mail';
 import { cn } from '@/lib/utils';
@@ -37,17 +40,21 @@ function ThreadRow({ thread, active, onClick }: { thread: MailThreadListItem; ac
       variant="ghost"
       onClick={onClick}
       className={cn(
-        'h-auto w-full flex-col items-stretch justify-start gap-1 rounded-none border-b border-sidebar-border px-3 py-3 text-left hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+        'h-auto w-full flex-col items-stretch justify-start gap-space-xs rounded-none border-b border-sidebar-border px-space-l py-space-l text-left hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
         active && 'bg-sidebar-accent text-sidebar-accent-foreground',
-        thread.hasUnread && 'bg-sidebar-primary/5',
+        thread.hasUnread && 'bg-sidebar-accent',
       )}>
-      <div className="flex items-center gap-2">
-        <span className={cn('min-w-0 flex-1 truncate text-sm', thread.hasUnread && 'font-semibold')}>
-          {formatSender(thread)}
-        </span>
-        {thread.hasAttachments ? <PaperclipIcon className="size-3.5 text-muted-foreground" /> : null}
-        <span className="shrink-0 text-xs text-muted-foreground">{formatThreadDate(thread.lastMessageAt)}</span>
-      </div>
+      <Stack direction="row" align="center" gap="m">
+        <div className="min-w-0 flex-1">
+          <Text as="span" variant={thread.hasUnread ? 'body-strong' : 'body'} truncate>
+            {formatSender(thread)}
+          </Text>
+        </div>
+        {thread.hasAttachments ? <Icon as={PaperclipIcon} size="s" color="var(--muted-foreground)" /> : null}
+        <Text as="span" variant="caption" tone="muted">
+          {formatThreadDate(thread.lastMessageAt)}
+        </Text>
+      </Stack>
       <div
         className={cn(
           'truncate text-sm',
@@ -86,7 +93,7 @@ export function ThreadList({ accountId, labelId, selectedThreadId, onSelectThrea
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   if (threads.length === 0) {
-    return <div className="p-4 text-sm text-muted-foreground">No messages in this label.</div>;
+    return <div className="p-space-xl text-sm text-muted-foreground">No messages in this label.</div>;
   }
 
   return (
@@ -112,13 +119,13 @@ export function ThreadList({ accountId, labelId, selectedThreadId, onSelectThrea
           );
         })}
       </div>
-      <div ref={loadMoreRef} className="flex justify-center p-3">
+      <Stack ref={loadMoreRef} direction="row" justify="center" padding="l">
         {hasNextPage ? (
           <Button variant="ghost" size="sm" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>
             {isFetchingNextPage ? 'Loading…' : 'Load more'}
           </Button>
         ) : null}
-      </div>
+      </Stack>
     </div>
   );
 }

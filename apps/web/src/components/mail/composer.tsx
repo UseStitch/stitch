@@ -14,6 +14,7 @@ import type {
   MailMessageView,
 } from '@stitch/shared/mail/types';
 
+import { Icon } from '@/components/primitives/icon';
 import { Button } from '@/components/ui/button';
 import { FieldError, fieldErrorMessage } from '@/components/ui/field-error';
 import { Input } from '@/components/ui/input';
@@ -154,16 +155,16 @@ export function Composer({ accountId, draft, replyTo, onClose }: ComposerProps) 
       onSubmit={(event) => {
         event.preventDefault();
       }}>
-      <div className="flex items-center justify-between border-b border-border px-3 py-2">
+      <div className="flex items-center justify-between border-b border-border px-space-l py-space-m">
         <div className="text-sm font-medium">{replyTo ? 'Reply' : draft ? 'Edit draft' : 'New message'}</div>
         <Button type="button" variant="ghost" size="icon-xs" onClick={onClose} aria-label="Close composer">
-          <XIcon className="size-3.5" />
+          <Icon as={XIcon} size="s" />
         </Button>
       </div>
-      <div className="space-y-3 p-3">
+      <div className="space-y-space-l p-space-l">
         <form.Field name="to">
           {(field) => (
-            <div className="space-y-1">
+            <div className="space-y-space-xs">
               <Label htmlFor="mail-to">To</Label>
               <Input
                 id="mail-to"
@@ -177,10 +178,10 @@ export function Composer({ accountId, draft, replyTo, onClose }: ComposerProps) 
             </div>
           )}
         </form.Field>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-space-m">
           <form.Field name="cc">
             {(field) => (
-              <div className="space-y-1">
+              <div className="space-y-space-xs">
                 <Label htmlFor="mail-cc">Cc</Label>
                 <Input
                   id="mail-cc"
@@ -195,7 +196,7 @@ export function Composer({ accountId, draft, replyTo, onClose }: ComposerProps) 
           </form.Field>
           <form.Field name="bcc">
             {(field) => (
-              <div className="space-y-1">
+              <div className="space-y-space-xs">
                 <Label htmlFor="mail-bcc">Bcc</Label>
                 <Input
                   id="mail-bcc"
@@ -211,7 +212,7 @@ export function Composer({ accountId, draft, replyTo, onClose }: ComposerProps) 
         </div>
         <form.Field name="subject">
           {(field) => (
-            <div className="space-y-1">
+            <div className="space-y-space-xs">
               <Label htmlFor="mail-subject">Subject</Label>
               <Input
                 id="mail-subject"
@@ -234,7 +235,7 @@ export function Composer({ accountId, draft, replyTo, onClose }: ComposerProps) 
           )}
         </form.Field>
       </div>
-      <div className="flex items-center justify-between border-t border-border px-3 py-2">
+      <div className="flex items-center justify-between border-t border-border px-space-l py-space-m">
         <div className="text-xs text-muted-foreground">Drafts autosave after a short pause.</div>
         <form.Subscribe selector={(state) => state.isSubmitting}>
           {(isSubmitting) => (
@@ -242,7 +243,7 @@ export function Composer({ accountId, draft, replyTo, onClose }: ComposerProps) 
               type="button"
               disabled={isSubmitting || sendDraft.isPending || sendMessage.isPending}
               onClick={() => void form.handleSubmit()}>
-              <SendIcon className="size-3.5" />
+              <Icon as={SendIcon} size="s" />
               Send
             </Button>
           )}

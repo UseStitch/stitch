@@ -2,6 +2,8 @@ import { FileTextIcon, SparklesIcon, SquareIcon, Trash2Icon } from 'lucide-react
 
 import type { MeetingNoteTemplate, RecordingAnalysis, Recording } from '@stitch/shared/recordings/types';
 
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
 import { CopyButton } from '@/components/ui/copy-button';
@@ -62,7 +64,7 @@ export function AnalysisHeader({
     <PageHeader className="shrink-0">
       <PageHeaderContent>
         <PageIcon>
-          <FileTextIcon className="size-5" />
+          <Icon as={FileTextIcon} size="l" />
         </PageIcon>
         <div>
           <PageTitle>{analysis?.title || recording?.title || 'Recording analysis'}</PageTitle>
@@ -71,10 +73,10 @@ export function AnalysisHeader({
           ) : null}
         </div>
       </PageHeaderContent>
-      <div className="flex items-center gap-3">
+      <Stack direction="row" align="center" gap="l">
         {showRecordingControls ? (
           <Button onClick={onStopRecording} disabled={isStopping} variant="destructive" className="shadow-sm">
-            <SquareIcon data-icon="inline-start" className="size-4" />
+            <Icon as={SquareIcon} size="m" data-icon="inline-start" />
             Stop
           </Button>
         ) : null}
@@ -97,7 +99,7 @@ export function AnalysisHeader({
               {isStarting || isRunning ? (
                 <Spinner data-icon="inline-start" />
               ) : (
-                <SparklesIcon data-icon="inline-start" className="size-4" />
+                <Icon as={SparklesIcon} size="m" data-icon="inline-start" />
               )}
             </Button>
             <ButtonGroupSeparator />
@@ -105,7 +107,7 @@ export function AnalysisHeader({
               value={selectedTemplateId}
               onValueChange={(value) => value && onTemplateChange(value)}
               disabled={analysisDisabled}>
-              <SelectTrigger className="h-9 w-44 border-0 bg-background px-2 text-xs shadow-none">
+              <SelectTrigger className="h-9 w-44 border-0 bg-background px-space-m text-xs shadow-none">
                 <SelectValue>{selectedTemplate?.name ?? 'Template'}</SelectValue>
               </SelectTrigger>
               <SelectContent align="end">
@@ -126,7 +128,7 @@ export function AnalysisHeader({
             disabled={isDeleting || isRunning || isRecording}
             aria-label="Delete recording"
             className="text-destructive shadow-sm hover:text-destructive">
-            {isDeleting ? <Spinner /> : <Trash2Icon className="size-4" />}
+            {isDeleting ? <Spinner /> : <Icon as={Trash2Icon} size="m" />}
           </Button>
         ) : null}
         {!showRecordingControls && isRunning ? (
@@ -135,7 +137,7 @@ export function AnalysisHeader({
             Cancel
           </Button>
         ) : null}
-      </div>
+      </Stack>
     </PageHeader>
   );
 }

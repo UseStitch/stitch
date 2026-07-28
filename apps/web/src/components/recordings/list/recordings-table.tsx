@@ -20,6 +20,7 @@ import { formatClockDuration, getRecordingDisplayTitle, STATUS_LABELS, STATUS_VA
 import { LiveDuration } from '../shared/live-duration';
 import { PlatformBadge } from '../shared/platform-badge';
 
+import { Icon } from '@/components/primitives/icon';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Table } from '@/components/ui/table';
@@ -69,14 +70,14 @@ function CostCell({ getValue }: CellContext<typeof features, Recording, Recordin
 }
 
 function ActionsHeader() {
-  return <div className="pr-1 text-right">Actions</div>;
+  return <div className="pr-space-xs text-right">Actions</div>;
 }
 
 function ActionsCell({ row, table }: CellContext<typeof features, Recording, unknown>) {
   const { activeRecordingId, onDelete } = table.options.meta as RecordingsTableMeta;
 
   return (
-    <Table.Actions className="-mr-1.5">
+    <Table.Actions className="-mr-space-s">
       <Button
         type="button"
         variant="ghost"
@@ -89,7 +90,7 @@ function ActionsCell({ row, table }: CellContext<typeof features, Recording, unk
         aria-label="Delete recording"
         disabled={row.original.id === activeRecordingId}
         className="text-destructive hover:text-destructive">
-        <Trash2Icon className="size-4" />
+        <Icon as={Trash2Icon} size="m" />
       </Button>
     </Table.Actions>
   );
@@ -143,8 +144,8 @@ export function RecordingsTable({
                   key={header.id}
                   className={
                     header.column.id === 'title'
-                      ? 'w-full max-w-xs min-w-48 px-4 py-2 font-medium'
-                      : 'px-4 py-2 font-medium whitespace-nowrap'
+                      ? 'w-full max-w-xs min-w-48 px-space-xl py-space-m font-medium'
+                      : 'px-space-xl py-space-m font-medium whitespace-nowrap'
                   }>
                   {header.isPlaceholder ? null : <table.FlexRender header={header} />}
                 </Table.Head>
@@ -157,7 +158,7 @@ export function RecordingsTable({
             <Table.EmptyRow colSpan={columns.length}>
               <Empty>
                 <EmptyMedia>
-                  <MicIcon className="size-10 text-text-faint" />
+                  <Icon as={MicIcon} size="l" color="var(--text-faint)" />
                 </EmptyMedia>
                 <EmptyTitle>No recordings yet</EmptyTitle>
                 <EmptyDescription>Start recording to capture your first meeting audio.</EmptyDescription>
@@ -170,7 +171,9 @@ export function RecordingsTable({
                   <Table.Cell
                     key={cell.id}
                     className={
-                      cell.column.id === 'title' ? 'w-full max-w-xs min-w-48 px-4 py-3' : 'px-4 py-3 whitespace-nowrap'
+                      cell.column.id === 'title'
+                        ? 'w-full max-w-xs min-w-48 px-space-xl py-space-l'
+                        : 'px-space-xl py-space-l whitespace-nowrap'
                     }>
                     <table.FlexRender cell={cell} />
                   </Table.Cell>

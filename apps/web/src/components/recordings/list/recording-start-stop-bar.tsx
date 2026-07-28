@@ -8,6 +8,8 @@ import { LiveDurationText } from '../shared/live-duration';
 
 import type { SttModelSelection } from '@/components/model-selectors/stt-model-selector-popover';
 import { SttModelSelectorPopover } from '@/components/model-selectors/stt-model-selector-popover';
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
 import { Input } from '@/components/ui/input';
@@ -45,8 +47,8 @@ export function RecordingStartStopBar({
       : null;
 
   return (
-    <div className="rounded-xl border border-border-subtle bg-card/70 p-4">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="rounded-xl border border-border-subtle bg-card p-space-xl">
+      <Stack direction="row" wrap align="center" gap="l">
         <div className="min-w-72 flex-1">
           <label htmlFor="recording-title" className="sr-only">
             Recording title
@@ -62,19 +64,19 @@ export function RecordingStartStopBar({
 
         {activeRecording ? (
           <Button onClick={onStop} disabled={isStopping} variant="destructive" className="shadow-sm">
-            <SquareIcon data-icon="inline-start" className="size-4" />
+            <Icon as={SquareIcon} size="m" data-icon="inline-start" />
             Stop recording (<LiveDurationText startedAt={activeRecording.startedAt} />)
           </Button>
         ) : sttProviders.length > 0 ? (
-          <ButtonGroup className="overflow-hidden rounded-lg border border-primary/20 bg-primary shadow-sm shadow-primary/10">
+          <ButtonGroup className="overflow-hidden rounded-lg border border-primary-subtle bg-primary shadow-sm shadow-primary-subtle">
             <Button
               onClick={() => onStart()}
               disabled={isStarting}
-              className="text-primary-foreground hover:bg-primary/90">
-              <MicIcon data-icon="inline-start" className="size-4" />
+              className="text-primary-foreground hover:brightness-95">
+              <Icon as={MicIcon} size="m" data-icon="inline-start" />
               Start recording
             </Button>
-            <ButtonGroupSeparator className="bg-primary-foreground/20" />
+            <ButtonGroupSeparator className="bg-primary-foreground" />
             <SttModelSelectorPopover
               defaultValue={defaultSttModel}
               onSelect={(value) => onStart(value)}
@@ -82,20 +84,20 @@ export function RecordingStartStopBar({
               triggerRender={
                 <Button
                   disabled={isStarting}
-                  className="px-1.5 text-primary-foreground hover:bg-primary/90"
+                  className="px-space-s text-primary-foreground hover:brightness-95"
                   title="Choose transcription model and start">
-                  <ChevronDownIcon className="size-3.5" />
+                  <Icon as={ChevronDownIcon} size="s" />
                 </Button>
               }
             />
           </ButtonGroup>
         ) : (
           <Button onClick={() => onStart()} disabled={isStarting} className="shadow-sm">
-            <MicIcon data-icon="inline-start" className="size-4" />
+            <Icon as={MicIcon} size="m" data-icon="inline-start" />
             Start recording
           </Button>
         )}
-      </div>
+      </Stack>
     </div>
   );
 }

@@ -77,7 +77,7 @@ export function DesktopNotificationRoot() {
   }
 
   return (
-    <div className="min-h-screen bg-transparent p-0">
+    <div className="min-h-screen bg-transparent p-space-none">
       <div ref={contentRef} className="w-full overflow-hidden">
         {notification?.type === 'meeting-detected' ? (
           <MeetingDetectedNotification event={notification} exiting={exiting} onDismiss={dismiss} />

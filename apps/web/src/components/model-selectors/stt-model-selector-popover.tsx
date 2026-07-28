@@ -3,6 +3,8 @@ import * as React from 'react';
 
 import type { SttProviderModels } from '@stitch/shared/stt/types';
 
+import { Icon } from '@/components/primitives/icon';
+import { Text } from '@/components/primitives/text';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -49,39 +51,45 @@ export function SttModelSelectorPopover({
           triggerRender
             ? undefined
             : cn(
-                'flex items-center justify-center rounded-md p-1 transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+                'flex items-center justify-center rounded-md p-space-xs transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 'text-muted-foreground hover:text-foreground hover:bg-accent',
               )
         }>
-        {!triggerRender && <ChevronDownIcon className="size-3 shrink-0" />}
+        {!triggerRender && <Icon as={ChevronDownIcon} size="xs" />}
       </PopoverTrigger>
 
       <PopoverContent
         side="top"
         sideOffset={6}
         align="start"
-        className="max-h-80 w-72 gap-0 p-0 shadow-lg outline-none">
-        <div className="border-b border-border-subtle px-3 py-2">
-          <p className="text-xs font-medium text-muted-foreground">STT Model</p>
+        className="max-h-80 w-72 gap-space-none p-space-none shadow-lg outline-none">
+        <div className="border-b border-border-subtle px-space-l py-space-m">
+          <Text variant="label" tone="muted">
+            STT Model
+          </Text>
         </div>
 
-        <div className="flex items-center gap-2 border-b border-border-subtle px-3 py-2">
-          <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" />
+        <div className="flex items-center gap-space-m border-b border-border-subtle px-space-l py-space-m">
+          <Icon as={SearchIcon} size="s" color="var(--muted-foreground)" />
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search models"
-            className="h-auto flex-1 rounded-none border-0 bg-transparent px-0 py-0 text-sm focus-visible:ring-0 dark:bg-transparent"
+            className="h-auto flex-1 rounded-none border-0 bg-transparent px-space-none py-space-none text-sm focus-visible:ring-0 dark:bg-transparent"
           />
         </div>
 
         <div className="no-scrollbar max-h-60 overflow-y-auto overscroll-contain">
-          <div className="p-1">
+          <div className="p-space-xs">
             {filtered.map((provider, index) => (
               <div key={provider.providerId}>
-                {index > 0 && <div className="my-1 h-px bg-border-subtle" />}
-                <p className="px-2 py-1 text-xs font-medium text-muted-foreground">{provider.providerName}</p>
+                {index > 0 && <div className="my-space-xs h-px bg-border-subtle" />}
+                <div className="px-space-m py-space-xs">
+                  <Text variant="label" tone="muted">
+                    {provider.providerName}
+                  </Text>
+                </div>
                 {provider.models.map((model) => {
                   const isDefault =
                     defaultValue?.providerId === provider.providerId && defaultValue?.modelId === model.id;
@@ -90,13 +98,13 @@ export function SttModelSelectorPopover({
                       key={model.id}
                       onClick={() => onSelect({ providerId: provider.providerId, modelId: model.id })}
                       className={cn(
-                        'w-full flex items-center justify-between rounded-md px-2 py-1.5 text-sm cursor-default',
+                        'w-full flex items-center justify-between rounded-md px-space-m py-space-s text-sm cursor-default',
                         'transition-colors hover:bg-accent hover:text-accent-foreground',
                         'focus-visible:outline-none focus-visible:bg-accent',
                         isDefault && 'font-medium',
                       )}>
                       <span>{model.name}</span>
-                      {isDefault && <CheckIcon className="size-3.5 shrink-0" />}
+                      {isDefault && <Icon as={CheckIcon} size="s" />}
                     </PopoverClose>
                   );
                 })}
@@ -104,7 +112,11 @@ export function SttModelSelectorPopover({
             ))}
 
             {filtered.length === 0 && search.trim() && (
-              <p className="py-4 text-center text-xs text-muted-foreground">No models found</p>
+              <div className="py-space-xl text-center">
+                <Text variant="caption" tone="muted">
+                  No models found
+                </Text>
+              </div>
             )}
           </div>
         </div>

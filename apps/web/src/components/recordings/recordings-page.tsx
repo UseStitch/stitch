@@ -14,6 +14,7 @@ import { RecordingsTable } from './list/recordings-table';
 import { DeleteRecordingDialog } from './shared/delete-recording-dialog';
 
 import type { SttModelSelection } from '@/components/model-selectors/stt-model-selector-popover';
+import { Icon } from '@/components/primitives/icon';
 import {
   Page,
   PageContent,
@@ -70,7 +71,7 @@ export function RecordingsPage() {
         <PageHeader>
           <PageHeaderContent>
             <PageIcon>
-              <MicIcon className="size-5" />
+              <Icon as={MicIcon} size="l" />
             </PageIcon>
             <div>
               <PageTitle>Recordings</PageTitle>

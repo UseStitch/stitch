@@ -43,7 +43,7 @@ export function RecordingsPagination({
   if (pageCount <= 1) return null;
 
   return (
-    <div className="border-t border-border px-3 py-3">
+    <div className="border-t border-border px-space-l py-space-l">
       <Pagination>
         <PaginationContent>
           <PaginationItem>

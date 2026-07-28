@@ -12,6 +12,9 @@ import {
 } from './shared/formatting';
 
 import { InternalSidebar } from '@/components/navigation/internal-sidebar';
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Spinner } from '@/components/ui/spinner';
 import { recordingsInfiniteQueryOptions } from '@/lib/queries/recordings';
@@ -43,9 +46,11 @@ export function RecordingsSidebarContent() {
       <InternalSidebar.Header>
         <InternalSidebar.Top>
           <InternalSidebar.TopTitle>
-            <Link to="/recordings" className="flex min-w-0 items-center gap-2 truncate">
-              <LibraryIcon className="size-4 shrink-0" />
-              <span className="truncate">Recordings</span>
+            <Link to="/recordings" className="flex min-w-0 items-center gap-space-m truncate">
+              <Icon as={LibraryIcon} size="m" />
+              <Text as="span" variant="body" truncate>
+                Recordings
+              </Text>
             </Link>
           </InternalSidebar.TopTitle>
         </InternalSidebar.Top>
@@ -62,25 +67,33 @@ export function RecordingsSidebarContent() {
                   <InternalSidebar.Item
                     key={recording.id}
                     isActive={recording.id === selectedRecordingId}
-                    className="h-auto py-1.5"
+                    className="h-auto py-space-s"
                     render={
-                      <Link to="/recordings/$id" params={{ id: recording.id }} className="flex items-center gap-2" />
+                      <Link
+                        to="/recordings/$id"
+                        params={{ id: recording.id }}
+                        className="flex items-center gap-space-m"
+                      />
                     }>
-                    <MicIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                    <Icon as={MicIcon} size="s" color="var(--muted-foreground)" />
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate text-sm">{displayTitle}</span>
-                        <span className="shrink-0 text-2xs text-muted-foreground">
-                          {formatRecordingShortDate(recording.startedAt)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-2 text-2xs text-muted-foreground">
+                      <Stack direction="row" align="center" justify="between" gap="m">
+                        <Text as="span" variant="body" truncate>
+                          {displayTitle}
+                        </Text>
+                        <div className="shrink-0">
+                          <Text as="span" variant="micro" tone="muted">
+                            {formatRecordingShortDate(recording.startedAt)}
+                          </Text>
+                        </div>
+                      </Stack>
+                      <div className="flex items-center justify-between gap-space-m text-2xs text-muted-foreground">
                         <span>
                           {formatReadableDuration(recording.durationMs)}
                           {' · '}
-                          <span className={isAnalyzed ? 'text-success' : undefined}>
+                          <Text as="span" variant="micro" tone={isAnalyzed ? 'success' : 'muted'}>
                             {isAnalyzed ? 'Analyzed' : 'Not analyzed'}
-                          </span>
+                          </Text>
                         </span>
                         <span>{formatRecordingTime(recording.startedAt)}</span>
                       </div>
@@ -98,7 +111,7 @@ export function RecordingsSidebarContent() {
         ) : (
           <Empty size="compact">
             <EmptyMedia>
-              <MicIcon className="size-8 text-text-faint" />
+              <Icon as={MicIcon} size="l" color="var(--text-faint)" />
             </EmptyMedia>
             <EmptyTitle>No recordings yet</EmptyTitle>
             <EmptyDescription>Start a recording to capture meeting audio.</EmptyDescription>

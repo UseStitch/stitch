@@ -10,6 +10,9 @@ import { PLATFORM_CONFIG } from './shared/formatting';
 
 import type { SttModelSelection } from '@/components/model-selectors/stt-model-selector-popover';
 import { SttModelSelectorPopover } from '@/components/model-selectors/stt-model-selector-popover';
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
 import { useRecordingEvents } from '@/hooks/sse/sse-context';
@@ -183,25 +186,25 @@ export function MeetingRecordingBanner() {
   }
 
   return (
-    <div className="border-b border-border-subtle bg-card/95 px-4 py-3 shadow-sm backdrop-blur transition-colors">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-primary-subtle text-primary ring-1 ring-primary/20">
+    <div className="border-b border-border-subtle bg-card px-space-xl py-space-l shadow-sm backdrop-blur transition-colors">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-space-xl">
+        <Stack direction="row" align="center" gap="l">
+          <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-primary-subtle text-primary ring-1 ring-primary-subtle">
             <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary"></span>
             </span>
             <Video className="h-4 w-4" />
           </div>
-          <p className="text-sm text-muted-foreground">
+          <Text variant="body" tone="muted">
             Active call detected in{' '}
             <strong className="font-medium text-foreground">{PLATFORM_CONFIG[detection.platform].label}</strong>. Would
             you like to start recording?
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+          </Text>
+        </Stack>
+        <Stack direction="row" align="center" gap="m">
           {sttProviders.length > 0 ? (
-            <ButtonGroup className="overflow-hidden rounded-lg border border-primary/20 bg-primary shadow-sm shadow-primary/10">
+            <ButtonGroup className="overflow-hidden rounded-lg border border-primary-subtle bg-primary shadow-sm shadow-primary-subtle">
               <Button
                 type="button"
                 size="sm"
@@ -219,10 +222,10 @@ export function MeetingRecordingBanner() {
                   );
                 }}
                 disabled={startRecording.isPending}
-                className="text-primary-foreground hover:bg-primary/90">
+                className="text-primary-foreground hover:brightness-95">
                 Start recording
               </Button>
-              <ButtonGroupSeparator className="bg-primary-foreground/20" />
+              <ButtonGroupSeparator className="bg-primary-foreground" />
               <SttModelSelectorPopover
                 defaultValue={defaultSttModel}
                 onSelect={(value) => {
@@ -250,9 +253,9 @@ export function MeetingRecordingBanner() {
                     type="button"
                     size="sm"
                     disabled={startRecording.isPending}
-                    className="px-1.5 text-primary-foreground hover:bg-primary/90"
+                    className="px-space-s text-primary-foreground hover:brightness-95"
                     title="Choose transcription model and start">
-                    <ChevronDownIcon className="size-3.5" />
+                    <Icon as={ChevronDownIcon} size="s" />
                   </Button>
                 }
               />
@@ -273,7 +276,7 @@ export function MeetingRecordingBanner() {
                 );
               }}
               disabled={startRecording.isPending}
-              className="rounded-lg shadow-sm shadow-primary/10">
+              className="rounded-lg shadow-sm shadow-primary-subtle">
               Start recording
             </Button>
           )}
@@ -287,7 +290,7 @@ export function MeetingRecordingBanner() {
             className="text-muted-foreground hover:bg-muted hover:text-foreground">
             Dismiss
           </Button>
-        </div>
+        </Stack>
       </div>
     </div>
   );

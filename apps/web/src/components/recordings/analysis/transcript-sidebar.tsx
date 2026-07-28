@@ -5,6 +5,8 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 
 import type { RecordingAnalysis } from '@stitch/shared/recordings/types';
 
+import { Icon } from '@/components/primitives/icon';
+import { Text } from '@/components/primitives/text';
 import { Empty, EmptyDescription } from '@/components/ui/empty';
 import { StatusDot } from '@/components/ui/status-dot';
 import { useLiveTranscript } from '@/hooks/sse/use-live-transcript';
@@ -76,17 +78,19 @@ export function TranscriptSidebar({ analysis, isRunning, recordingId, isRecordin
 
   return (
     <aside className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border-subtle bg-surface-sunken shadow-inner">
-      <div className="shrink-0 border-b border-border-subtle bg-surface-sunken px-5 py-4">
+      <div className="shrink-0 border-b border-border-subtle bg-surface-sunken px-space-xl py-space-xl">
         <h2 className="flex items-center text-sm font-semibold tracking-wide text-foreground">
-          <MessageSquareIcon className="mr-2 size-4 text-muted-foreground" />
+          <span className="mr-space-m">
+            <Icon as={MessageSquareIcon} size="m" color="var(--muted-foreground)" />
+          </span>
           {isRecording ? 'Live Transcript' : 'Full Transcript'}
-          {showLive ? <StatusDot color="destructive" pulse className="ml-2" /> : null}
+          {showLive ? <StatusDot color="destructive" pulse className="ml-space-m" /> : null}
         </h2>
       </div>
 
       <div ref={scrollParentRef} className="thin-scrollbar h-0 flex-1 overflow-y-auto">
         {hasTranscript ? (
-          <div className="relative px-5" style={{ height: `${rowVirtualizer.getTotalSize() + 40}px` }}>
+          <div className="relative px-space-xl" style={{ height: `${rowVirtualizer.getTotalSize() + 40}px` }}>
             {rowVirtualizer.getVirtualItems().map((virtualRow) => {
               const entry = entries[virtualRow.index];
 
@@ -95,7 +99,7 @@ export function TranscriptSidebar({ analysis, isRunning, recordingId, isRecordin
                   key={virtualRow.key}
                   data-index={virtualRow.index}
                   ref={rowVirtualizer.measureElement}
-                  className="pb-4"
+                  className="pb-space-xl"
                   style={{
                     position: 'absolute',
                     top: 0,
@@ -104,23 +108,32 @@ export function TranscriptSidebar({ analysis, isRunning, recordingId, isRecordin
                     transform: `translateY(${virtualRow.start + 20}px)`,
                   }}>
                   <div
-                    className={`group rounded-xl border border-border-subtle bg-background px-4 py-3.5 shadow-sm transition-colors hover:border-border-subtle ${
-                      entry.source === 'mic' ? 'ml-2' : entry.source === 'speaker' ? 'mr-2' : ''
+                    className={`group rounded-xl border border-border-subtle bg-background px-space-xl py-space-l shadow-sm transition-colors hover:border-border-subtle ${
+                      entry.source === 'mic' ? 'ml-space-m' : entry.source === 'speaker' ? 'mr-space-m' : ''
                     }`}>
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <p className="text-xs font-bold tracking-wide text-primary/80 uppercase">{entry.speaker}</p>
+                    <div className="mb-space-s flex items-center justify-between">
+                      <div className="tracking-wide uppercase">
+                        <Text variant="label" tone="primary">
+                          {entry.speaker}
+                        </Text>
+                      </div>
                     </div>
-                    <p
-                      className={`text-sm leading-relaxed ${entry.isPartial ? 'text-foreground/60 italic' : 'text-foreground/90'}`}>
-                      {entry.content}
-                    </p>
+                    {entry.isPartial ? (
+                      <div className="italic">
+                        <Text variant="body" tone="muted">
+                          {entry.content}
+                        </Text>
+                      </div>
+                    ) : (
+                      <Text variant="body">{entry.content}</Text>
+                    )}
                   </div>
                 </div>
               ) : null;
             })}
           </div>
         ) : (
-          <div className="p-5">
+          <div className="p-space-xl">
             <Empty surface="bordered" size="compact" className="h-32">
               <EmptyDescription>
                 {isRecording

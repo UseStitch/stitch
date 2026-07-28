@@ -395,7 +395,7 @@ export function MessageBody({
   }
 
   return (
-    <div className={fillAvailableHeight ? 'flex min-h-0 flex-1 flex-col space-y-2' : 'space-y-2'}>
+    <div className={fillAvailableHeight ? 'flex min-h-0 flex-1 flex-col space-y-space-m' : 'space-y-space-m'}>
       {!loadImages && bodyHtml ? (
         <Button variant="outline" size="xs" onClick={() => setLoadImagesForMessage(true)}>
           Load remote images

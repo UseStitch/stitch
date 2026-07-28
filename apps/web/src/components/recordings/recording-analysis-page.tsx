@@ -111,17 +111,17 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
         />
 
         {analysis?.error ? (
-          <div className="shrink-0 rounded-lg border border-destructive/30 bg-destructive-subtle px-4 py-3 text-sm text-destructive">
+          <div className="shrink-0 rounded-lg border border-destructive-subtle bg-destructive-subtle px-space-xl py-space-l text-sm text-destructive">
             {analysis.error}
           </div>
         ) : null}
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-12">
-          <div className="flex min-h-0 flex-col lg:col-span-8 lg:pr-2 xl:col-span-8 2xl:col-span-9">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-space-2xl lg:grid-cols-12">
+          <div className="flex min-h-0 flex-col lg:col-span-8 lg:pr-space-m xl:col-span-8 2xl:col-span-9">
             <ScrollArea className="h-0 flex-1 rounded-xl">
-              <div className="space-y-8 pr-6 pb-12">
+              <div className="space-y-space-3xl pr-space-2xl pb-space-3xl">
                 {analysis?.summary ? (
-                  <div className="rounded-xl border bg-card p-5">
+                  <div className="rounded-xl border bg-card p-space-xl">
                     <ChatMarkdown text={analysis.summary} />
                   </div>
                 ) : (
