@@ -8,6 +8,7 @@ import type { ConnectorDefinition } from '@stitch/shared/connectors/types';
 import { ConnectorCard } from '@/components/connectors/connector-card';
 import { ConnectorInstanceList } from '@/components/connectors/connector-instance-list';
 import { SetupWizard } from '@/components/connectors/setup-wizard';
+import { Icon } from '@/components/primitives/icon';
 import { Badge } from '@/components/ui/badge';
 import { Empty, EmptyDescription, EmptyTitle } from '@/components/ui/empty';
 import {
@@ -50,7 +51,7 @@ export function ConnectorsPage() {
         <PageHeader>
           <PageHeaderContent>
             <PageIcon>
-              <PlugIcon className="size-5" />
+              <Icon as={PlugIcon} size="l" />
             </PageIcon>
             <div>
               <PageTitle>Connectors</PageTitle>
@@ -59,10 +60,10 @@ export function ConnectorsPage() {
           </PageHeaderContent>
         </PageHeader>
 
-        <Tabs defaultValue="marketplace" className="gap-4">
+        <Tabs defaultValue="marketplace" className="gap-space-xl">
           <TabsList variant="line">
             <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
-            <TabsTrigger value="connected" className="gap-2">
+            <TabsTrigger value="connected" className="gap-space-m">
               Connected
               <Badge variant="secondary" size="sm" className="rounded-full">
                 {instances.length}
@@ -71,7 +72,7 @@ export function ConnectorsPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="marketplace" className="space-y-3">
+          <TabsContent value="marketplace" className="space-y-space-l">
             <h2 className="text-sm font-medium text-muted-foreground">Available Connectors</h2>
             <SearchInput
               placeholder="Search connectors"
@@ -80,7 +81,7 @@ export function ConnectorsPage() {
             />
 
             {filteredDefinitions.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-space-xl sm:grid-cols-2">
                 {filteredDefinitions.map((def) => {
                   const instanceCount = instances.filter((i) => i.connectorId === def.id).length;
                   return (
@@ -101,7 +102,7 @@ export function ConnectorsPage() {
             )}
           </TabsContent>
 
-          <TabsContent value="connected" className="space-y-3">
+          <TabsContent value="connected" className="space-y-space-l">
             <h2 className="text-sm font-medium text-muted-foreground">Connected Instances</h2>
             {instances.length > 0 ? (
               <ConnectorInstanceList instances={instances} definitions={definitions} />

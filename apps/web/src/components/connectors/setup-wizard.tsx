@@ -14,6 +14,9 @@ import type {
 } from '@stitch/shared/connectors/types';
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -175,10 +178,10 @@ export function SetupWizard({ definition, connectors, onClose }: Props) {
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="flex max-h-[90vh] min-h-0 w-[min(56rem,calc(100vw-2rem))] flex-col overflow-hidden sm:max-w-4xl">
         <DialogHeader className="shrink-0">
-          <div className="flex items-center gap-2">
+          <Stack direction="row" align="center" gap="m">
             <ConnectorIcon icon={definition.icon} className="size-7 rounded-md" />
             <DialogTitle>Connect {definition.name}</DialogTitle>
-          </div>
+          </Stack>
           <WizardProgress step={step} isOAuth={isOAuth} />
           <DialogDescription>
             {step === 'instructions' && 'Follow these steps to set up your credentials.'}
@@ -257,45 +260,63 @@ export function SetupWizard({ definition, connectors, onClose }: Props) {
           )}
 
           {step === 'authorizing' && (
-            <div className="flex h-full min-h-0 flex-col items-center justify-center gap-3 py-6">
-              {setupError ? (
-                <>
-                  <p className="text-sm font-medium text-destructive">Authorization could not be started</p>
-                  <p className="max-w-md text-center text-xs text-muted-foreground">{setupError}</p>
-                  <Button
-                    type="button"
-                    onClick={() => void handleCreateAndAuthorize(credentials, label, scopeValues.selectedScopes)}>
-                    Retry Authorization
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Spinner size="lg" className="text-primary" />
-                  <p className="text-sm text-muted-foreground">Setting up connection...</p>
-                </>
-              )}
+            <div className="grid h-full min-h-0 place-items-center py-space-2xl">
+              <Stack align="center" gap="l">
+                {setupError ? (
+                  <>
+                    <Text as="p" variant="body-strong" tone="destructive">
+                      Authorization could not be started
+                    </Text>
+                    <div className="max-w-md text-center">
+                      <Text as="p" variant="caption" tone="muted">
+                        {setupError}
+                      </Text>
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={() => void handleCreateAndAuthorize(credentials, label, scopeValues.selectedScopes)}>
+                      Retry Authorization
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Spinner size="lg" className="text-primary" />
+                    <Text as="p" variant="body" tone="muted">
+                      Setting up connection...
+                    </Text>
+                  </>
+                )}
+              </Stack>
             </div>
           )}
 
           {step === 'done' && (
-            <div className="flex h-full min-h-0 flex-col items-center gap-3 overflow-y-auto py-6">
-              <div className="flex size-12 items-center justify-center rounded-full bg-success/10 text-success">
-                <CheckIcon className="size-6" />
-              </div>
-              {isOAuth ? (
-                <>
-                  <p className="text-sm font-medium">Authorization started</p>
-                  <p className="text-center text-xs text-muted-foreground">
-                    A browser window has opened for you to authorize access. Once you approve, the connector will be
-                    ready to use. You can close this dialog.
-                  </p>
-                </>
-              ) : (
-                <p className="text-sm font-medium">Connector connected</p>
-              )}
-              <DialogFooter className="w-full shrink-0">
-                <Button onClick={onClose}>Done</Button>
-              </DialogFooter>
+            <div className="h-full min-h-0 overflow-y-auto py-space-2xl">
+              <Stack align="center" gap="l">
+                <div className="grid size-12 place-items-center rounded-full bg-success-subtle text-success">
+                  <CheckIcon width={24} height={24} />
+                </div>
+                {isOAuth ? (
+                  <>
+                    <Text as="p" variant="body-strong">
+                      Authorization started
+                    </Text>
+                    <div className="text-center">
+                      <Text as="p" variant="caption" tone="muted">
+                        A browser window has opened for you to authorize access. Once you approve, the connector will be
+                        ready to use. You can close this dialog.
+                      </Text>
+                    </div>
+                  </>
+                ) : (
+                  <Text as="p" variant="body-strong">
+                    Connector connected
+                  </Text>
+                )}
+                <DialogFooter className="w-full shrink-0">
+                  <Button onClick={onClose}>Done</Button>
+                </DialogFooter>
+              </Stack>
             </div>
           )}
         </div>
@@ -306,37 +327,39 @@ export function SetupWizard({ definition, connectors, onClose }: Props) {
 
 function InstructionsStep({ instructions, onNext }: { instructions: ConnectorSetupInstruction[]; onNext: () => void }) {
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
-      <ScrollArea className="max-h-[45vh] min-h-0 flex-1 rounded-lg border border-border/60 bg-muted/30 p-3">
-        <ol className="list-inside list-decimal space-y-2 text-sm text-foreground/85">
-          {instructions.map((instruction) => {
-            const href = instruction.href;
-            return (
-              <li key={instruction.text} className="leading-relaxed">
-                <span>{instruction.text}</span>
-                {href ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="ml-1 h-auto gap-1 p-0 font-normal text-primary hover:bg-transparent hover:underline"
-                    onClick={() => {
-                      void (window.api?.shell?.openExternal(href) ?? window.open(href, '_blank'));
-                    }}>
-                    {instruction.hrefLabel ?? 'Open'}
-                    <ExternalLinkIcon className="size-3" />
-                  </Button>
-                ) : null}
-              </li>
-            );
-          })}
-        </ol>
-      </ScrollArea>
-      <DialogFooter className="shrink-0">
-        <Button onClick={onNext}>
-          I have my credentials
-          <ArrowRightIcon className="size-3.5" />
-        </Button>
-      </DialogFooter>
+    <div className="h-full min-h-0 *:h-full">
+      <Stack gap="l">
+        <ScrollArea className="max-h-[45vh] min-h-0 flex-1 rounded-lg border border-border-subtle bg-surface-sunken p-space-l">
+          <ol className="list-inside list-decimal space-y-space-m text-sm text-foreground/85">
+            {instructions.map((instruction) => {
+              const href = instruction.href;
+              return (
+                <li key={instruction.text} className="leading-relaxed">
+                  <span>{instruction.text}</span>
+                  {href ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="ml-space-xs h-auto gap-space-xs p-space-none font-normal text-primary hover:bg-transparent hover:underline"
+                      onClick={() => {
+                        void (window.api?.shell?.openExternal(href) ?? window.open(href, '_blank'));
+                      }}>
+                      {instruction.hrefLabel ?? 'Open'}
+                      <Icon as={ExternalLinkIcon} size="xs" />
+                    </Button>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ol>
+        </ScrollArea>
+        <DialogFooter className="shrink-0">
+          <Button onClick={onNext}>
+            I have my credentials
+            <Icon as={ArrowRightIcon} size="s" />
+          </Button>
+        </DialogFooter>
+      </Stack>
     </div>
   );
 }
@@ -370,17 +393,17 @@ function ConnectorCredentialsStep({
 
   return (
     <form
-      className="flex h-full min-h-0 flex-col gap-3"
+      className="flex h-full min-h-0 flex-col gap-space-l"
       onSubmit={(event) => {
         event.preventDefault();
         void form.handleSubmit();
       }}>
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+      <div className="min-h-0 flex-1 space-y-space-l overflow-y-auto pr-space-xs">
         {isOAuth ? (
           <>
             <form.Field name="selectedConnectorRefId">
               {(field) => (
-                <div className="space-y-1.5">
+                <div className="space-y-space-s">
                   <Label>Connector Credentials</Label>
                   <Select value={field.state.value} onValueChange={(value) => field.handleChange(value ?? 'new')}>
                     <SelectTrigger className="w-full">
@@ -406,7 +429,7 @@ function ConnectorCredentialsStep({
               <>
                 <form.Field name="clientId">
                   {(field) => (
-                    <div className="space-y-1.5">
+                    <div className="space-y-space-s">
                       <Label htmlFor="clientId">Client ID</Label>
                       <Input
                         id="clientId"
@@ -422,7 +445,7 @@ function ConnectorCredentialsStep({
                 </form.Field>
                 <form.Field name="clientSecret">
                   {(field) => (
-                    <div className="space-y-1.5">
+                    <div className="space-y-space-s">
                       <Label htmlFor="clientSecret">Client Secret</Label>
                       <Input
                         id="clientSecret"
@@ -443,7 +466,7 @@ function ConnectorCredentialsStep({
         ) : (
           <form.Field name="apiKey">
             {(field) => (
-              <div className="space-y-1.5">
+              <div className="space-y-space-s">
                 <Label htmlFor="apiKey">{apiKeyConfig?.keyLabel ?? 'API Key'}</Label>
                 <Input
                   id="apiKey"
@@ -460,12 +483,12 @@ function ConnectorCredentialsStep({
                     href={helpUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                    className="inline-flex items-center gap-space-xs text-xs text-primary hover:underline"
                     onClick={(event) => {
                       event.preventDefault();
                       void (window.api?.shell?.openExternal(helpUrl) ?? window.open(helpUrl, '_blank'));
                     }}>
-                    <ExternalLinkIcon className="size-3" />
+                    <Icon as={ExternalLinkIcon} size="xs" />
                     Get your API key
                   </a>
                 )}
@@ -476,12 +499,12 @@ function ConnectorCredentialsStep({
       </div>
       <DialogFooter className="shrink-0">
         <Button type="button" variant="outline" onClick={() => onBack(values)}>
-          <ArrowLeftIcon className="size-3.5" />
+          <Icon as={ArrowLeftIcon} size="s" />
           Back
         </Button>
         <Button type="submit">
           {isOAuth ? 'Continue' : 'Connect'}
-          <ArrowRightIcon className="size-3.5" />
+          <Icon as={ArrowRightIcon} size="s" />
         </Button>
       </DialogFooter>
     </form>
@@ -503,13 +526,13 @@ function ConnectorAccountStep({
 
   return (
     <form
-      className="flex h-full min-h-0 flex-col gap-3"
+      className="flex h-full min-h-0 flex-col gap-space-l"
       onSubmit={(event) => {
         event.preventDefault();
         onNext(value);
       }}>
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-        <div className="space-y-1.5">
+      <div className="min-h-0 flex-1 space-y-space-l overflow-y-auto pr-space-xs">
+        <div className="space-y-space-s">
           <Label htmlFor="label">Account Label</Label>
           <Input
             id="label"
@@ -521,12 +544,12 @@ function ConnectorAccountStep({
       </div>
       <DialogFooter className="shrink-0">
         <Button type="button" variant="outline" onClick={() => onBack(value)}>
-          <ArrowLeftIcon className="size-3.5" />
+          <Icon as={ArrowLeftIcon} size="s" />
           Back
         </Button>
         <Button type="submit">
           Choose Scopes
-          <ArrowRightIcon className="size-3.5" />
+          <Icon as={ArrowRightIcon} size="s" />
         </Button>
       </DialogFooter>
     </form>
@@ -596,59 +619,69 @@ function ScopesStep({
 
   return (
     <form
-      className="flex h-full min-h-0 flex-col gap-3"
+      className="flex h-full min-h-0 flex-col gap-space-l"
       onSubmit={(event) => {
         event.preventDefault();
         void form.handleSubmit();
       }}>
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+      <div className="min-h-0 flex-1 space-y-space-l overflow-y-auto pr-space-xs">
         {enableApisUrl && (
-          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
-            <p className="mb-1.5 text-xs font-medium text-foreground">
-              Before connecting, enable the APIs for the services you select below:
-            </p>
+          <div className="rounded-lg border border-primary/30 bg-primary-subtle p-space-l">
+            <div className="mb-space-s">
+              <Text as="p" variant="label">
+                Before connecting, enable the APIs for the services you select below:
+              </Text>
+            </div>
             <Button
               type="button"
               variant="ghost"
-              className="h-auto gap-1.5 p-0 text-primary hover:bg-transparent hover:underline"
+              className="h-auto gap-space-s p-space-none text-primary hover:bg-transparent hover:underline"
               onClick={() => {
                 void (window.api?.shell?.openExternal(enableApisUrl) ?? window.open(enableApisUrl, '_blank'));
               }}>
-              <ExternalLinkIcon className="size-3.5" />
+              <Icon as={ExternalLinkIcon} size="s" />
               Enable required Google APIs in Cloud Console
             </Button>
           </div>
         )}
         {config.serviceAccessOptions && config.serviceAccessOptions.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-space-l">
             {config.serviceAccessOptions.map((option) => {
               const value = serviceAccess[option.id] ?? 'none';
               return (
-                <div key={option.id} className="rounded-lg border border-border/60 p-3">
-                  <p className="text-sm font-medium">{option.label}</p>
-                  {option.description ? <p className="text-xs text-muted-foreground">{option.description}</p> : null}
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={value === 'none' ? 'default' : 'outline'}
-                      onClick={() => form.setFieldValue('serviceAccess', { ...serviceAccess, [option.id]: 'none' })}>
-                      Off
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={value === 'read' ? 'default' : 'outline'}
-                      onClick={() => form.setFieldValue('serviceAccess', { ...serviceAccess, [option.id]: 'read' })}>
-                      Read
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={value === 'write' ? 'default' : 'outline'}
-                      onClick={() => form.setFieldValue('serviceAccess', { ...serviceAccess, [option.id]: 'write' })}>
-                      Read + Write
-                    </Button>
+                <div key={option.id} className="rounded-lg border border-border-subtle p-space-l">
+                  <Text as="p" variant="body-strong">
+                    {option.label}
+                  </Text>
+                  {option.description ? (
+                    <Text as="p" variant="caption" tone="muted">
+                      {option.description}
+                    </Text>
+                  ) : null}
+                  <div className="mt-space-m">
+                    <Stack direction="row" gap="m" wrap>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={value === 'none' ? 'default' : 'outline'}
+                        onClick={() => form.setFieldValue('serviceAccess', { ...serviceAccess, [option.id]: 'none' })}>
+                        Off
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={value === 'read' ? 'default' : 'outline'}
+                        onClick={() => form.setFieldValue('serviceAccess', { ...serviceAccess, [option.id]: 'read' })}>
+                        Read
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={value === 'write' ? 'default' : 'outline'}
+                        onClick={() => form.setFieldValue('serviceAccess', { ...serviceAccess, [option.id]: 'write' })}>
+                        Read + Write
+                      </Button>
+                    </Stack>
                   </div>
                 </div>
               );
@@ -656,12 +689,12 @@ function ScopesStep({
           </div>
         ) : (
           <ScrollArea className="max-h-[42vh] min-h-0">
-            <div className="space-y-1.5">
+            <div className="space-y-space-s">
               {Object.entries(config.scopeDescriptions).map(([scope, description]) => (
                 <label
                   key={scope}
                   htmlFor={scope}
-                  className="flex cursor-pointer items-start gap-2.5 rounded-lg p-2 text-sm hover:bg-muted/50">
+                  className="flex cursor-pointer items-start gap-space-m rounded-lg p-space-m text-sm hover:bg-accent">
                   <Checkbox
                     id={scope}
                     checked={selectedScopeSet.has(scope)}
@@ -673,11 +706,15 @@ function ScopesStep({
                           : [...selectedScopes, scope],
                       )
                     }
-                    className="mt-0.5"
+                    className="mt-space-2xs"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium">{description}</p>
-                    <p className="truncate text-2xs text-muted-foreground">{scope}</p>
+                    <Text as="p" variant="label">
+                      {description}
+                    </Text>
+                    <Text as="p" variant="micro" tone="muted" truncate>
+                      {scope}
+                    </Text>
                   </div>
                 </label>
               ))}
@@ -688,12 +725,12 @@ function ScopesStep({
       </div>
       <DialogFooter className="shrink-0">
         <Button type="button" variant="outline" onClick={() => onBack(values)}>
-          <ArrowLeftIcon className="size-3.5" />
+          <Icon as={ArrowLeftIcon} size="s" />
           Back
         </Button>
         <Button type="submit">
           Connect & Authorize
-          <ExternalLinkIcon className="size-3.5" />
+          <Icon as={ExternalLinkIcon} size="s" />
         </Button>
       </DialogFooter>
     </form>
@@ -720,7 +757,8 @@ function WizardProgress({ step, isOAuth }: { step: WizardStep; isOAuth: boolean 
   const activeIndex = steps.findIndex((item) => item.id === step);
 
   return (
-    <div className={`mt-2 grid gap-2 ${isOAuth ? 'grid-cols-2 sm:grid-cols-6' : 'grid-cols-2 sm:grid-cols-4'}`}>
+    <div
+      className={`mt-space-m grid gap-space-m ${isOAuth ? 'grid-cols-2 sm:grid-cols-6' : 'grid-cols-2 sm:grid-cols-4'}`}>
       {steps.map((item, index) => (
         <div
           key={item.id}
