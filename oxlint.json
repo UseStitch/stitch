@@ -55,7 +55,7 @@
         "@tanstack/query/mutation-property-order": "error",
         "@tanstack/router/create-route-property-order": "warn",
         "@tanstack/router/route-param-names": "error",
-        "stitch/no-arbitrary-design-values": "off",
+        "stitch/no-arbitrary-design-values": "error",
         "stitch/no-component-style-overrides": "off",
         "stitch/no-direct-ui-primitives": "off",
         "stitch/no-native-button": "error",

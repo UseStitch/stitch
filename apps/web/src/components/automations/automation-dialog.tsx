@@ -291,7 +291,7 @@ function AutomationForm({
         </div>
 
         <div className="flex min-h-0 flex-col px-6 py-5">
-          <div className="mb-3 inline-flex w-fit gap-1 rounded-[min(var(--radius-md),10px)] border border-border/60 bg-muted/30 p-1">
+          <div className="mb-3 inline-flex w-fit gap-1 rounded-md border border-border/60 bg-muted/30 p-1">
             <Button
               type="button"
               size="sm"

@@ -80,7 +80,7 @@ export function ServerStatus() {
         <HardDrive className="h-3.75 w-3.75 text-muted-foreground" />
         <StatusDot
           color={STATE_COLOR[overallState]}
-          className="absolute top-1 right-1 border-[1.5px] border-background transition-colors"
+          className="absolute top-1 right-1 border-2 border-background transition-colors"
         />
       </PopoverTrigger>
       <PopoverContent
