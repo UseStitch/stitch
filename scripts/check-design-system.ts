@@ -59,9 +59,7 @@ function renderCss() {
 
 function renderToolManifest(vendoredFiles: string[]) {
   const spacingScale = Object.entries(designTokens.spacing)
-    .flatMap(([token, definition]) =>
-      definition.legacy.map((legacy) => [Number(legacy), spacingUtilityToken(token)]),
-    )
+    .flatMap(([token, definition]) => definition.legacy.map((legacy) => [Number(legacy), spacingUtilityToken(token)]))
     .toSorted(([left], [right]) => Number(left) - Number(right));
   const durationScale = Object.entries(designTokens.motion.duration).map(([token, value]) => [
     Number.parseInt(value),
