@@ -1,5 +1,17 @@
+import { VENDORED_UI_FILES } from './design-system.generated.mjs';
+
 function isUiComponentFile(filename) {
-  return filename.replaceAll('\\', '/').includes('/apps/web/src/components/ui/');
+  const normalized = filename.replaceAll('\\', '/');
+  for (const vendoredFile of VENDORED_UI_FILES) {
+    if (normalized.endsWith(`/${vendoredFile}`) || normalized === vendoredFile) return true;
+  }
+  return false;
+}
+
+function isDesignSystemPrimitiveFile(filename) {
+  return /(?:^|\/)apps\/web\/src\/components\/primitives\/(?:icon|stack|text)\.[jt]sx?$/.test(
+    filename.replaceAll('\\', '/'),
+  );
 }
 
 function getJsxElementName(node) {
@@ -77,7 +89,17 @@ function getTailwindUtility(className) {
     if (character === ':' && bracketDepth === 0) variantEnd = index;
   }
 
-  return className.slice(variantEnd + 1).replace(/^!/, '').replace(/^-/, '');
+  return className
+    .slice(variantEnd + 1)
+    .replace(/^!/, '')
+    .replace(/^-/, '');
 }
 
-export { getJsxAttribute, getJsxElementName, getStaticClassNames, getTailwindUtility, isUiComponentFile };
+export {
+  getJsxAttribute,
+  getJsxElementName,
+  getStaticClassNames,
+  getTailwindUtility,
+  isDesignSystemPrimitiveFile,
+  isUiComponentFile,
+};

@@ -59,7 +59,11 @@
         "stitch/no-direct-ui-primitives": "error",
         "stitch/no-native-button": "error",
         "stitch/no-native-form-controls": "error",
+        "stitch/no-classname-on-primitive": "error",
+        "stitch/no-offscale-motion": "error",
+        "stitch/no-offscale-radius": "error",
         "stitch/no-raw-tailwind-colors": "error",
+        "stitch/no-token-opacity": "error",
         "stitch/no-window-confirm": "error",
         "react-doctor/no-derived-state": "error",
         "react-doctor/no-chain-state-updates": "error",
@@ -137,6 +141,19 @@
         "react-doctor/rendering-conditional-render": "error",
         "react-doctor/server-auth-actions": "error",
         "react-doctor/client-passive-event-listeners": "error"
+      }
+    },
+    {
+      "files": [
+        "apps/web/src/routes/**/*.{ts,tsx}",
+        "apps/web/src/hooks/**/*.{ts,tsx}",
+        "apps/web/src/components/{connectors,usage,home,mcp,icons,tools}/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "stitch/no-offscale-icon-size": "error",
+        "stitch/no-offscale-spacing": "error",
+        "stitch/no-raw-layout-div": "error",
+        "stitch/no-raw-text-element": "error"
       }
     },
     { "files": ["**/*.test.{ts,tsx}"], "rules": { "stitch/no-call-only-assertions": "error" } },
