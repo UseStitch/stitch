@@ -1,4 +1,4 @@
 {
-  "app": { "tokenOpacity": 66, "typography": 40, "iconSize": 16, "spacing": 29, "radius": 11, "motion": 8 },
-  "vendoredUi": { "tokenOpacity": 24, "typography": 7, "iconSize": 12, "spacing": 22, "radius": 30, "motion": 5 }
+  "app": { "tokenOpacity": 0, "typography": 0, "iconSize": 13, "spacing": 10, "radius": 10, "motion": 5 },
+  "vendoredUi": { "tokenOpacity": 24, "typography": 7, "iconSize": 12, "spacing": 20, "radius": 30, "motion": 5 }
 }
