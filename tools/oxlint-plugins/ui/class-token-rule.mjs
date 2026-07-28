@@ -1,15 +1,13 @@
-import { getJsxAttribute, getStaticClassNames } from './jsx-style-utils.mjs';
-
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function getClassTokenRanges(attribute, className, sourceCode) {
-  const source = sourceCode.getText(attribute);
+function getClassTokenRanges(node, className, sourceCode) {
+  const source = sourceCode.getText(node);
   const pattern = new RegExp(`(^|[\\s'"\`])${escapeRegExp(className)}(?=$|[\\s'"\`])`, 'g');
   const ranges = [];
   for (const match of source.matchAll(pattern)) {
-    const start = attribute.range[0] + match.index + match[1].length;
+    const start = node.range[0] + match.index + match[1].length;
     ranges.push([start, start + className.length]);
   }
   return ranges;
@@ -37,25 +35,34 @@ function createClassTokenVisitor(
   messageId,
   isViolation = (className) => getReplacement(className),
 ) {
-  return {
-    JSXOpeningElement(node) {
-      const attribute = getJsxAttribute(node, 'className');
-      for (const className of new Set(getStaticClassNames(node))) {
-        if (!isViolation(className)) continue;
-        const replacement = getReplacement(className, node);
-        const ranges = getClassTokenRanges(attribute, className, context.sourceCode);
-        if (ranges.length === 0) {
-          context.report({ data: { classes: className }, messageId, node: attribute });
-          continue;
-        }
-        for (const range of ranges) {
-          const report = { data: { classes: className }, messageId, node: attribute };
-          if (replacement && replacement !== className) {
-            report.fix = (fixer) => fixer.replaceTextRange(range, replacement);
-          }
-          context.report(report);
-        }
+  if (context.filename.replaceAll('\\', '/').endsWith('/apps/web/src/styles/tokens.ts')) return {};
+
+  function checkStaticString(node, value) {
+    if (typeof value !== 'string') return;
+    for (const className of new Set(value.split(/\s+/).filter(Boolean))) {
+      if (!isViolation(className)) continue;
+      const replacement = getReplacement(className, node);
+      const ranges = getClassTokenRanges(node, className, context.sourceCode);
+      if (ranges.length === 0) {
+        context.report({ data: { classes: className }, messageId, node });
+        continue;
       }
+      for (const range of ranges) {
+        const report = { data: { classes: className }, messageId, node };
+        if (replacement && replacement !== className) {
+          report.fix = (fixer) => fixer.replaceTextRange(range, replacement);
+        }
+        context.report(report);
+      }
+    }
+  }
+
+  return {
+    Literal(node) {
+      checkStaticString(node, node.value);
+    },
+    TemplateElement(node) {
+      checkStaticString(node, node.value.raw);
     },
   };
 }
