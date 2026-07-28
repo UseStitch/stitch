@@ -5,6 +5,7 @@ import type { ElectronBrowserDownload, ElectronBrowserState } from '@stitch/shar
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 type BrowserPanelProps = { sessionId: string; onClose: () => void };
@@ -150,8 +151,8 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
         </Button>
 
         <form className="min-w-0 flex-1" onSubmit={submitAddress}>
-          <input
-            className="h-7 w-full rounded border border-border bg-muted/40 px-2 text-xs outline-none focus:border-primary"
+          <Input
+            className="h-7 w-full rounded border border-border bg-muted/40 px-2 py-0 text-xs focus:border-primary focus-visible:ring-0"
             value={address}
             onChange={(event) => setAddress(event.target.value)}
           />

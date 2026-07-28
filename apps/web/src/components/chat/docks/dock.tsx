@@ -2,6 +2,7 @@ import { CheckIcon, ChevronDownIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 type DockVariant = 'default' | 'primary' | 'warning' | 'destructive';
@@ -71,9 +72,9 @@ function DockActions({ className, ...props }: DockActionsProps) {
 
 function DockInput({ className, ...props }: DockInputProps) {
   return (
-    <input
+    <Input
       className={cn(
-        'h-8 flex-1 rounded-md border border-border bg-background px-2 text-sm focus:ring-1 focus:ring-primary focus:outline-none',
+        'h-8 flex-1 rounded-md border border-border bg-background px-2 text-sm focus:ring-1 focus:ring-primary focus-visible:ring-1 focus-visible:ring-primary',
         className,
       )}
       {...props}

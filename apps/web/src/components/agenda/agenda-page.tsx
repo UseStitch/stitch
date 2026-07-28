@@ -286,7 +286,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
             </PageIcon>
             <div>
               {editingTitle ? (
-                <input
+                <Input
                   ref={titleInputRef}
                   value={editTitleValue}
                   onChange={(e) => setEditTitleValue(e.target.value)}
@@ -295,7 +295,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
                     if (e.key === 'Enter') commitRename();
                     if (e.key === 'Escape') setEditingTitle(false);
                   }}
-                  className="-ml-1 w-full rounded border-none bg-transparent px-1 text-xl font-semibold ring-1 ring-primary outline-none"
+                  className="-ml-1 h-auto w-full rounded border-none bg-transparent px-1 py-0 text-xl font-semibold ring-1 ring-primary focus-visible:ring-1 focus-visible:ring-primary dark:bg-transparent"
                 />
               ) : currentList ? (
                 <Button

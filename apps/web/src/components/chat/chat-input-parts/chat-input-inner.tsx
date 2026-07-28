@@ -16,6 +16,7 @@ import type { SttModelSelection } from '@/components/model-selectors/stt-model-s
 import { SttModelSelectorPopover } from '@/components/model-selectors/stt-model-selector-popover';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
+import { Textarea } from '@/components/ui/textarea';
 import { TextareaCompletions, type TextareaCompletionGroup } from '@/components/ui/textarea-completions';
 import { supportsAnyAttachment } from '@/lib/model-capabilities';
 import { sttProviderModelsQueryOptions, visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
@@ -195,7 +196,7 @@ export function ChatInputInner({
         disabled={disabled}
         onKeyDown={handleKeyDown}>
         {({ textareaProps }) => (
-          <textarea
+          <Textarea
             ref={textareaRef}
             value={value}
             {...textareaProps}
@@ -206,11 +207,11 @@ export function ChatInputInner({
             disabled={disabled}
             rows={1}
             className={cn(
-              'w-full resize-none bg-transparent px-4 pt-4 pb-2 text-sm leading-relaxed outline-none',
+              'min-h-0 w-full resize-none rounded-none border-0 bg-transparent px-4 pt-4 pb-2 text-sm leading-relaxed',
               'placeholder:text-muted-foreground/60',
               'max-h-48 overflow-y-auto thin-scrollbar',
               'field-sizing-content',
-              disabled && 'cursor-not-allowed',
+              'focus-visible:ring-0 dark:bg-transparent disabled:bg-transparent dark:disabled:bg-transparent',
             )}
           />
         )}

@@ -7,6 +7,7 @@ import {
   filterProviderModels,
   findProviderModelOption,
 } from '@/components/model-selectors/provider-model-utils';
+import { Input } from '@/components/ui/input';
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { ProviderModels } from '@/lib/queries/providers';
 import { cn } from '@/lib/utils';
@@ -44,11 +45,11 @@ export function ModelSelectorPopover({ selectedValue, onSelect, providerModels }
         className="max-h-80 w-96 gap-0 p-0 shadow-lg outline-none">
         <div className="flex items-center gap-2 border-b border-border/50 px-3 py-2">
           <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" />
-          <input
+          <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search models"
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            className="h-auto flex-1 rounded-none border-0 bg-transparent px-0 py-0 text-sm focus-visible:ring-0 dark:bg-transparent"
           />
         </div>
 
