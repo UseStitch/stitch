@@ -73,7 +73,7 @@ export function ToolCallGroup({ calls, onAbort }: ToolCallGroupProps) {
           size="xs"
           onClick={() => setExpanded((current) => !current)}
           className={cn(
-            'h-6 w-full justify-start px-1.5 text-muted-foreground hover:bg-muted/50',
+            'w-full justify-start px-1.5 text-muted-foreground hover:bg-muted/50',
             hiddenCountIncreased && 'animate-in fade-in slide-in-from-top-1 duration-200',
           )}>
           <ChevronDownIcon className={cn('size-3 transition-transform', expanded && 'rotate-180')} />

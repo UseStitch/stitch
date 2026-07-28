@@ -61,11 +61,7 @@ export function RecordingStartStopBar({
         </div>
 
         {activeRecording ? (
-          <Button
-            onClick={onStop}
-            disabled={isStopping}
-            variant="destructive"
-            className="h-8 rounded-lg px-2.5 shadow-sm">
+          <Button onClick={onStop} disabled={isStopping} variant="destructive" className="shadow-sm">
             <SquareIcon data-icon="inline-start" className="size-4" />
             Stop recording (<LiveDurationText startedAt={activeRecording.startedAt} />)
           </Button>
@@ -74,7 +70,7 @@ export function RecordingStartStopBar({
             <Button
               onClick={() => onStart()}
               disabled={isStarting}
-              className="h-8 rounded-none px-2.5 text-primary-foreground hover:bg-primary/90">
+              className="text-primary-foreground hover:bg-primary/90">
               <MicIcon data-icon="inline-start" className="size-4" />
               Start recording
             </Button>
@@ -86,7 +82,7 @@ export function RecordingStartStopBar({
               triggerRender={
                 <Button
                   disabled={isStarting}
-                  className="h-8 rounded-none px-1.5 text-primary-foreground hover:bg-primary/90"
+                  className="px-1.5 text-primary-foreground hover:bg-primary/90"
                   title="Choose transcription model and start">
                   <ChevronDownIcon className="size-3.5" />
                 </Button>
@@ -94,7 +90,7 @@ export function RecordingStartStopBar({
             />
           </ButtonGroup>
         ) : (
-          <Button onClick={() => onStart()} disabled={isStarting} className="h-8 rounded-lg px-2.5 shadow-sm">
+          <Button onClick={() => onStart()} disabled={isStarting} className="shadow-sm">
             <MicIcon data-icon="inline-start" className="size-4" />
             Start recording
           </Button>

@@ -86,7 +86,7 @@ export function UserMessageBubble({ parts, onSplit, onEdit }: UserMessageBubbleP
                 variant="ghost"
                 size="xs"
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="mt-1 h-auto gap-1 px-0 py-0.5 text-xs text-muted-foreground hover:text-foreground">
+                className="mt-1 h-auto px-0 py-0.5 text-xs text-muted-foreground hover:text-foreground">
                 {isExpanded ? (
                   <>
                     <ChevronsDownUpIcon className="size-3" />

@@ -152,7 +152,7 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
 
         <form className="min-w-0 flex-1" onSubmit={submitAddress}>
           <Input
-            className="h-7 w-full rounded border border-border bg-muted/40 px-2 py-0 text-xs focus:border-primary focus-visible:ring-0"
+            className="h-7 w-full rounded border-border bg-muted/40 px-2 py-0 text-xs focus:border-primary focus-visible:ring-0"
             value={address}
             onChange={(event) => setAddress(event.target.value)}
           />

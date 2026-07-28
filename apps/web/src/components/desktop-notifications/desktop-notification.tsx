@@ -61,7 +61,7 @@ function DesktopNotificationAction({
   variant?: 'default' | 'ghost';
 }) {
   return (
-    <Button type="button" size="sm" variant={variant} onClick={onClick} className="h-7 min-w-0 px-2 text-xs shadow-sm">
+    <Button type="button" size="sm" variant={variant} onClick={onClick} className="min-w-0 px-2 text-xs shadow-sm">
       {children}
     </Button>
   );

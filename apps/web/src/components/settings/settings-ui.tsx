@@ -38,7 +38,7 @@ export function SettingSubPage({
     <div className="flex h-full flex-col">
       <div className="mb-6">
         <div className="mb-3 flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 h-7 w-fit px-2">
+          <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 w-fit px-2">
             <ArrowLeftIcon className="size-3.5" />
             {backLabel}
           </Button>

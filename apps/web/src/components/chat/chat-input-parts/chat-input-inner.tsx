@@ -276,7 +276,7 @@ export function ChatInputInner({
                       type="button"
                       size="icon-xs"
                       variant="ghost"
-                      className="w-4 px-0 text-muted-foreground hover:text-foreground">
+                      className="w-4 text-muted-foreground hover:text-foreground">
                       <ChevronDownIcon className="size-3" />
                     </Button>
                   }

@@ -74,7 +74,7 @@ function DockInput({ className, ...props }: DockInputProps) {
   return (
     <Input
       className={cn(
-        'h-8 flex-1 rounded-md border border-border bg-background px-2 text-sm focus:ring-1 focus:ring-primary focus-visible:ring-1 focus-visible:ring-primary',
+        'flex-1 rounded-md border-border bg-background px-2 text-sm focus:ring-1 focus:ring-primary focus-visible:ring-1 focus-visible:ring-primary',
         className,
       )}
       {...props}
@@ -88,7 +88,7 @@ function DockSelectable({ selected, description, children, className, ...props }
       type="button"
       variant="ghost"
       className={cn(
-        'h-auto w-full items-start justify-start gap-2 rounded-md border p-2 text-left',
+        'h-auto w-full items-start justify-start gap-2 rounded-md p-2 text-left',
         selected ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50',
         className,
       )}

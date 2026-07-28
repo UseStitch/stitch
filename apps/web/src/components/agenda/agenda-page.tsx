@@ -669,7 +669,7 @@ function AgendaItemRow({
           draggable
           aria-label={`Reorder ${item.title}`}
           onDragStart={handleDragStart}
-          className="h-auto w-4 cursor-grab p-0 opacity-0 transition-opacity group-hover:opacity-60 hover:bg-transparent active:cursor-grabbing"
+          className="h-auto w-4 cursor-grab opacity-0 transition-opacity group-hover:opacity-60 hover:bg-transparent active:cursor-grabbing"
           onClick={(e) => e.stopPropagation()}>
           <GripVerticalIcon className="size-3.5 text-muted-foreground" />
         </Button>

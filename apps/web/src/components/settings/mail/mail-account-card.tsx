@@ -220,7 +220,7 @@ export function MailAccountCard({ account, status }: { account: MailAccountView;
           <Button
             variant="outline"
             size="sm"
-            className="h-7 px-2 text-xs"
+            className="px-2 text-xs"
             disabled={resyncMutation.isPending}
             onClick={() => handleResync('incremental')}>
             <RefreshCwIcon className="size-3.5" />
@@ -229,7 +229,7 @@ export function MailAccountCard({ account, status }: { account: MailAccountView;
           <Button
             variant="outline"
             size="sm"
-            className="h-7 px-2 text-xs"
+            className="px-2 text-xs"
             disabled={resyncMutation.isPending}
             onClick={() => handleResync('full')}>
             <RefreshCwIcon className="size-3.5" />
