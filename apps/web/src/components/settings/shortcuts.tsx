@@ -7,6 +7,8 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import { SETTINGS_DEFAULTS, isValidLeaderKeyHotkey } from '@stitch/shared/settings/types';
 import { SHORTCUT_CATEGORIES, SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage, SettingSection, SettingRows, SettingRow } from '@/components/settings/settings-ui';
 import { Badge } from '@/components/ui/badge';
@@ -51,7 +53,11 @@ const defaultLeaderKey = SETTINGS_DEFAULTS.find((s) => s.key === 'shortcuts.lead
 
 function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence: boolean }) {
   if (!hotkey) {
-    return <span className="text-sm font-medium text-text-faint">Unassigned</span>;
+    return (
+      <Text as="span" variant="body-strong" tone="faint">
+        Unassigned
+      </Text>
+    );
   }
 
   // Handle LEADER+ prefixed hotkeys: show resolved leader key, then arrow, then suffix
@@ -60,9 +66,11 @@ function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence
     const suffixDisplayKeys = formatForDisplay(suffix).split('+');
 
     return (
-      <span className="inline-flex items-center gap-1.5">
+      <span className="inline-flex items-center gap-space-s">
         <Kbd>Leader</Kbd>
-        <span className="text-2xs font-semibold tracking-widest text-muted-foreground uppercase">then</span>
+        <Text variant="micro" tone="muted">
+          then
+        </Text>
         {suffixDisplayKeys.map((key) => (
           <Kbd key={`suffix-${key}`}>{key}</Kbd>
         ))}
@@ -74,7 +82,7 @@ function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence
 
   if (isSequence) {
     return (
-      <span className="inline-flex gap-1.5">
+      <span className="inline-flex gap-space-s">
         {displayKeys.map((key) => (
           <Kbd key={`first-${key}`}>{key}</Kbd>
         ))}
@@ -86,7 +94,7 @@ function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence
   }
 
   return (
-    <span className="inline-flex gap-1.5">
+    <span className="inline-flex gap-space-s">
       {displayKeys.map((key) => (
         <Kbd key={key}>{key}</Kbd>
       ))}
@@ -111,37 +119,47 @@ function ShortcutRow({
   const isLeaderShortcut = entry.hotkey?.startsWith('LEADER+');
 
   return (
-    <div className="flex items-center justify-between border-b border-border-subtle px-4 py-2.5 transition-colors last:border-0 hover:bg-surface-sunken">
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-medium">{entry.label}</span>
-        {!isDefault && (
-          <Badge variant="soft" size="xs" className="font-bold tracking-wider uppercase">
-            Custom
-          </Badge>
-        )}
-      </div>
-      <Button
-        type="button"
-        variant="ghost"
-        onClick={() => !isLeaderShortcut && onStartRecording(entry.actionId)}
-        className={cn(
-          'rounded-md px-2 py-1.5',
-          isLeaderShortcut
-            ? 'cursor-default'
-            : isRecording
-              ? 'text-foreground bg-accent shadow-inner ring-1 ring-ring/50'
-              : conflict
-                ? 'text-destructive'
-                : 'hover:bg-accent/60 hover:text-accent-foreground cursor-pointer',
-        )}>
-        {isRecording ? (
-          <span className="text-xs font-medium text-muted-foreground italic">Press keys...</span>
-        ) : conflict ? (
-          <span className="text-xs font-semibold text-destructive">Conflicts with {conflict}</span>
-        ) : (
-          <HotkeyBadge hotkey={entry.hotkey} isSequence={entry.isSequence} />
-        )}
-      </Button>
+    <div className="border-b border-border-subtle px-space-xl py-space-m transition-colors last:border-0 hover:bg-surface-sunken">
+      <Stack direction="row" align="center" justify="between">
+        <Stack direction="row" align="center" gap="l">
+          <Text as="span" variant="body-strong">
+            {entry.label}
+          </Text>
+          {!isDefault && (
+            <Badge variant="soft" size="xs" className="font-bold tracking-wider uppercase">
+              Custom
+            </Badge>
+          )}
+        </Stack>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => !isLeaderShortcut && onStartRecording(entry.actionId)}
+          className={cn(
+            'rounded-md px-space-m py-space-s',
+            isLeaderShortcut
+              ? 'cursor-default'
+              : isRecording
+                ? 'text-foreground bg-accent shadow-inner ring-1 ring-ring'
+                : conflict
+                  ? 'text-destructive'
+                  : 'hover:bg-accent hover:text-accent-foreground cursor-pointer',
+          )}>
+          {isRecording ? (
+            <span className="italic">
+              <Text variant="label" tone="muted">
+                Press keys...
+              </Text>
+            </span>
+          ) : conflict ? (
+            <Text variant="label" tone="destructive">
+              Conflicts with {conflict}
+            </Text>
+          ) : (
+            <HotkeyBadge hotkey={entry.hotkey} isSequence={entry.isSequence} />
+          )}
+        </Button>
+      </Stack>
     </div>
   );
 }
@@ -262,10 +280,10 @@ function ShortcutsContent() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex items-center gap-3">
+    <Stack gap="3xl">
+      <Stack direction="row" align="center" gap="l">
         <SearchInput
-          containerClassName="flex-1 border-border/60 bg-muted/20 shadow-inner"
+          containerClassName="flex-1 border-border-subtle bg-surface-sunken shadow-inner"
           placeholder="Search shortcuts..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -278,7 +296,7 @@ function ShortcutsContent() {
           disabled={resetAll.isPending}>
           Reset to defaults
         </Button>
-      </div>
+      </Stack>
 
       <SettingSection title="Leader Key">
         <SettingRows>
@@ -288,11 +306,15 @@ function ShortcutsContent() {
               variant="ghost"
               onClick={handleStartLeaderKeyRecording}
               className={cn(
-                'cursor-pointer rounded-md px-2 py-1.5 hover:bg-accent/60',
-                recordingId === LEADER_KEY_RECORDING_ID && 'text-foreground bg-accent shadow-inner ring-1 ring-ring/50',
+                'cursor-pointer rounded-md px-space-m py-space-s hover:bg-accent',
+                recordingId === LEADER_KEY_RECORDING_ID && 'text-foreground bg-accent shadow-inner ring-1 ring-ring',
               )}>
               {recordingId === LEADER_KEY_RECORDING_ID ? (
-                <span className="text-xs font-medium text-muted-foreground italic">Press keys...</span>
+                <span className="italic">
+                  <Text variant="label" tone="muted">
+                    Press keys...
+                  </Text>
+                </span>
               ) : (
                 <HotkeyBadge hotkey={leaderKey} isSequence={false} />
               )}
@@ -301,7 +323,7 @@ function ShortcutsContent() {
         </SettingRows>
       </SettingSection>
 
-      <Tabs defaultValue={SHORTCUT_CATEGORIES[0]} className="gap-4">
+      <Tabs defaultValue={SHORTCUT_CATEGORIES[0]} className="gap-space-xl">
         <TabsList variant="line">
           {SHORTCUT_CATEGORIES.map((category) => (
             <TabsTrigger key={category} value={category}>
@@ -313,7 +335,7 @@ function ShortcutsContent() {
         {SHORTCUT_CATEGORIES.map((category) => {
           const entries = groups.get(category) ?? [];
           return (
-            <TabsContent key={category} value={category} className="mt-4">
+            <TabsContent key={category} value={category} className="mt-space-xl">
               {entries.length > 0 ? (
                 <SettingRows>
                   {entries.map((entry) => (
@@ -340,13 +362,15 @@ function ShortcutsContent() {
       </Tabs>
 
       {recordingId && (
-        <p className="pt-4 text-center text-xs font-medium text-muted-foreground">
-          {recordingId === LEADER_KEY_RECORDING_ID
-            ? 'Press Escape to cancel'
-            : 'Press Escape to cancel · Backspace to unassign'}
-        </p>
+        <div className="pt-space-xl text-center">
+          <Text variant="label" tone="muted">
+            {recordingId === LEADER_KEY_RECORDING_ID
+              ? 'Press Escape to cancel'
+              : 'Press Escape to cancel · Backspace to unassign'}
+          </Text>
+        </div>
       )}
-    </div>
+    </Stack>
   );
 }
 

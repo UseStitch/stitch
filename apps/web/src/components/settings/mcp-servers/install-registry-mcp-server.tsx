@@ -124,15 +124,15 @@ export function InstallRegistryMcpServer({
         </a>
       }>
       <form
-        className="space-y-4"
+        className="space-y-space-xl"
         onSubmit={(event) => {
           event.preventDefault();
           void form.handleSubmit();
         }}>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-space-xl">
           <form.Field name="name">
             {(field) => (
-              <div className="space-y-1.5">
+              <div className="space-y-space-s">
                 <Label className="text-xs font-medium text-muted-foreground">Name</Label>
                 <Input
                   value={field.state.value}
@@ -146,7 +146,7 @@ export function InstallRegistryMcpServer({
           </form.Field>
 
           {authOptions.length > 1 ? (
-            <div className="space-y-1.5">
+            <div className="space-y-space-s">
               <Label className="text-xs font-medium text-muted-foreground">Auth preset</Label>
               <Select value={selectedAuthId} onValueChange={handleAuthPresetChange}>
                 <SelectTrigger className="w-full">
@@ -164,7 +164,7 @@ export function InstallRegistryMcpServer({
           ) : (
             <form.Field name="authType">
               {(field) => (
-                <div className="space-y-1.5">
+                <div className="space-y-space-s">
                   <Label className="text-xs font-medium text-muted-foreground">Authentication</Label>
                   <Select
                     value={field.state.value}
@@ -188,7 +188,7 @@ export function InstallRegistryMcpServer({
 
         <form.Field name="url">
           {(field) => (
-            <div className="space-y-1.5">
+            <div className="space-y-space-s">
               <Label className="text-xs font-medium text-muted-foreground">URL</Label>
               <Input
                 value={field.state.value}
@@ -205,7 +205,7 @@ export function InstallRegistryMcpServer({
         {values.authType === 'api_key' && (
           <form.Field name="apiKey">
             {(field) => (
-              <div className="space-y-1.5">
+              <div className="space-y-space-s">
                 <Label className="text-xs font-medium text-muted-foreground">API Key</Label>
                 <Input
                   value={field.state.value}
@@ -224,7 +224,7 @@ export function InstallRegistryMcpServer({
         {values.authType === 'headers' && (
           <form.Field name="headers">
             {(field) => (
-              <div className="space-y-1.5">
+              <div className="space-y-space-s">
                 <Label className="text-xs font-medium text-muted-foreground">Headers</Label>
                 <HeaderRows rows={field.state.value} onChange={field.handleChange} />
                 <FieldError meta={field.state.meta} />
@@ -237,7 +237,7 @@ export function InstallRegistryMcpServer({
 
         <form.Subscribe selector={(state) => state.isSubmitting}>
           {(isSubmitting) => (
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-space-m pt-space-m">
               <Button type="button" variant="outline" onClick={onBack} disabled={isBusy || isSubmitting}>
                 Cancel
               </Button>

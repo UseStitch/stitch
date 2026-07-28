@@ -5,6 +5,8 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { buildDefaultVisibleSet, isModelVisible } from '@stitch/shared/providers/model-visibility';
 
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage, SettingSection, SettingRows } from '@/components/settings/settings-ui';
 import { Input } from '@/components/ui/input';
@@ -22,8 +24,10 @@ type ModelRowProps = { modelName: string; checked: boolean; onToggle: (checked: 
 
 function ModelRow({ modelName, checked, onToggle }: ModelRowProps) {
   return (
-    <div className="flex items-center justify-between gap-4 py-3">
-      <span className="truncate text-sm font-medium text-foreground">{modelName}</span>
+    <div className="flex items-center justify-between gap-space-xl py-space-l">
+      <Text as="span" variant="body-strong" truncate>
+        {modelName}
+      </Text>
       <Switch checked={checked} onCheckedChange={onToggle} aria-label={`Toggle ${modelName}`} />
     </div>
   );
@@ -88,16 +92,12 @@ function ModelsListContent() {
   }
 
   if (allProviderModels.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        No providers are connected. Configure a provider first to manage model visibility.
-      </p>
-    );
+    return <Text tone="muted">No providers are connected. Configure a provider first to manage model visibility.</Text>;
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+    <Stack gap="2xl">
+      <div className="flex flex-col gap-space-l sm:flex-row sm:items-center">
         <Select value={selectedProviderId} onValueChange={(value) => setSelectedProviderId(value ?? 'all')}>
           <SelectTrigger className="w-full sm:w-56">
             <SelectValue>
@@ -124,7 +124,9 @@ function ModelsListContent() {
       </div>
 
       {filtered.length === 0 && (
-        <p className="py-4 text-center text-sm text-muted-foreground">No models match your search.</p>
+        <div className="py-space-xl text-center">
+          <Text tone="muted">No models match your search.</Text>
+        </div>
       )}
 
       {filtered.map((provider) => (
@@ -141,7 +143,7 @@ function ModelsListContent() {
           </SettingRows>
         </SettingSection>
       ))}
-    </div>
+    </Stack>
   );
 }
 

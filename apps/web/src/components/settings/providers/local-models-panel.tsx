@@ -8,6 +8,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { LocalProviderId } from '@stitch/shared/providers/types';
 
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { SettingsIconButtonTooltip } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
@@ -176,11 +179,11 @@ function ModelForm({
         event.preventDefault();
         void form.handleSubmit();
       }}
-      className="flex flex-col gap-3 rounded-md border p-4">
-      <div className="grid grid-cols-2 gap-3">
+      className="flex flex-col gap-space-l rounded-md border p-space-xl">
+      <div className="grid grid-cols-2 gap-space-l">
         <form.Field name="id">
           {(field) => (
-            <div className="flex flex-col gap-1.5">
+            <Stack gap="s">
               <Label htmlFor="local-model-id">Model ID</Label>
               <Input
                 id="local-model-id"
@@ -192,12 +195,12 @@ function ModelForm({
                 required
               />
               <FieldError meta={field.state.meta} />
-            </div>
+            </Stack>
           )}
         </form.Field>
         <form.Field name="name">
           {(field) => (
-            <div className="flex flex-col gap-1.5">
+            <Stack gap="s">
               <Label htmlFor="local-model-name">Display Name</Label>
               <Input
                 id="local-model-name"
@@ -209,16 +212,21 @@ function ModelForm({
                 required
               />
               <FieldError meta={field.state.meta} />
-            </div>
+            </Stack>
           )}
         </form.Field>
       </div>
 
-      <p className="text-xs font-medium text-muted-foreground">Token limits</p>
-      <div className="grid grid-cols-3 gap-3">
-        <div className="flex flex-col gap-1.5">
+      <Text variant="label" tone="muted">
+        Token limits
+      </Text>
+      <div className="grid grid-cols-3 gap-space-l">
+        <Stack gap="s">
           <Label htmlFor="local-context-window">
-            Context <span className="text-xs text-muted-foreground">(tokens)</span>
+            Context{' '}
+            <Text variant="caption" tone="muted">
+              (tokens)
+            </Text>
           </Label>
           <Input
             id="local-context-window"
@@ -228,10 +236,13 @@ function ModelForm({
             value={values.contextWindow}
             onChange={(e) => form.setFieldValue('contextWindow', e.target.value)}
           />
-        </div>
-        <div className="flex flex-col gap-1.5">
+        </Stack>
+        <Stack gap="s">
           <Label htmlFor="local-input-limit">
-            Input limit <span className="text-xs text-muted-foreground">(optional)</span>
+            Input limit{' '}
+            <Text variant="caption" tone="muted">
+              (optional)
+            </Text>
           </Label>
           <Input
             id="local-input-limit"
@@ -241,10 +252,13 @@ function ModelForm({
             value={values.inputLimit}
             onChange={(e) => form.setFieldValue('inputLimit', e.target.value)}
           />
-        </div>
-        <div className="flex flex-col gap-1.5">
+        </Stack>
+        <Stack gap="s">
           <Label htmlFor="local-output-limit">
-            Output limit <span className="text-xs text-muted-foreground">(tokens)</span>
+            Output limit{' '}
+            <Text variant="caption" tone="muted">
+              (tokens)
+            </Text>
           </Label>
           <Input
             id="local-output-limit"
@@ -254,14 +268,14 @@ function ModelForm({
             value={values.outputLimit}
             onChange={(e) => form.setFieldValue('outputLimit', e.target.value)}
           />
-        </div>
+        </Stack>
       </div>
 
-      <p className="text-xs font-medium text-muted-foreground">
-        Cost <span className="font-normal">($ per million tokens, 0 for local/free)</span>
-      </p>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1.5">
+      <Text variant="label" tone="muted">
+        Cost ($ per million tokens, 0 for local/free)
+      </Text>
+      <div className="grid grid-cols-2 gap-space-l">
+        <Stack gap="s">
           <Label htmlFor="local-input-cost">Input</Label>
           <Input
             id="local-input-cost"
@@ -272,8 +286,8 @@ function ModelForm({
             value={values.inputCostPerMillion}
             onChange={(e) => form.setFieldValue('inputCostPerMillion', e.target.value)}
           />
-        </div>
-        <div className="flex flex-col gap-1.5">
+        </Stack>
+        <Stack gap="s">
           <Label htmlFor="local-output-cost">Output</Label>
           <Input
             id="local-output-cost"
@@ -284,10 +298,13 @@ function ModelForm({
             value={values.outputCostPerMillion}
             onChange={(e) => form.setFieldValue('outputCostPerMillion', e.target.value)}
           />
-        </div>
-        <div className="flex flex-col gap-1.5">
+        </Stack>
+        <Stack gap="s">
           <Label htmlFor="local-cache-read-cost">
-            Cache read <span className="text-xs text-muted-foreground">(optional)</span>
+            Cache read{' '}
+            <Text variant="caption" tone="muted">
+              (optional)
+            </Text>
           </Label>
           <Input
             id="local-cache-read-cost"
@@ -298,10 +315,13 @@ function ModelForm({
             value={values.cacheReadCostPerMillion}
             onChange={(e) => form.setFieldValue('cacheReadCostPerMillion', e.target.value)}
           />
-        </div>
-        <div className="flex flex-col gap-1.5">
+        </Stack>
+        <Stack gap="s">
           <Label htmlFor="local-cache-write-cost">
-            Cache write <span className="text-xs text-muted-foreground">(optional)</span>
+            Cache write{' '}
+            <Text variant="caption" tone="muted">
+              (optional)
+            </Text>
           </Label>
           <Input
             id="local-cache-write-cost"
@@ -312,43 +332,49 @@ function ModelForm({
             value={values.cacheWriteCostPerMillion}
             onChange={(e) => form.setFieldValue('cacheWriteCostPerMillion', e.target.value)}
           />
-        </div>
+        </Stack>
       </div>
 
-      <p className="text-xs font-medium text-muted-foreground">Capabilities</p>
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
+      <Text variant="label" tone="muted">
+        Capabilities
+      </Text>
+      <Stack gap="m">
+        <Stack direction="row" align="center" gap="m">
           <Checkbox
             id="local-tool-calls"
             checked={values.supportsToolCalls}
             onCheckedChange={(v) => form.setFieldValue('supportsToolCalls', Boolean(v))}
           />
           <Label htmlFor="local-tool-calls">Supports tool calls</Label>
-        </div>
-        <div className="flex items-center gap-2">
+        </Stack>
+        <Stack direction="row" align="center" gap="m">
           <Checkbox
             id="local-vision"
             checked={values.supportsVision}
             onCheckedChange={(v) => form.setFieldValue('supportsVision', Boolean(v))}
           />
           <Label htmlFor="local-vision">Supports vision (image input)</Label>
-        </div>
-        <div className="flex items-center gap-2">
+        </Stack>
+        <Stack direction="row" align="center" gap="m">
           <Checkbox
             id="local-reasoning"
             checked={values.supportsReasoning}
             onCheckedChange={(v) => form.setFieldValue('supportsReasoning', Boolean(v))}
           />
           <Label htmlFor="local-reasoning">Supports reasoning</Label>
-        </div>
-      </div>
+        </Stack>
+      </Stack>
 
-      <p className="text-xs font-medium text-muted-foreground">Modalities</p>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-        <div className="flex flex-col gap-1.5">
-          <p className="text-xs text-muted-foreground">Input</p>
+      <Text variant="label" tone="muted">
+        Modalities
+      </Text>
+      <div className="grid grid-cols-2 gap-x-space-2xl gap-y-space-m">
+        <Stack gap="s">
+          <Text variant="caption" tone="muted">
+            Input
+          </Text>
           {ALL_MODALITIES.map((m) => (
-            <div key={m} className="flex items-center gap-2">
+            <Stack key={m} direction="row" align="center" gap="m">
               <Checkbox
                 id={`local-input-mod-${m}`}
                 checked={values.inputModalities.includes(m)}
@@ -361,13 +387,15 @@ function ModelForm({
                 }
               />
               <Label htmlFor={`local-input-mod-${m}`}>{m}</Label>
-            </div>
+            </Stack>
           ))}
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <p className="text-xs text-muted-foreground">Output</p>
+        </Stack>
+        <Stack gap="s">
+          <Text variant="caption" tone="muted">
+            Output
+          </Text>
           {ALL_MODALITIES.map((m) => (
-            <div key={m} className="flex items-center gap-2">
+            <Stack key={m} direction="row" align="center" gap="m">
               <Checkbox
                 id={`local-output-mod-${m}`}
                 checked={values.outputModalities.includes(m)}
@@ -380,12 +408,12 @@ function ModelForm({
                 }
               />
               <Label htmlFor={`local-output-mod-${m}`}>{m}</Label>
-            </div>
+            </Stack>
           ))}
-        </div>
+        </Stack>
       </div>
 
-      <div className="flex gap-2 pt-1">
+      <div className="flex gap-space-m pt-space-xs">
         <Button type="submit" size="sm" disabled={isPending}>
           {isPending ? 'Saving...' : 'Save'}
         </Button>
@@ -449,14 +477,16 @@ export function LocalModelsPanel({ provider }: Props) {
   const newDiscovered = discovered.filter((d) => !existingIds.has(d.id));
 
   return (
-    <div className="flex flex-col gap-4">
+    <Stack gap="xl">
       <Separator />
 
-      <div className="flex items-center justify-between">
+      <Stack direction="row" align="center" justify="between">
         <h3 className="text-sm font-semibold">Models</h3>
         <ButtonGroup>
           <Button variant="outline" size="sm" onClick={handleDiscover} disabled={discoverQuery.isFetching}>
-            <RefreshCwIcon className="mr-1.5 size-3.5" />
+            <span className="mr-space-s">
+              <Icon as={RefreshCwIcon} size="s" />
+            </span>
             {discoverQuery.isFetching ? 'Discovering...' : 'Discover'}
           </Button>
           <Button
@@ -466,31 +496,39 @@ export function LocalModelsPanel({ provider }: Props) {
               setShowAddForm(true);
               setEditingId(null);
             }}>
-            <PlusIcon className="mr-1.5 size-3.5" />
+            <span className="mr-space-s">
+              <Icon as={PlusIcon} size="s" />
+            </span>
             Add
           </Button>
         </ButtonGroup>
-      </div>
+      </Stack>
 
       {newDiscovered.length > 0 && (
-        <div className="flex flex-col gap-1.5 rounded-md border p-3">
-          <p className="text-xs font-medium text-muted-foreground">
-            Found {newDiscovered.length} new model{newDiscovered.length !== 1 ? 's' : ''} — click to add
-          </p>
-          {newDiscovered.map((d) => (
-            <Button
-              key={d.id}
-              type="button"
-              variant="ghost"
-              className="h-auto justify-between rounded-sm px-2 py-1.5 hover:bg-accent"
-              onClick={() => {
-                const input = formToInput(discoveredToForm(d));
-                upsertMutation.mutate(input);
-              }}>
-              <span className="font-mono">{d.id}</span>
-              <PlusIcon className="size-3.5 text-muted-foreground" />
-            </Button>
-          ))}
+        <div className="rounded-md border p-space-l">
+          <Stack gap="s">
+            <Text variant="label" tone="muted">
+              Found {newDiscovered.length} new model{newDiscovered.length !== 1 ? 's' : ''} — click to add
+            </Text>
+            {newDiscovered.map((d) => (
+              <Button
+                key={d.id}
+                type="button"
+                variant="ghost"
+                className="h-auto justify-between rounded-sm px-space-m py-space-s hover:bg-accent"
+                onClick={() => {
+                  const input = formToInput(discoveredToForm(d));
+                  upsertMutation.mutate(input);
+                }}>
+                <Text as="span" variant="code">
+                  {d.id}
+                </Text>
+                <div className="text-muted-foreground">
+                  <Icon as={PlusIcon} size="s" />
+                </div>
+              </Button>
+            ))}
+          </Stack>
         </div>
       )}
 
@@ -503,16 +541,14 @@ export function LocalModelsPanel({ provider }: Props) {
         />
       )}
 
-      {isLoading && <p className="text-sm text-muted-foreground">Loading models...</p>}
+      {isLoading && <Text tone="muted">Loading models...</Text>}
 
       {!isLoading && models.length === 0 && !showAddForm && (
-        <p className="text-sm text-muted-foreground">
-          No models configured. Use Discover to find installed models, or add one manually.
-        </p>
+        <Text tone="muted">No models configured. Use Discover to find installed models, or add one manually.</Text>
       )}
 
       {models.length > 0 && (
-        <div className="flex flex-col gap-1">
+        <Stack gap="xs">
           {models.map((model) => (
             <div key={model.id}>
               {editingId === model.id ? (
@@ -523,41 +559,49 @@ export function LocalModelsPanel({ provider }: Props) {
                   isPending={upsertMutation.isPending}
                 />
               ) : (
-                <div className="flex items-center justify-between rounded-md px-2 py-2 hover:bg-accent">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">{model.name}</span>
-                    <span className="font-mono text-xs text-muted-foreground">{model.id}</span>
-                  </div>
-                  <ButtonGroup>
-                    <SettingsIconButtonTooltip label={`Edit model`}>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Edit model`}
-                        onClick={() => {
-                          setEditingId(model.id);
-                          setShowAddForm(false);
-                        }}>
-                        <PencilIcon className="size-3.5" />
-                      </Button>
-                    </SettingsIconButtonTooltip>
-                    <SettingsIconButtonTooltip label={`Delete model`}>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Delete model`}
-                        onClick={() => deleteMutation.mutate(model.id)}
-                        disabled={deleteMutation.isPending}>
-                        <Trash2Icon className="size-3.5 text-destructive" />
-                      </Button>
-                    </SettingsIconButtonTooltip>
-                  </ButtonGroup>
+                <div className="rounded-md px-space-m py-space-m hover:bg-accent">
+                  <Stack direction="row" align="center" justify="between">
+                    <Stack>
+                      <Text as="span" variant="body-strong">
+                        {model.name}
+                      </Text>
+                      <Text variant="code" tone="muted">
+                        {model.id}
+                      </Text>
+                    </Stack>
+                    <ButtonGroup>
+                      <SettingsIconButtonTooltip label={`Edit model`}>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Edit model`}
+                          onClick={() => {
+                            setEditingId(model.id);
+                            setShowAddForm(false);
+                          }}>
+                          <Icon as={PencilIcon} size="s" />
+                        </Button>
+                      </SettingsIconButtonTooltip>
+                      <SettingsIconButtonTooltip label={`Delete model`}>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Delete model`}
+                          onClick={() => deleteMutation.mutate(model.id)}
+                          disabled={deleteMutation.isPending}>
+                          <div className="text-destructive">
+                            <Icon as={Trash2Icon} size="s" />
+                          </div>
+                        </Button>
+                      </SettingsIconButtonTooltip>
+                    </ButtonGroup>
+                  </Stack>
                 </div>
               )}
             </div>
           ))}
-        </div>
+        </Stack>
       )}
-    </div>
+    </Stack>
   );
 }

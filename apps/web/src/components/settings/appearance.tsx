@@ -1,6 +1,8 @@
 import type { AppearanceMode } from '@stitch/shared/appearance/types';
 import { APPEARANCE_MODES } from '@stitch/shared/appearance/types';
 
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage, SettingSection } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
@@ -31,7 +33,7 @@ export function AppearanceSelector() {
   return (
     <>
       <SettingSection title="Mode">
-        <div className="flex gap-2">
+        <Stack direction="row" gap="m">
           {APPEARANCE_MODES.map((m) => (
             <Button
               key={m}
@@ -39,19 +41,19 @@ export function AppearanceSelector() {
               variant="ghost"
               onClick={() => setMode(m)}
               className={cn(
-                'h-auto flex-1 rounded-xl px-3 py-3 text-center',
+                'h-auto flex-1 rounded-xl px-space-l py-space-l text-center',
                 mode === m
-                  ? 'border-primary bg-primary-subtle ring-2 ring-primary/20 text-foreground shadow-sm'
-                  : 'border-border bg-background text-muted-foreground hover:text-foreground hover:bg-accent/50',
+                  ? 'border-primary bg-primary-subtle ring-2 ring-primary-subtle text-foreground shadow-sm'
+                  : 'border-border bg-background text-muted-foreground hover:text-foreground hover:bg-accent',
               )}>
               {MODE_LABELS[m]}
             </Button>
           ))}
-        </div>
+        </Stack>
       </SettingSection>
 
       <SettingSection title="Theme">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-space-l sm:grid-cols-4">
           {THEMES.map((t) => (
             <Button
               key={t.name}
@@ -59,13 +61,15 @@ export function AppearanceSelector() {
               variant="ghost"
               onClick={() => setTheme(t.name)}
               className={cn(
-                'h-auto flex-col items-stretch space-y-2 rounded-xl p-3 text-left',
+                'h-auto flex-col items-stretch space-y-space-m rounded-xl p-space-l text-left',
                 themeName === t.name
-                  ? 'border-primary bg-primary-subtle ring-2 ring-primary/20 shadow-sm'
-                  : 'border-border bg-background hover:bg-accent/50 hover:border-foreground/20',
+                  ? 'border-primary bg-primary-subtle ring-2 ring-primary-subtle shadow-sm'
+                  : 'border-border bg-background hover:bg-accent hover:border-border-subtle',
               )}>
               <ThemePreview tokens={effectiveMode === 'dark' ? t.dark : t.light} />
-              <span className="text-xs font-medium">{t.label}</span>
+              <Text as="span" variant="label">
+                {t.label}
+              </Text>
             </Button>
           ))}
         </div>
@@ -77,10 +81,10 @@ export function AppearanceSelector() {
 function ThemePreview({ tokens }: { tokens: ThemeTokens }) {
   return (
     <div
-      className="flex h-12 gap-1 overflow-hidden rounded-md p-1.5"
+      className="flex h-12 gap-space-xs overflow-hidden rounded-md p-space-s"
       style={{ background: tokens['background'], border: `1px solid ${tokens['border']}` }}>
       <div className="w-5 shrink-0 rounded-sm" style={{ background: tokens['sidebar'] }} />
-      <div className="flex flex-1 flex-col gap-1">
+      <div className="flex flex-1 flex-col gap-space-xs">
         <div className="h-2 w-3/4 rounded-sm" style={{ background: tokens['muted'] }} />
         <div className="h-2 w-1/2 rounded-sm" style={{ background: tokens['primary'] }} />
       </div>

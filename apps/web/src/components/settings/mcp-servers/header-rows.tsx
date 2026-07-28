@@ -1,6 +1,8 @@
 import { Trash2Icon } from 'lucide-react';
 
 import type { HeaderEntry } from './shared';
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
 import { SettingsIconButtonTooltip } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,9 +21,9 @@ export function HeaderRows({ rows, onChange }: { rows: HeaderEntry[]; onChange: 
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-space-m">
       {rows.map((row, i) => (
-        <div key={row.id} className="flex items-center gap-2">
+        <Stack key={row.id} direction="row" align="center" gap="m">
           <Input
             placeholder="Header name"
             value={row.key}
@@ -36,10 +38,10 @@ export function HeaderRows({ rows, onChange }: { rows: HeaderEntry[]; onChange: 
           />
           <SettingsIconButtonTooltip label="Remove header">
             <Button variant="ghost" size="icon-sm" onClick={() => remove(i)} aria-label="Remove header">
-              <Trash2Icon className="size-3.5" />
+              <Icon as={Trash2Icon} size="s" />
             </Button>
           </SettingsIconButtonTooltip>
-        </div>
+        </Stack>
       ))}
       <Button variant="outline" size="sm" onClick={add} type="button">
         Add header

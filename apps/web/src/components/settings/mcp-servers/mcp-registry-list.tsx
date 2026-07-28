@@ -7,6 +7,9 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import type { McpRegistryServer } from '@stitch/shared/mcp/types';
 
 import { McpServerLogo } from '@/components/mcp/mcp-server-logo';
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { SettingsIconButtonTooltip } from '@/components/settings/settings-ui';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,8 +47,8 @@ export function McpRegistryList({
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-2">
+    <Stack gap="xl">
+      <Stack direction="row" align="center" gap="m">
         <SearchInput
           containerClassName="flex-1"
           value={search}
@@ -59,63 +62,77 @@ export function McpRegistryList({
             onClick={() => void handleRefresh()}
             aria-label="Refresh MCP registry"
             disabled={refreshRegistry.isPending}>
-            <RefreshCwIcon className={`size-4 ${refreshRegistry.isPending ? 'animate-spin' : ''}`} />
+            <span className={refreshRegistry.isPending ? 'animate-spin' : undefined}>
+              <Icon as={RefreshCwIcon} size="m" />
+            </span>
           </Button>
         </SettingsIconButtonTooltip>
         <Button size="sm" variant="outline" onClick={onAddCustom}>
-          <PlusIcon className="size-4" />
+          <Icon as={PlusIcon} size="m" />
           Add custom
         </Button>
-      </div>
+      </Stack>
 
       <div className="overflow-hidden rounded-lg border border-border-subtle">
         {filteredServers.length === 0 && (
-          <p className="px-4 py-5 text-sm text-muted-foreground">No servers match your search.</p>
+          <div className="px-space-xl py-space-xl">
+            <Text tone="muted">No servers match your search.</Text>
+          </div>
         )}
 
         {filteredServers.map((server) => (
           <div
             key={server.id}
-            className="flex items-center justify-between gap-3 border-b border-border-subtle px-4 py-3 transition-colors last:border-b-0 hover:bg-surface-sunken">
-            <div className="flex min-w-0 items-start gap-3">
-              <McpServerLogo registryId={server.id} name={server.name} className="mt-0.5 size-5" />
-              <div className="min-w-0 space-y-0.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="truncate text-sm font-medium">{server.name}</p>
-                  {server.tags.slice(0, 4).map((tag) => (
-                    <Badge
-                      key={tag}
-                      variant="outline"
-                      size="sm"
-                      className="border-border-subtle bg-background/60 text-muted-foreground capitalize">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-                <p className="line-clamp-2 text-xs text-muted-foreground">{server.description}</p>
+            className="border-b border-border-subtle px-space-xl py-space-l transition-colors last:border-b-0 hover:bg-surface-sunken">
+            <Stack direction="row" align="center" justify="between" gap="l">
+              <div className="min-w-0">
+                <Stack direction="row" align="start" gap="l">
+                  <McpServerLogo registryId={server.id} name={server.name} className="mt-space-2xs size-5" />
+                  <div className="min-w-0 space-y-space-2xs">
+                    <Stack direction="row" align="center" gap="m" wrap>
+                      <Text variant="body-strong" truncate>
+                        {server.name}
+                      </Text>
+                      {server.tags.slice(0, 4).map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant="outline"
+                          size="sm"
+                          className="border-border-subtle bg-background text-muted-foreground capitalize">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </Stack>
+                    <div className="line-clamp-2">
+                      <Text variant="caption" tone="muted">
+                        {server.description}
+                      </Text>
+                    </div>
+                  </div>
+                </Stack>
               </div>
-            </div>
 
-            <ButtonGroup className="shrink-0">
-              <SettingsIconButtonTooltip label={`Open docs`}>
-                <Button
-                  size="icon-sm"
-                  variant="outline"
-                  className="text-foreground"
-                  onClick={() => window.open(server.docsUrl, '_blank', 'noopener,noreferrer')}
-                  aria-label={`Open Docs`}>
-                  <ExternalLinkIcon className="size-3.5" />
-                </Button>
-              </SettingsIconButtonTooltip>
-              <SettingsIconButtonTooltip label={`Install Server`}>
-                <Button size="icon-sm" onClick={() => onInstall(server)} aria-label={`Install Server`}>
-                  <ArrowDownToLineIcon className="size-3.5" />
-                </Button>
-              </SettingsIconButtonTooltip>
-            </ButtonGroup>
+              <ButtonGroup className="shrink-0">
+                <SettingsIconButtonTooltip label={`Open docs`}>
+                  <Button
+                    size="icon-sm"
+                    variant="outline"
+                    className="text-foreground"
+                    onClick={() => window.open(server.docsUrl, '_blank', 'noopener,noreferrer')}
+                    aria-label={`Open Docs`}>
+                    <Icon as={ExternalLinkIcon} size="s" />
+                  </Button>
+                </SettingsIconButtonTooltip>
+                <SettingsIconButtonTooltip label={`Install Server`}>
+                  <Button size="icon-sm" onClick={() => onInstall(server)} aria-label={`Install Server`}>
+                    <Icon as={ArrowDownToLineIcon} size="s" />
+                  </Button>
+                </SettingsIconButtonTooltip>
+              </ButtonGroup>
+            </Stack>
           </div>
         ))}
       </div>
-    </div>
+    </Stack>
   );
 }

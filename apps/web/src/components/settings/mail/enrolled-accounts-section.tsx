@@ -40,7 +40,7 @@ export function EnrolledAccountsSection({
   }
 
   return (
-    <div className="grid gap-2">
+    <div className="grid gap-space-m">
       {accounts.map((account) => (
         <MailAccountCard key={account.id} account={account} status={getStatusForAccount(account, statuses)} />
       ))}

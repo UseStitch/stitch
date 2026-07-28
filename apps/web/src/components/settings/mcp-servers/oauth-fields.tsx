@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import type { AddFormState } from './shared';
+import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,8 +22,8 @@ export function OAuthFields({
   );
 
   return (
-    <div className="space-y-3">
-      <div className="space-y-1.5">
+    <div className="space-y-space-l">
+      <div className="space-y-space-s">
         <Label className="text-xs font-medium text-muted-foreground">Scopes (optional)</Label>
         <Input
           value={form.oauthScopes}
@@ -32,11 +33,11 @@ export function OAuthFields({
       </div>
 
       {showAdvanced ? (
-        <div className="space-y-3 rounded-md border border-border-subtle p-3">
-          <p className="text-xs text-muted-foreground">
+        <div className="space-y-space-l rounded-md border border-border-subtle p-space-l">
+          <Text variant="caption" tone="muted">
             Provide a pre-registered client only if the server does not support dynamic client registration.
-          </p>
-          <div className="space-y-1.5">
+          </Text>
+          <div className="space-y-space-s">
             <Label className="text-xs font-medium text-muted-foreground">Client ID</Label>
             <Input
               value={form.oauthClientId}
@@ -44,7 +45,7 @@ export function OAuthFields({
               placeholder="optional"
             />
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-space-s">
             <Label className="text-xs font-medium text-muted-foreground">Client Secret</Label>
             <Input
               value={form.oauthClientSecret}
@@ -58,7 +59,7 @@ export function OAuthFields({
         <Button
           type="button"
           variant="ghost"
-          className="h-auto p-0 text-xs font-normal text-muted-foreground underline hover:bg-transparent hover:text-foreground"
+          className="h-auto p-space-none text-xs font-normal text-muted-foreground underline hover:bg-transparent hover:text-foreground"
           onClick={() => setShowAdvanced(true)}>
           Advanced: provide a pre-registered client
         </Button>

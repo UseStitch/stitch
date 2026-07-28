@@ -6,6 +6,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
 import { PROVIDER_IDS, isLocalProviderId, type ProviderId } from '@stitch/shared/providers/types';
 
+import { Icon } from '@/components/primitives/icon';
+import { Text } from '@/components/primitives/text';
 import { ProviderLogo } from '@/components/settings/providers/provider-logo';
 import { SettingsIconButtonTooltip } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
@@ -38,19 +40,23 @@ export function ProviderRow({ provider, onSelect }: Props) {
   };
 
   return (
-    <div className="group -mx-2 flex items-center justify-between border-b border-border-subtle px-2 py-3 last:border-0">
-      <div className="flex min-w-0 items-center gap-4">
+    <div className="group -mx-space-m flex items-center justify-between border-b border-border-subtle px-space-m py-space-l last:border-0">
+      <div className="flex min-w-0 items-center gap-space-xl">
         <div className="shrink-0 text-muted-foreground">
           <ProviderLogo providerId={provider.id} providerName={meta.displayName} />
         </div>
-        <div className="flex min-w-0 flex-col gap-1">
-          <span className="text-sm font-semibold text-foreground">{meta.displayName}</span>
+        <div className="flex min-w-0 flex-col gap-space-xs">
+          <Text as="span" variant="body-strong">
+            {meta.displayName}
+          </Text>
           {!provider.enabled && meta.description && (
-            <span className="truncate text-xs text-muted-foreground">{meta.description}</span>
+            <Text variant="caption" tone="muted" truncate>
+              {meta.description}
+            </Text>
           )}
         </div>
       </div>
-      <div className="ml-4 flex shrink-0 items-center gap-1.5">
+      <div className="ml-space-xl flex shrink-0 items-center gap-space-s">
         {provider.enabled ? (
           <>
             {isLocalProviderId(provider.id) && (
@@ -63,14 +69,14 @@ export function ProviderRow({ provider, onSelect }: Props) {
                     e.stopPropagation();
                     onSelect();
                   }}>
-                  <Settings2Icon className="size-3.5" />
+                  <Icon as={Settings2Icon} size="s" />
                 </Button>
               </SettingsIconButtonTooltip>
             )}
             <Button
               variant="destructive"
               size="sm"
-              className="px-3 text-sm font-semibold"
+              className="px-space-l text-sm font-semibold"
               onClick={handleDisconnect}
               disabled={deleteMutation.isPending}>
               {deleteMutation.isPending ? 'Disconnecting...' : 'Disconnect'}
@@ -80,12 +86,14 @@ export function ProviderRow({ provider, onSelect }: Props) {
           <Button
             variant="outline"
             size="sm"
-            className="rounded-md border-border-subtle bg-transparent text-xs font-semibold text-foreground/90 transition-colors hover:bg-accent"
+            className="rounded-md border-border-subtle bg-transparent text-xs font-semibold text-foreground transition-colors hover:bg-accent"
             onClick={(e) => {
               e.stopPropagation();
               onSelect();
             }}>
-            <PlusIcon className="mr-0.75 size-3.5 text-muted-foreground" />
+            <div className="mr-space-2xs text-muted-foreground">
+              <Icon as={PlusIcon} size="s" />
+            </div>
             Connect
           </Button>
         )}

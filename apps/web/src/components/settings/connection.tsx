@@ -2,6 +2,8 @@ import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage, SettingSection } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
@@ -77,7 +79,7 @@ function ConnectionContent() {
     <div className="flex h-full flex-col">
       <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
         <SettingSection title="Server">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-space-l">
             {MODE_OPTIONS.map((option) => (
               <Button
                 key={option.mode}
@@ -85,13 +87,19 @@ function ConnectionContent() {
                 variant="ghost"
                 onClick={() => setMode(option.mode)}
                 className={cn(
-                  'h-auto flex-col items-stretch rounded-xl p-4 text-left',
+                  'h-auto flex-col items-stretch rounded-xl p-space-xl text-left',
                   mode === option.mode
-                    ? 'border-primary bg-primary-subtle shadow-sm ring-2 ring-primary/20'
-                    : 'border-border bg-background hover:bg-accent/50',
+                    ? 'border-primary bg-primary-subtle shadow-sm ring-2 ring-primary-subtle'
+                    : 'border-border bg-background hover:bg-accent',
                 )}>
-                <span className="text-sm font-medium">{option.label}</span>
-                <span className="mt-1 block text-xs text-muted-foreground">{option.description}</span>
+                <Text as="span" variant="body-strong">
+                  {option.label}
+                </Text>
+                <span className="mt-space-xs block">
+                  <Text variant="caption" tone="muted">
+                    {option.description}
+                  </Text>
+                </span>
               </Button>
             ))}
           </div>
@@ -102,11 +110,13 @@ function ConnectionContent() {
             <Label htmlFor="remote-server-url" className="text-sm font-medium">
               Remote server URL
             </Label>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Used only when remote server mode is selected. Example: http://192.168.1.10:3000
-            </p>
+            <div className="mt-space-xs">
+              <Text variant="caption" tone="muted">
+                Used only when remote server mode is selected. Example: http://192.168.1.10:3000
+              </Text>
+            </div>
           </div>
-          <div className="flex gap-2">
+          <Stack direction="row" gap="m">
             <Input
               id="remote-server-url"
               value={remoteUrl}
@@ -131,18 +141,18 @@ function ConnectionContent() {
                 'Test'
               )}
             </Button>
-          </div>
+          </Stack>
           {testState.status !== 'idle' ? (
-            <p className={cn('text-xs', testState.status === 'success' ? 'text-success' : 'text-destructive')}>
+            <Text variant="caption" tone={testState.status === 'success' ? 'success' : 'destructive'}>
               {testState.message}
-            </p>
+            </Text>
           ) : null}
         </SettingSection>
 
-        <div className="mt-8 flex items-center justify-between border-t pt-4">
-          <p className="text-xs text-muted-foreground">
+        <div className="mt-space-3xl flex items-center justify-between border-t pt-space-xl">
+          <Text variant="caption" tone="muted">
             Saving clears cached app data and reconnects to the selected server.
-          </p>
+          </Text>
           <Button type="button" onClick={handleSave} disabled={!hasChanges || saving}>
             {saving ? (
               <>

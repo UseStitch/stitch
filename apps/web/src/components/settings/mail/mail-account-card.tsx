@@ -4,6 +4,9 @@ import { toast } from 'sonner';
 
 import type { MailAccountView, MailSyncPhase } from '@stitch/shared/mail/types';
 
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -26,10 +29,10 @@ const SYNC_PHASE_LABELS: Record<MailSyncPhase, string> = {
 
 const SYNC_PHASE_CLASSES: Record<MailSyncPhase, string> = {
   idle: 'border-border text-muted-foreground',
-  backfill: 'border-warning/30 bg-warning/10 text-warning',
-  incremental: 'border-success/30 bg-success/10 text-success',
-  reconciling: 'border-warning/30 bg-warning/10 text-warning',
-  error: 'border-destructive/30 bg-destructive/10 text-destructive',
+  backfill: 'border-warning-subtle bg-warning-subtle text-warning',
+  incremental: 'border-success bg-success-subtle text-success',
+  reconciling: 'border-warning-subtle bg-warning-subtle text-warning',
+  error: 'border-destructive-subtle bg-destructive-subtle text-destructive',
 };
 
 function formatLastSyncedAt(value: number | null): string {
@@ -75,7 +78,7 @@ function MailNumberInput({
       min={String(min)}
       value={localValue}
       disabled={disabled}
-      className="h-7 w-20 px-2 text-xs"
+      className="h-7 w-20 px-space-m text-xs"
       onChange={(event) => setLocalValue(event.target.value)}
       onBlur={handleBlur}
     />
@@ -97,7 +100,7 @@ function SyncProgress({ status }: { status: MailSyncStatusView }) {
   const percent = Math.min(100, Math.round((progress.processed / progress.estimatedTotal) * 100));
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-space-s">
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>Backfill progress</span>
         <span className="tabular-nums">
@@ -119,19 +122,29 @@ function AccountErrorBanner({ account, error }: { account: MailAccountView; erro
   }
 
   return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive-subtle p-3 text-sm text-destructive">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 gap-2">
-          <AlertCircleIcon className="mt-0.5 size-4 shrink-0" />
-          <div className="min-w-0">
-            <p className="font-medium">Sync error</p>
-            <p className="mt-1 text-xs wrap-break-word text-destructive/90">{error}</p>
-          </div>
+    <div className="rounded-lg border border-destructive-subtle bg-destructive-subtle p-space-l text-sm text-destructive">
+      <Stack direction="row" align="start" justify="between" gap="l">
+        <div className="min-w-0">
+          <Stack direction="row" gap="m">
+            <span className="mt-space-2xs">
+              <Icon as={AlertCircleIcon} size="m" />
+            </span>
+            <div className="min-w-0">
+              <Text variant="body-strong" tone="destructive">
+                Sync error
+              </Text>
+              <div className="mt-space-xs wrap-break-word">
+                <Text variant="caption" tone="destructive">
+                  {error}
+                </Text>
+              </div>
+            </div>
+          </Stack>
         </div>
         <Button variant="destructive" size="sm" disabled={resyncMutation.isPending} onClick={handleRetry}>
           {resyncMutation.isPending ? 'Retrying...' : 'Retry'}
         </Button>
-      </div>
+      </Stack>
     </div>
   );
 }
@@ -165,14 +178,18 @@ export function MailAccountCard({ account, status }: { account: MailAccountView;
   }
 
   return (
-    <div className="rounded-lg border border-border-subtle bg-card px-3 py-2.5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="truncate text-sm font-semibold">{account.email}</span>
+    <div className="rounded-lg border border-border-subtle bg-card px-space-l py-space-m">
+      <Stack direction="row" align="start" justify="between" gap="l">
+        <div className="min-w-0 space-y-space-xs">
+          <div className="flex min-w-0 items-center gap-space-m">
+            <Text as="span" variant="body-strong" truncate>
+              {account.email}
+            </Text>
             <SyncPhaseBadge phase={status.syncPhase} />
           </div>
-          <p className="text-xs text-muted-foreground">Last synced: {formatLastSyncedAt(status.lastSyncedAt)}</p>
+          <Text variant="caption" tone="muted">
+            Last synced: {formatLastSyncedAt(status.lastSyncedAt)}
+          </Text>
         </div>
         <div className="shrink-0">
           <Switch
@@ -182,18 +199,18 @@ export function MailAccountCard({ account, status }: { account: MailAccountView;
             onCheckedChange={(enabled) => handleUpdate({ enabled })}
           />
         </div>
-      </div>
+      </Stack>
       {status.lastError ? (
-        <div className="mt-3">
+        <div className="mt-space-l">
           <AccountErrorBanner account={account} error={status.lastError} />
         </div>
       ) : null}
-      <div className="mt-2">
+      <div className="mt-space-m">
         <SyncProgress status={status} />
       </div>
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border-subtle pt-2">
-        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-          <label className="flex items-center gap-1.5" htmlFor={`${account.id}-sync-frequency`}>
+      <div className="mt-space-m flex flex-wrap items-center justify-between gap-space-m border-t border-border-subtle pt-space-m">
+        <div className="flex flex-wrap gap-space-l text-xs text-muted-foreground">
+          <label className="flex items-center gap-space-s" htmlFor={`${account.id}-sync-frequency`}>
             <span>Every</span>
             <MailNumberInput
               id={`${account.id}-sync-frequency`}
@@ -204,7 +221,7 @@ export function MailAccountCard({ account, status }: { account: MailAccountView;
             />
             <span>sec</span>
           </label>
-          <label className="flex items-center gap-1.5" htmlFor={`${account.id}-backfill-days`}>
+          <label className="flex items-center gap-space-s" htmlFor={`${account.id}-backfill-days`}>
             <span>Backfill</span>
             <MailNumberInput
               id={`${account.id}-backfill-days`}
@@ -216,23 +233,23 @@ export function MailAccountCard({ account, status }: { account: MailAccountView;
             <span>days</span>
           </label>
         </div>
-        <div className="flex gap-1.5">
+        <Stack direction="row" gap="s">
           <Button
             variant="outline"
             size="sm"
-            className="px-2 text-xs"
+            className="px-space-m text-xs"
             disabled={resyncMutation.isPending}
             onClick={() => handleResync('incremental')}>
-            <RefreshCwIcon className="size-3.5" />
+            <Icon as={RefreshCwIcon} size="s" />
             Sync
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="px-2 text-xs"
+            className="px-space-m text-xs"
             disabled={resyncMutation.isPending}
             onClick={() => handleResync('full')}>
-            <RefreshCwIcon className="size-3.5" />
+            <Icon as={RefreshCwIcon} size="s" />
             Full
           </Button>
           <Button
@@ -241,9 +258,9 @@ export function MailAccountCard({ account, status }: { account: MailAccountView;
             disabled={removeMutation.isPending}
             aria-label={`Remove ${account.email}`}
             onClick={() => setRemoveOpen(true)}>
-            <TrashIcon className="size-3.5" />
+            <Icon as={TrashIcon} size="s" />
           </Button>
-        </div>
+        </Stack>
       </div>
       <ConfirmDialog
         open={removeOpen}

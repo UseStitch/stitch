@@ -5,6 +5,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
 import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 
+import { Stack } from '@/components/primitives/stack';
 import { ProviderConfig } from '@/components/settings/providers/provider-config';
 import { ProviderRow } from '@/components/settings/providers/provider-row';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
@@ -24,27 +25,27 @@ function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => v
   const unconnected = providersWithEnabledAuth.filter((p) => !p.enabled);
 
   return (
-    <div className="flex flex-col gap-6">
+    <Stack gap="2xl">
       {connected.length > 0 && (
-        <SettingSection title="Connected providers" className="mt-0">
-          <div className="flex flex-col">
+        <SettingSection title="Connected providers" className="mt-space-none">
+          <Stack>
             {connected.map((provider) => (
               <ProviderRow key={provider.id} provider={provider} onSelect={() => onSelect(provider)} />
             ))}
-          </div>
+          </Stack>
         </SettingSection>
       )}
 
       {unconnected.length > 0 && (
-        <SettingSection title="Popular providers" className={connected.length > 0 ? 'mt-6' : 'mt-0'}>
-          <div className="flex flex-col">
+        <SettingSection title="Popular providers" className={connected.length > 0 ? 'mt-space-2xl' : 'mt-space-none'}>
+          <Stack>
             {unconnected.map((provider) => (
               <ProviderRow key={provider.id} provider={provider} onSelect={() => onSelect(provider)} />
             ))}
-          </div>
+          </Stack>
         </SettingSection>
       )}
-    </div>
+    </Stack>
   );
 }
 
