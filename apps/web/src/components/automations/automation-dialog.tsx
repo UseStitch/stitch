@@ -190,9 +190,9 @@ function AutomationForm({
   return (
     <>
       <div className="border-b border-border-subtle px-space-2xl py-space-xl">
-        <h2 className="text-xl font-semibold tracking-tight">
+        <Text as="h2" variant="heading-m">
           {mode === 'create' ? 'Create automation' : 'Edit automation'}
-        </h2>
+        </Text>
         <div className="mt-space-xs">
           <Text variant="body" tone="muted">
             Save a reusable model + prompt pair for recurring tasks.
@@ -291,11 +291,9 @@ function AutomationForm({
           </form.Field>
 
           <div className="rounded-lg border border-border-subtle bg-card px-space-l py-space-m">
-            <div className="font-semibold tracking-wide uppercase">
-              <Text variant="micro" tone="muted">
-                Current schedule
-              </Text>
-            </div>
+            <Text variant="micro" tone="muted">
+              Current schedule
+            </Text>
             <div className="mt-space-xs">
               <Text variant="body">{scheduleSummary}</Text>
             </div>
@@ -307,28 +305,23 @@ function AutomationForm({
             <Button
               type="button"
               size="sm"
-              variant={editorView === 'prompt' ? 'default' : 'ghost'}
-              onClick={() => setEditorView('prompt')}
-              className={editorView === 'prompt' ? 'bg-background text-foreground shadow-sm hover:bg-background' : ''}>
+              variant={editorView === 'prompt' ? 'outline' : 'ghost'}
+              onClick={() => setEditorView('prompt')}>
               Prompt
             </Button>
             <Button
               type="button"
               size="sm"
-              variant={editorView === 'preview' ? 'default' : 'ghost'}
-              onClick={() => setEditorView('preview')}
-              className={editorView === 'preview' ? 'bg-background text-foreground shadow-sm hover:bg-background' : ''}>
+              variant={editorView === 'preview' ? 'outline' : 'ghost'}
+              onClick={() => setEditorView('preview')}>
               Preview
             </Button>
             {values.isScheduled && (
               <Button
                 type="button"
                 size="sm"
-                variant={editorView === 'schedule' ? 'default' : 'ghost'}
-                onClick={() => setEditorView('schedule')}
-                className={
-                  editorView === 'schedule' ? 'bg-background text-foreground shadow-sm hover:bg-background' : ''
-                }>
+                variant={editorView === 'schedule' ? 'outline' : 'ghost'}
+                onClick={() => setEditorView('schedule')}>
                 Schedule
               </Button>
             )}

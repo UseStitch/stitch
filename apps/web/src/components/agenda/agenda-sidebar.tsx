@@ -73,39 +73,43 @@ function ListRow({ list, isActive, isDragging, mergeIndicator, onDragStart, onMo
       isActive={isActive}
       className="h-auto py-space-s"
       render={<Link to="/agenda/$listId" params={{ listId: list.id }} className="flex items-center gap-space-m" />}>
-      <div className="text-muted-foreground">
-        <Icon as={FolderIcon} size="s" />
-      </div>
+      <Icon as={FolderIcon} size="s" tone="muted" />
       <div className="min-w-0 flex-1">
         <Stack direction="row" align="center" justify="between" gap="m">
           <Text as="span" variant="body" truncate>
             {list.name}
           </Text>
           {mergeIndicator ? (
-            <Badge variant="default" size="xs" className="animate-in zoom-in-95 fade-in">
-              {mergeIndicator === 'list' ? (
-                <Stack direction="row" align="center" gap="2xs">
-                  <Icon as={MergeIcon} size="xs" />
-                  Merge
-                </Stack>
-              ) : (
-                <Stack direction="row" align="center" gap="2xs">
-                  <Icon as={ArrowRightIcon} size="xs" />
-                  Move
-                </Stack>
-              )}
-            </Badge>
+            <span className="animate-in zoom-in-95 fade-in">
+              <Badge variant="default" size="xs">
+                {mergeIndicator === 'list' ? (
+                  <Stack direction="row" align="center" gap="2xs">
+                    <Icon as={MergeIcon} size="xs" />
+                    Merge
+                  </Stack>
+                ) : (
+                  <Stack direction="row" align="center" gap="2xs">
+                    <Icon as={ArrowRightIcon} size="xs" />
+                    Move
+                  </Stack>
+                )}
+              </Badge>
+            </span>
           ) : openCount > 0 ? (
             <Badge variant="secondary" size="xs">
               {openCount}
             </Badge>
           ) : null}
         </Stack>
-        <div className="flex items-center gap-space-xs text-2xs text-muted-foreground">
-          <span>{list.itemCounts.total} items</span>
+        <Stack direction="row" align="center" gap="xs">
+          <Text as="span" variant="micro" tone="muted">
+            {list.itemCounts.total} items
+          </Text>
           {list.itemCounts.overdue > 0 && (
             <>
-              <span>·</span>
+              <Text as="span" variant="micro" tone="muted">
+                ·
+              </Text>
               <Text as="span" variant="micro" tone="destructive">
                 {list.itemCounts.overdue} overdue
               </Text>
@@ -113,13 +117,15 @@ function ListRow({ list, isActive, isDragging, mergeIndicator, onDragStart, onMo
           )}
           {list.itemCounts.dueSoon > 0 && (
             <>
-              <span>·</span>
+              <Text as="span" variant="micro" tone="muted">
+                ·
+              </Text>
               <Text as="span" variant="micro" tone="warning">
                 {list.itemCounts.dueSoon} due soon
               </Text>
             </>
           )}
-        </div>
+        </Stack>
       </div>
     </InternalSidebar.Item>
   );

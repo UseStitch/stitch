@@ -7,6 +7,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CATEGORY_LABELS, CATEGORY_VARIANTS, CONFIDENCE_LABELS } from '@/components/memories/constants';
 import { MemoryDetailSheet } from '@/components/memories/memory-detail-sheet';
 import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -191,33 +193,31 @@ export function MemoriesPage() {
             </div>
           </PageHeaderContent>
           {stats && !isSearching && (
-            <div className="flex items-center gap-space-xl text-xs text-muted-foreground">
-              <span>
+            <Stack direction="row" align="center" gap="xl">
+              <Text as="span" variant="caption" tone="muted">
                 <strong>{stats.pinned}</strong> pinned
-              </span>
-              <span>
+              </Text>
+              <Text as="span" variant="caption" tone="muted">
                 <strong>{stats.stale}</strong> stale
-              </span>
-              <span>
+              </Text>
+              <Text as="span" variant="caption" tone="muted">
                 <strong>{stats.avgAccessCount.toFixed(1)}</strong> avg accesses
-              </span>
+              </Text>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => pruneMutation.mutate()}
-                disabled={pruneMutation.isPending || maintenanceMutation.isPending}
-                className="px-space-m text-xs">
+                disabled={pruneMutation.isPending || maintenanceMutation.isPending}>
                 Prune Stale
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => maintenanceMutation.mutate()}
-                disabled={maintenanceMutation.isPending || pruneMutation.isPending}
-                className="px-space-m text-xs">
+                disabled={maintenanceMutation.isPending || pruneMutation.isPending}>
                 {maintenanceMutation.isPending ? 'Running…' : 'Run Maintenance'}
               </Button>
-            </div>
+            </Stack>
           )}
         </PageHeader>
 
@@ -428,9 +428,11 @@ function MemoryRow({ memory, selected, onToggleSelect, onClick }: MemoryRowProps
           pinMutation.mutate({ id: memory.id, pinned: !memory.pinned });
         }}>
         {memory.pinned ? (
-          <PinIcon className="h-4 w-4 fill-foreground text-foreground" />
+          <Icon as={PinIcon} size="m" fill="currentColor" />
         ) : (
-          <PinIcon className="h-4 w-4 opacity-30 hover:opacity-100" />
+          <span className="opacity-30 hover:opacity-100">
+            <Icon as={PinIcon} size="m" />
+          </span>
         )}
       </Table.Cell>
 

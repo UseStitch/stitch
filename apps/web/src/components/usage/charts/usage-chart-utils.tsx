@@ -1,5 +1,6 @@
 import { BarChart3Icon } from 'lucide-react';
 
+import { Icon } from '@/components/primitives/icon';
 import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
 import { getChartGridColor, getChartTickColor } from '@/lib/chart-colors';
@@ -30,9 +31,7 @@ export function EmptyChart({ message }: { message: string }) {
   return (
     <div className="grid h-full place-items-center text-center">
       <Stack gap="l" align="center">
-        <div className="[&_svg]:size-3xl text-text-faint">
-          <BarChart3Icon />
-        </div>
+        <Icon as={BarChart3Icon} size="l" tone="faint" />
         <div>
           <Text as="p" variant="body-strong" tone="faint">
             No data

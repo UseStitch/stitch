@@ -105,15 +105,22 @@ function MessageCard({
       <Button
         type="button"
         variant="ghost"
-        className="h-auto w-full items-start justify-between gap-space-l p-space-none text-left hover:bg-transparent"
+        size="inline"
+        width="full"
+        align="between"
+        className="items-start gap-space-l"
         onClick={() => setOpen(!open)}>
         <div className="min-w-0">
-          <div className="truncate text-sm font-medium">{formatAddress(message)}</div>
-          <div className="text-xs text-muted-foreground">
+          <Text as="div" variant="body-strong" truncate>
+            {formatAddress(message)}
+          </Text>
+          <Text as="div" variant="caption" tone="muted">
             To: {message.to.map((address) => address.email).join(', ') || 'Undisclosed'}
-          </div>
+          </Text>
         </div>
-        <div className="shrink-0 text-xs text-muted-foreground">{formatDateTime(message.internalDate)}</div>
+        <Text as="div" variant="caption" tone="muted">
+          {formatDateTime(message.internalDate)}
+        </Text>
       </Button>
       {open ? (
         <div
@@ -133,11 +140,10 @@ function MessageCard({
               {message.attachments.map((attachment) => (
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="xs"
                   key={attachment.id}
-                  onClick={() => openAttachment(attachment.id)}
-                  className="border-border text-muted-foreground hover:bg-muted">
+                  onClick={() => openAttachment(attachment.id)}>
                   {attachment.filename}
                 </Button>
               ))}
@@ -168,7 +174,12 @@ export function ThreadView({ accountId, threadId, onClose }: ThreadViewProps) {
     }
   }, [accountId, modifyMutation, thread]);
 
-  if (isLoading || !thread) return <div className="p-space-2xl text-sm text-muted-foreground">Loading thread…</div>;
+  if (isLoading || !thread)
+    return (
+      <div className="p-space-2xl">
+        <Text tone="muted">Loading thread…</Text>
+      </div>
+    );
 
   const currentThread = thread;
   const latestMessage = currentThread.messages.at(-1) ?? null;
@@ -205,7 +216,9 @@ export function ThreadView({ accountId, threadId, onClose }: ThreadViewProps) {
         <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Back to thread list">
           <Icon as={ArrowLeftIcon} size="m" />
         </Button>
-        <div className="min-w-0 flex-1 truncate text-sm font-medium">{currentThread.subject || '(No subject)'}</div>
+        <Text as="div" variant="body-strong" truncate>
+          {currentThread.subject || '(No subject)'}
+        </Text>
         <LabelCombobox labels={labels} selectedLabels={latestMessage?.labels ?? []} onChange={handleLabel} />
         <Button
           variant="outline"

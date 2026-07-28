@@ -140,8 +140,10 @@ function LabelDivider({
         type="button"
         variant="ghost"
         size="xs"
+        width="full"
+        align="start"
         onClick={onToggle}
-        className="w-full gap-space-m text-2xs tracking-wide text-muted-foreground uppercase hover:text-sidebar-foreground">
+        className="gap-space-m">
         {collapsed ? <Icon as={ChevronRightIcon} size="xs" /> : <Icon as={ChevronDownIcon} size="xs" />}
         <Text as="span" variant="micro" tone="muted">
           {children}
@@ -407,21 +409,17 @@ export function MailSidebarContent() {
         </InternalSidebar.Top>
         {selectedAccount ? (
           <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  variant="outline"
-                  className="mx-space-m mb-space-m w-[calc(100%-1rem)] min-w-0 justify-between"
-                  aria-label="Switch mail account"
-                />
-              }>
-              <div className="min-w-0 flex-1">
-                <Text as="span" variant="body" truncate>
-                  {selectedAccount.email}
-                </Text>
-              </div>
-              <Icon as={ChevronDownIcon} size="m" color="var(--muted-foreground)" />
-            </DropdownMenuTrigger>
+            <div className="mx-space-m mb-space-m">
+              <DropdownMenuTrigger
+                render={<Button variant="outline" width="full" align="between" aria-label="Switch mail account" />}>
+                <div className="min-w-0 flex-1">
+                  <Text as="span" variant="body" truncate>
+                    {selectedAccount.email}
+                  </Text>
+                </div>
+                <Icon as={ChevronDownIcon} size="m" color="var(--muted-foreground)" />
+              </DropdownMenuTrigger>
+            </div>
             <DropdownMenuContent>
               {accounts.map((account) => (
                 <DropdownMenuItem key={account.id} onClick={() => setSelectedAccountId(account.id)}>

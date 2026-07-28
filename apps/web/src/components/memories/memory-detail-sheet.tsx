@@ -217,7 +217,7 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
             </form.Field>
 
             {/* Read-only metadata */}
-            <div className="rounded-lg border border-border bg-surface-sunken text-sm">
+            <div className="rounded-lg border border-border bg-surface-sunken">
               <Stack gap="m" padding="l">
                 <Stack direction="row" align="center" justify="between">
                   <Text as="span" variant="body" tone="muted">

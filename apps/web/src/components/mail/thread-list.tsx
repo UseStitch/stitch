@@ -35,35 +35,38 @@ function formatSender(thread: MailThreadListItem): string {
 
 function ThreadRow({ thread, active, onClick }: { thread: MailThreadListItem; active: boolean; onClick: () => void }) {
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      onClick={onClick}
+    <div
       className={cn(
-        'h-auto w-full flex-col items-stretch justify-start gap-space-xs rounded-none border-b border-sidebar-border px-space-l py-space-l text-left hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+        'border-b border-sidebar-border px-space-l py-space-l hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
         active && 'bg-sidebar-accent text-sidebar-accent-foreground',
         thread.hasUnread && 'bg-sidebar-accent',
       )}>
-      <Stack direction="row" align="center" gap="m">
-        <div className="min-w-0 flex-1">
-          <Text as="span" variant={thread.hasUnread ? 'body-strong' : 'body'} truncate>
-            {formatSender(thread)}
+      <Button type="button" variant="ghost" size="inline" width="full" align="start" onClick={onClick}>
+        <Stack width="full" gap="xs">
+          <Stack direction="row" align="center" gap="m">
+            <div className="min-w-0 flex-1">
+              <Text as="span" variant={thread.hasUnread ? 'body-strong' : 'body'} truncate>
+                {formatSender(thread)}
+              </Text>
+            </div>
+            {thread.hasAttachments ? <Icon as={PaperclipIcon} size="s" color="var(--muted-foreground)" /> : null}
+            <Text as="span" variant="caption" tone="muted">
+              {formatThreadDate(thread.lastMessageAt)}
+            </Text>
+          </Stack>
+          <Text
+            as="div"
+            variant={thread.hasUnread ? 'body-strong' : 'body'}
+            tone={thread.hasUnread ? 'default' : 'muted'}
+            truncate>
+            {thread.subject || '(No subject)'}
           </Text>
-        </div>
-        {thread.hasAttachments ? <Icon as={PaperclipIcon} size="s" color="var(--muted-foreground)" /> : null}
-        <Text as="span" variant="caption" tone="muted">
-          {formatThreadDate(thread.lastMessageAt)}
-        </Text>
-      </Stack>
-      <div
-        className={cn(
-          'truncate text-sm',
-          thread.hasUnread ? 'font-medium text-sidebar-foreground' : 'text-muted-foreground',
-        )}>
-        {thread.subject || '(No subject)'}
-      </div>
-      <div className="line-clamp-2 text-xs text-muted-foreground">{thread.snippet}</div>
-    </Button>
+          <Text as="div" variant="caption" tone="muted" lineClamp="2">
+            {thread.snippet}
+          </Text>
+        </Stack>
+      </Button>
+    </div>
   );
 }
 
@@ -93,7 +96,11 @@ export function ThreadList({ accountId, labelId, selectedThreadId, onSelectThrea
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   if (threads.length === 0) {
-    return <div className="p-space-xl text-sm text-muted-foreground">No messages in this label.</div>;
+    return (
+      <div className="p-space-xl">
+        <Text tone="muted">No messages in this label.</Text>
+      </div>
+    );
   }
 
   return (

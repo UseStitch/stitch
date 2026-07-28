@@ -298,32 +298,33 @@ export function AgendaPage({ listId }: { listId?: string }) {
                     if (e.key === 'Enter') commitRename();
                     if (e.key === 'Escape') setEditingTitle(false);
                   }}
-                  className="-ml-space-xs h-auto w-full rounded-sm border-none bg-transparent px-space-xs py-space-none text-xl font-semibold ring-1 ring-primary focus-visible:ring-1 focus-visible:ring-primary dark:bg-transparent"
+                  className="-ml-space-xs h-auto w-full rounded-sm border-none bg-transparent px-space-xs py-space-none text-xl font-semibold ring-1 ring-primary focus-visible:ring-1 focus-visible:ring-primary"
                 />
               ) : currentList ? (
                 <Button
                   type="button"
                   variant="ghost"
-                  className="group/title -ml-space-xs h-auto gap-space-s rounded-sm px-space-xs hover:bg-muted"
+                  size="inline"
+                  className="group/title -ml-space-xs gap-space-s"
                   onClick={startRenaming}>
-                  <h1 className="text-xl font-semibold">{currentList.name}</h1>
-                  <div className="text-muted-foreground opacity-0 transition-opacity group-hover/title:opacity-100">
-                    <Icon as={PencilIcon} size="s" />
-                  </div>
+                  <Text as="h1" variant="heading-m">
+                    {currentList.name}
+                  </Text>
+                  <span className="opacity-0 transition-opacity group-hover/title:opacity-100">
+                    <Icon as={PencilIcon} size="s" tone="muted" />
+                  </span>
                 </Button>
               ) : (
-                <h1 className="text-xl font-semibold">Agenda</h1>
+                <Text as="h1" variant="heading-m">
+                  Agenda
+                </Text>
               )}
               <PageDescription>{isLoading ? 'Loading...' : `${total} item${total === 1 ? '' : 's'}`}</PageDescription>
             </div>
           </PageHeaderContent>
           <Stack direction="row" align="center" gap="m">
             {currentList && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-destructive hover:text-destructive"
-                onClick={() => setDeleteListOpen(true)}>
+              <Button variant="destructive" size="sm" onClick={() => setDeleteListOpen(true)}>
                 <Icon as={Trash2Icon} size="s" />
                 Delete List
               </Button>
@@ -671,19 +672,18 @@ function AgendaItemRow({
       onClick={onClick}
       onDragOver={onDragOver}>
       <Table.Cell className="w-8">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-xs"
-          draggable
-          aria-label={`Reorder ${item.title}`}
-          onDragStart={handleDragStart}
-          className="h-auto w-4 cursor-grab opacity-0 transition-opacity group-hover:opacity-60 hover:bg-transparent active:cursor-grabbing"
-          onClick={(e) => e.stopPropagation()}>
-          <div className="text-muted-foreground">
-            <Icon as={GripVerticalIcon} size="s" />
-          </div>
-        </Button>
+        <span className="cursor-grab opacity-0 transition-opacity group-hover:opacity-60 active:cursor-grabbing">
+          <Button
+            type="button"
+            variant="quiet"
+            size="inline"
+            draggable
+            aria-label={`Reorder ${item.title}`}
+            onDragStart={handleDragStart}
+            onClick={(e) => e.stopPropagation()}>
+            <Icon as={GripVerticalIcon} size="s" tone="muted" />
+          </Button>
+        </span>
       </Table.Cell>
 
       <Table.Cell

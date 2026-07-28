@@ -174,17 +174,27 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
 
           <div className="flex flex-1 flex-col gap-space-xl px-space-xl">
             {/* List + Created info */}
-            <div className="flex items-center gap-space-l text-xs text-muted-foreground">
-              <span>{item.listName ?? 'Unknown'}</span>
-              <span>·</span>
-              <span>Created {formatDateInTz(item.createdAt, timeZone)}</span>
+            <Stack direction="row" align="center" gap="l">
+              <Text as="span" variant="caption" tone="muted">
+                {item.listName ?? 'Unknown'}
+              </Text>
+              <Text as="span" variant="caption" tone="muted">
+                ·
+              </Text>
+              <Text as="span" variant="caption" tone="muted">
+                Created {formatDateInTz(item.createdAt, timeZone)}
+              </Text>
               {item.completedAt && (
                 <>
-                  <span>·</span>
-                  <span>Completed {formatDateInTz(item.completedAt, timeZone)}</span>
+                  <Text as="span" variant="caption" tone="muted">
+                    ·
+                  </Text>
+                  <Text as="span" variant="caption" tone="muted">
+                    Completed {formatDateInTz(item.completedAt, timeZone)}
+                  </Text>
                 </>
               )}
-            </div>
+            </Stack>
 
             {/* Title */}
             <form.Field name="title">
@@ -288,9 +298,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
                           'flex h-8 w-full items-center gap-space-m rounded-lg border border-input bg-transparent px-space-m text-sm transition-colors hover:bg-accent',
                           !field.state.value && 'text-muted-foreground',
                         )}>
-                        <div className="text-muted-foreground">
-                          <Icon as={CalendarIcon} size="s" />
-                        </div>
+                        <Icon as={CalendarIcon} size="s" tone="muted" />
                         {field.state.value ? formatDateInTz(dateToMs(field.state.value), timeZone) : 'Pick a date'}
                       </PopoverTrigger>
                       {field.state.value && (
@@ -298,7 +306,6 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
                           type="button"
                           variant="ghost"
                           size="icon-xs"
-                          className="shrink-0 text-muted-foreground hover:text-foreground"
                           onClick={() => {
                             field.handleChange(null);
                             queueSave(item.id, { dueAt: null });

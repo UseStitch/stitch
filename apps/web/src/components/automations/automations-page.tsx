@@ -223,9 +223,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
                     variant="outline"
                     onClick={() => handleDelete(selectedAutomation)}
                     disabled={deleteAutomation.isPending}>
-                    <div data-icon="inline-start" className="text-destructive">
-                      <Icon as={Trash2Icon} size="m" />
-                    </div>
+                    <Icon as={Trash2Icon} size="m" tone="destructive" data-icon="inline-start" />
                     Delete
                   </Button>
                 </Stack>
@@ -321,25 +319,27 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
         pendingLabel="Delete"
         isPending={deleteAutomation.isPending}
         contentClassName="max-w-sm">
-        <label
-          htmlFor="archive-automation-sessions"
-          className="flex items-start gap-space-l rounded-lg border border-border-subtle bg-surface-sunken p-space-l text-sm">
-          <Checkbox
-            id="archive-automation-sessions"
-            checked={archiveDeletedAutomationSessions}
-            onCheckedChange={(checked) => setArchiveDeletedAutomationSessions(Boolean(checked))}
-            disabled={deleteAutomation.isPending}
-            aria-label="Archive automation sessions"
-          />
-          <Stack gap="xs">
-            <Text as="span" variant="body-strong">
-              Archive run sessions
-            </Text>
-            <Text as="span" variant="body" tone="muted">
-              Keep sessions and cost data, hidden from lists.
-            </Text>
-          </Stack>
-        </label>
+        <div className="rounded-lg border border-border-subtle bg-surface-sunken">
+          <Text as="label" variant="body">
+            <Stack direction="row" align="start" gap="l" padding="l">
+              <Checkbox
+                id="archive-automation-sessions"
+                checked={archiveDeletedAutomationSessions}
+                onCheckedChange={(checked) => setArchiveDeletedAutomationSessions(Boolean(checked))}
+                disabled={deleteAutomation.isPending}
+                aria-label="Archive automation sessions"
+              />
+              <Stack gap="xs">
+                <Text as="span" variant="body-strong">
+                  Archive run sessions
+                </Text>
+                <Text as="span" variant="body" tone="muted">
+                  Keep sessions and cost data, hidden from lists.
+                </Text>
+              </Stack>
+            </Stack>
+          </Text>
+        </div>
       </ConfirmDialog>
     </Page>
   );

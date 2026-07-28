@@ -4,6 +4,7 @@ import * as React from 'react';
 
 import { getUpcomingCronRuns } from '@stitch/scheduler';
 
+import { Icon } from '@/components/primitives/icon';
 import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
 import { Label } from '@/components/ui/label';
@@ -151,7 +152,7 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger>
-              <Info className="h-3 w-3 text-text-faint" />
+              <Icon as={Info} size="xs" tone="faint" />
             </TooltipTrigger>
             <TooltipContent>
               <p>Select which minute past the hour the workflow should run.</p>
@@ -337,23 +338,25 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
 
           {/* Upcoming Executions Sidebar */}
           <div className="flex shrink-0 flex-col gap-space-l border-l border-border-subtle lg:w-64 lg:pl-space-2xl">
-            <div className="flex items-center gap-space-m text-muted-foreground">
-              <Calendar className="h-4 w-4" />
-              <h3 className="text-xs font-semibold tracking-wider uppercase">Upcoming Runs</h3>
-            </div>
+            <Stack direction="row" align="center" gap="m">
+              <Icon as={Calendar} size="m" tone="muted" />
+              <Text as="h3" variant="label" tone="muted">
+                Upcoming Runs
+              </Text>
+            </Stack>
 
             <div className="space-y-space-m">
               {upcomingExecutions.length > 0 ? (
                 upcomingExecutions.map((execution) => (
-                  <div
-                    key={execution.key}
-                    className="flex flex-col gap-space-2xs rounded-md border bg-card p-space-m text-sm shadow-sm">
-                    <Text as="span" variant="body-strong">
-                      {execution.date}
-                    </Text>
-                    <Text as="span" variant="caption" tone="muted">
-                      at {execution.time}
-                    </Text>
+                  <div key={execution.key} className="rounded-md border bg-card p-space-m shadow-sm">
+                    <Stack gap="2xs">
+                      <Text as="span" variant="body-strong">
+                        {execution.date}
+                      </Text>
+                      <Text as="span" variant="caption" tone="muted">
+                        at {execution.time}
+                      </Text>
+                    </Stack>
                   </div>
                 ))
               ) : (
@@ -364,7 +367,9 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
                 </i>
               )}
             </div>
-            <div className="text-right text-2xs text-muted-foreground">Timezone: {timezone}</div>
+            <Text as="div" variant="micro" tone="muted" align="right">
+              Timezone: {timezone}
+            </Text>
           </div>
         </div>
       </Stack>

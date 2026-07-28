@@ -122,9 +122,7 @@ function ActionsCell({ row, table }: CellContext<typeof features, Automation, un
         onClick={() => onDelete(row.original)}
         disabled={deletePending}
         aria-label={`Delete ${row.original.title}`}>
-        <div className="text-destructive">
-          <Icon as={Trash2Icon} size="s" />
-        </div>
+        <Icon as={Trash2Icon} size="s" tone="destructive" />
       </Button>
     </Table.Actions>
   );

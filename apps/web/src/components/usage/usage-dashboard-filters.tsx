@@ -145,7 +145,7 @@ export function UsageDashboardFilters({
             </SelectContent>
           </Select>
 
-          {isFetching ? <Spinner className="shrink-0 text-muted-foreground" /> : null}
+          {isFetching ? <Spinner tone="muted" /> : null}
         </Stack>
       </div>
     </div>
