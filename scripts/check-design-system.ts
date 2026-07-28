@@ -104,8 +104,14 @@ export const stackDirectionVariants = ${JSON.stringify(designTokens.primitives.s
 export const stackAlignVariants = ${JSON.stringify(designTokens.primitives.stack.align)} as const;
 export const stackJustifyVariants = ${JSON.stringify(designTokens.primitives.stack.justify)} as const;
 export const stackWrapVariants = ${JSON.stringify(designTokens.primitives.stack.wrap)} as const;
+export const stackGrowVariants = ${JSON.stringify(designTokens.primitives.stack.grow)} as const;
+export const stackWidthVariants = ${JSON.stringify(designTokens.primitives.stack.width)} as const;
+export const stackHeightVariants = ${JSON.stringify(designTokens.primitives.stack.height)} as const;
+export const stackOverflowVariants = ${JSON.stringify(designTokens.primitives.stack.overflow)} as const;
 export const textVariantClasses = ${JSON.stringify(designTokens.primitives.text.variant)} as const;
 export const textToneClasses = ${JSON.stringify(designTokens.primitives.text.tone)} as const;
+export const textAlignClasses = ${JSON.stringify(designTokens.primitives.text.align)} as const;
+export const textLineClampClasses = ${JSON.stringify(designTokens.primitives.text.lineClamp)} as const;
 export const iconSizeClasses = ${JSON.stringify(Object.fromEntries(Object.keys(designTokens.iconSize).map((token) => [token, `size-icon-${token}`])))} as const;
 `;
   const formatted = Bun.spawnSync(['bunx', 'oxfmt', '--stdin-filepath', 'tokens.generated.ts'], {

@@ -1,7 +1,7 @@
 import { cva, type VariantProps } from 'class-variance-authority';
-import type { ComponentPropsWithoutRef, ElementType } from 'react';
 
-import { textToneClasses, textVariantClasses } from '@/styles/tokens.generated';
+import { textAlignClasses, textLineClampClasses, textToneClasses, textVariantClasses } from '@/styles/tokens.generated';
+import type { ComponentPropsWithoutRef, ElementType } from 'react';
 
 const TEXT_ELEMENTS = ['code', 'div', 'h1', 'h2', 'h3', 'label', 'p', 'span'] as const;
 type TextElement = (typeof TEXT_ELEMENTS)[number];
@@ -26,20 +26,24 @@ const textVariants = cva('', {
     tone: textToneClasses,
     truncate: { true: 'truncate', false: null },
     tabular: { true: 'tabular-nums', false: null },
+    align: textAlignClasses,
+    lineClamp: textLineClampClasses,
   },
   defaultVariants: { variant: 'body', tone: 'default', truncate: false, tabular: false },
 });
 
-type TextProps = Omit<ComponentPropsWithoutRef<TextElement>, 'as' | 'className'> &
-  VariantProps<typeof textVariants> & {
-    as?: TextElement;
-    className?: never;
-  };
+type TextProps = Omit<ComponentPropsWithoutRef<TextElement>, 'as' | 'className' | 'style'> &
+  VariantProps<typeof textVariants> & { as?: TextElement; className?: never; style?: never };
 
-function Text({ as, variant = 'body', tone, truncate, tabular, ...props }: TextProps) {
+function Text({ as, variant = 'body', tone, truncate, tabular, align, lineClamp, ...props }: TextProps) {
   const resolvedVariant = variant ?? 'body';
   const Component = (as ?? defaultElement[resolvedVariant]) as ElementType;
-  return <Component className={textVariants({ variant: resolvedVariant, tone, truncate, tabular })} {...props} />;
+  return (
+    <Component
+      className={textVariants({ variant: resolvedVariant, tone, truncate, tabular, align, lineClamp })}
+      {...props}
+    />
+  );
 }
 
 export { Text, type TextProps };

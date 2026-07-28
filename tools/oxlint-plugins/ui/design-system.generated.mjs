@@ -107,6 +107,10 @@ export const designSystem = {
       align: { start: 'items-start', center: 'items-center', end: 'items-end', stretch: 'items-stretch' },
       justify: { start: 'justify-start', center: 'justify-center', end: 'justify-end', between: 'justify-between' },
       wrap: { true: 'flex-wrap', false: 'flex-nowrap' },
+      grow: { true: 'min-w-0 flex-1', false: null },
+      width: { full: 'w-full' },
+      height: { full: 'h-full' },
+      overflow: { hidden: 'overflow-hidden', auto: 'overflow-auto', 'y-auto': 'overflow-y-auto' },
     },
     text: {
       variant: {
@@ -130,6 +134,8 @@ export const designSystem = {
         success: 'text-success',
         warning: 'text-warning',
       },
+      align: { left: 'text-left', center: 'text-center', right: 'text-right' },
+      lineClamp: { 1: 'line-clamp-1', 2: 'line-clamp-2', 3: 'line-clamp-3' },
     },
   },
 };
@@ -259,6 +265,10 @@ export const PRIMITIVE_VARIANTS = {
     align: { start: 'items-start', center: 'items-center', end: 'items-end', stretch: 'items-stretch' },
     justify: { start: 'justify-start', center: 'justify-center', end: 'justify-end', between: 'justify-between' },
     wrap: { true: 'flex-wrap', false: 'flex-nowrap' },
+    grow: { true: 'min-w-0 flex-1', false: null },
+    width: { full: 'w-full' },
+    height: { full: 'h-full' },
+    overflow: { hidden: 'overflow-hidden', auto: 'overflow-auto', 'y-auto': 'overflow-y-auto' },
   },
   text: {
     variant: {
@@ -282,6 +292,8 @@ export const PRIMITIVE_VARIANTS = {
       success: 'text-success',
       warning: 'text-warning',
     },
+    align: { left: 'text-left', center: 'text-center', right: 'text-right' },
+    lineClamp: { 1: 'line-clamp-1', 2: 'line-clamp-2', 3: 'line-clamp-3' },
   },
 };
 export const VENDORED_UI_FILES = [

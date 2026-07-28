@@ -14,7 +14,7 @@ const noOffscaleRadius = {
     type: 'suggestion',
     docs: { description: 'Require theme-aware radius tokens' },
     fixable: 'code',
-    messages: { useRadiusToken: 'Replace off-scale radius class(es) {{classes}} with theme-aware radius tokens.' },
+    messages: { useRadiusToken: 'Replace off-scale radius class(es) {{classes}} with existing theme-aware classes.' },
     schema: [],
   },
   create(context) {

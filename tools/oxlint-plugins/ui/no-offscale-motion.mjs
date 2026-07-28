@@ -22,7 +22,7 @@ const noOffscaleMotion = {
     type: 'suggestion',
     docs: { description: 'Require the named duration and easing scale' },
     fixable: 'code',
-    messages: { useMotionToken: 'Replace off-scale motion class(es) {{classes}} with named motion tokens.' },
+    messages: { useMotionToken: 'Replace off-scale motion class(es) {{classes}} with existing motion classes.' },
     schema: [],
   },
   create(context) {

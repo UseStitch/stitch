@@ -9,6 +9,7 @@ const noClassnameOnPrimitive = {
     docs: { description: 'Keep design-system primitives closed by forbidding className escape hatches' },
     messages: {
       removeClassName: '{{primitive}} does not accept className; use its closed props or a semantic wrapper.',
+      removeStyle: '{{primitive}} does not accept style; use its closed props or a semantic wrapper.',
     },
     schema: [],
   },
@@ -27,6 +28,8 @@ const noClassnameOnPrimitive = {
         if (!primitives.has(primitive)) return;
         const className = getJsxAttribute(node, 'className');
         if (className) context.report({ data: { primitive }, messageId: 'removeClassName', node: className });
+        const style = getJsxAttribute(node, 'style');
+        if (style) context.report({ data: { primitive }, messageId: 'removeStyle', node: style });
       },
     };
   },

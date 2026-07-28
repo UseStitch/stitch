@@ -9,7 +9,9 @@ function getSpacingReplacement(className) {
   const match = SPACING_UTILITY.exec(getTailwindUtility(className));
   if (!match?.groups) return null;
   const numericValue = Number(match.groups.value);
-  const token = Number.isNaN(numericValue) ? `space-${match.groups.value}` : nearestScaleToken(numericValue, SPACING_SCALE);
+  const token = Number.isNaN(numericValue)
+    ? `space-${match.groups.value}`
+    : nearestScaleToken(numericValue, SPACING_SCALE);
   return replaceTailwindUtility(className, `${match.groups.prefix}${token}`);
 }
 
@@ -19,7 +21,7 @@ const noOffscaleSpacing = {
     type: 'suggestion',
     docs: { description: 'Require the named spacing scale for spacing utilities' },
     fixable: 'code',
-    messages: { useSpacingToken: 'Replace numeric spacing class(es) {{classes}} with named spacing tokens.' },
+    messages: { useSpacingToken: 'Replace numeric spacing class(es) {{classes}} with existing named spacing classes.' },
     schema: [],
   },
   create(context) {

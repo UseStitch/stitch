@@ -36,6 +36,14 @@ export const stackJustifyVariants = {
   between: 'justify-between',
 } as const;
 export const stackWrapVariants = { true: 'flex-wrap', false: 'flex-nowrap' } as const;
+export const stackGrowVariants = { true: 'min-w-0 flex-1', false: null } as const;
+export const stackWidthVariants = { full: 'w-full' } as const;
+export const stackHeightVariants = { full: 'h-full' } as const;
+export const stackOverflowVariants = {
+  hidden: 'overflow-hidden',
+  auto: 'overflow-auto',
+  'y-auto': 'overflow-y-auto',
+} as const;
 export const textVariantClasses = {
   micro: 'text-2xs',
   caption: 'text-xs',
@@ -57,4 +65,6 @@ export const textToneClasses = {
   success: 'text-success',
   warning: 'text-warning',
 } as const;
+export const textAlignClasses = { left: 'text-left', center: 'text-center', right: 'text-right' } as const;
+export const textLineClampClasses = { '1': 'line-clamp-1', '2': 'line-clamp-2', '3': 'line-clamp-3' } as const;
 export const iconSizeClasses = { xs: 'size-icon-xs', s: 'size-icon-s', m: 'size-icon-m', l: 'size-icon-l' } as const;
