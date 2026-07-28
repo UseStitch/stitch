@@ -130,7 +130,7 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
       </Tabs>
 
       <div className="flex items-center justify-between gap-2 pt-1">
-        <Button variant="ghost" size="sm" onClick={() => onReject(request.id)} className="h-7 px-2">
+        <Button variant="ghost" size="sm" onClick={() => onReject(request.id)} className="px-2">
           <XIcon className="mr-1 size-3" />
           Dismiss
         </Button>

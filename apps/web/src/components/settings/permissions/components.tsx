@@ -61,7 +61,7 @@ export function ToolRow({
         size="sm"
         variant="ghost"
         onClick={onConfigure}
-        className="h-7 w-full justify-start px-2 text-muted-foreground hover:text-foreground">
+        className="w-full justify-start px-2 text-muted-foreground hover:text-foreground">
         <Settings2Icon className="size-3.5" />
         Settings
       </Button>
@@ -97,7 +97,7 @@ export function ToolsetRow({
         variant="ghost"
         onClick={onConfigure}
         className={cn(
-          'h-7 w-full px-2 text-muted-foreground hover:text-foreground',
+          'w-full px-2 text-muted-foreground hover:text-foreground',
           settingsAlign === 'end' ? 'justify-end' : 'justify-start',
         )}>
         <Settings2Icon className="size-3.5" />

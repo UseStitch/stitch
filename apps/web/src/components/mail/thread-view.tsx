@@ -125,7 +125,7 @@ function MessageCard({
                   size="xs"
                   key={attachment.id}
                   onClick={() => openAttachment(attachment.id)}
-                  className="border border-border text-muted-foreground hover:bg-muted">
+                  className="border-border text-muted-foreground hover:bg-muted">
                   {attachment.filename}
                 </Button>
               ))}

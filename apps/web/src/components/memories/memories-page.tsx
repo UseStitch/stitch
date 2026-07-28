@@ -205,7 +205,7 @@ export function MemoriesPage() {
                 size="sm"
                 onClick={() => pruneMutation.mutate()}
                 disabled={pruneMutation.isPending || maintenanceMutation.isPending}
-                className="h-7 px-2 text-xs">
+                className="px-2 text-xs">
                 Prune Stale
               </Button>
               <Button
@@ -213,7 +213,7 @@ export function MemoriesPage() {
                 size="sm"
                 onClick={() => maintenanceMutation.mutate()}
                 disabled={maintenanceMutation.isPending || pruneMutation.isPending}
-                className="h-7 px-2 text-xs">
+                className="px-2 text-xs">
                 {maintenanceMutation.isPending ? 'Running…' : 'Run Maintenance'}
               </Button>
             </div>

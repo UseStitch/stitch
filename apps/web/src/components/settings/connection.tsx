@@ -85,7 +85,7 @@ function ConnectionContent() {
                 variant="ghost"
                 onClick={() => setMode(option.mode)}
                 className={cn(
-                  'h-auto flex-col items-stretch rounded-xl border p-4 text-left',
+                  'h-auto flex-col items-stretch rounded-xl p-4 text-left',
                   mode === option.mode
                     ? 'border-primary bg-primary/5 shadow-sm ring-2 ring-primary/20'
                     : 'border-border bg-background hover:bg-accent/50',

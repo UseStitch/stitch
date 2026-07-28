@@ -68,7 +68,7 @@ export function EligibleAccountsSection() {
           <Button
             variant="outline"
             size="sm"
-            className="ml-4 h-7 shrink-0 rounded-[6px] border-border/60 bg-transparent px-2.5 text-xs font-semibold text-foreground/90 transition-colors hover:bg-muted/50"
+            className="ml-4 shrink-0 rounded-md border-border/60 bg-transparent text-xs font-semibold text-foreground/90 transition-colors hover:bg-muted/50"
             disabled={enrollMutation.isPending}
             onClick={() => handleEnroll(account.connectorInstanceId)}>
             <PlusIcon className="mr-0.75 size-3.5 text-muted-foreground" />

@@ -92,7 +92,6 @@ export function AnalysisHeader({
               onClick={onStartAnalysis}
               disabled={analysisDisabled}
               variant={hasCompletedAnalysis ? 'outline' : 'default'}
-              className="rounded-none"
               aria-label={hasCompletedAnalysis ? 'Re-run analysis' : 'Analyze recording'}
               title={hasCompletedAnalysis ? 'Re-run analysis' : 'Analyze recording'}>
               {isStarting || isRunning ? (
@@ -106,7 +105,7 @@ export function AnalysisHeader({
               value={selectedTemplateId}
               onValueChange={(value) => value && onTemplateChange(value)}
               disabled={analysisDisabled}>
-              <SelectTrigger className="h-9 w-44 rounded-none border-0 bg-background px-2 text-xs shadow-none">
+              <SelectTrigger className="h-9 w-44 border-0 bg-background px-2 text-xs shadow-none">
                 <SelectValue>{selectedTemplate?.name ?? 'Template'}</SelectValue>
               </SelectTrigger>
               <SelectContent align="end">

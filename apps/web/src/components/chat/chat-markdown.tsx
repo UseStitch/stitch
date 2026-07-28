@@ -115,7 +115,7 @@ function MarkdownCodeBlock({ code, children }: { code: string; children: React.R
         type="button"
         variant="ghost"
         size="xs"
-        className="absolute top-2 right-2 z-10 border border-border/50 bg-background/80 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-background hover:text-foreground"
+        className="absolute top-2 right-2 z-10 border-border/50 bg-background/80 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-background hover:text-foreground"
         onClick={handleCopy}
         title={copied ? 'Copied' : 'Copy code'}
         aria-label={copied ? 'Copied' : 'Copy code'}>

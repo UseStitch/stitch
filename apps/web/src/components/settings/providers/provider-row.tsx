@@ -70,7 +70,7 @@ export function ProviderRow({ provider, onSelect }: Props) {
             <Button
               variant="destructive"
               size="sm"
-              className="h-7 px-3 text-sm font-semibold"
+              className="px-3 text-sm font-semibold"
               onClick={handleDisconnect}
               disabled={deleteMutation.isPending}>
               {deleteMutation.isPending ? 'Disconnecting...' : 'Disconnect'}
@@ -80,7 +80,7 @@ export function ProviderRow({ provider, onSelect }: Props) {
           <Button
             variant="outline"
             size="sm"
-            className="h-7 rounded-md border-border/60 bg-transparent px-2.5 text-xs font-semibold text-foreground/90 transition-colors hover:bg-muted/50"
+            className="rounded-md border-border/60 bg-transparent text-xs font-semibold text-foreground/90 transition-colors hover:bg-muted/50"
             onClick={(e) => {
               e.stopPropagation();
               onSelect();

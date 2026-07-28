@@ -286,7 +286,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
             </PageIcon>
             <div>
               {editingTitle ? (
-                <input
+                <Input
                   ref={titleInputRef}
                   value={editTitleValue}
                   onChange={(e) => setEditTitleValue(e.target.value)}
@@ -295,7 +295,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
                     if (e.key === 'Enter') commitRename();
                     if (e.key === 'Escape') setEditingTitle(false);
                   }}
-                  className="-ml-1 w-full rounded border-none bg-transparent px-1 text-xl font-semibold ring-1 ring-primary outline-none"
+                  className="-ml-1 h-auto w-full rounded border-none bg-transparent px-1 py-0 text-xl font-semibold ring-1 ring-primary focus-visible:ring-1 focus-visible:ring-primary dark:bg-transparent"
                 />
               ) : currentList ? (
                 <Button
@@ -669,7 +669,7 @@ function AgendaItemRow({
           draggable
           aria-label={`Reorder ${item.title}`}
           onDragStart={handleDragStart}
-          className="h-auto w-4 cursor-grab p-0 opacity-0 transition-opacity group-hover:opacity-60 hover:bg-transparent active:cursor-grabbing"
+          className="h-auto w-4 cursor-grab opacity-0 transition-opacity group-hover:opacity-60 hover:bg-transparent active:cursor-grabbing"
           onClick={(e) => e.stopPropagation()}>
           <GripVerticalIcon className="size-3.5 text-muted-foreground" />
         </Button>

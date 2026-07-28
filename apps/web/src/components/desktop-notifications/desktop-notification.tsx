@@ -10,7 +10,7 @@ function DesktopNotificationRoot({ children, exiting, onDismiss }: DesktopNotifi
   return (
     <article
       className={cn(
-        'desktop-notification-surface group relative box-border flex w-full min-w-0 gap-2 overflow-hidden rounded-xl border p-3 shadow-lg shadow-black/15 transition-all duration-200 ease-out',
+        'desktop-notification-surface group relative box-border flex w-full min-w-0 gap-2 overflow-hidden rounded-xl border p-3 shadow-lg shadow-foreground/15 transition-all duration-200 ease-out',
         exiting ? 'translate-x-8 opacity-0' : 'translate-x-0 opacity-100',
       )}>
       {children}
@@ -61,7 +61,7 @@ function DesktopNotificationAction({
   variant?: 'default' | 'ghost';
 }) {
   return (
-    <Button type="button" size="sm" variant={variant} onClick={onClick} className="h-7 min-w-0 px-2 text-xs shadow-sm">
+    <Button type="button" size="sm" variant={variant} onClick={onClick} className="min-w-0 px-2 text-xs shadow-sm">
       {children}
     </Button>
   );

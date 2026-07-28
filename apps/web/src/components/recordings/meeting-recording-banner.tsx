@@ -219,7 +219,7 @@ export function MeetingRecordingBanner() {
                   );
                 }}
                 disabled={startRecording.isPending}
-                className="rounded-none px-2.5 text-primary-foreground hover:bg-primary/90">
+                className="text-primary-foreground hover:bg-primary/90">
                 Start recording
               </Button>
               <ButtonGroupSeparator className="bg-primary-foreground/20" />
@@ -250,7 +250,7 @@ export function MeetingRecordingBanner() {
                     type="button"
                     size="sm"
                     disabled={startRecording.isPending}
-                    className="rounded-none px-1.5 text-primary-foreground hover:bg-primary/90"
+                    className="px-1.5 text-primary-foreground hover:bg-primary/90"
                     title="Choose transcription model and start">
                     <ChevronDownIcon className="size-3.5" />
                   </Button>
@@ -273,7 +273,7 @@ export function MeetingRecordingBanner() {
                 );
               }}
               disabled={startRecording.isPending}
-              className="rounded-lg px-2.5 shadow-sm shadow-primary/10">
+              className="rounded-lg shadow-sm shadow-primary/10">
               Start recording
             </Button>
           )}
