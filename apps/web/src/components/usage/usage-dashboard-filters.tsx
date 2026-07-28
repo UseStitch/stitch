@@ -1,5 +1,6 @@
 import { USAGE_DATE_RANGES, type UsageDateRange } from '@stitch/shared/usage/types';
 
+import { Stack } from '@/components/primitives/stack';
 import {
   Combobox,
   ComboboxCollection,
@@ -82,8 +83,8 @@ export function UsageDashboardFilters({
   }
 
   return (
-    <div className="rounded-xl bg-muted/40 p-3">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+    <div className="rounded-xl bg-muted/40 p-space-l">
+      <div className="grid grid-cols-1 gap-space-l md:grid-cols-3">
         <Select value={filters.provider} onValueChange={(value) => onProviderChange(value ?? ALL_FILTER)}>
           <SelectTrigger className="w-full bg-background">
             <SelectValue placeholder="Filter by provider">{labels.provider}</SelectValue>
@@ -130,7 +131,7 @@ export function UsageDashboardFilters({
           </ComboboxContent>
         </Combobox>
 
-        <div className="flex items-center gap-2">
+        <Stack direction="row" align="center" gap="m">
           <Select value={filters.range} onValueChange={(value) => onRangeChange(value ?? '30d')}>
             <SelectTrigger className="w-full bg-background">
               <SelectValue placeholder="Select date range">{labels.range}</SelectValue>
@@ -145,7 +146,7 @@ export function UsageDashboardFilters({
           </Select>
 
           {isFetching ? <Spinner className="shrink-0 text-muted-foreground" /> : null}
-        </div>
+        </Stack>
       </div>
     </div>
   );

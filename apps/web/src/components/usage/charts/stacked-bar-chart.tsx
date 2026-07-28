@@ -10,6 +10,7 @@ import {
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 
+import { Text } from '@/components/primitives/text';
 import { EmptyChart, useChartTheme } from '@/components/usage/charts/usage-chart-utils';
 import { formatCost } from '@/components/usage/utils/usage-dashboard-utils';
 
@@ -89,10 +90,14 @@ export function StackedBarChart({ title, subtitle, emptyMessage, labels, dataset
   };
 
   return (
-    <div className="rounded-xl bg-muted/20 p-4">
-      <div className="mb-4">
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">{subtitle}</p>
+    <div className="rounded-xl bg-surface-sunken p-space-xl">
+      <div className="mb-space-xl">
+        <Text as="p" variant="body-strong">
+          {title}
+        </Text>
+        <Text as="p" variant="caption" tone="muted">
+          {subtitle}
+        </Text>
       </div>
       <div className="h-64 md:h-96">
         {hasData ? <Bar data={{ labels, datasets }} options={chartOptions} /> : <EmptyChart message={emptyMessage} />}

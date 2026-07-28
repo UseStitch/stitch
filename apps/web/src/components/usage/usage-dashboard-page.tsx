@@ -1,5 +1,6 @@
 import { BarChart3Icon } from 'lucide-react';
 
+import { Icon } from '@/components/primitives/icon';
 import {
   Page,
   PageContent,
@@ -28,11 +29,11 @@ export function UsageDashboardPage() {
 
   return (
     <Page className="thin-scrollbar">
-      <PageContent className="pb-10">
+      <PageContent className="pb-space-3xl">
         <PageHeader>
           <PageHeaderContent>
             <PageIcon>
-              <BarChart3Icon className="size-5" />
+              <Icon as={BarChart3Icon} size="l" />
             </PageIcon>
             <div>
               <PageTitle>Usage</PageTitle>
@@ -48,7 +49,7 @@ export function UsageDashboardPage() {
             <TabsTrigger value="embedding">Embedding</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="llm" className="mt-4 flex flex-col gap-4">
+          <TabsContent value="llm" className="mt-space-xl flex flex-col gap-space-xl">
             <UsageDashboardFilters
               availableModels={llm.availableModels}
               availableProviders={llm.availableProviders}
@@ -63,7 +64,7 @@ export function UsageDashboardPage() {
             <UsageDashboardCostChart usageData={llm.usageData} />
           </TabsContent>
 
-          <TabsContent value="stt" className="mt-4 flex flex-col gap-4">
+          <TabsContent value="stt" className="mt-space-xl flex flex-col gap-space-xl">
             <UsageDashboardFilters
               availableModels={stt.availableModels}
               availableProviders={stt.availableProviders}
@@ -78,7 +79,7 @@ export function UsageDashboardPage() {
             <SttUsageCostChart usageData={stt.usageData} />
           </TabsContent>
 
-          <TabsContent value="embedding" className="mt-4 flex flex-col gap-4">
+          <TabsContent value="embedding" className="mt-space-xl flex flex-col gap-space-xl">
             <UsageDashboardFilters
               availableModels={embedding.availableModels}
               availableProviders={embedding.availableProviders}
