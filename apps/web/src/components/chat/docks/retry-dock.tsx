@@ -32,7 +32,7 @@ export function RetryDock({ retry }: { retry: RetryInfo }) {
         <Dock.Title className="line-clamp-2 text-destructive" title={retry.message}>
           {retry.message}
         </Dock.Title>
-        <Dock.Description className="text-destructive/70">{retryText}</Dock.Description>
+        <Dock.Description className="text-destructive">{retryText}</Dock.Description>
       </Dock.Body>
     </Dock.Inline>
   );

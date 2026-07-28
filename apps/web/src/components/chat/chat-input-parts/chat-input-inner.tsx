@@ -14,6 +14,9 @@ import type { Attachment, ModelSpec } from './types';
 import { buildProviderModelOptions, findProviderModelOption } from '@/components/model-selectors/provider-model-utils';
 import type { SttModelSelection } from '@/components/model-selectors/stt-model-selector-popover';
 import { SttModelSelectorPopover } from '@/components/model-selectors/stt-model-selector-popover';
+import { Icon } from '@/components/primitives/icon.js';
+import { Stack } from '@/components/primitives/stack.js';
+import { Text } from '@/components/primitives/text.js';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
 import { Textarea } from '@/components/ui/textarea';
@@ -156,7 +159,7 @@ export function ChatInputInner({
         embedded && 'rounded-none border-0 bg-transparent shadow-none',
         hasDockAbove && !embedded && 'rounded-t-none border-t-0 shadow-none',
         disabled && 'opacity-60',
-        isDragging && 'ring-2 ring-primary/50 border-primary/50',
+        isDragging && 'ring-2 ring-primary border-primary',
       )}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -165,12 +168,14 @@ export function ChatInputInner({
       }}>
       {isDragging && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-primary-subtle">
-          <p className="text-sm font-medium text-primary">Drop files here</p>
+          <Text as="p" variant="body-strong" tone="primary">
+            Drop files here
+          </Text>
         </div>
       )}
 
       {attachments.length > 0 && (
-        <div className="flex flex-wrap gap-2 px-4 pt-3">
+        <div className="flex flex-wrap gap-space-m px-space-xl pt-space-l">
           {attachments.map((attachment) => (
             <AttachmentPreview key={attachment.id} attachment={attachment} onRemove={removeAttachment} />
           ))}
@@ -207,7 +212,7 @@ export function ChatInputInner({
             disabled={disabled}
             rows={1}
             className={cn(
-              'min-h-0 w-full resize-none rounded-none border-0 bg-transparent px-4 pt-4 pb-2 text-sm leading-relaxed',
+              'min-h-0 w-full resize-none rounded-none border-0 bg-transparent px-space-xl pt-space-xl pb-space-m text-sm leading-relaxed',
               'placeholder:text-text-faint',
               'max-h-48 overflow-y-auto thin-scrollbar',
               'field-sizing-content',
@@ -217,7 +222,7 @@ export function ChatInputInner({
         )}
       </TextareaCompletions>
 
-      <div className="flex items-center justify-between px-3 pt-1 pb-3">
+      <div className="flex items-center justify-between px-space-l pt-space-xs pb-space-l">
         {isRecording || isStopping ? (
           <RecordingBar
             audioLevel={dictation.audioLevel}
@@ -229,7 +234,7 @@ export function ChatInputInner({
             }}
           />
         ) : (
-          <div className="flex items-center gap-1">
+          <Stack direction="row" align="center" gap="xs">
             {providerModels.length > 0 && (
               <ModelSelectorPopover
                 selectedValue={selectedModel}
@@ -247,7 +252,7 @@ export function ChatInputInner({
                 disabled={disabled}
                 className="text-muted-foreground hover:text-foreground"
                 title="Attach files">
-                <PaperclipIcon className="size-3.5" />
+                <Icon as={PaperclipIcon} size="s" />
               </Button>
             )}
 
@@ -264,7 +269,7 @@ export function ChatInputInner({
                     disabled && 'pointer-events-none opacity-50',
                   )}
                   title="Speak to type">
-                  <MicIcon className="size-3.5" />
+                  <Icon as={MicIcon} size="s" />
                 </Button>
                 <ButtonGroupSeparator />
                 <SttModelSelectorPopover
@@ -277,19 +282,19 @@ export function ChatInputInner({
                       size="icon-xs"
                       variant="ghost"
                       className="w-4 text-muted-foreground hover:text-foreground">
-                      <ChevronDownIcon className="size-3" />
+                      <Icon as={ChevronDownIcon} size="xs" />
                     </Button>
                   }
                 />
               </ButtonGroup>
             ) : null}
-          </div>
+          </Stack>
         )}
 
-        <div className="flex items-center gap-1">
+        <Stack direction="row" align="center" gap="xs">
           {isStreaming ? (
             <Button type="button" size="icon-xs" variant="destructive" onClick={onStop} className="shrink-0">
-              <SquareIcon className="size-3.5" />
+              <Icon as={SquareIcon} size="s" />
             </Button>
           ) : null}
 
@@ -304,10 +309,10 @@ export function ChatInputInner({
               }}
               className={cn('shrink-0 transition-all', canSend && 'shadow-sm')}
               title="Send message">
-              <ArrowUpIcon className="size-3.5" />
+              <Icon as={ArrowUpIcon} size="s" />
             </Button>
           ) : null}
-        </div>
+        </Stack>
       </div>
     </div>
   );

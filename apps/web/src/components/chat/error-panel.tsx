@@ -1,17 +1,29 @@
+import { Text } from '@/components/primitives/text.js';
+
 type ErrorPanelProps = { title: string; message: string; suggestion?: string; className?: string };
 
 export function ErrorPanel({ title, message, suggestion, className }: ErrorPanelProps) {
   return (
     <div
       className={[
-        'w-full rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive',
+        'w-full rounded-lg border border-destructive-subtle bg-destructive-subtle px-space-xl py-space-m text-sm text-destructive',
         className,
       ]
         .filter(Boolean)
         .join(' ')}>
-      <p className="font-medium">{title}</p>
-      <p>{message}</p>
-      {suggestion ? <p className="mt-1 text-xs text-destructive/80">{suggestion}</p> : null}
+      <Text as="p" variant="body-strong" tone="destructive">
+        {title}
+      </Text>
+      <Text as="p" variant="body" tone="destructive">
+        {message}
+      </Text>
+      {suggestion ? (
+        <div className="mt-space-xs">
+          <Text as="p" variant="caption" tone="destructive">
+            {suggestion}
+          </Text>
+        </div>
+      ) : null}
     </div>
   );
 }

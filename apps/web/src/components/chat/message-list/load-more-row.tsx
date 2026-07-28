@@ -11,9 +11,9 @@ type LoadMoreRowProps = {
 
 export function LoadMoreRow({ isFetchingMore, onLoadMore, sentinelRef }: LoadMoreRowProps) {
   return (
-    <div ref={sentinelRef} className="flex items-center justify-center py-3">
+    <div ref={sentinelRef} className="flex items-center justify-center py-space-l">
       {isFetchingMore ? (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-space-m text-xs text-muted-foreground">
           <Spinner size="sm" className="text-muted-foreground" />
           Loading older messages...
         </div>
@@ -22,7 +22,7 @@ export function LoadMoreRow({ isFetchingMore, onLoadMore, sentinelRef }: LoadMor
           type="button"
           variant="ghost"
           onClick={onLoadMore}
-          className="h-auto p-0 text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-foreground">
+          className="h-auto p-space-none text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-foreground">
           Load older messages
         </Button>
       )}

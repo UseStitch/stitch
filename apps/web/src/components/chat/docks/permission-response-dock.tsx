@@ -3,6 +3,8 @@ import * as React from 'react';
 import type { PermissionResponse } from '@stitch/shared/permissions/types';
 
 import { Dock } from '@/components/chat/docks/dock';
+import { Stack } from '@/components/primitives/stack.js';
+import { Text } from '@/components/primitives/text.js';
 import { Button } from '@/components/ui/button';
 
 type PermissionResponseDockProps = {
@@ -43,10 +45,13 @@ export function PermissionResponseDock({
 
   return (
     <Dock.Root>
-      <Dock.Title className="text-foreground/90">
-        <span className="font-medium">Tool:</span> {toolLabel}
+      <Dock.Title className="text-foreground">
+        <Text as="span" variant="body-strong">
+          Tool:
+        </Text>{' '}
+        {toolLabel}
       </Dock.Title>
-      <Dock.Description className="mt-0">{permissionResponse.systemReminder}</Dock.Description>
+      <Dock.Description className="mt-space-none">{permissionResponse.systemReminder}</Dock.Description>
 
       <Dock.Actions>
         <Button size="sm" disabled={isPending} onClick={() => void onAllow(permissionResponse.id)}>
@@ -83,13 +88,21 @@ export function PermissionResponseDock({
           variant="ghost"
           disabled={isPending}
           onClick={() => void onApplySuggestion(permissionResponse.id, suggestion.pattern)}
-          className="group h-auto w-fit items-baseline gap-1.5 p-0 text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-foreground">
-          <span className="underline-offset-2 group-hover:underline">Always allow in directory</span>
-          <span className="max-w-70 truncate font-mono opacity-60 group-hover:opacity-100">{dir}</span>
+          className="group h-auto w-fit items-baseline gap-space-s p-space-none text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-foreground">
+          <span className="underline-offset-2 group-hover:underline">
+            <Text as="span" variant="caption" tone="muted">
+              Always allow in directory
+            </Text>
+          </span>
+          <span className="max-w-70 opacity-60 group-hover:opacity-100">
+            <Text as="span" variant="code" tone="muted" truncate>
+              {dir}
+            </Text>
+          </span>
         </Button>
       ) : null}
 
-      <div className="flex items-center gap-2">
+      <Stack direction="row" align="center" gap="m">
         <Dock.Input
           type="text"
           value={entry}
@@ -108,7 +121,7 @@ export function PermissionResponseDock({
           }}>
           Send
         </Button>
-      </div>
+      </Stack>
     </Dock.Root>
   );
 }

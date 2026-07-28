@@ -10,6 +10,8 @@ import rehypeSanitize from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
+import { Icon } from '@/components/primitives/icon.js';
+import { Text } from '@/components/primitives/text.js';
 import { Button } from '@/components/ui/button';
 import { useCodeTheme } from '@/hooks/ui/use-code-theme';
 import {
@@ -115,11 +117,11 @@ function MarkdownCodeBlock({ code, children }: { code: string; children: React.R
         type="button"
         variant="ghost"
         size="xs"
-        className="absolute top-2 right-2 z-10 border-border-subtle bg-background/80 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-background hover:text-foreground"
+        className="absolute top-2 right-2 z-10 border-border-subtle bg-background text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-background hover:text-foreground"
         onClick={handleCopy}
         title={copied ? 'Copied' : 'Copy code'}
         aria-label={copied ? 'Copied' : 'Copy code'}>
-        {copied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
+        {copied ? <Icon as={CheckIcon} size="s" /> : <Icon as={CopyIcon} size="s" />}
       </Button>
       {children}
     </div>
@@ -258,9 +260,11 @@ function MarkdownImage({ alt, ...props }: React.ImgHTMLAttributes<HTMLImageEleme
 
   if (broken) {
     return (
-      <span className="my-1.5 inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-surface-sunken px-3 py-1.5 text-xs text-muted-foreground">
-        <span>Image</span>
-      </span>
+      <div className="my-space-s inline-flex items-center gap-space-s rounded-lg border border-border-subtle bg-surface-sunken px-space-l py-space-s text-xs text-muted-foreground">
+        <Text as="span" variant="caption" tone="muted">
+          Image
+        </Text>
+      </div>
     );
   }
 

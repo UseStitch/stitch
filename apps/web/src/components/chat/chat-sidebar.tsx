@@ -9,6 +9,8 @@ import type { SessionsPage } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { InternalSidebar } from '@/components/navigation/internal-sidebar';
+import { Icon } from '@/components/primitives/icon.js';
+import { Text } from '@/components/primitives/text.js';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
@@ -16,7 +18,6 @@ import { Spinner } from '@/components/ui/spinner';
 import { StatusDot } from '@/components/ui/status-dot';
 import { useStreamingSessionIds } from '@/hooks/use-session-stream-state';
 import { sessionsInfiniteQueryOptions, useArchiveSession, useDeleteSession } from '@/lib/queries/chat';
-import { cn } from '@/lib/utils';
 
 type SidebarSession = { id: string; title: string | null; isUnread: boolean };
 
@@ -106,7 +107,7 @@ export function ChatSidebarContent() {
 
   return (
     <>
-      <InternalSidebar.Header className="pb-2">
+      <InternalSidebar.Header className="pb-space-m">
         <InternalSidebar.Top>
           <InternalSidebar.Search
             value={search}
@@ -115,7 +116,7 @@ export function ChatSidebarContent() {
             className="min-w-0 flex-1"
           />
           <InternalSidebar.TopAction render={<Link to="/" />} aria-label="New chat">
-            <PlusIcon className="size-3.5" />
+            <Icon as={PlusIcon} size="s" />
           </InternalSidebar.TopAction>
         </InternalSidebar.Top>
       </InternalSidebar.Header>
@@ -136,14 +137,14 @@ export function ChatSidebarContent() {
                         to="/session/$id"
                         params={{ id: session.id }}
                         viewTransition
-                        className="flex items-center gap-2 truncate pr-14"
+                        className="flex items-center gap-space-m truncate pr-space-3xl"
                       />
                     }>
                     <SessionStatusIcon isStreaming={isStreaming} isUnread={isUnread} />
-                    <span className={cn('truncate', isUnread && 'font-semibold')}>
+                    <Text as="span" variant={isUnread ? 'body-strong' : 'body'} truncate>
                       {session.title ?? 'New conversation'}
-                    </span>
-                    <div className="absolute top-1.5 right-1 flex items-center gap-0.5 opacity-0 transition-opacity group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100">
+                    </Text>
+                    <div className="absolute top-1.5 right-1 flex items-center gap-space-2xs opacity-0 transition-opacity group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100">
                       <Button
                         type="button"
                         variant="ghost"
@@ -155,7 +156,7 @@ export function ChatSidebarContent() {
                           event.stopPropagation();
                           void handleArchiveSession(session.id);
                         }}>
-                        <ArchiveIcon className="size-3.5" />
+                        <Icon as={ArchiveIcon} size="s" />
                       </Button>
                       <Button
                         type="button"
@@ -169,7 +170,7 @@ export function ChatSidebarContent() {
                           event.stopPropagation();
                           setDeletingSessionId(session.id);
                         }}>
-                        <Trash2Icon className="size-3.5" />
+                        <Icon as={Trash2Icon} size="s" />
                       </Button>
                     </div>
                   </InternalSidebar.Item>
@@ -184,8 +185,8 @@ export function ChatSidebarContent() {
           </InternalSidebar.Group>
         ) : (
           <Empty size="compact">
-            <EmptyMedia>
-              <MessageCircleIcon className="size-8 text-text-faint" />
+            <EmptyMedia variant="icon">
+              <Icon as={MessageCircleIcon} size="m" color="var(--text-faint)" />
             </EmptyMedia>
             <EmptyTitle>{deferredSearch ? 'No matching conversations' : 'No conversations yet'}</EmptyTitle>
             <EmptyDescription>

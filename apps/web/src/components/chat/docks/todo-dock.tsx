@@ -22,13 +22,15 @@ function statusLabel(status: SessionTodo['status']): string {
 
 export function TodoDock({ todos }: TodoDockProps) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-space-m">
       {todos.map((todo) => (
-        <div key={todo.id} className="flex items-start gap-3 rounded-xl border border-border-subtle px-3 py-2">
-          <StatusDot color={statusStyles[todo.status].dotColor} className="mt-1" />
+        <div
+          key={todo.id}
+          className="flex items-start gap-space-l rounded-xl border border-border-subtle px-space-l py-space-m">
+          <StatusDot color={statusStyles[todo.status].dotColor} className="mt-space-xs" />
           <div className="min-w-0 flex-1">
             <div className={cn('text-sm leading-5', statusStyles[todo.status].content)}>{todo.content}</div>
-            <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="mt-space-xs flex items-center gap-space-m text-xs text-muted-foreground">
               <span className="capitalize">{statusLabel(todo.status)}</span>
               <span aria-hidden="true">/</span>
               <span className="capitalize">{todo.priority}</span>

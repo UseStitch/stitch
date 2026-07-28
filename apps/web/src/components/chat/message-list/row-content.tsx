@@ -6,6 +6,7 @@ import { MessageBubble } from '@/components/chat/message-bubble';
 import { CompactionDivider } from '@/components/chat/message-bubble/compaction-divider';
 import { StreamingMessageBubble } from '@/components/chat/message-bubble/streaming-message-bubble';
 import { LoadMoreRow } from '@/components/chat/message-list/load-more-row';
+import { Stack } from '@/components/primitives/stack.js';
 import type { SessionStreamState } from '@/stores/stream-store';
 
 type RowContentProps = {
@@ -55,9 +56,9 @@ export function RowContent({
 
     case 'error':
       return (
-        <div className="flex justify-start">
+        <Stack direction="row" justify="start">
           <ErrorPanel title={row.title} message={row.message} suggestion={row.suggestion} />
-        </div>
+        </Stack>
       );
   }
 }
