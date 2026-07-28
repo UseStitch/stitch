@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { SearchInput } from '@/components/ui/search-input';
 import {
@@ -23,12 +24,11 @@ function Header({ className, ...props }: React.ComponentProps<typeof SidebarHead
   return <SidebarHeader className={cn('pb-space-none', className)} {...props} />;
 }
 
-function Title({ className, ...props }: React.ComponentProps<'div'>) {
+function Title({ className, children, ...props }: React.ComponentProps<'div'>) {
   return (
-    <div
-      className={cn('flex items-center gap-space-m px-space-m py-space-xs text-sm font-medium', className)}
-      {...props}
-    />
+    <div className={cn('flex items-center gap-space-m px-space-m py-space-xs', className)} {...props}>
+      {typeof children === 'string' ? <Text variant="body-strong">{children}</Text> : children}
+    </div>
   );
 }
 
@@ -36,9 +36,11 @@ function Top({ className, ...props }: React.ComponentProps<'div'>) {
   return <div className={cn('flex h-8 items-center gap-space-m px-space-m', className)} {...props} />;
 }
 
-function TopTitle({ className, ...props }: React.ComponentProps<'div'>) {
+function TopTitle({ className, children, ...props }: React.ComponentProps<'div'>) {
   return (
-    <div className={cn('flex min-w-0 flex-1 items-center gap-space-m text-sm font-medium', className)} {...props} />
+    <div className={cn('flex min-w-0 flex-1 items-center gap-space-m', className)} {...props}>
+      {typeof children === 'string' ? <Text variant="body-strong">{children}</Text> : children}
+    </div>
   );
 }
 

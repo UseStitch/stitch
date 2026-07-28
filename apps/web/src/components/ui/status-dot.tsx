@@ -13,6 +13,7 @@ const statusDotVariants = cva('inline-block shrink-0 rounded-full', {
       muted: 'bg-muted-foreground',
     },
     size: { sm: 'size-1.5', default: 'size-2' },
+    bordered: { true: 'border-2 border-background' },
     pulse: { true: 'animate-pulse' },
     glow: { true: '' },
   },
@@ -29,6 +30,7 @@ function StatusDot({
   className,
   color,
   size,
+  bordered,
   pulse,
   glow,
   ...props
@@ -36,7 +38,7 @@ function StatusDot({
   return (
     <span
       data-slot="status-dot"
-      className={cn(statusDotVariants({ color, size, pulse, glow }), className)}
+      className={cn(statusDotVariants({ color, size, bordered, pulse, glow }), className)}
       {...props}
     />
   );

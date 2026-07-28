@@ -70,4 +70,4 @@ function Stack<T extends StackElement = 'div'>({
   );
 }
 
-export { Stack, type StackProps };
+export { Stack };

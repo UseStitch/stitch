@@ -1,4 +1,4 @@
-import { HardDrive, Check } from 'lucide-react';
+import { Check, HardDrive } from 'lucide-react';
 import * as React from 'react';
 import { useState } from 'react';
 
@@ -13,6 +13,7 @@ import {
   type StatusState,
 } from './server-status-state';
 
+import { Icon } from '@/components/primitives/icon';
 import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -79,11 +80,8 @@ export function ServerStatus() {
       <PopoverTrigger
         className="relative flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-accent"
         aria-label="Server status">
-        <HardDrive className="h-3.75 w-3.75 text-muted-foreground" />
-        <StatusDot
-          color={STATE_COLOR[overallState]}
-          className="absolute top-1 right-1 border-2 border-background transition-colors"
-        />
+        <Icon as={HardDrive} size="s" tone="muted" />
+        <StatusDot color={STATE_COLOR[overallState]} bordered className="absolute top-1 right-1" />
       </PopoverTrigger>
       <PopoverContent
         side="bottom"
@@ -141,7 +139,7 @@ function StatusItem({ state, label, subtitle }: StatusItemProps) {
             )}
           </Stack>
         </Stack>
-        {isOk && <Check className="h-3.5 w-3.5 text-muted-foreground" />}
+        {isOk && <Icon as={Check} size="s" tone="muted" />}
       </Stack>
     </div>
   );
