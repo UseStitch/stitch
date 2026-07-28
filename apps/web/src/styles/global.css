@@ -4,6 +4,7 @@
 @import 'katex/dist/katex.min.css';
 @import './markdown.css';
 @import './view-transitions.css';
+@import './tokens.generated.css';
 
 @plugin '@tailwindcss/typography';
 
