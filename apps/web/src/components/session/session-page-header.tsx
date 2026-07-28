@@ -12,6 +12,9 @@ import {
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -52,30 +55,32 @@ export function SessionPageHeader({
   const isChildSession = parentSessionId !== null;
 
   return (
-    <header className="border-b border-border-subtle bg-muted/40">
-      <div className="mx-auto flex h-12 w-full items-center justify-between px-6">
-        <div className="flex min-w-0 items-center gap-2">
+    <header className="border-b border-border-subtle bg-surface-sunken">
+      <div className="mx-auto flex h-12 w-full items-center justify-between px-space-2xl">
+        <div className="flex min-w-0 items-center gap-space-m">
           {isChildSession ? (
             <Link
               to="/session/$id"
               params={{ id: parentSessionId }}
-              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
-              <ArrowLeftIcon className="size-4" />
+              className="inline-flex items-center gap-space-s rounded-md px-space-m py-space-xs text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+              <Icon as={ArrowLeftIcon} size="m" />
               <span className="hidden sm:inline">Back to parent</span>
             </Link>
           ) : null}
-          <h1 className="flex min-w-0 items-center gap-2 truncate text-base font-medium">
+          <h1 className="flex min-w-0 items-center gap-space-m truncate text-base font-medium">
             {isChildSession ? (
               <Badge variant="soft" size="xs">
-                <BotIcon className="size-2.5" />
+                <Icon as={BotIcon} size="xs" />
                 Child session
               </Badge>
             ) : null}
-            <span className="truncate">{session.title ?? 'New conversation'}</span>
+            <Text as="span" variant="heading-s" truncate>
+              {session.title ?? 'New conversation'}
+            </Text>
           </h1>
         </div>
 
-        <div className="flex items-center gap-1">
+        <Stack direction="row" align="center" gap="xs">
           {!isChildSession && hasBrowser ? (
             <Button
               variant="ghost"
@@ -83,7 +88,7 @@ export function SessionPageHeader({
               className={cn('hidden lg:inline-flex', rightPanel === 'browser' && 'bg-accent')}
               onClick={onToggleBrowser}
               aria-label={rightPanel === 'browser' ? 'Hide browser' : 'Show browser'}>
-              <GlobeIcon className="size-4" />
+              <Icon as={GlobeIcon} size="m" />
             </Button>
           ) : null}
           <Button
@@ -92,7 +97,7 @@ export function SessionPageHeader({
             className={cn('hidden lg:inline-flex', rightPanel === 'details' && 'bg-accent')}
             onClick={onToggleDetails}
             aria-label={rightPanel === 'details' ? 'Hide session details' : 'Show session details'}>
-            <InfoIcon className="size-4" />
+            <Icon as={InfoIcon} size="m" />
           </Button>
 
           {!isChildSession ? (
@@ -100,27 +105,27 @@ export function SessionPageHeader({
               <DropdownMenuTrigger
                 render={
                   <Button variant="ghost" size="icon-sm" aria-label="Session actions">
-                    <EllipsisIcon className="size-4" />
+                    <Icon as={EllipsisIcon} size="m" />
                   </Button>
                 }
               />
               <DropdownMenuContent align="end" className="w-40">
                 <DropdownMenuItem onClick={() => setRenameSessionOpen(true)}>
-                  <PencilLineIcon className="size-4" />
+                  <Icon as={PencilLineIcon} size="m" />
                   Rename
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={onGenerateAutomation} disabled={generateAutomationPending}>
-                  <SparklesIcon className="size-4" />
+                  <Icon as={SparklesIcon} size="m" />
                   {generateAutomationPending ? 'Generating...' : 'Generate automation'}
                 </DropdownMenuItem>
                 <DropdownMenuItem variant="destructive" onClick={onDeleteSession}>
-                  <Trash2Icon className="size-4" />
+                  <Icon as={Trash2Icon} size="m" />
                   Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : null}
-        </div>
+        </Stack>
       </div>
     </header>
   );

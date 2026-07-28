@@ -16,10 +16,10 @@ export function ConnectorCard({ definition, instanceCount, onSetup }: ConnectorC
   const isConnected = instanceCount > 0;
 
   return (
-    <Card className="border-border-subtle bg-card/70 transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/5">
+    <Card className="border-border-subtle bg-card transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-md hover:shadow-border-subtle">
       <CardHeader className="gap-space-l border-b border-border-subtle pb-space-l">
         <Stack direction="row" align="start" gap="l">
-          <div className="shrink-0 rounded-lg border border-border-subtle bg-muted/70 p-space-s">
+          <div className="shrink-0 rounded-lg border border-border-subtle bg-surface-sunken p-space-s">
             <ConnectorIcon icon={definition.icon} className="size-8 rounded-md" />
           </div>
           <div className="min-w-0 flex-1">
@@ -55,7 +55,7 @@ export function ConnectorCard({ definition, instanceCount, onSetup }: ConnectorC
           </Stack>
 
           {definition.serviceIcons && Object.keys(definition.serviceIcons).length > 0 && (
-            <div className="rounded-lg border border-border-subtle bg-muted/60 p-space-m">
+            <div className="rounded-lg border border-border-subtle bg-surface-sunken p-space-m">
               <Stack direction="row" align="center" gap="s" wrap>
                 {Object.entries(definition.serviceIcons).map(([key, icon]) => (
                   <div key={key} className="rounded-md border border-border-subtle bg-muted p-space-xs">

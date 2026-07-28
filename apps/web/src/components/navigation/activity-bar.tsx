@@ -15,6 +15,7 @@ import { Link, useRouterState } from '@tanstack/react-router';
 
 import type { AppId } from '@stitch/shared/apps/types';
 
+import { Icon } from '@/components/primitives/icon';
 import { StatusDot } from '@/components/ui/status-dot';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFullScreen } from '@/hooks/ui/use-fullscreen';
@@ -26,17 +27,17 @@ import { hasUpdaterBadge, useUpdaterStore } from '@/stores/updater-store';
 type NavItemData = { id: string; icon: React.ReactNode; label: string; to: string; matchPrefix: string; appId?: AppId };
 
 const TOP_ITEMS: NavItemData[] = [
-  { id: 'chat', icon: <MessageSquareIcon className="size-5" />, label: 'Chat', to: '/', matchPrefix: '/' },
+  { id: 'chat', icon: <Icon as={MessageSquareIcon} size="l" />, label: 'Chat', to: '/', matchPrefix: '/' },
   {
     id: 'automations',
-    icon: <BotIcon className="size-5" />,
+    icon: <Icon as={BotIcon} size="l" />,
     label: 'Automations',
     to: '/automations',
     matchPrefix: '/automations',
   },
   {
     id: 'recordings',
-    icon: <MicIcon className="size-5" />,
+    icon: <Icon as={MicIcon} size="l" />,
     label: 'Recordings',
     to: '/recordings',
     matchPrefix: '/recordings',
@@ -44,7 +45,7 @@ const TOP_ITEMS: NavItemData[] = [
   },
   {
     id: 'agenda',
-    icon: <ListTodoIcon className="size-5" />,
+    icon: <Icon as={ListTodoIcon} size="l" />,
     label: 'Agenda',
     to: '/agenda',
     matchPrefix: '/agenda',
@@ -52,7 +53,7 @@ const TOP_ITEMS: NavItemData[] = [
   },
   {
     id: 'mail',
-    icon: <MailIcon className="size-5" />,
+    icon: <Icon as={MailIcon} size="l" />,
     label: 'Mail',
     to: '/mail',
     matchPrefix: '/mail',
@@ -63,19 +64,19 @@ const TOP_ITEMS: NavItemData[] = [
 const BOTTOM_ITEMS: NavItemData[] = [
   {
     id: 'connectors',
-    icon: <PlugIcon className="size-5" />,
+    icon: <Icon as={PlugIcon} size="l" />,
     label: 'Connectors',
     to: '/connectors',
     matchPrefix: '/connectors',
   },
   {
     id: 'memories',
-    icon: <BrainIcon className="size-5" />,
+    icon: <Icon as={BrainIcon} size="l" />,
     label: 'Memories',
     to: '/memories',
     matchPrefix: '/memories',
   },
-  { id: 'usage', icon: <BarChart3Icon className="size-5" />, label: 'Usage', to: '/usage', matchPrefix: '/usage' },
+  { id: 'usage', icon: <Icon as={BarChart3Icon} size="l" />, label: 'Usage', to: '/usage', matchPrefix: '/usage' },
 ];
 
 function isActive(matchPrefix: string, currentPath: string): boolean {
@@ -115,7 +116,7 @@ function NavLink({
               'relative flex size-10 items-center justify-center rounded-lg transition-colors',
               active
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',
+                : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
             )}
           />
         }>
@@ -147,13 +148,13 @@ export function ActivityBar() {
     <TooltipProvider>
       <div
         className={cn(
-          'relative flex h-full min-h-0 w-14 flex-col items-center bg-sidebar px-1.5 pb-3',
-          showTrafficLightPadding ? 'pt-10' : 'border-r-2 border-border-subtle pt-3',
+          'relative flex h-full min-h-0 w-14 flex-col items-center bg-sidebar px-space-s pb-space-l',
+          showTrafficLightPadding ? 'pt-space-3xl' : 'border-r-2 border-border-subtle pt-space-l',
         )}>
         {showTrafficLightPadding && (
           <div className="pointer-events-none absolute top-9 right-0 bottom-0 border-r-2 border-border-subtle" />
         )}
-        <div className="flex w-full flex-col items-center gap-2">
+        <div className="flex w-full flex-col items-center gap-space-m">
           {topItems.map((item) => (
             <NavLink
               key={item.id}
@@ -164,7 +165,7 @@ export function ActivityBar() {
             />
           ))}
         </div>
-        <div className="mt-auto flex w-full flex-col items-center gap-2">
+        <div className="mt-auto flex w-full flex-col items-center gap-space-m">
           {BOTTOM_ITEMS.map((item) => (
             <NavLink
               key={item.id}
@@ -182,7 +183,7 @@ export function ActivityBar() {
           <NavLink
             to="/settings/general"
             label="Settings"
-            icon={<SettingsIcon className="size-5" />}
+            icon={<Icon as={SettingsIcon} size="l" />}
             active={isActive('/settings', currentPath)}
             badge={showSettingsUpdateIndicator ? 'Settings (update available)' : undefined}
             preload

@@ -83,7 +83,7 @@ export function UsageDashboardFilters({
   }
 
   return (
-    <div className="rounded-xl bg-muted/40 p-space-l">
+    <div className="rounded-xl bg-surface-sunken p-space-l">
       <div className="grid grid-cols-1 gap-space-l md:grid-cols-3">
         <Select value={filters.provider} onValueChange={(value) => onProviderChange(value ?? ALL_FILTER)}>
           <SelectTrigger className="w-full bg-background">

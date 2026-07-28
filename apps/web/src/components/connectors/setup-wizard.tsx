@@ -330,7 +330,7 @@ function InstructionsStep({ instructions, onNext }: { instructions: ConnectorSet
     <div className="h-full min-h-0 *:h-full">
       <Stack gap="l">
         <ScrollArea className="max-h-[45vh] min-h-0 flex-1 rounded-lg border border-border-subtle bg-surface-sunken p-space-l">
-          <ol className="list-inside list-decimal space-y-space-m text-sm text-foreground/85">
+          <ol className="list-inside list-decimal space-y-space-m text-sm text-foreground">
             {instructions.map((instruction) => {
               const href = instruction.href;
               return (
@@ -626,7 +626,7 @@ function ScopesStep({
       }}>
       <div className="min-h-0 flex-1 space-y-space-l overflow-y-auto pr-space-xs">
         {enableApisUrl && (
-          <div className="rounded-lg border border-primary/30 bg-primary-subtle p-space-l">
+          <div className="rounded-lg border border-primary-subtle bg-primary-subtle p-space-l">
             <div className="mb-space-s">
               <Text as="p" variant="label">
                 Before connecting, enable the APIs for the services you select below:
@@ -763,10 +763,10 @@ function WizardProgress({ step, isOAuth }: { step: WizardStep; isOAuth: boolean 
         <div
           key={item.id}
           className={[
-            'rounded-md border px-2 py-1 text-center text-2xs',
+            'rounded-md border px-space-m py-space-xs text-center text-2xs',
             index <= activeIndex
-              ? 'border-primary/30 bg-primary/10 text-foreground'
-              : 'border-border/60 bg-muted/20 text-muted-foreground',
+              ? 'border-primary-subtle bg-primary-subtle text-foreground'
+              : 'border-border-subtle bg-surface-sunken text-muted-foreground',
           ].join(' ')}>
           {item.label}
         </div>

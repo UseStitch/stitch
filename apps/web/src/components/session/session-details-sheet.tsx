@@ -1,3 +1,5 @@
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import type { ReactNode } from 'react';
@@ -66,17 +68,23 @@ function parsePercent(value: string) {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="border-t border-border-subtle pt-4 first:border-t-0 first:pt-0">
-      <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">{title}</p>
-      <div className="space-y-2.5">{children}</div>
+    <section className="border-t border-border-subtle pt-space-xl first:border-t-0 first:pt-space-none">
+      <div className="mb-space-l tracking-wide uppercase">
+        <Text variant="label" tone="muted">
+          {title}
+        </Text>
+      </div>
+      <div className="space-y-space-m">{children}</div>
     </section>
   );
 }
 
 function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 text-sm">
-      <p className="shrink-0 text-muted-foreground">{label}</p>
+    <div className="flex items-baseline justify-between gap-space-xl text-sm">
+      <Text as="span" variant="body" tone="muted">
+        {label}
+      </Text>
       <div className="min-w-0 text-right font-medium text-foreground [font-variant-numeric:tabular-nums]">{value}</div>
     </div>
   );
@@ -84,8 +92,10 @@ function DetailRow({ label, value }: { label: string; value: ReactNode }) {
 
 function SecondaryDetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 pl-4 text-sm">
-      <p className="shrink-0 text-muted-foreground">{label}</p>
+    <div className="flex items-baseline justify-between gap-space-xl pl-space-xl text-sm">
+      <Text as="span" variant="body" tone="muted">
+        {label}
+      </Text>
       <div className="min-w-0 text-right text-muted-foreground [font-variant-numeric:tabular-nums]">{value}</div>
     </div>
   );
@@ -93,9 +103,9 @@ function SecondaryDetailRow({ label, value }: { label: string; value: ReactNode 
 
 function TruncatedValue({ value }: { value: string }) {
   return (
-    <span className="block truncate" title={value}>
+    <Text as="div" variant="body" truncate title={value}>
       {value}
-    </span>
+    </Text>
   );
 }
 
@@ -133,30 +143,30 @@ export function SessionDetailsSheet({
   return (
     <aside className={cn('h-full min-h-0 overflow-hidden bg-background', className)}>
       <div className="h-full border-l border-border-subtle">
-        <div className="border-b border-border-subtle px-5 py-4">
-          <p className="text-base font-medium">Context</p>
-          <p className="truncate text-sm text-muted-foreground" title={`${providerLabel} ${modelLabel}`}>
+        <div className="border-b border-border-subtle px-space-xl py-space-xl">
+          <Text variant="heading-s">Context</Text>
+          <Text variant="body" tone="muted" truncate title={`${providerLabel} ${modelLabel}`}>
             {providerLabel !== '-' || modelLabel !== '-' ? `${providerLabel} · ${modelLabel}` : 'No model usage yet'}
-          </p>
+          </Text>
         </div>
         <ScrollArea className="h-[calc(100%-73px)]">
-          <div className="space-y-6 px-5 py-5">
-            <section className="space-y-3">
+          <div className="space-y-space-2xl px-space-xl py-space-xl">
+            <section className="space-y-space-l">
               {hasContextUsage ? (
                 <>
-                  <div className="flex items-end justify-between gap-4">
+                  <Stack direction="row" align="end" justify="between" gap="xl">
                     <div>
-                      <p className="text-3xl font-semibold tracking-tight text-foreground">
-                        {usagePercent === '-' ? formatNumber(totalTokens) : usagePercent}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
+                      <Text variant="metric">{usagePercent === '-' ? formatNumber(totalTokens) : usagePercent}</Text>
+                      <Text variant="body" tone="muted">
                         {usagePercent === '-' ? 'tokens in latest context' : 'context used'}
-                      </p>
+                      </Text>
                     </div>
-                    <p className="pb-1 text-right text-sm text-muted-foreground [font-variant-numeric:tabular-nums]">
-                      {formatTokenRatio(totalTokens, contextLimit)}
-                    </p>
-                  </div>
+                    <div className="pb-space-xs text-right">
+                      <Text variant="body" tone="muted" tabular>
+                        {formatTokenRatio(totalTokens, contextLimit)}
+                      </Text>
+                    </div>
+                  </Stack>
                   {contextLimit ? (
                     <progress
                       className="h-1.5 w-full overflow-hidden rounded-full [&::-moz-progress-bar]:bg-primary [&::-webkit-progress-bar]:bg-muted [&::-webkit-progress-value]:bg-primary"
@@ -167,9 +177,11 @@ export function SessionDetailsSheet({
                   ) : null}
                 </>
               ) : (
-                <div className="space-y-1">
-                  <p className="text-lg font-medium text-foreground">No usage yet</p>
-                  <p className="text-sm text-muted-foreground">Send a message to see model, cost, and context usage.</p>
+                <div className="space-y-space-xs">
+                  <Text variant="heading-s">No usage yet</Text>
+                  <Text variant="body" tone="muted">
+                    Send a message to see model, cost, and context usage.
+                  </Text>
                 </div>
               )}
             </section>

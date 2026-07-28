@@ -146,11 +146,11 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
         return (
           <div
             key={instance.id}
-            className="rounded-xl border border-border-subtle bg-card/80 px-space-xl py-space-xl text-sm sm:*:flex-row sm:*:items-center">
+            className="rounded-xl border border-border-subtle bg-card px-space-xl py-space-xl text-sm sm:*:flex-row sm:*:items-center">
             <Stack gap="xl">
               <div className="min-w-0 flex-1">
                 <Stack direction="row" align="start" gap="xl">
-                  <div className="shrink-0 rounded-xl border border-border-subtle bg-muted/70 p-space-m">
+                  <div className="shrink-0 rounded-xl border border-border-subtle bg-surface-sunken p-space-m">
                     <ConnectorIcon
                       icon={def?.icon ?? { type: 'simpleIcons', slug: instance.connectorId }}
                       className="size-8 rounded-lg"

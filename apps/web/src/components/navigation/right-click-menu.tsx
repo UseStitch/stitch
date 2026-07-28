@@ -29,7 +29,7 @@ const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(function MenuItem(
       type="button"
       variant="ghost"
       className={cn(
-        'h-auto w-full cursor-default justify-start gap-1.5 rounded-md px-1.5 py-1',
+        'h-auto w-full cursor-default justify-start gap-space-s rounded-md px-space-s py-space-xs',
         'hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
         '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
         className,
@@ -45,7 +45,7 @@ const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(function MenuItem(
 });
 
 function Separator() {
-  return <div className="-mx-1 my-1 h-px bg-border" />;
+  return <div className="-mx-space-xs my-space-xs h-px bg-border" />;
 }
 
 interface SpellingSubmenuProps {
@@ -83,11 +83,13 @@ function SpellingSubmenu({
   return createPortal(
     <div
       ref={panelRef}
-      className="fixed z-60 min-w-48 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10"
+      className="fixed z-60 min-w-48 rounded-lg bg-popover p-space-xs text-popover-foreground shadow-md ring-1 ring-border-subtle"
       style={style}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}>
-      {suggestions.length === 0 && <div className="px-1.5 py-1 text-sm text-muted-foreground">No suggestions</div>}
+      {suggestions.length === 0 && (
+        <div className="px-space-s py-space-xs text-sm text-muted-foreground">No suggestions</div>
+      )}
       {suggestions.slice(0, 5).map((s) => (
         <MenuItem key={s} onClick={() => onReplace(s)}>
           {s}
@@ -211,7 +213,7 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
         createPortal(
           <div
             ref={menuRef}
-            className="fixed z-50 min-w-48 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10"
+            className="fixed z-50 min-w-48 rounded-lg bg-popover p-space-xs text-popover-foreground shadow-md ring-1 ring-border-subtle"
             style={{ left: params.x, top: params.y }}>
             {isMisspelled && (
               <>

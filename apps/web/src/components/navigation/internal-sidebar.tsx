@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+import { Stack } from '@/components/primitives/stack';
 import { Button } from '@/components/ui/button';
 import { SearchInput } from '@/components/ui/search-input';
 import {
@@ -19,19 +20,26 @@ function Root({ children }: { children: React.ReactNode }) {
 }
 
 function Header({ className, ...props }: React.ComponentProps<typeof SidebarHeader>) {
-  return <SidebarHeader className={cn('pb-0', className)} {...props} />;
+  return <SidebarHeader className={cn('pb-space-none', className)} {...props} />;
 }
 
 function Title({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div className={cn('flex items-center gap-2 px-2 py-1 text-sm font-medium', className)} {...props} />;
+  return (
+    <div
+      className={cn('flex items-center gap-space-m px-space-m py-space-xs text-sm font-medium', className)}
+      {...props}
+    />
+  );
 }
 
 function Top({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div className={cn('flex h-8 items-center gap-2 px-2', className)} {...props} />;
+  return <div className={cn('flex h-8 items-center gap-space-m px-space-m', className)} {...props} />;
 }
 
 function TopTitle({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div className={cn('flex min-w-0 flex-1 items-center gap-2 text-sm font-medium', className)} {...props} />;
+  return (
+    <div className={cn('flex min-w-0 flex-1 items-center gap-space-m text-sm font-medium', className)} {...props} />
+  );
 }
 
 function TopAction({ className, nativeButton, render, ...props }: React.ComponentProps<typeof Button>) {
@@ -71,10 +79,10 @@ function Group({
   return (
     <SidebarGroup {...props}>
       {title || action ? (
-        <div className="flex items-center justify-between">
+        <Stack direction="row" align="center" justify="between">
           {title ? <SidebarGroupLabel>{title}</SidebarGroupLabel> : <div />}
           {action}
-        </div>
+        </Stack>
       ) : null}
       <SidebarGroupContent>{children}</SidebarGroupContent>
     </SidebarGroup>
@@ -82,7 +90,7 @@ function Group({
 }
 
 function List({ className, ...props }: React.ComponentProps<typeof SidebarMenu>) {
-  return <SidebarMenu className={cn('px-1', className)} {...props} />;
+  return <SidebarMenu className={cn('px-space-xs', className)} {...props} />;
 }
 
 function Item({

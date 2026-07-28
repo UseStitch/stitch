@@ -13,10 +13,10 @@ export function TitleBar() {
 
   return (
     <TitleBarShell>
-      <TitleBarSection className={cn(isMac && !isFullScreen && 'pl-6')}>
+      <TitleBarSection className={cn(isMac && !isFullScreen && 'pl-space-2xl')}>
         <SidebarToggleButton />
       </TitleBarSection>
-      <TitleBarSection className={cn(isMac && 'pr-2')}>
+      <TitleBarSection className={cn(isMac && 'pr-space-m')}>
         <ServerStatus />
         {!isMac && <WindowsControls />}
       </TitleBarSection>

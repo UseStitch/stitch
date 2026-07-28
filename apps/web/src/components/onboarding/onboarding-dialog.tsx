@@ -21,8 +21,10 @@ export function OnboardingDialog() {
       <DialogHeader className="sr-only">
         <DialogTitle>Stitch Onboarding</DialogTitle>
       </DialogHeader>
-      <DialogContent className="flex h-140 max-w-3xl! flex-col gap-0 overflow-hidden p-0" showCloseButton={false}>
-        <div className="flex h-full flex-col p-8">
+      <DialogContent
+        className="flex h-140 max-w-3xl! flex-col gap-space-none overflow-hidden p-space-none"
+        showCloseButton={false}>
+        <div className="flex h-full flex-col p-space-3xl">
           {state.step === 'welcome' && <WelcomeStep onContinue={() => state.goToStep('profile')} />}
 
           {state.step === 'profile' && (
