@@ -11,9 +11,9 @@ function MemoriesErrorComponent({ error }: { error: Error }) {
   return (
     <Page>
       <PageContent>
-        <Empty className="mt-16">
-          <EmptyMedia>
-            <BrainIcon className="size-10 text-muted-foreground/30" />
+        <Empty className="mt-space-3xl">
+          <EmptyMedia className="text-text-faint">
+            <BrainIcon size={40} />
           </EmptyMedia>
           <EmptyTitle>Memory unavailable</EmptyTitle>
           <EmptyDescription>

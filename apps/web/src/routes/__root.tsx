@@ -69,7 +69,7 @@ function RootLayout() {
           <RightClickMenu>
             <div className="relative flex flex-1 overflow-hidden bg-sidebar">
               <AppSidebar />
-              <SidebarInset className="overflow-hidden border-l border-border/50 bg-muted shadow-sm peer-data-[state=expanded]:rounded-tl-2xl">
+              <SidebarInset className="overflow-hidden border-l border-border-subtle bg-muted shadow-sm peer-data-[state=expanded]:rounded-tl-2xl">
                 <ServerEventSync />
                 <RecordingEventListener />
                 <UpdaterSync />

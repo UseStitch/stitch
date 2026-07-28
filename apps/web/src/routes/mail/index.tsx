@@ -21,7 +21,7 @@ export const Route = createFileRoute('/mail/')({
     await context.queryClient.ensureInfiniteQueryData(mailThreadsInfiniteQueryOptions(account.id, labelId));
   },
   component: () => (
-    <React.Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading mail...</div>}>
+    <React.Suspense fallback={<div className="p-space-xl text-sm text-muted-foreground">Loading mail...</div>}>
       <MailPage />
     </React.Suspense>
   ),
