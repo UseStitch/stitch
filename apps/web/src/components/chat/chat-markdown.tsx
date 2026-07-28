@@ -115,7 +115,7 @@ function MarkdownCodeBlock({ code, children }: { code: string; children: React.R
         type="button"
         variant="ghost"
         size="xs"
-        className="absolute top-2 right-2 z-10 border-border/50 bg-background/80 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-background hover:text-foreground"
+        className="absolute top-2 right-2 z-10 border-border-subtle bg-background/80 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-background hover:text-foreground"
         onClick={handleCopy}
         title={copied ? 'Copied' : 'Copy code'}
         aria-label={copied ? 'Copied' : 'Copy code'}>
@@ -258,7 +258,7 @@ function MarkdownImage({ alt, ...props }: React.ImgHTMLAttributes<HTMLImageEleme
 
   if (broken) {
     return (
-      <span className="my-1.5 inline-flex items-center gap-1.5 rounded-lg border border-border/40 bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
+      <span className="my-1.5 inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-surface-sunken px-3 py-1.5 text-xs text-muted-foreground">
         <span>Image</span>
       </span>
     );

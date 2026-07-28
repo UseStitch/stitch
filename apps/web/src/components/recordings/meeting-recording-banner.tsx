@@ -183,10 +183,10 @@ export function MeetingRecordingBanner() {
   }
 
   return (
-    <div className="border-b border-border/40 bg-card/95 px-4 py-3 shadow-sm backdrop-blur transition-colors">
+    <div className="border-b border-border-subtle bg-card/95 px-4 py-3 shadow-sm backdrop-blur transition-colors">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary ring-1 ring-primary/20">
+          <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-primary-subtle text-primary ring-1 ring-primary/20">
             <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary"></span>

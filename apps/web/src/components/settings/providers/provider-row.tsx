@@ -38,7 +38,7 @@ export function ProviderRow({ provider, onSelect }: Props) {
   };
 
   return (
-    <div className="group -mx-2 flex items-center justify-between border-b border-border/50 px-2 py-3 last:border-0">
+    <div className="group -mx-2 flex items-center justify-between border-b border-border-subtle px-2 py-3 last:border-0">
       <div className="flex min-w-0 items-center gap-4">
         <div className="shrink-0 text-muted-foreground">
           <ProviderLogo providerId={provider.id} providerName={meta.displayName} />
@@ -80,7 +80,7 @@ export function ProviderRow({ provider, onSelect }: Props) {
           <Button
             variant="outline"
             size="sm"
-            className="rounded-md border-border/60 bg-transparent text-xs font-semibold text-foreground/90 transition-colors hover:bg-muted/50"
+            className="rounded-md border-border-subtle bg-transparent text-xs font-semibold text-foreground/90 transition-colors hover:bg-accent"
             onClick={(e) => {
               e.stopPropagation();
               onSelect();

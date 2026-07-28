@@ -41,7 +41,7 @@ export function AppearanceSelector() {
               className={cn(
                 'h-auto flex-1 rounded-xl px-3 py-3 text-center',
                 mode === m
-                  ? 'border-primary bg-primary/5 ring-2 ring-primary/20 text-foreground shadow-sm'
+                  ? 'border-primary bg-primary-subtle ring-2 ring-primary/20 text-foreground shadow-sm'
                   : 'border-border bg-background text-muted-foreground hover:text-foreground hover:bg-accent/50',
               )}>
               {MODE_LABELS[m]}
@@ -61,7 +61,7 @@ export function AppearanceSelector() {
               className={cn(
                 'h-auto flex-col items-stretch space-y-2 rounded-xl p-3 text-left',
                 themeName === t.name
-                  ? 'border-primary bg-primary/5 ring-2 ring-primary/20 shadow-sm'
+                  ? 'border-primary bg-primary-subtle ring-2 ring-primary/20 shadow-sm'
                   : 'border-border bg-background hover:bg-accent/50 hover:border-foreground/20',
               )}>
               <ThemePreview tokens={effectiveMode === 'dark' ? t.dark : t.light} />

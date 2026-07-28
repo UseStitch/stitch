@@ -7,12 +7,12 @@ export const MESSAGE_ACTION_BUTTON_CLASS =
   'h-auto items-center gap-1 rounded-none p-0 text-xs leading-none font-normal text-muted-foreground hover:bg-transparent hover:text-foreground';
 
 export function InterruptedLabel() {
-  return <p className="mt-1 text-xs text-muted-foreground/60">Interrupted</p>;
+  return <p className="mt-1 text-xs text-text-faint">Interrupted</p>;
 }
 
 export function FileBlock({ mediaType }: { mediaType: string }) {
   return (
-    <div className="my-2 inline-flex items-center gap-1.5 rounded-lg border border-border/40 bg-muted/25 px-3 py-1.5 text-xs text-muted-foreground">
+    <div className="my-2 inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-surface-sunken px-3 py-1.5 text-xs text-muted-foreground">
       <FileIcon className="size-3 shrink-0" />
       <span>{mediaType}</span>
     </div>

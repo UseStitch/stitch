@@ -93,7 +93,7 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden border-l border-border bg-background">
       {/* Tab strip */}
-      <div className="flex h-8 shrink-0 items-center gap-0.5 overflow-x-auto border-b border-border bg-muted/30 px-1">
+      <div className="flex h-8 shrink-0 items-center gap-0.5 overflow-x-auto border-b border-border bg-surface-sunken px-1">
         {state.tabs.length === 0 ? (
           <span className="px-2 text-xs text-muted-foreground">Starting...</span>
         ) : (
@@ -101,8 +101,8 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
             <div
               key={tab.id}
               className={cn(
-                'group flex h-6 max-w-40 shrink-0 items-center rounded text-xs',
-                tab.active ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted/60',
+                'group flex h-6 max-w-40 shrink-0 items-center rounded-sm text-xs',
+                tab.active ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent',
               )}>
               <Button
                 variant="ghost"
@@ -115,7 +115,7 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
               <Button
                 variant="ghost"
                 size="icon-xs"
-                className="mr-0.5 size-4 shrink-0 rounded opacity-0 group-hover:opacity-60 hover:bg-muted hover:opacity-100!"
+                className="mr-0.5 size-4 shrink-0 rounded-sm opacity-0 group-hover:opacity-60 hover:bg-muted hover:opacity-100!"
                 onClick={() => void window.api?.browser.closeTab(tab.id)}
                 type="button"
                 aria-label="Close tab">
@@ -152,7 +152,7 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
 
         <form className="min-w-0 flex-1" onSubmit={submitAddress}>
           <Input
-            className="h-7 w-full rounded border-border bg-muted/40 px-2 py-0 text-xs focus:border-primary focus-visible:ring-0"
+            className="h-7 w-full rounded-sm border-border bg-muted/40 px-2 py-0 text-xs focus:border-primary focus-visible:ring-0"
             value={address}
             onChange={(event) => setAddress(event.target.value)}
           />
@@ -186,7 +186,7 @@ function DownloadsPanel({ downloads }: { downloads: ElectronBrowserDownload[] })
   if (downloads.length === 0) return null;
 
   return (
-    <div className="max-h-36 shrink-0 overflow-y-auto border-t border-border bg-muted/20 p-2">
+    <div className="max-h-36 shrink-0 overflow-y-auto border-t border-border bg-surface-sunken p-2">
       <div className="mb-1 text-xs font-medium">Downloads</div>
       <div className="space-y-1">
         {downloads.slice(0, 5).map((download) => (

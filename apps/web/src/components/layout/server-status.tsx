@@ -75,7 +75,7 @@ export function ServerStatus() {
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger
-        className="relative flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-muted/50"
+        className="relative flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-accent"
         aria-label="Server status">
         <HardDrive className="h-3.75 w-3.75 text-muted-foreground" />
         <StatusDot
@@ -88,7 +88,7 @@ export function ServerStatus() {
         align="start"
         className="w-70 overflow-hidden rounded-xl border-border p-0 shadow-lg">
         <Tabs defaultValue="servers" className="gap-0">
-          <div className="bg-muted/30 px-4 pt-3">
+          <div className="bg-surface-sunken px-4 pt-3">
             <TabsList variant="line" className="h-auto gap-5 p-0">
               <TabsTrigger value="servers" className="h-auto flex-none cursor-default rounded-none px-0 pb-2.5">
                 Servers

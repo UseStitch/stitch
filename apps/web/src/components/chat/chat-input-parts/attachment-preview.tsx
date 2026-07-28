@@ -13,11 +13,11 @@ export function AttachmentPreview({ attachment, onRemove }: AttachmentPreviewPro
   return (
     <div className="group relative shrink-0">
       {isImage && attachment.previewUrl ? (
-        <div className="relative size-16 overflow-hidden rounded-lg border border-border/60 bg-muted">
+        <div className="relative size-16 overflow-hidden rounded-lg border border-border-subtle bg-muted">
           <img src={attachment.previewUrl} alt={attachment.filename} className="size-full object-cover" />
         </div>
       ) : (
-        <div className="flex h-8 max-w-40 items-center gap-1.5 rounded-lg border border-border/60 bg-muted px-2.5">
+        <div className="flex h-8 max-w-40 items-center gap-1.5 rounded-lg border border-border-subtle bg-muted px-2.5">
           {isPdf ? (
             <FileIcon className="size-3.5 shrink-0 text-muted-foreground" />
           ) : (

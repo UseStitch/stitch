@@ -55,7 +55,7 @@ export function EligibleAccountsSection() {
       {eligibleAccounts.map((account) => (
         <div
           key={account.connectorInstanceId}
-          className="-mx-2 flex items-center justify-between border-b border-border/50 px-2 py-3 last:border-0">
+          className="-mx-2 flex items-center justify-between border-b border-border-subtle px-2 py-3 last:border-0">
           <div className="flex min-w-0 items-center gap-4">
             <div className="shrink-0 text-muted-foreground">
               <SimpleIcon slug="gmail" className="size-5 bg-foreground" fallback={<MailIcon className="size-5" />} />
@@ -68,7 +68,7 @@ export function EligibleAccountsSection() {
           <Button
             variant="outline"
             size="sm"
-            className="ml-4 shrink-0 rounded-md border-border/60 bg-transparent text-xs font-semibold text-foreground/90 transition-colors hover:bg-muted/50"
+            className="ml-4 shrink-0 rounded-md border-border-subtle bg-transparent text-xs font-semibold text-foreground/90 transition-colors hover:bg-accent"
             disabled={enrollMutation.isPending}
             onClick={() => handleEnroll(account.connectorInstanceId)}>
             <PlusIcon className="mr-0.75 size-3.5 text-muted-foreground" />

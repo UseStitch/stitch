@@ -208,7 +208,7 @@ export function AutomationsTable({
               <Table.EmptyRow colSpan={columns.length}>
                 <Empty>
                   <EmptyMedia>
-                    <BotIcon className="size-10 text-muted-foreground/30" />
+                    <BotIcon className="size-10 text-text-faint" />
                   </EmptyMedia>
                   <EmptyTitle>No automations yet</EmptyTitle>
                   <EmptyDescription>Create your first automation to speed up recurring workflows.</EmptyDescription>

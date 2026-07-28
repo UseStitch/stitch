@@ -282,7 +282,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
                     <div className="flex items-center gap-1.5">
                       <PopoverTrigger
                         className={cn(
-                          'flex h-8 w-full items-center gap-2 rounded-lg border border-input bg-transparent px-2.5 text-sm transition-colors hover:bg-muted/50',
+                          'flex h-8 w-full items-center gap-2 rounded-lg border border-input bg-transparent px-2.5 text-sm transition-colors hover:bg-accent',
                           !field.state.value && 'text-muted-foreground',
                         )}>
                         <CalendarIcon className="size-3.5 shrink-0 text-muted-foreground" />

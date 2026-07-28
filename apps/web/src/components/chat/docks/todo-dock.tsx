@@ -24,7 +24,7 @@ export function TodoDock({ todos }: TodoDockProps) {
   return (
     <div className="space-y-2">
       {todos.map((todo) => (
-        <div key={todo.id} className="flex items-start gap-3 rounded-xl border border-border/60 px-3 py-2">
+        <div key={todo.id} className="flex items-start gap-3 rounded-xl border border-border-subtle px-3 py-2">
           <StatusDot color={statusStyles[todo.status].dotColor} className="mt-1" />
           <div className="min-w-0 flex-1">
             <div className={cn('text-sm leading-5', statusStyles[todo.status].content)}>{todo.content}</div>

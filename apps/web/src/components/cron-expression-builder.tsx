@@ -149,7 +149,7 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger>
-              <Info className="h-3 w-3 text-muted-foreground/70" />
+              <Info className="h-3 w-3 text-text-faint" />
             </TooltipTrigger>
             <TooltipContent>
               <p>Select which minute past the hour the workflow should run.</p>
@@ -286,7 +286,7 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
               });
             }
           }}
-          className="w-fit justify-start rounded-md border bg-muted/30 p-1">
+          className="w-fit justify-start rounded-md border bg-surface-sunken p-1">
           {FREQUENCIES.map((f) => (
             <ToggleGroupItem
               key={f.value}
@@ -337,7 +337,7 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
         </ScrollArea>
 
         {/* Upcoming Executions Sidebar */}
-        <div className="flex shrink-0 flex-col gap-3 border-l border-border/50 lg:w-64 lg:pl-6">
+        <div className="flex shrink-0 flex-col gap-3 border-l border-border-subtle lg:w-64 lg:pl-6">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Calendar className="h-4 w-4" />
             <h3 className="text-xs font-semibold tracking-wider uppercase">Upcoming Runs</h3>

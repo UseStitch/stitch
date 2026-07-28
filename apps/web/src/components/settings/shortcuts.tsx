@@ -51,7 +51,7 @@ const defaultLeaderKey = SETTINGS_DEFAULTS.find((s) => s.key === 'shortcuts.lead
 
 function HotkeyBadge({ hotkey, isSequence }: { hotkey: string | null; isSequence: boolean }) {
   if (!hotkey) {
-    return <span className="text-sm font-medium text-muted-foreground/60">Unassigned</span>;
+    return <span className="text-sm font-medium text-text-faint">Unassigned</span>;
   }
 
   // Handle LEADER+ prefixed hotkeys: show resolved leader key, then arrow, then suffix
@@ -111,7 +111,7 @@ function ShortcutRow({
   const isLeaderShortcut = entry.hotkey?.startsWith('LEADER+');
 
   return (
-    <div className="flex items-center justify-between border-b border-border/40 px-4 py-2.5 transition-colors last:border-0 hover:bg-muted/20">
+    <div className="flex items-center justify-between border-b border-border-subtle px-4 py-2.5 transition-colors last:border-0 hover:bg-surface-sunken">
       <div className="flex items-center gap-3">
         <span className="text-sm font-medium">{entry.label}</span>
         {!isDefault && (

@@ -94,7 +94,7 @@ export function McpServerList({ onAdd, onPreview }: { onAdd: () => void; onPrevi
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border/60">
+      <div className="overflow-hidden rounded-lg border border-border-subtle">
         {servers.length === 0 && <p className="px-4 py-5 text-sm text-muted-foreground">No MCP servers configured.</p>}
 
         {servers.map((server) => {
@@ -104,7 +104,7 @@ export function McpServerList({ onAdd, onPreview }: { onAdd: () => void; onPrevi
           return (
             <div
               key={server.id}
-              className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 last:border-b-0">
+              className="flex items-center justify-between gap-3 border-b border-border-subtle px-4 py-3 last:border-b-0">
               <div className="flex min-w-0 flex-col gap-0.5">
                 <div className="flex items-center gap-2">
                   <McpServerLogo serverId={server.id} name={server.name} className="size-4" />

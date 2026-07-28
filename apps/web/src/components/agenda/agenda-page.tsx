@@ -295,13 +295,13 @@ export function AgendaPage({ listId }: { listId?: string }) {
                     if (e.key === 'Enter') commitRename();
                     if (e.key === 'Escape') setEditingTitle(false);
                   }}
-                  className="-ml-1 h-auto w-full rounded border-none bg-transparent px-1 py-0 text-xl font-semibold ring-1 ring-primary focus-visible:ring-1 focus-visible:ring-primary dark:bg-transparent"
+                  className="-ml-1 h-auto w-full rounded-sm border-none bg-transparent px-1 py-0 text-xl font-semibold ring-1 ring-primary focus-visible:ring-1 focus-visible:ring-primary dark:bg-transparent"
                 />
               ) : currentList ? (
                 <Button
                   type="button"
                   variant="ghost"
-                  className="group/title -ml-1 h-auto gap-1.5 rounded px-1 hover:bg-muted"
+                  className="group/title -ml-1 h-auto gap-1.5 rounded-sm px-1 hover:bg-muted"
                   onClick={startRenaming}>
                   <h1 className="text-xl font-semibold">{currentList.name}</h1>
                   <PencilIcon className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/title:opacity-100" />
@@ -446,7 +446,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
                   <Table.EmptyRow colSpan={listId ? 6 : 7}>
                     <Empty>
                       <EmptyMedia>
-                        <ListTodoIcon className="size-10 text-muted-foreground/30" />
+                        <ListTodoIcon className="size-10 text-text-faint" />
                       </EmptyMedia>
                       <EmptyTitle>No agenda items</EmptyTitle>
                       <EmptyDescription>Create items from chat or click "New Item" to get started.</EmptyDescription>
@@ -712,7 +712,7 @@ function AgendaItemRow({
       <Table.Cell className="w-24 text-right" onClick={(e) => e.stopPropagation()}>
         <Popover open={dateOpen} onOpenChange={setDateOpen}>
           <PopoverTrigger
-            className={`inline-flex cursor-pointer rounded px-1 py-0.5 text-xs transition-colors hover:bg-muted ${isOverdue ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
+            className={`inline-flex cursor-pointer rounded-sm px-1 py-0.5 text-xs transition-colors hover:bg-muted ${isOverdue ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
             {item.dueAt ? formatDateInTz(item.dueAt, timeZone) : '—'}
           </PopoverTrigger>
           <PopoverContent align="end" className="w-auto p-0">

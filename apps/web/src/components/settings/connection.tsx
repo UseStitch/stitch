@@ -87,7 +87,7 @@ function ConnectionContent() {
                 className={cn(
                   'h-auto flex-col items-stretch rounded-xl p-4 text-left',
                   mode === option.mode
-                    ? 'border-primary bg-primary/5 shadow-sm ring-2 ring-primary/20'
+                    ? 'border-primary bg-primary-subtle shadow-sm ring-2 ring-primary/20'
                     : 'border-border bg-background hover:bg-accent/50',
                 )}>
                 <span className="text-sm font-medium">{option.label}</span>

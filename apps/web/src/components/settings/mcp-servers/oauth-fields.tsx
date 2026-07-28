@@ -32,7 +32,7 @@ export function OAuthFields({
       </div>
 
       {showAdvanced ? (
-        <div className="space-y-3 rounded-md border border-border/60 p-3">
+        <div className="space-y-3 rounded-md border border-border-subtle p-3">
           <p className="text-xs text-muted-foreground">
             Provide a pre-registered client only if the server does not support dynamic client registration.
           </p>

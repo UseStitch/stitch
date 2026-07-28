@@ -300,7 +300,7 @@ export function MemoriesPage() {
                   <Table.EmptyRow colSpan={7}>
                     <Empty>
                       <EmptyMedia>
-                        <BrainIcon className="size-10 text-muted-foreground/30" />
+                        <BrainIcon className="size-10 text-text-faint" />
                       </EmptyMedia>
                       <EmptyTitle>{isSearching ? 'No memories match your search' : 'No memories yet'}</EmptyTitle>
                       {!isSearching && (

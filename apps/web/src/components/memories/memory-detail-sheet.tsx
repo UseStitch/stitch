@@ -215,7 +215,7 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
             </form.Field>
 
             {/* Read-only metadata */}
-            <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
+            <div className="flex flex-col gap-2 rounded-lg border border-border bg-surface-sunken p-3 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Source</span>
                 <Badge variant="outline" className="capitalize">

@@ -45,7 +45,7 @@ export function RecordingStartStopBar({
       : null;
 
   return (
-    <div className="rounded-xl border border-border/60 bg-card/70 p-4">
+    <div className="rounded-xl border border-border-subtle bg-card/70 p-4">
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-72 flex-1">
           <label htmlFor="recording-title" className="sr-only">

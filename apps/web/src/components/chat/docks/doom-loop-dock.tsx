@@ -16,7 +16,7 @@ export function DoomLoopDock({ sessionId, toolName }: DoomLoopDockProps) {
       </Dock.Icon>
       <Dock.Body>
         <Dock.Title>
-          Repeating <code className="rounded bg-muted px-1 py-0.5 text-xs">{toolName}</code> with identical input
+          Repeating <code className="rounded-sm bg-muted px-1 py-0.5 text-xs">{toolName}</code> with identical input
         </Dock.Title>
         <Dock.Description>The assistant may be stuck in a loop</Dock.Description>
       </Dock.Body>

@@ -21,15 +21,15 @@ export function McpToolsPreview({ server, onBack }: { server: McpServer; onBack:
       {tools && tools.length === 0 && <p className="text-sm text-muted-foreground">No tools exposed by this server.</p>}
 
       {tools && tools.length > 0 && (
-        <ul className="overflow-hidden rounded-lg border border-border/60">
+        <ul className="overflow-hidden rounded-lg border border-border-subtle">
           {tools.map((tool) => (
-            <li key={tool.name} className="border-b border-border/50 last:border-b-0">
+            <li key={tool.name} className="border-b border-border-subtle last:border-b-0">
               <details className="group">
-                <summary className="flex cursor-pointer list-none items-center gap-2.5 px-3 py-2.5 hover:bg-muted/20">
+                <summary className="flex cursor-pointer list-none items-center gap-2.5 px-3 py-2.5 hover:bg-surface-sunken">
                   <ChevronRightIcon className="size-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
                   <WrenchIcon className="size-3.5 shrink-0 text-muted-foreground" />
                   <span className="text-sm font-medium">{tool.title ?? tool.name}</span>
-                  {tool.title && <span className="text-xs text-muted-foreground/60">{tool.name}</span>}
+                  {tool.title && <span className="text-xs text-text-faint">{tool.name}</span>}
                 </summary>
                 {tool.description && (
                   <div className="px-9 pt-1 pb-3">

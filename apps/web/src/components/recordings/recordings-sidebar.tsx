@@ -98,7 +98,7 @@ export function RecordingsSidebarContent() {
         ) : (
           <Empty size="compact">
             <EmptyMedia>
-              <MicIcon className="size-8 text-muted-foreground/40" />
+              <MicIcon className="size-8 text-text-faint" />
             </EmptyMedia>
             <EmptyTitle>No recordings yet</EmptyTitle>
             <EmptyDescription>Start a recording to capture meeting audio.</EmptyDescription>

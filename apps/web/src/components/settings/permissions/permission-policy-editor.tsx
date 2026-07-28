@@ -133,7 +133,7 @@ function ToolPermissionEditor({
       }>
       <div className="space-y-6">
         <Section title="Default behavior" description="This permission is used when no path or command rule matches.">
-          <div className="rounded-lg border border-border/60 bg-card/30 px-3 py-2.5">
+          <div className="rounded-lg border border-border-subtle bg-card/30 px-3 py-2.5">
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
               <div>
                 <p className="text-sm font-medium">All uses</p>
@@ -151,7 +151,7 @@ function ToolPermissionEditor({
 
         {isPatternTool && patternRules.length > 0 && (
           <Section title="Specific rules" description="More specific patterns override the default behavior.">
-            <div className="overflow-hidden rounded-lg border border-border/60">
+            <div className="overflow-hidden rounded-lg border border-border-subtle">
               <div className="divide-y divide-border/40">
                 {patternRules.map((rule) => (
                   <div
@@ -171,7 +171,7 @@ function ToolPermissionEditor({
                         onClick={() => handleDeleteRule(rule)}
                         disabled={isMutating}
                         aria-label="Delete rule"
-                        className="text-muted-foreground/70 hover:text-destructive">
+                        className="text-text-faint hover:text-destructive">
                         <Trash2Icon className="size-3.5" />
                       </Button>
                     </SettingsIconButtonTooltip>
@@ -228,7 +228,7 @@ function ToolPermissionEditor({
                 ? 'Add file and directory patterns that should use a specific permission.'
                 : 'Add command patterns that should use a specific permission.'
             }>
-            <div className="rounded-lg border border-border/60 bg-card/30 p-3">
+            <div className="rounded-lg border border-border-subtle bg-card/30 p-3">
               <div className="flex flex-col gap-2 sm:flex-row">
                 <div className="relative min-w-0 flex-1">
                   <Input
@@ -322,7 +322,7 @@ export function PermissionPolicyEditor({ target, onBack, getEnabled, onToggleEna
         </div>
       }>
       <Section title="Toolset tools" description="Open settings for per-tool permission behavior.">
-        <div className="overflow-hidden rounded-lg border border-border/60">
+        <div className="overflow-hidden rounded-lg border border-border-subtle">
           <div className="divide-y divide-border/40">
             {target.tools.map((tool) => (
               <div

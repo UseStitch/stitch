@@ -53,7 +53,7 @@ export function AutomationsSidebarContent() {
         ) : (
           <Empty size="compact">
             <EmptyMedia>
-              <BotIcon className="size-8 text-muted-foreground/40" />
+              <BotIcon className="size-8 text-text-faint" />
             </EmptyMedia>
             <EmptyTitle>No automations yet</EmptyTitle>
             <EmptyDescription>Create one to prefill and start sessions faster.</EmptyDescription>

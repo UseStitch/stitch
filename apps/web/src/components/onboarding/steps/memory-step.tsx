@@ -105,7 +105,7 @@ export function MemoryStep({ onComplete, onBackToProviders }: Props) {
           </Select>
         </div>
       ) : (
-        <p className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+        <p className="rounded-md border border-border-subtle bg-surface-sunken px-3 py-2 text-sm text-muted-foreground">
           No embedding models in providers configured. Please add another provider that has one
         </p>
       )}

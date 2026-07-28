@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 export function WelcomeStep({ onContinue }: { onContinue: () => void }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-6 text-center">
-      <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+      <div className="flex size-12 items-center justify-center rounded-2xl bg-primary-subtle text-primary">
         <SparklesIcon className="size-6" />
       </div>
       <div className="max-w-lg space-y-2">

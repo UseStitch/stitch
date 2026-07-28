@@ -30,7 +30,7 @@ export function ModelSelectorPopover({ selectedValue, onSelect, providerModels }
       <PopoverTrigger
         className={cn(
           'flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors',
-          'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+          'text-muted-foreground hover:text-foreground hover:bg-accent',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
         )}>
         <CpuIcon className="size-3.5 shrink-0" />
@@ -43,7 +43,7 @@ export function ModelSelectorPopover({ selectedValue, onSelect, providerModels }
         sideOffset={6}
         align="start"
         className="max-h-80 w-96 gap-0 p-0 shadow-lg outline-none">
-        <div className="flex items-center gap-2 border-b border-border/50 px-3 py-2">
+        <div className="flex items-center gap-2 border-b border-border-subtle px-3 py-2">
           <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" />
           <Input
             value={search}
@@ -58,7 +58,7 @@ export function ModelSelectorPopover({ selectedValue, onSelect, providerModels }
             {filtered.length === 0 && <p className="py-4 text-center text-xs text-muted-foreground">No models found</p>}
             {filtered.map((provider, index) => (
               <div key={provider.providerId}>
-                {index > 0 && <div className="my-1 h-px bg-border/50" />}
+                {index > 0 && <div className="my-1 h-px bg-border-subtle" />}
                 <p className="px-2 py-1 text-xs font-medium text-muted-foreground">{provider.providerName}</p>
                 {provider.models.map((model) => {
                   const isSelected =

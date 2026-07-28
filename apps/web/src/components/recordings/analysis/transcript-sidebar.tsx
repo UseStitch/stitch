@@ -75,8 +75,8 @@ export function TranscriptSidebar({ analysis, isRunning, recordingId, isRecordin
   const hasTranscript = entries.length > 0;
 
   return (
-    <aside className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border/50 bg-muted/20 shadow-inner">
-      <div className="shrink-0 border-b border-border/50 bg-muted/30 px-5 py-4">
+    <aside className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border-subtle bg-surface-sunken shadow-inner">
+      <div className="shrink-0 border-b border-border-subtle bg-surface-sunken px-5 py-4">
         <h2 className="flex items-center text-sm font-semibold tracking-wide text-foreground">
           <MessageSquareIcon className="mr-2 size-4 text-muted-foreground" />
           {isRecording ? 'Live Transcript' : 'Full Transcript'}
@@ -104,7 +104,7 @@ export function TranscriptSidebar({ analysis, isRunning, recordingId, isRecordin
                     transform: `translateY(${virtualRow.start + 20}px)`,
                   }}>
                   <div
-                    className={`group rounded-xl border border-border/40 bg-background px-4 py-3.5 shadow-sm transition-colors hover:border-border/80 ${
+                    className={`group rounded-xl border border-border-subtle bg-background px-4 py-3.5 shadow-sm transition-colors hover:border-border-subtle ${
                       entry.source === 'mic' ? 'ml-2' : entry.source === 'speaker' ? 'mr-2' : ''
                     }`}>
                     <div className="mb-1.5 flex items-center justify-between">

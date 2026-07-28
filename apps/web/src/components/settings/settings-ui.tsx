@@ -116,7 +116,9 @@ export function SettingSection({ title, description, className, children }: Sett
 type SettingRowsProps = { className?: string; children: React.ReactNode };
 
 export function SettingRows({ className, children }: SettingRowsProps) {
-  return <div className={cn('*:border-b *:border-border/50 [&>*:last-child]:border-b-0', className)}>{children}</div>;
+  return (
+    <div className={cn('*:border-b *:border-border-subtle [&>*:last-child]:border-b-0', className)}>{children}</div>
+  );
 }
 
 // ---------------------------------------------------------------------------

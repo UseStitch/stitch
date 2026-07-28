@@ -119,7 +119,7 @@ function AccountErrorBanner({ account, error }: { account: MailAccountView; erro
   }
 
   return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+    <div className="rounded-lg border border-destructive/30 bg-destructive-subtle p-3 text-sm text-destructive">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 gap-2">
           <AlertCircleIcon className="mt-0.5 size-4 shrink-0" />
@@ -165,7 +165,7 @@ export function MailAccountCard({ account, status }: { account: MailAccountView;
   }
 
   return (
-    <div className="rounded-lg border border-border/60 bg-card px-3 py-2.5">
+    <div className="rounded-lg border border-border-subtle bg-card px-3 py-2.5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <div className="flex min-w-0 items-center gap-2">
@@ -191,7 +191,7 @@ export function MailAccountCard({ account, status }: { account: MailAccountView;
       <div className="mt-2">
         <SyncProgress status={status} />
       </div>
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border/50 pt-2">
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border-subtle pt-2">
         <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
           <label className="flex items-center gap-1.5" htmlFor={`${account.id}-sync-frequency`}>
             <span>Every</span>

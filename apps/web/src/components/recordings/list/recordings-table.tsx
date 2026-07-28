@@ -157,7 +157,7 @@ export function RecordingsTable({
             <Table.EmptyRow colSpan={columns.length}>
               <Empty>
                 <EmptyMedia>
-                  <MicIcon className="size-10 text-muted-foreground/30" />
+                  <MicIcon className="size-10 text-text-faint" />
                 </EmptyMedia>
                 <EmptyTitle>No recordings yet</EmptyTitle>
                 <EmptyDescription>Start recording to capture your first meeting audio.</EmptyDescription>

@@ -69,7 +69,7 @@ function ImportSkillView({ onBack }: { onBack: () => void }) {
           placeholder="Search skills, e.g. frontend design"
           onChange={(event) => setSearch(event.target.value)}
         />
-        <div className="thin-scrollbar min-h-0 flex-1 overflow-auto rounded-lg border border-border/50">
+        <div className="thin-scrollbar min-h-0 flex-1 overflow-auto rounded-lg border border-border-subtle">
           {search.trim().length < 2 ? (
             <div className="px-4 py-6 text-center text-xs text-muted-foreground">
               Type at least 2 characters to search
@@ -82,7 +82,7 @@ function ImportSkillView({ onBack }: { onBack: () => void }) {
             searchResults.map((skill) => (
               <div
                 key={`${skill.source}/${skill.slug}`}
-                className="flex items-center justify-between gap-4 border-b border-border/50 px-4 py-3 last:border-b-0">
+                className="flex items-center justify-between gap-4 border-b border-border-subtle px-4 py-3 last:border-b-0">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{skill.name}</p>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">
@@ -197,7 +197,7 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
 
         <form.Subscribe selector={(state) => state.isSubmitting}>
           {(isSubmitting) => (
-            <div className="mt-auto flex justify-end gap-2 border-t border-border/50 pt-4">
+            <div className="mt-auto flex justify-end gap-2 border-t border-border-subtle pt-4">
               <Button type="button" variant="outline" onClick={onBack} disabled={isSubmitting}>
                 Cancel
               </Button>

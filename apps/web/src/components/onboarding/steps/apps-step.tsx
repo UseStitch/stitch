@@ -38,7 +38,7 @@ export function AppsStep({ onContinue }: Props) {
           return (
             <div
               key={appId}
-              className="flex items-center justify-between gap-4 rounded-xl border border-border/70 bg-card px-4 py-3">
+              className="flex items-center justify-between gap-4 rounded-xl border border-border-subtle bg-card px-4 py-3">
               <div className="flex min-w-0 items-start gap-3">
                 <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                   <Icon className="size-4" />

@@ -107,7 +107,7 @@ function PermissionStatus() {
   };
 
   return (
-    <div className="rounded-lg border border-warning/30 bg-warning/5 p-3">
+    <div className="rounded-lg border border-warning/30 bg-warning-subtle p-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-medium text-warning">Missing Permissions</p>

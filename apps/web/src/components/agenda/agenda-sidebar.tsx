@@ -262,7 +262,7 @@ export function AgendaSidebarContent() {
               const isMergeTarget = mergeTargetId === list.id && dragListId !== list.id;
               return (
                 <React.Fragment key={list.id}>
-                  {showDropBefore && <div className="mx-2 h-0.5 rounded bg-primary" />}
+                  {showDropBefore && <div className="mx-2 h-0.5 rounded-sm bg-primary" />}
                   <div onDragOver={(e) => handleListDragOver(e, index)}>
                     <ListRow
                       list={list}
@@ -276,11 +276,11 @@ export function AgendaSidebarContent() {
                 </React.Fragment>
               );
             })}
-            {dropIndex === lists.length && dragListId && <div className="mx-2 h-0.5 rounded bg-primary" />}
+            {dropIndex === lists.length && dragListId && <div className="mx-2 h-0.5 rounded-sm bg-primary" />}
             {lists.length === 0 && (
               <Empty size="compact">
                 <EmptyMedia>
-                  <ListTodoIcon className="size-8 text-muted-foreground/40" />
+                  <ListTodoIcon className="size-8 text-text-faint" />
                 </EmptyMedia>
                 <EmptyTitle>No lists yet</EmptyTitle>
                 <EmptyDescription>Click + to create your first list.</EmptyDescription>

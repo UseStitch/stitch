@@ -175,7 +175,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
           />
         ) : selectedAutomation ? (
           <div className="space-y-4">
-            <div className="rounded-xl border border-border/60 bg-card/70 p-4">
+            <div className="rounded-xl border border-border-subtle bg-card/70 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="space-y-1">
                   <p className="text-base font-semibold">{selectedAutomation.title}</p>
@@ -310,7 +310,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
         contentClassName="max-w-sm">
         <label
           htmlFor="archive-automation-sessions"
-          className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/40 p-3 text-sm">
+          className="flex items-start gap-3 rounded-lg border border-border-subtle bg-muted/40 p-3 text-sm">
           <Checkbox
             id="archive-automation-sessions"
             checked={archiveDeletedAutomationSessions}

@@ -40,7 +40,7 @@ export function UserMessageBubble({ parts, onSplit, onEdit }: UserMessageBubbleP
         {hasAttachments && (
           <div className="flex flex-wrap justify-end gap-2">
             {imageParts.map((part) => (
-              <div key={part.id} className="size-20 overflow-hidden rounded-lg border border-border/50 bg-muted/50">
+              <div key={part.id} className="size-20 overflow-hidden rounded-lg border border-border-subtle bg-muted/50">
                 {part.dataUrl ? (
                   <img src={part.dataUrl} alt={part.filename} className="size-full object-cover" />
                 ) : (
@@ -53,7 +53,7 @@ export function UserMessageBubble({ parts, onSplit, onEdit }: UserMessageBubbleP
             {fileParts.map((part) => (
               <div
                 key={part.id}
-                className="flex h-8 max-w-48 items-center gap-1.5 rounded-lg border border-border/50 bg-muted/50 px-2.5">
+                className="flex h-8 max-w-48 items-center gap-1.5 rounded-lg border border-border-subtle bg-muted/50 px-2.5">
                 <FileIcon className="size-3.5 shrink-0 text-muted-foreground" />
                 <span className="truncate text-xs text-foreground/80">{part.filename}</span>
               </div>
@@ -61,7 +61,7 @@ export function UserMessageBubble({ parts, onSplit, onEdit }: UserMessageBubbleP
             {textFileParts.map((part) => (
               <div
                 key={part.id}
-                className="flex h-8 max-w-48 items-center gap-1.5 rounded-lg border border-border/50 bg-muted/50 px-2.5">
+                className="flex h-8 max-w-48 items-center gap-1.5 rounded-lg border border-border-subtle bg-muted/50 px-2.5">
                 <FileTextIcon className="size-3.5 shrink-0 text-muted-foreground" />
                 <span className="truncate text-xs text-foreground/80">{part.filename}</span>
               </div>
@@ -74,7 +74,7 @@ export function UserMessageBubble({ parts, onSplit, onEdit }: UserMessageBubbleP
             <div
               ref={contentRef}
               className={cn(
-                'transition-[max-height] duration-200',
+                'transition-[max-height] duration-base',
                 !isExpanded && isOverflowing && 'max-h-37.5 overflow-y-auto thin-scrollbar',
               )}>
               <ChatMarkdown text={text} className="text-sm" />

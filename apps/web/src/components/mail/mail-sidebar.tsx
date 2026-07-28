@@ -418,7 +418,7 @@ export function MailSidebarContent() {
         {!selectedAccount ? (
           <Empty size="compact">
             <EmptyMedia>
-              <MailIcon className="size-8 text-muted-foreground/40" />
+              <MailIcon className="size-8 text-text-faint" />
             </EmptyMedia>
             <EmptyTitle>No mail accounts</EmptyTitle>
             <EmptyDescription>Enroll an account in Settings.</EmptyDescription>

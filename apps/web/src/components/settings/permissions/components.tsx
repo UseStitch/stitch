@@ -48,7 +48,7 @@ export function ToolRow({
       className={cn(
         'grid items-center gap-3 px-3 py-2.5 sm:px-4',
         reserveMiddleSlot ? 'grid-cols-[minmax(0,1fr)_5rem_5rem_2.5rem]' : 'grid-cols-[minmax(0,1fr)_5rem_2.5rem]',
-        isNested && 'pl-10 sm:pl-12 bg-muted/10',
+        isNested && 'pl-10 sm:pl-12 bg-surface-sunken',
       )}>
       <div className="flex min-w-0 items-center gap-2.5">
         {icon ??
@@ -122,13 +122,13 @@ export function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-xl border border-border/60 bg-card/40">
-      <div className="flex items-start justify-between gap-3 border-b border-border/50 px-4 py-3">
+    <section className="overflow-hidden rounded-xl border border-border-subtle bg-card/40">
+      <div className="flex items-start justify-between gap-3 border-b border-border-subtle px-4 py-3">
         <div>
           <p className="text-sm font-semibold">{title}</p>
           <p className="text-xs text-muted-foreground">{description}</p>
         </div>
-        <p className="rounded-md border border-border/60 bg-muted/20 px-2 py-0.5 text-xs text-muted-foreground">
+        <p className="rounded-md border border-border-subtle bg-surface-sunken px-2 py-0.5 text-xs text-muted-foreground">
           {count}
         </p>
       </div>

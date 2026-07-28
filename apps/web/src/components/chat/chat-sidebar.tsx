@@ -161,7 +161,7 @@ export function ChatSidebarContent() {
                         type="button"
                         variant="ghost"
                         size="icon-xs"
-                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        className="text-destructive hover:bg-destructive-subtle hover:text-destructive"
                         aria-label={`Delete ${session.title ?? 'conversation'}`}
                         disabled={archiveSession.isPending || deleteSession.isPending}
                         onClick={(event) => {
@@ -185,7 +185,7 @@ export function ChatSidebarContent() {
         ) : (
           <Empty size="compact">
             <EmptyMedia>
-              <MessageCircleIcon className="size-8 text-muted-foreground/40" />
+              <MessageCircleIcon className="size-8 text-text-faint" />
             </EmptyMedia>
             <EmptyTitle>{deferredSearch ? 'No matching conversations' : 'No conversations yet'}</EmptyTitle>
             <EmptyDescription>

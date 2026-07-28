@@ -68,7 +68,7 @@ export function McpRegistryList({
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border/60">
+      <div className="overflow-hidden rounded-lg border border-border-subtle">
         {filteredServers.length === 0 && (
           <p className="px-4 py-5 text-sm text-muted-foreground">No servers match your search.</p>
         )}
@@ -76,7 +76,7 @@ export function McpRegistryList({
         {filteredServers.map((server) => (
           <div
             key={server.id}
-            className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/20">
+            className="flex items-center justify-between gap-3 border-b border-border-subtle px-4 py-3 transition-colors last:border-b-0 hover:bg-surface-sunken">
             <div className="flex min-w-0 items-start gap-3">
               <McpServerLogo registryId={server.id} name={server.name} className="mt-0.5 size-5" />
               <div className="min-w-0 space-y-0.5">
@@ -87,7 +87,7 @@ export function McpRegistryList({
                       key={tag}
                       variant="outline"
                       size="sm"
-                      className="border-border/40 bg-background/60 text-muted-foreground capitalize">
+                      className="border-border-subtle bg-background/60 text-muted-foreground capitalize">
                       {tag}
                     </Badge>
                   ))}

@@ -64,7 +64,7 @@ export function ToolCallGroup({ calls, onAbort }: ToolCallGroupProps) {
   if (calls.length === 0) return null;
 
   return (
-    <div className="my-2 border-l-2 border-border/60 pl-3 text-xs">
+    <div className="my-2 border-l-2 border-border-subtle pl-3 text-xs">
       {hiddenCount > 0 ? (
         <Button
           key={hiddenCount}
@@ -73,8 +73,8 @@ export function ToolCallGroup({ calls, onAbort }: ToolCallGroupProps) {
           size="xs"
           onClick={() => setExpanded((current) => !current)}
           className={cn(
-            'w-full justify-start px-1.5 text-muted-foreground hover:bg-muted/50',
-            hiddenCountIncreased && 'animate-in fade-in slide-in-from-top-1 duration-200',
+            'w-full justify-start px-1.5 text-muted-foreground hover:bg-accent',
+            hiddenCountIncreased && 'animate-in fade-in slide-in-from-top-1 duration-base',
           )}>
           <ChevronDownIcon className={cn('size-3 transition-transform', expanded && 'rotate-180')} />
           {expanded ? 'Hide earlier tool calls' : `Show ${hiddenCount} earlier tool calls`}
@@ -169,8 +169,8 @@ function ToolCallRowRoot({
     <ToolCallRowContext.Provider value={contextValue}>
       <div
         className={cn(
-          'group flex min-h-7 min-w-0 items-center gap-2 rounded-md px-1.5 text-xs transition-colors hover:bg-muted/40',
-          animateIn && 'animate-in fade-in slide-in-from-top-1 duration-200',
+          'group flex min-h-7 min-w-0 items-center gap-2 rounded-md px-1.5 text-xs transition-colors hover:bg-accent',
+          animateIn && 'animate-in fade-in slide-in-from-top-1 duration-base',
         )}>
         {children}
       </div>
@@ -210,7 +210,7 @@ function ToolCallRowPreview() {
 function ToolCallRowMeta() {
   const { summary } = useToolCallRow();
   return (
-    <span className="hidden h-5 w-44 shrink-0 items-center justify-end truncate text-right text-2xs leading-none text-muted-foreground/80 sm:flex">
+    <span className="hidden h-5 w-44 shrink-0 items-center justify-end truncate text-right text-2xs leading-none text-text-faint sm:flex">
       {summary.meta}
     </span>
   );
@@ -304,7 +304,7 @@ function ToolErrorDetailsDialog({
             className="absolute top-2 right-9"
           />
         ) : null}
-        <pre className="max-h-[min(28rem,60vh)] overflow-auto rounded-lg border bg-muted/30 p-3 text-xs whitespace-pre-wrap text-foreground">
+        <pre className="max-h-[min(28rem,60vh)] overflow-auto rounded-lg border bg-surface-sunken p-3 text-xs whitespace-pre-wrap text-foreground">
           {details?.error}
         </pre>
       </DialogContent>

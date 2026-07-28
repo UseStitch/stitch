@@ -117,7 +117,7 @@ function LiquidStat({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { comp
 
 function LiquidKeyValue({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'KeyValue' }>>) {
   return (
-    <div className="flex items-start justify-between gap-4 rounded-md border bg-muted/30 px-3 py-2 text-sm">
+    <div className="flex items-start justify-between gap-4 rounded-md border bg-surface-sunken px-3 py-2 text-sm">
       <span className="text-muted-foreground">{node.label}</span>
       <span className="text-right font-medium text-foreground">{node.value}</span>
     </div>

@@ -482,7 +482,7 @@ export function LocalModelsPanel({ provider }: Props) {
               key={d.id}
               type="button"
               variant="ghost"
-              className="h-auto justify-between rounded px-2 py-1.5 hover:bg-accent"
+              className="h-auto justify-between rounded-sm px-2 py-1.5 hover:bg-accent"
               onClick={() => {
                 const input = formToInput(discoveredToForm(d));
                 upsertMutation.mutate(input);

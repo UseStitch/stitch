@@ -19,7 +19,7 @@ type ProviderRowProps = { provider: ProviderSummary; onSelect: (provider: Provid
 function ProviderRow({ provider, onSelect }: ProviderRowProps) {
   const meta = PROVIDER_META[provider.id as ProviderId];
   return (
-    <div className="flex items-center justify-between border-b border-border/50 px-1 py-3 last:border-0">
+    <div className="flex items-center justify-between border-b border-border-subtle px-1 py-3 last:border-0">
       <div className="flex min-w-0 items-center gap-3">
         <div className="shrink-0 text-muted-foreground">
           <ProviderLogo providerId={provider.id} providerName={meta.displayName} />

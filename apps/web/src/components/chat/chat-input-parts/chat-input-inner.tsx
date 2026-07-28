@@ -150,7 +150,7 @@ export function ChatInputInner({
   return (
     <div
       className={cn(
-        'relative flex flex-col rounded-2xl border border-border/60 bg-card',
+        'relative flex flex-col rounded-2xl border border-border-subtle bg-card',
         'transition-all focus-within:border-border focus-within:shadow-md',
         'shadow-sm',
         embedded && 'rounded-none border-0 bg-transparent shadow-none',
@@ -164,7 +164,7 @@ export function ChatInputInner({
         void handleDrop(event);
       }}>
       {isDragging && (
-        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-primary/5">
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-primary-subtle">
           <p className="text-sm font-medium text-primary">Drop files here</p>
         </div>
       )}
@@ -208,7 +208,7 @@ export function ChatInputInner({
             rows={1}
             className={cn(
               'min-h-0 w-full resize-none rounded-none border-0 bg-transparent px-4 pt-4 pb-2 text-sm leading-relaxed',
-              'placeholder:text-muted-foreground/60',
+              'placeholder:text-text-faint',
               'max-h-48 overflow-y-auto thin-scrollbar',
               'field-sizing-content',
               'focus-visible:ring-0 dark:bg-transparent disabled:bg-transparent dark:disabled:bg-transparent',

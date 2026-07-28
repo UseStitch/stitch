@@ -215,7 +215,7 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
                   <div className="streaming-border-content shadow-sm" style={{ viewTransitionName: 'chat-input' }}>
                     <DockContainer docks={docks} />
                     {editingMessage && (
-                      <div className="flex items-center justify-between gap-3 border-b border-border/60 px-3 py-2 text-xs text-muted-foreground">
+                      <div className="flex items-center justify-between gap-3 border-b border-border-subtle px-3 py-2 text-xs text-muted-foreground">
                         <span>Editing this message will redo the conversation from that point.</span>
                         <Button type="button" variant="ghost" size="xs" onClick={cancelEdit}>
                           Cancel

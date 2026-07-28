@@ -89,7 +89,7 @@ function DockSelectable({ selected, description, children, className, ...props }
       variant="ghost"
       className={cn(
         'h-auto w-full items-start justify-start gap-2 rounded-md p-2 text-left',
-        selected ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50',
+        selected ? 'border-primary bg-primary-subtle' : 'border-border hover:bg-accent',
         className,
       )}
       {...props}>
@@ -125,7 +125,7 @@ function CollapsibleDockItem({ title, defaultExpanded = true, children, isLast, 
   const styles = variantStyles[variant];
 
   return (
-    <div className={cn('overflow-hidden bg-transparent', !isLast && 'border-b border-border/60')}>
+    <div className={cn('overflow-hidden bg-transparent', !isLast && 'border-b border-border-subtle')}>
       <div className="flex items-center">
         <Button
           type="button"
@@ -134,13 +134,13 @@ function CollapsibleDockItem({ title, defaultExpanded = true, children, isLast, 
           aria-expanded={isExpanded}
           className={cn(
             'h-auto flex-1 justify-start gap-3 px-4 py-3 text-left',
-            'transition-colors duration-150 ease-out',
+            'transition-colors duration-fast ease-standard',
             styles.header,
             'focus-visible:outline-none',
           )}>
           <span
             className={cn(
-              'transition-transform duration-150 ease-out',
+              'transition-transform duration-fast ease-standard',
               styles.icon,
               isExpanded ? 'rotate-0' : '-rotate-90',
             )}>
@@ -152,7 +152,7 @@ function CollapsibleDockItem({ title, defaultExpanded = true, children, isLast, 
 
       <div
         className={cn(
-          'grid transition-[opacity,grid-template-rows] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]',
+          'grid transition-[opacity,grid-template-rows] duration-slow ease-standard',
           isExpanded ? 'opacity-100' : 'opacity-0',
         )}
         style={{ gridTemplateRows: isExpanded ? '1fr' : '0fr' }}>
@@ -191,7 +191,7 @@ export function DockContainer({ docks, className }: DockContainerProps) {
     <div
       className={cn(
         'pointer-events-auto grid transition-[grid-template-rows,opacity]',
-        isOpen ? 'duration-340 ease-[cubic-bezier(0.23,1,0.32,1)] opacity-100' : 'duration-300 ease-in opacity-0',
+        isOpen ? 'duration-slow ease-standard opacity-100' : 'duration-slow ease-emphasized opacity-0',
         className,
       )}
       style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
@@ -200,9 +200,7 @@ export function DockContainer({ docks, className }: DockContainerProps) {
         <div
           className={cn(
             'flex flex-col transition-transform',
-            isOpen
-              ? 'translate-y-0 duration-340 ease-[cubic-bezier(0.23,1,0.32,1)]'
-              : 'translate-y-1 duration-300 ease-in',
+            isOpen ? 'translate-y-0 duration-slow ease-standard' : 'translate-y-1 duration-slow ease-emphasized',
           )}>
           {renderedDocks.map((dock, index) => (
             <CollapsibleDockItem

@@ -10,7 +10,7 @@ export function ReasoningBlock({ text, isStreaming }: ReasoningBlockProps) {
   const [open, setOpen] = React.useState(false);
 
   return (
-    <div className="my-2 overflow-hidden rounded-lg border border-border/40 bg-muted/25">
+    <div className="my-2 overflow-hidden rounded-lg border border-border-subtle bg-surface-sunken">
       <Button
         variant="ghost"
         onClick={() => setOpen((o) => !o)}
@@ -20,7 +20,7 @@ export function ReasoningBlock({ text, isStreaming }: ReasoningBlockProps) {
         {isStreaming && <StatusDot color="info" size="sm" pulse className="ml-auto" />}
       </Button>
       {open && (
-        <div className="border-t border-border/40 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground italic">
+        <div className="border-t border-border-subtle px-3 py-2.5 text-xs leading-relaxed text-muted-foreground italic">
           {text}
         </div>
       )}

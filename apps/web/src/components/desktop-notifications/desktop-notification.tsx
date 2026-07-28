@@ -10,7 +10,7 @@ function DesktopNotificationRoot({ children, exiting, onDismiss }: DesktopNotifi
   return (
     <article
       className={cn(
-        'desktop-notification-surface group relative box-border flex w-full min-w-0 gap-2 overflow-hidden rounded-xl border p-3 shadow-lg shadow-foreground/15 transition-all duration-200 ease-out',
+        'desktop-notification-surface group relative box-border flex w-full min-w-0 gap-2 overflow-hidden rounded-xl border p-3 shadow-lg shadow-foreground/15 transition-all duration-base ease-standard',
         exiting ? 'translate-x-8 opacity-0' : 'translate-x-0 opacity-100',
       )}>
       {children}
@@ -29,7 +29,7 @@ function DesktopNotificationRoot({ children, exiting, onDismiss }: DesktopNotifi
 
 function DesktopNotificationIcon({ children }: { children: ReactNode }) {
   return (
-    <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary ring-1 ring-primary/20">
+    <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-subtle text-primary ring-1 ring-primary/20">
       {children}
     </div>
   );

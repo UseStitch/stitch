@@ -66,7 +66,7 @@ function parsePercent(value: string) {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="border-t border-border/70 pt-4 first:border-t-0 first:pt-0">
+    <section className="border-t border-border-subtle pt-4 first:border-t-0 first:pt-0">
       <p className="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">{title}</p>
       <div className="space-y-2.5">{children}</div>
     </section>
@@ -132,8 +132,8 @@ export function SessionDetailsSheet({
 
   return (
     <aside className={cn('h-full min-h-0 overflow-hidden bg-background', className)}>
-      <div className="h-full border-l border-border/80">
-        <div className="border-b border-border/70 px-5 py-4">
+      <div className="h-full border-l border-border-subtle">
+        <div className="border-b border-border-subtle px-5 py-4">
           <p className="text-base font-medium">Context</p>
           <p className="truncate text-sm text-muted-foreground" title={`${providerLabel} ${modelLabel}`}>
             {providerLabel !== '-' || modelLabel !== '-' ? `${providerLabel} · ${modelLabel}` : 'No model usage yet'}

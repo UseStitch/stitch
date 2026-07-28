@@ -187,7 +187,7 @@ function AutomationForm({
 
   return (
     <>
-      <div className="border-b border-border/60 px-6 py-5">
+      <div className="border-b border-border-subtle px-6 py-5">
         <h2 className="text-xl font-semibold tracking-tight">
           {mode === 'create' ? 'Create automation' : 'Edit automation'}
         </h2>
@@ -195,7 +195,7 @@ function AutomationForm({
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(280px,1fr)_minmax(0,2fr)]">
-        <div className="space-y-5 overflow-y-auto border-b border-border/50 bg-muted/10 px-6 py-5 lg:border-r lg:border-b-0">
+        <div className="space-y-5 overflow-y-auto border-b border-border-subtle bg-surface-sunken px-6 py-5 lg:border-r lg:border-b-0">
           <form.Field name="title">
             {(field) => (
               <div className="space-y-1.5">
@@ -284,14 +284,14 @@ function AutomationForm({
             )}
           </form.Field>
 
-          <div className="rounded-lg border border-border/60 bg-card/70 px-3 py-2.5">
+          <div className="rounded-lg border border-border-subtle bg-card/70 px-3 py-2.5">
             <p className="text-2xs font-semibold tracking-wide text-muted-foreground uppercase">Current schedule</p>
             <p className="mt-1 text-sm text-foreground">{scheduleSummary}</p>
           </div>
         </div>
 
         <div className="flex min-h-0 flex-col px-6 py-5">
-          <div className="mb-3 inline-flex w-fit gap-1 rounded-md border border-border/60 bg-muted/30 p-1">
+          <div className="mb-3 inline-flex w-fit gap-1 rounded-md border border-border-subtle bg-surface-sunken p-1">
             <Button
               type="button"
               size="sm"
@@ -328,7 +328,7 @@ function AutomationForm({
                 <Label>Prompt preview</Label>
                 <span className="text-xs text-muted-foreground">Markdown</span>
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border/60 bg-muted/10 p-3">
+              <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border-subtle bg-surface-sunken p-3">
                 {values.initialMessage.trim() ? (
                   <ChatMarkdown text={values.initialMessage} />
                 ) : (
@@ -347,7 +347,7 @@ function AutomationForm({
                   <p className="text-xs text-muted-foreground">
                     This message is used to kick off the session when the automation runs.
                   </p>
-                  <div className="flex min-h-0 flex-1 rounded-xl border border-border/60 bg-muted/15 p-3">
+                  <div className="flex min-h-0 flex-1 rounded-xl border border-border-subtle bg-surface-sunken p-3">
                     <Textarea
                       id="automation-message"
                       value={field.state.value}
@@ -365,7 +365,7 @@ function AutomationForm({
             <form.Field name="cronExpression">
               {(field) => (
                 <div className="flex min-h-0 flex-1 flex-col space-y-2">
-                  <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border/60 bg-muted/15 p-3">
+                  <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border-subtle bg-surface-sunken p-3">
                     <CronExpressionBuilder
                       value={field.state.value}
                       onChange={field.handleChange}
@@ -380,7 +380,7 @@ function AutomationForm({
         </div>
       </div>
 
-      <div className="flex justify-end gap-2 border-t border-border/60 px-6 py-4">
+      <div className="flex justify-end gap-2 border-t border-border-subtle px-6 py-4">
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
           Cancel
         </Button>

@@ -3,7 +3,7 @@ import { CheckCircle2Icon } from 'lucide-react';
 export function SuccessStep() {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-      <div className="flex size-14 items-center justify-center rounded-full bg-success/10 text-success">
+      <div className="flex size-14 items-center justify-center rounded-full bg-success-subtle text-success">
         <CheckCircle2Icon className="size-8" />
       </div>
       <div className="space-y-1">

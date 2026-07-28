@@ -52,7 +52,7 @@ export function SessionPageHeader({
   const isChildSession = parentSessionId !== null;
 
   return (
-    <header className="border-b border-border/60 bg-muted/40">
+    <header className="border-b border-border-subtle bg-muted/40">
       <div className="mx-auto flex h-12 w-full items-center justify-between px-6">
         <div className="flex min-w-0 items-center gap-2">
           {isChildSession ? (
