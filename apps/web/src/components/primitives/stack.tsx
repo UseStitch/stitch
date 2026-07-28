@@ -1,5 +1,4 @@
 import { cva, type VariantProps } from 'class-variance-authority';
-import type { ComponentPropsWithoutRef } from 'react';
 
 import {
   stackAlignVariants,
@@ -9,6 +8,7 @@ import {
   stackPaddingVariants,
   stackWrapVariants,
 } from '@/styles/tokens.generated';
+import type { ComponentPropsWithRef } from 'react';
 
 const stackVariants = cva('flex', {
   variants: {
@@ -22,7 +22,7 @@ const stackVariants = cva('flex', {
   defaultVariants: { direction: 'column', wrap: false },
 });
 
-type StackProps = Omit<ComponentPropsWithoutRef<'div'>, 'className'> &
+type StackProps = Omit<ComponentPropsWithRef<'div'>, 'className'> &
   VariantProps<typeof stackVariants> & { className?: never };
 
 function Stack({ direction, gap, align, justify, padding, wrap, ...props }: StackProps) {
