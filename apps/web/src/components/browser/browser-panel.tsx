@@ -3,6 +3,8 @@ import * as React from 'react';
 
 import type { ElectronBrowserDownload, ElectronBrowserState } from '@stitch/shared/browser/electron';
 
+import { Icon } from '@/components/primitives/icon';
+import { Text } from '@/components/primitives/text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -83,9 +85,9 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
 
   const controllerBadgeClass =
     state.controller === 'agent'
-      ? 'bg-warning/20 text-warning'
+      ? 'bg-warning-subtle text-warning'
       : state.controller === 'human'
-        ? 'bg-success/20 text-success'
+        ? 'bg-success-subtle text-success'
         : 'bg-muted text-muted-foreground';
 
   const controllerLabel = state.controller === 'agent' ? 'Agent' : state.controller === 'human' ? 'You' : 'Ready';
@@ -93,9 +95,13 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden border-l border-border bg-background">
       {/* Tab strip */}
-      <div className="flex h-8 shrink-0 items-center gap-0.5 overflow-x-auto border-b border-border bg-surface-sunken px-1">
+      <div className="flex h-8 shrink-0 items-center gap-space-2xs overflow-x-auto border-b border-border bg-surface-sunken px-space-xs">
         {state.tabs.length === 0 ? (
-          <span className="px-2 text-xs text-muted-foreground">Starting...</span>
+          <div className="px-space-m">
+            <Text as="span" variant="caption" tone="muted">
+              Starting...
+            </Text>
+          </div>
         ) : (
           state.tabs.map((tab) => (
             <div
@@ -106,7 +112,7 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
               )}>
               <Button
                 variant="ghost"
-                className="h-auto min-w-0 flex-1 justify-start truncate px-2 py-0.5 text-left font-normal hover:bg-transparent"
+                className="h-auto min-w-0 flex-1 justify-start truncate px-space-m py-space-2xs text-left font-normal hover:bg-transparent"
                 onClick={() => void window.api?.browser.focusTab(tab.id)}
                 type="button"
                 title={tab.url}>
@@ -115,11 +121,11 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
               <Button
                 variant="ghost"
                 size="icon-xs"
-                className="mr-0.5 size-4 shrink-0 rounded-sm opacity-0 group-hover:opacity-60 hover:bg-muted hover:opacity-100!"
+                className="mr-space-2xs size-4 shrink-0 rounded-sm opacity-0 group-hover:opacity-60 hover:bg-muted hover:opacity-100!"
                 onClick={() => void window.api?.browser.closeTab(tab.id)}
                 type="button"
                 aria-label="Close tab">
-                <XIcon className="size-2.5" />
+                <Icon as={XIcon} size="xs" />
               </Button>
             </div>
           ))
@@ -127,32 +133,32 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
         <Button
           variant="ghost"
           size="icon-sm"
-          className="ml-0.5 shrink-0"
+          className="ml-space-2xs shrink-0"
           onClick={() => void window.api?.browser.newTab()}
           aria-label="New tab">
-          <PlusIcon className="size-3.5" />
+          <Icon as={PlusIcon} size="s" />
         </Button>
       </div>
 
       {/* Nav bar */}
-      <div className="flex h-9 shrink-0 items-center gap-1 border-b border-border px-2">
+      <div className="flex h-9 shrink-0 items-center gap-space-xs border-b border-border px-space-m">
         <Button variant="ghost" size="icon-sm" onClick={() => void window.api?.browser.goBack()} aria-label="Back">
-          <ArrowLeftIcon className="size-4" />
+          <Icon as={ArrowLeftIcon} size="m" />
         </Button>
         <Button
           variant="ghost"
           size="icon-sm"
           onClick={() => void window.api?.browser.goForward()}
           aria-label="Forward">
-          <ArrowRightIcon className="size-4" />
+          <Icon as={ArrowRightIcon} size="m" />
         </Button>
         <Button variant="ghost" size="icon-sm" onClick={() => void window.api?.browser.reload()} aria-label="Reload">
-          <RotateCwIcon className="size-4" />
+          <Icon as={RotateCwIcon} size="m" />
         </Button>
 
         <form className="min-w-0 flex-1" onSubmit={submitAddress}>
           <Input
-            className="h-7 w-full rounded-sm border-border bg-muted/40 px-2 py-0 text-xs focus:border-primary focus-visible:ring-0"
+            className="h-7 w-full rounded-sm border-border bg-surface-sunken px-space-m py-space-none text-xs focus:border-primary focus-visible:ring-0"
             value={address}
             onChange={(event) => setAddress(event.target.value)}
           />
@@ -163,7 +169,7 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
         </Badge>
 
         <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Close browser">
-          <XIcon className="size-4" />
+          <Icon as={XIcon} size="m" />
         </Button>
       </div>
 
@@ -186,13 +192,21 @@ function DownloadsPanel({ downloads }: { downloads: ElectronBrowserDownload[] })
   if (downloads.length === 0) return null;
 
   return (
-    <div className="max-h-36 shrink-0 overflow-y-auto border-t border-border bg-surface-sunken p-2">
-      <div className="mb-1 text-xs font-medium">Downloads</div>
-      <div className="space-y-1">
+    <div className="max-h-36 shrink-0 overflow-y-auto border-t border-border bg-surface-sunken p-space-m">
+      <div className="mb-space-xs text-xs font-medium">Downloads</div>
+      <div className="space-y-space-xs">
         {downloads.slice(0, 5).map((download) => (
-          <div className="flex items-center gap-2 text-xs" key={download.id} title={download.path}>
-            <span className="min-w-0 flex-1 truncate">{download.filename}</span>
-            <span className="shrink-0 text-muted-foreground">{formatDownloadState(download)}</span>
+          <div className="flex items-center gap-space-m text-xs" key={download.id} title={download.path}>
+            <div className="min-w-0 flex-1">
+              <Text as="span" variant="caption" truncate>
+                {download.filename}
+              </Text>
+            </div>
+            <div className="shrink-0">
+              <Text as="span" variant="caption" tone="muted">
+                {formatDownloadState(download)}
+              </Text>
+            </div>
           </div>
         ))}
       </div>

@@ -20,6 +20,9 @@ import { AGENDA_ITEM_PRIORITIES, AGENDA_ITEM_STATUSES } from '@stitch/shared/age
 import { AgendaItemDetailSheet } from '@/components/agenda/agenda-item-detail';
 import { PRIORITY_LABELS, PRIORITY_VARIANTS, STATUS_LABELS, STATUS_VARIANTS } from '@/components/agenda/constants';
 import { formatDateInTz, useUserTimezone } from '@/components/agenda/utils';
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -279,10 +282,10 @@ export function AgendaPage({ listId }: { listId?: string }) {
   return (
     <Page>
       <PageContent>
-        <PageHeader className="mb-0">
+        <PageHeader className="mb-space-none">
           <PageHeaderContent>
             <PageIcon>
-              <ListTodoIcon className="size-5" />
+              <Icon as={ListTodoIcon} size="l" />
             </PageIcon>
             <div>
               {editingTitle ? (
@@ -295,16 +298,18 @@ export function AgendaPage({ listId }: { listId?: string }) {
                     if (e.key === 'Enter') commitRename();
                     if (e.key === 'Escape') setEditingTitle(false);
                   }}
-                  className="-ml-1 h-auto w-full rounded-sm border-none bg-transparent px-1 py-0 text-xl font-semibold ring-1 ring-primary focus-visible:ring-1 focus-visible:ring-primary dark:bg-transparent"
+                  className="-ml-space-xs h-auto w-full rounded-sm border-none bg-transparent px-space-xs py-space-none text-xl font-semibold ring-1 ring-primary focus-visible:ring-1 focus-visible:ring-primary dark:bg-transparent"
                 />
               ) : currentList ? (
                 <Button
                   type="button"
                   variant="ghost"
-                  className="group/title -ml-1 h-auto gap-1.5 rounded-sm px-1 hover:bg-muted"
+                  className="group/title -ml-space-xs h-auto gap-space-s rounded-sm px-space-xs hover:bg-muted"
                   onClick={startRenaming}>
                   <h1 className="text-xl font-semibold">{currentList.name}</h1>
-                  <PencilIcon className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/title:opacity-100" />
+                  <div className="text-muted-foreground opacity-0 transition-opacity group-hover/title:opacity-100">
+                    <Icon as={PencilIcon} size="s" />
+                  </div>
                 </Button>
               ) : (
                 <h1 className="text-xl font-semibold">Agenda</h1>
@@ -312,27 +317,27 @@ export function AgendaPage({ listId }: { listId?: string }) {
               <PageDescription>{isLoading ? 'Loading...' : `${total} item${total === 1 ? '' : 's'}`}</PageDescription>
             </div>
           </PageHeaderContent>
-          <div className="flex items-center gap-2">
+          <Stack direction="row" align="center" gap="m">
             {currentList && (
               <Button
                 variant="outline"
                 size="sm"
                 className="text-destructive hover:text-destructive"
                 onClick={() => setDeleteListOpen(true)}>
-                <Trash2Icon className="size-3.5" />
+                <Icon as={Trash2Icon} size="s" />
                 Delete List
               </Button>
             )}
             <Button size="sm" onClick={() => setCreateOpen(true)}>
-              <PlusIcon className="size-4" />
+              <Icon as={PlusIcon} size="m" />
               New Item
             </Button>
-          </div>
+          </Stack>
         </PageHeader>
 
         {/* Summary cards */}
         {!listId && (
-          <div className="flex gap-3">
+          <Stack direction="row" gap="l">
             <MetricCard className="flex-1" size="compact" label="Open" value={totalOpen} icon={<InboxIcon />} />
             <MetricCard
               className="flex-1"
@@ -349,17 +354,19 @@ export function AgendaPage({ listId }: { listId?: string }) {
               icon={<CircleAlertIcon />}
               emphasis="destructive"
             />
-          </div>
+          </Stack>
         )}
 
         {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-2">
+        <Stack direction="row" wrap align="center" gap="m">
           <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as FilterStatus)}>
             <SelectTrigger className="w-40 bg-background">
-              <span className="truncate">
-                <span className="text-muted-foreground">Status: </span>
+              <Text as="span" variant="body" truncate>
+                <Text as="span" variant="body" tone="muted">
+                  Status:{' '}
+                </Text>
                 {filterStatus === 'all' ? 'All' : STATUS_LABELS[filterStatus]}
-              </span>
+              </Text>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
@@ -373,10 +380,12 @@ export function AgendaPage({ listId }: { listId?: string }) {
 
           <Select value={filterPriority} onValueChange={(v) => setFilterPriority(v as FilterPriority)}>
             <SelectTrigger className="w-40 bg-background">
-              <span className="truncate">
-                <span className="text-muted-foreground">Priority: </span>
+              <Text as="span" variant="body" truncate>
+                <Text as="span" variant="body" tone="muted">
+                  Priority:{' '}
+                </Text>
                 {filterPriority === 'all' ? 'All' : PRIORITY_LABELS[filterPriority]}
-              </span>
+              </Text>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
@@ -389,7 +398,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
           </Select>
 
           {selectedIds.size > 0 && (
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-space-m">
               <Button variant="outline" size="sm" onClick={handleBulkMarkDone} disabled={updateMutation.isPending}>
                 <CheckCircleIcon />
                 Mark Done {selectedIds.size}
@@ -400,7 +409,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
               </Button>
             </div>
           )}
-        </div>
+        </Stack>
 
         {/* Table */}
         <Table.Container>
@@ -445,8 +454,8 @@ export function AgendaPage({ listId }: { listId?: string }) {
                 ) : items.length === 0 ? (
                   <Table.EmptyRow colSpan={listId ? 6 : 7}>
                     <Empty>
-                      <EmptyMedia>
-                        <ListTodoIcon className="size-10 text-text-faint" />
+                      <EmptyMedia variant="icon">
+                        <Icon as={ListTodoIcon} size="m" />
                       </EmptyMedia>
                       <EmptyTitle>No agenda items</EmptyTitle>
                       <EmptyDescription>Create items from chat or click "New Item" to get started.</EmptyDescription>
@@ -458,7 +467,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
                       <React.Fragment key={item.id}>
                         {dropIndex === index && dragItemId && dragItemId !== item.id && (
                           <tr aria-hidden="true">
-                            <Table.Cell colSpan={listId ? 6 : 7} className="p-0">
+                            <Table.Cell colSpan={listId ? 6 : 7} className="p-space-none">
                               <div className="h-0.5 bg-primary" />
                             </Table.Cell>
                           </tr>
@@ -479,7 +488,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
                     ))}
                     {dropIndex === items.length && dragItemId && (
                       <tr aria-hidden="true">
-                        <Table.Cell colSpan={listId ? 6 : 7} className="p-0">
+                        <Table.Cell colSpan={listId ? 6 : 7} className="p-space-none">
                           <div className="h-0.5 bg-primary" />
                         </Table.Cell>
                       </tr>
@@ -491,7 +500,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
           </Table.Scroller>
 
           {totalPages > 1 ? (
-            <div className="border-t border-border px-3 py-3">
+            <div className="border-t border-border px-space-l py-space-l">
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
@@ -671,7 +680,9 @@ function AgendaItemRow({
           onDragStart={handleDragStart}
           className="h-auto w-4 cursor-grab opacity-0 transition-opacity group-hover:opacity-60 hover:bg-transparent active:cursor-grabbing"
           onClick={(e) => e.stopPropagation()}>
-          <GripVerticalIcon className="size-3.5 text-muted-foreground" />
+          <div className="text-muted-foreground">
+            <Icon as={GripVerticalIcon} size="s" />
+          </div>
         </Button>
       </Table.Cell>
 
@@ -712,10 +723,10 @@ function AgendaItemRow({
       <Table.Cell className="w-24 text-right" onClick={(e) => e.stopPropagation()}>
         <Popover open={dateOpen} onOpenChange={setDateOpen}>
           <PopoverTrigger
-            className={`inline-flex cursor-pointer rounded-sm px-1 py-0.5 text-xs transition-colors hover:bg-muted ${isOverdue ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
+            className={`inline-flex cursor-pointer rounded-sm px-space-xs py-space-2xs text-xs transition-colors hover:bg-muted ${isOverdue ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
             {item.dueAt ? formatDateInTz(item.dueAt, timeZone) : '—'}
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-auto p-0">
+          <PopoverContent align="end" className="w-auto p-space-none">
             <Calendar
               mode="single"
               selected={item.dueAt ? new Date(item.dueAt) : undefined}

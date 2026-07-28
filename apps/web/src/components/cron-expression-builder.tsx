@@ -4,6 +4,8 @@ import * as React from 'react';
 
 import { getUpcomingCronRuns } from '@stitch/scheduler';
 
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -143,8 +145,8 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
 
   // Renderers for grid sections
   const renderMinutes = () => (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
+    <div className="space-y-space-m">
+      <Stack direction="row" align="center" gap="m">
         <Label className="text-xs font-semibold text-muted-foreground uppercase">Minute</Label>
         <TooltipProvider>
           <Tooltip>
@@ -156,19 +158,19 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-      </div>
+      </Stack>
       <ToggleGroup
         value={[minutes[0]?.toString() ?? '0']}
         onValueChange={(vals) => {
           const val = vals[0];
           if (val) emit({ minutes: [Number.parseInt(val)] });
         }}
-        className="flex flex-wrap justify-start gap-1">
+        className="flex flex-wrap justify-start gap-space-xs">
         {MINUTES.map((m) => (
           <ToggleGroupItem
             key={m}
             value={m.toString()}
-            className="h-8 w-9 p-0 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
+            className="h-8 w-9 p-space-none text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
             {m.toString().padStart(2, '0')}
           </ToggleGroupItem>
         ))}
@@ -177,7 +179,7 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
   );
 
   const renderHours = () => (
-    <div className="space-y-2">
+    <div className="space-y-space-m">
       <Label className="text-xs font-semibold text-muted-foreground uppercase">Hours</Label>
       <ToggleGroup
         multiple
@@ -185,12 +187,12 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
         onValueChange={(vals) => {
           if (vals.length > 0) emit({ hours: vals.map((v) => Number.parseInt(v)).toSorted((a, b) => a - b) });
         }}
-        className="flex flex-wrap justify-start gap-1">
+        className="flex flex-wrap justify-start gap-space-xs">
         {HOURS.map((h) => (
           <ToggleGroupItem
             key={h}
             value={h.toString()}
-            className="h-8 w-9 p-0 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
+            className="h-8 w-9 p-space-none text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
             {h.toString().padStart(2, '0')}
           </ToggleGroupItem>
         ))}
@@ -199,7 +201,7 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
   );
 
   const renderWeekdays = () => (
-    <div className="space-y-2">
+    <div className="space-y-space-m">
       <Label className="text-xs font-semibold text-muted-foreground uppercase">Days of Week</Label>
       <ToggleGroup
         multiple
@@ -207,12 +209,12 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
         onValueChange={(vals) => {
           if (vals.length > 0) emit({ daysOfWeek: vals.map((v) => Number.parseInt(v)) });
         }}
-        className="flex flex-wrap justify-start gap-1">
+        className="flex flex-wrap justify-start gap-space-xs">
         {DAYS_OF_WEEK.map((day) => (
           <ToggleGroupItem
             key={day.value}
             value={day.value}
-            className="h-8 min-w-12 px-2 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
+            className="h-8 min-w-12 px-space-m text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
             {day.label}
           </ToggleGroupItem>
         ))}
@@ -221,7 +223,7 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
   );
 
   const renderDaysOfMonth = () => (
-    <div className="space-y-2">
+    <div className="space-y-space-m">
       <Label className="text-xs font-semibold text-muted-foreground uppercase">Days of Month</Label>
       <ToggleGroup
         multiple
@@ -229,12 +231,12 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
         onValueChange={(vals) => {
           if (vals.length > 0) emit({ daysOfMonth: vals.map((v) => Number.parseInt(v)).toSorted((a, b) => a - b) });
         }}
-        className="flex flex-wrap justify-start gap-1">
+        className="flex flex-wrap justify-start gap-space-xs">
         {DAYS_OF_MONTH.map((d) => (
           <ToggleGroupItem
             key={d}
             value={d.toString()}
-            className="h-8 w-9 p-0 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
+            className="h-8 w-9 p-space-none text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
             {d}
           </ToggleGroupItem>
         ))}
@@ -243,7 +245,7 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
   );
 
   const renderMonths = () => (
-    <div className="space-y-2">
+    <div className="space-y-space-m">
       <Label className="text-xs font-semibold text-muted-foreground uppercase">Months</Label>
       <ToggleGroup
         multiple
@@ -252,12 +254,12 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
           // If empty, it means all months (cron *)
           emit({ months: vals.map((v) => Number.parseInt(v)).toSorted((a, b) => a - b) });
         }}
-        className="flex flex-wrap justify-start gap-1">
+        className="flex flex-wrap justify-start gap-space-xs">
         {MONTHS_SHORT.map((m, i) => (
           <ToggleGroupItem
             key={m}
             value={(i + 1).toString()}
-            className="h-8 w-10 p-0 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
+            className="h-8 w-10 p-space-none text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
             {m}
           </ToggleGroupItem>
         ))}
@@ -266,100 +268,106 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
   );
 
   return (
-    <div className={cn('flex flex-col gap-4', className)}>
-      {/* Frequency Selector */}
-      <div className="flex flex-col gap-2">
-        <Label>Frequency</Label>
-        <ToggleGroup
-          value={[frequency]}
-          onValueChange={(vals) => {
-            const val = vals[0];
-            if (val) {
-              const newFreq = val as Frequency;
-              setFrequency(newFreq);
+    <div className={cn(className)}>
+      <Stack gap="xl">
+        {/* Frequency Selector */}
+        <Stack gap="m">
+          <Label>Frequency</Label>
+          <ToggleGroup
+            value={[frequency]}
+            onValueChange={(vals) => {
+              const val = vals[0];
+              if (val) {
+                const newFreq = val as Frequency;
+                setFrequency(newFreq);
 
-              // Ensure required fields are populated when switching
-              emit({
-                frequency: newFreq,
-                daysOfMonth: newFreq === 'monthly' && daysOfMonth.length === 0 ? [1] : daysOfMonth,
-                daysOfWeek: newFreq === 'weekly' && daysOfWeek.length === 0 ? [1] : daysOfWeek, // Monday
-              });
-            }
-          }}
-          className="w-fit justify-start rounded-md border bg-surface-sunken p-1">
-          {FREQUENCIES.map((f) => (
-            <ToggleGroupItem
-              key={f.value}
-              value={f.value}
-              className="h-8 rounded-sm px-3 text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-background! aria-pressed:text-foreground! aria-pressed:shadow-sm">
-              {f.label}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </div>
+                // Ensure required fields are populated when switching
+                emit({
+                  frequency: newFreq,
+                  daysOfMonth: newFreq === 'monthly' && daysOfMonth.length === 0 ? [1] : daysOfMonth,
+                  daysOfWeek: newFreq === 'weekly' && daysOfWeek.length === 0 ? [1] : daysOfWeek, // Monday
+                });
+              }
+            }}
+            className="w-fit justify-start rounded-md border bg-surface-sunken p-space-xs">
+            {FREQUENCIES.map((f) => (
+              <ToggleGroupItem
+                key={f.value}
+                value={f.value}
+                className="h-8 rounded-sm px-space-l text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-background! aria-pressed:text-foreground! aria-pressed:shadow-sm">
+                {f.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </Stack>
 
-      <div className="flex h-full min-h-0 flex-col gap-6 lg:flex-row">
-        {/* Main Builder Area */}
-        <ScrollArea className="h-100 flex-1 pr-4">
-          <div className="flex flex-col gap-6 pb-4">
-            {frequency === 'hourly' && <>{renderMinutes()}</>}
+        <div className="flex h-full min-h-0 flex-col gap-space-2xl lg:flex-row">
+          {/* Main Builder Area */}
+          <ScrollArea className="h-100 flex-1 pr-space-xl">
+            <div className="flex flex-col gap-space-2xl pb-space-xl">
+              {frequency === 'hourly' && <>{renderMinutes()}</>}
 
-            {frequency === 'daily' && (
-              <>
-                {renderHours()}
-                {renderMinutes()}
-              </>
-            )}
-
-            {frequency === 'weekly' && (
-              <>
-                {renderWeekdays()}
-                {renderHours()}
-                {renderMinutes()}
-              </>
-            )}
-
-            {frequency === 'monthly' && (
-              <>
-                {renderMonths()}
-                {renderDaysOfMonth()}
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {frequency === 'daily' && (
+                <>
                   {renderHours()}
                   {renderMinutes()}
-                </div>
-              </>
-            )}
+                </>
+              )}
 
-            {/* <div className="bg-muted/50 rounded-md p-3 font-mono text-sm border">
-              {value}
-            </div> */}
-          </div>
-        </ScrollArea>
+              {frequency === 'weekly' && (
+                <>
+                  {renderWeekdays()}
+                  {renderHours()}
+                  {renderMinutes()}
+                </>
+              )}
 
-        {/* Upcoming Executions Sidebar */}
-        <div className="flex shrink-0 flex-col gap-3 border-l border-border-subtle lg:w-64 lg:pl-6">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            <h3 className="text-xs font-semibold tracking-wider uppercase">Upcoming Runs</h3>
-          </div>
+              {frequency === 'monthly' && (
+                <>
+                  {renderMonths()}
+                  {renderDaysOfMonth()}
+                  <div className="grid grid-cols-1 gap-space-2xl md:grid-cols-2">
+                    {renderHours()}
+                    {renderMinutes()}
+                  </div>
+                </>
+              )}
+            </div>
+          </ScrollArea>
 
-          <div className="space-y-2">
-            {upcomingExecutions.length > 0 ? (
-              upcomingExecutions.map((execution) => (
-                <div
-                  key={execution.key}
-                  className="flex flex-col gap-0.5 rounded-md border bg-card/50 p-2.5 text-sm shadow-sm">
-                  <span className="font-medium text-foreground">{execution.date}</span>
-                  <span className="text-xs text-muted-foreground">at {execution.time}</span>
-                </div>
-              ))
-            ) : (
-              <p className="text-xs text-muted-foreground italic">No upcoming runs scheduled</p>
-            )}
+          {/* Upcoming Executions Sidebar */}
+          <div className="flex shrink-0 flex-col gap-space-l border-l border-border-subtle lg:w-64 lg:pl-space-2xl">
+            <div className="flex items-center gap-space-m text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+              <h3 className="text-xs font-semibold tracking-wider uppercase">Upcoming Runs</h3>
+            </div>
+
+            <div className="space-y-space-m">
+              {upcomingExecutions.length > 0 ? (
+                upcomingExecutions.map((execution) => (
+                  <div
+                    key={execution.key}
+                    className="flex flex-col gap-space-2xs rounded-md border bg-card p-space-m text-sm shadow-sm">
+                    <Text as="span" variant="body-strong">
+                      {execution.date}
+                    </Text>
+                    <Text as="span" variant="caption" tone="muted">
+                      at {execution.time}
+                    </Text>
+                  </div>
+                ))
+              ) : (
+                <i>
+                  <Text as="span" variant="caption" tone="muted">
+                    No upcoming runs scheduled
+                  </Text>
+                </i>
+              )}
+            </div>
+            <div className="text-right text-2xs text-muted-foreground">Timezone: {timezone}</div>
           </div>
-          <div className="text-right text-2xs text-muted-foreground">Timezone: {timezone}</div>
         </div>
-      </div>
+      </Stack>
     </div>
   );
 }

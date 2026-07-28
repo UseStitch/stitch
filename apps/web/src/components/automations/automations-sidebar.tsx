@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from '@tanstack/react-router';
 
 import { InternalSidebar } from '@/components/navigation/internal-sidebar';
+import { Icon } from '@/components/primitives/icon';
+import { Text } from '@/components/primitives/text';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { automationsSidebarListQueryOptions } from '@/lib/queries/automations';
 import { useAutomationStore } from '@/stores/automation-store';
@@ -21,11 +23,13 @@ export function AutomationsSidebarContent() {
       <InternalSidebar.Header>
         <InternalSidebar.Top>
           <InternalSidebar.TopTitle>
-            <BotIcon className="size-4" />
-            <span className="truncate">Automations</span>
+            <Icon as={BotIcon} size="m" />
+            <Text as="span" variant="body" truncate>
+              Automations
+            </Text>
           </InternalSidebar.TopTitle>
           <InternalSidebar.TopAction onClick={openCreateDialog} aria-label="Create automation">
-            <PlusIcon className="size-3.5" />
+            <Icon as={PlusIcon} size="s" />
           </InternalSidebar.TopAction>
         </InternalSidebar.Top>
       </InternalSidebar.Header>
@@ -45,15 +49,17 @@ export function AutomationsSidebarContent() {
                       className="truncate"
                     />
                   }>
-                  <span className="truncate">{automation.title}</span>
+                  <Text as="span" variant="body" truncate>
+                    {automation.title}
+                  </Text>
                 </InternalSidebar.Item>
               ))}
             </InternalSidebar.List>
           </InternalSidebar.Group>
         ) : (
           <Empty size="compact">
-            <EmptyMedia>
-              <BotIcon className="size-8 text-text-faint" />
+            <EmptyMedia variant="icon">
+              <Icon as={BotIcon} size="m" />
             </EmptyMedia>
             <EmptyTitle>No automations yet</EmptyTitle>
             <EmptyDescription>Create one to prefill and start sessions faster.</EmptyDescription>
