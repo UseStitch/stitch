@@ -13,6 +13,7 @@
     "unicorn/no-array-sort": "error",
     "unicorn-js/prefer-early-return": "error",
     "unicorn-js/prefer-error-is-error": "error",
+    "unicorn-js/no-lonely-if": "error",
     "no-unused-vars": "error",
     "eqeqeq": "error",
     "no-else-return": "error",
@@ -39,8 +40,7 @@
     "jsx-a11y/control-has-associated-label": "error",
     "jsx-a11y/label-has-associated-control": "error",
     "jsx-a11y/no-autofocus": "error",
-    "jsx-a11y/no-redundant-roles": "error",
-    "stitch/no-collapsible-if": "error"
+    "jsx-a11y/no-redundant-roles": "error"
   },
   "overrides": [
     {
