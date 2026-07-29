@@ -116,7 +116,7 @@ function isOpenAiErrorRetryable(error: APICallError): boolean {
 }
 
 function resolveAIErrorName(error: unknown): string | undefined {
-  if (error instanceof Error && typeof error.name === 'string' && error.name.length > 0) {
+  if (Error.isError(error) && typeof error.name === 'string' && error.name.length > 0) {
     return error.name;
   }
 
@@ -128,7 +128,7 @@ function resolveAIErrorName(error: unknown): string | undefined {
 }
 
 function resolveMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
+  if (Error.isError(error)) return error.message;
   if (typeof error === 'object' && error !== null && typeof (error as MinimalError).message === 'string') {
     const message = (error as { message: string }).message;
     return message;

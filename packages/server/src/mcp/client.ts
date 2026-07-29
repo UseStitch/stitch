@@ -161,6 +161,6 @@ export async function withMcpClient<T>(server: McpServerRef, fn: (client: McpCli
 
 function isUnauthorizedError(err: unknown): boolean {
   if (err instanceof UnauthorizedError) return true;
-  const message = err instanceof Error ? err.message.toLowerCase() : '';
+  const message = Error.isError(err) ? err.message.toLowerCase() : '';
   return message.includes('unauthorized') || message.includes('401');
 }

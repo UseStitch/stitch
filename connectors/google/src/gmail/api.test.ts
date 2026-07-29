@@ -15,10 +15,12 @@ describe('gmail api', () => {
   let tempRoot: string | null = null;
 
   afterEach(async () => {
-    if (tempRoot) {
-      await fs.rm(tempRoot, { recursive: true, force: true });
-      tempRoot = null;
+    if (!tempRoot) {
+      return;
     }
+
+    await fs.rm(tempRoot, { recursive: true, force: true });
+    tempRoot = null;
   });
 
   test('downloads message attachments to the configured temp path', async () => {

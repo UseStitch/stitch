@@ -225,10 +225,12 @@ export async function createSTTSession(config: STTSessionConfig): Promise<STTSes
           }, COMMIT_DRAIN_TIMEOUT_MS);
 
           conn.onTranscript((evt) => {
-            if (evt.kind === 'final') {
-              clearTimeout(timer);
-              resolvePromise();
+            if (!(evt.kind === 'final')) {
+              return;
             }
+
+            clearTimeout(timer);
+            resolvePromise();
           });
 
           conn.commit();

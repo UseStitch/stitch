@@ -63,7 +63,7 @@ async function refreshAccessTokenWithRetries(
  * marks the connector for reauthorization.
  */
 async function markRefreshFailure(row: ConnectorInstanceRow, error: unknown): Promise<void> {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = Error.isError(error) ? error.message : String(error);
   const requiresReauth = requiresOAuthReauth(error);
   log.error(
     {

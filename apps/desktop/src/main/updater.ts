@@ -72,11 +72,11 @@ export function createUpdater(options: UpdaterOptions) {
       await autoUpdater.checkForUpdates();
       return state;
     } catch (error) {
-      if (error instanceof Error && isNetworkError(error)) {
+      if (Error.isError(error) && isNetworkError(error)) {
         emit({ status: 'idle' });
         return state;
       }
-      const message = error instanceof Error ? error.message : String(error);
+      const message = Error.isError(error) ? error.message : String(error);
       emit({ status: 'error', error: message });
       return state;
     }

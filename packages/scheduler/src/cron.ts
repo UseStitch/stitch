@@ -7,7 +7,7 @@ export function validateCronExpression(expression: string): { valid: true } | { 
     CronExpressionParser.parse(expression);
     return { valid: true };
   } catch (e) {
-    return { valid: false, error: e instanceof Error ? e.message : 'Invalid cron expression' };
+    return { valid: false, error: Error.isError(e) ? e.message : 'Invalid cron expression' };
   }
 }
 

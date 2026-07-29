@@ -329,8 +329,8 @@ export class StreamAccumulator {
       case 'error': {
         const mappedError = mapAIError(part.error);
         const errorText = mappedError.message;
-        const errorName = part.error instanceof Error ? part.error.name : typeof part.error;
-        const errorStack = part.error instanceof Error ? part.error.stack : undefined;
+        const errorName = Error.isError(part.error) ? part.error.name : typeof part.error;
+        const errorStack = Error.isError(part.error) ? part.error.stack : undefined;
         log.error(
           {
             event: 'stream.part.error',
@@ -352,11 +352,11 @@ export class StreamAccumulator {
           modelId: '',
           providerId: '',
           error: errorText,
-          errorCode: part.error instanceof Error ? part.error.name : undefined,
+          errorCode: Error.isError(part.error) ? part.error.name : undefined,
           details: toStreamErrorDetails(mappedError),
         });
 
-        if (part.error instanceof Error) {
+        if (Error.isError(part.error)) {
           throw new StreamPartError(part.error.message, { cause: part.error });
         }
 

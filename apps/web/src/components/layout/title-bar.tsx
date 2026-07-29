@@ -64,10 +64,12 @@ function WindowsControls() {
 
   useEffect(() => {
     const checkMaximized = async () => {
-      if (window.api?.window?.isMaximized) {
-        const maximized = await window.api.window.isMaximized();
-        setIsMaximized(maximized);
+      if (!window.api?.window?.isMaximized) {
+        return;
       }
+
+      const maximized = await window.api.window.isMaximized();
+      setIsMaximized(maximized);
     };
     void checkMaximized();
   }, []);

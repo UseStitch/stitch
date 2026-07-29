@@ -37,10 +37,10 @@ function formatDate(date: Date): string {
 }
 
 function formatValue(value: unknown): string {
-  if (value instanceof Error) {
+  if (Error.isError(value)) {
     const { message, cause, name, ...rest } = value as Error & Record<string, unknown>;
     const obj: Record<string, unknown> = { name, message, ...rest };
-    if (cause !== undefined) obj['cause'] = cause instanceof Error ? cause.message : cause;
+    if (cause !== undefined) obj['cause'] = Error.isError(cause) ? cause.message : cause;
     return JSON.stringify(obj);
   }
   if (typeof value === 'string') return value;

@@ -18,10 +18,12 @@ export class ControlArbiter {
     this.controller = 'human';
     if (this.humanIdleTimer) clearTimeout(this.humanIdleTimer);
     this.humanIdleTimer = setTimeout(() => {
-      if (this.controller === 'human') {
-        this.controller = 'none';
-        this.broadcast();
+      if (!(this.controller === 'human')) {
+        return;
       }
+
+      this.controller = 'none';
+      this.broadcast();
     }, HUMAN_CONTROL_IDLE_MS);
     this.broadcast();
   }

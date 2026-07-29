@@ -54,7 +54,7 @@ function nextAttemptAt(attempts: number): number {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  return Error.isError(error) ? error.message : String(error);
 }
 
 async function markFailed(id: MailOutboxId, attempts: number, error: unknown): Promise<void> {

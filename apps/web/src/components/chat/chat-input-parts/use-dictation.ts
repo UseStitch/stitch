@@ -103,10 +103,12 @@ export function useDictation({
 
   // Honor a stop requested during the startup window.
   React.useEffect(() => {
-    if (stt.state === 'recording' && pendingStopRef.current) {
-      pendingStopRef.current = false;
-      void stopAndCommit();
+    if (!(stt.state === 'recording' && pendingStopRef.current)) {
+      return;
     }
+
+    pendingStopRef.current = false;
+    void stopAndCommit();
   }, [stt.state, stopAndCommit]);
 
   const toggle = (model?: SttModelSelection) => {

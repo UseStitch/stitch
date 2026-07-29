@@ -469,7 +469,7 @@ export function LocalModelsPanel({ provider }: Props) {
   async function handleDiscover() {
     const result = await discoverQuery.refetch();
     if (result.isError) {
-      toast.error(result.error instanceof Error ? result.error.message : 'Failed to discover models', {
+      toast.error(Error.isError(result.error) ? result.error.message : 'Failed to discover models', {
         id: 'local-discover',
       });
     }

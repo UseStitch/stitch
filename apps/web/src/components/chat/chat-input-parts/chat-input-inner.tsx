@@ -98,11 +98,13 @@ export function ChatInputInner({
   };
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      if ((value.trim() || attachments.length > 0) && !disabled && !dictation.isRecording) {
-        submit();
-      }
+    if (!(event.key === 'Enter' && !event.shiftKey)) {
+      return;
+    }
+
+    event.preventDefault();
+    if ((value.trim() || attachments.length > 0) && !disabled && !dictation.isRecording) {
+      submit();
     }
   }
 

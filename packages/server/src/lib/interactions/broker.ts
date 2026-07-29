@@ -68,7 +68,7 @@ export class InteractionBroker {
         timeout = setTimeout(() => {
           Promise.resolve(opts.onTimeout?.())
             .then(settleResolve)
-            .catch((error: unknown) => settleReject(error instanceof Error ? error : new Error(String(error))));
+            .catch((error: unknown) => settleReject(Error.isError(error) ? error : new Error(String(error))));
         }, opts.timeoutMs);
       }
 
@@ -138,7 +138,7 @@ export class InteractionBroker {
     try {
       entry.resolve(await onDuplicate());
     } catch (error) {
-      entry.reject(error instanceof Error ? error : new Error(String(error)));
+      entry.reject(Error.isError(error) ? error : new Error(String(error)));
     }
   }
 }

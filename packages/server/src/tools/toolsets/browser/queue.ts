@@ -35,7 +35,7 @@ export async function runBrowserTool<TInput>(
       return await execute(execContext.abortSignal);
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') throw error;
-      const message = error instanceof Error ? error.message : String(error);
+      const message = Error.isError(error) ? error.message : String(error);
       throw new ToolError(message);
     }
   });

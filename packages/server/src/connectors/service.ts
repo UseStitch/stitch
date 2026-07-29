@@ -363,7 +363,7 @@ export async function authorizeOAuthInstance(
       log.info({ event: 'connector.authorized', instanceId, accountEmail }, `Connector authorized: ${instance.label}`);
       internalBus.emit('connector.authorized', { instanceId, connectorId: instance.connectorId });
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = Error.isError(error) ? error.message : String(error);
       await db
         .update(connectorInstances)
         .set({ status: 'error' as ConnectorStatus, authIssue: 'temporary_failure', updatedAt: Date.now() })
@@ -511,7 +511,7 @@ export async function upgradeConnectorInstance(
 
     const { waitForTokens } = auth.data;
     void waitForTokens().catch((error) => {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = Error.isError(error) ? error.message : String(error);
       log.warn(
         { event: 'connector.upgrade.reauthorize.failed', instanceId, error: message },
         'connector upgrade reauthorization failed',
@@ -608,11 +608,10 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
       const [connector] = await db.select().from(connectors).where(eq(connectors.id, instance.connectorRefId));
       if (!connector?.apiKey) return err('Connector has no credentials to test', 400);
       return err('Connector test is not supported for this connector type', 400);
-    } else {
-      return err('Connector has no credentials to test', 400);
     }
+    return err('Connector has no credentials to test', 400);
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
+    const message = Error.isError(e) ? e.message : String(e);
     const requiresReauth = requiresOAuthReauth(e);
     log.error({ event: 'connector.test.failed', instanceId, requiresReauth, error: message }, 'Connection test failed');
 

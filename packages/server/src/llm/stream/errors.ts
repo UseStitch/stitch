@@ -92,6 +92,6 @@ export function isContextOverflowError(error: unknown): boolean {
 }
 
 export function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
+  if (Error.isError(error)) return error.message;
   return String(error);
 }

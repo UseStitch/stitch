@@ -207,7 +207,7 @@ export function createInspectImageTool(context: ToolContext, deps: InspectImageT
         return {
           childSessionId,
           childSessionName: childSession.title,
-          summary: `Image inspection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          summary: `Image inspection failed: ${Error.isError(error) ? error.message : 'Unknown error'}`,
         };
       } finally {
         deps.parentAbortSignal.removeEventListener('abort', onParentAbort);

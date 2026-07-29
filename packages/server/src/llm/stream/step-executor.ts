@@ -194,7 +194,7 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
           providerId: opts.providerId,
           step,
           errorCode: getErrorCode(e),
-          errorMessage: e instanceof Error ? e.message : String(e),
+          errorMessage: Error.isError(e) ? e.message : String(e),
           sideEffectPartTypes,
           toolCallCount: toolCalls.length,
           responsePartCountDelta: accumulatedParts.length - initialPartCount,

@@ -104,10 +104,12 @@ function MarkdownCodeBlock({ code, children }: { code: string; children: React.R
 
   useEffect(() => {
     return () => {
-      if (copiedTimerRef.current !== null) {
-        clearTimeout(copiedTimerRef.current);
-        copiedTimerRef.current = null;
+      if (!(copiedTimerRef.current !== null)) {
+        return;
       }
+
+      clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = null;
     };
   }, []);
 

@@ -31,7 +31,7 @@ export function registerServerHandlers(
       const ok = await checkHealth(url);
       return ok ? { ok: true, url } : { ok: false, error: 'Server health check failed' };
     } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : 'Invalid server URL' };
+      return { ok: false, error: Error.isError(error) ? error.message : 'Invalid server URL' };
     }
   });
 

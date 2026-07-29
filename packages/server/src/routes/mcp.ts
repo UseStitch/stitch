@@ -137,7 +137,7 @@ mcpRouter.post('/:id/auth', async (c) => {
 
   const { waitForTokens } = result.data;
   void waitForTokens().catch((error) => {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = Error.isError(error) ? error.message : String(error);
     log.warn({ event: 'mcp.auth.background_failed', id, error: message }, 'background MCP authorization failed');
   });
 

@@ -1,3 +1,3 @@
 export function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
+  return Error.isError(error) ? error.message : fallback;
 }

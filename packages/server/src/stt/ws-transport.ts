@@ -96,10 +96,12 @@ export function createWsTransport(
     }
 
     function markAlive(): void {
-      if (pongTimer) {
-        clearTimeout(pongTimer);
-        pongTimer = null;
+      if (!pongTimer) {
+        return;
       }
+
+      clearTimeout(pongTimer);
+      pongTimer = null;
     }
 
     function sendKeepAlive(): void {

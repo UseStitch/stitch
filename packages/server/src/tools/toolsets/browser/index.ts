@@ -190,7 +190,7 @@ function createBatchTool(context: ToolContext) {
             results.push(resultRecord);
             lastSuccessfulAction = action;
           } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
+            const message = Error.isError(error) ? error.message : String(error);
             const errorRecord: { index: number; tool: string; op?: string; status: 'error'; error: string } = {
               index: i + 1,
               tool: action.tool,
