@@ -15,7 +15,7 @@ import { Text } from '@/components/primitives/text.js';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { getChartColor } from '@/lib/chart-colors';
+import { CHART_CLASS_NAME, CHART_THEME, CHART_TOOLTIP_CLASS_NAME, getChartColor } from '@/lib/chart-colors';
 import { cn } from '@/lib/utils';
 
 type RenderChildren = (children: string[]) => React.ReactNode;
@@ -191,12 +191,15 @@ function LiquidBarChart({ node }: { node: LiquidChartNode }) {
       ],
       x: { scale: () => scaleBand().padding(0.15) },
       y: { scale: scaleLinear, nice: true, grid: true },
+      theme: CHART_THEME,
       focus: 'group-x',
-      tooltip,
+      tooltip: { use: tooltip, className: CHART_TOOLTIP_CLASS_NAME, anchor: 'group-center', offset: 8 },
     });
   }, [node]);
 
-  return <Chart definition={definition} height={220} ariaLabel={node.title ?? 'Bar chart'} />;
+  return (
+    <Chart className={CHART_CLASS_NAME} definition={definition} height={220} ariaLabel={node.title ?? 'Bar chart'} />
+  );
 }
 
 function LiquidLineChart({ node }: { node: LiquidChartNode }) {
@@ -216,12 +219,15 @@ function LiquidLineChart({ node }: { node: LiquidChartNode }) {
       ],
       x: { scale: scalePoint },
       y: { scale: scaleLinear, nice: true, grid: true },
+      theme: CHART_THEME,
       focus: 'group-x',
-      tooltip,
+      tooltip: { use: tooltip, className: CHART_TOOLTIP_CLASS_NAME, anchor: 'group-center', offset: 8 },
     });
   }, [node]);
 
-  return <Chart definition={definition} height={220} ariaLabel={node.title ?? 'Line chart'} />;
+  return (
+    <Chart className={CHART_CLASS_NAME} definition={definition} height={220} ariaLabel={node.title ?? 'Line chart'} />
+  );
 }
 
 function LiquidPieChart({ node }: { node: LiquidChartNode }) {
@@ -260,11 +266,19 @@ function LiquidPieChart({ node }: { node: LiquidChartNode }) {
     return defineChart({
       marks: [polar({ marks, inset: 4 })],
       guides: false,
-      tooltip: { use: tooltip, format: (point) => `${point.datum.label}: ${point.datum.value.toLocaleString()}` },
+      theme: CHART_THEME,
+      tooltip: {
+        use: tooltip,
+        className: CHART_TOOLTIP_CLASS_NAME,
+        offset: 8,
+        format: (point) => `${point.datum.label}: ${point.datum.value.toLocaleString()}`,
+      },
     });
   }, [node]);
 
-  return <Chart definition={definition} height={220} ariaLabel={node.title ?? 'Pie chart'} />;
+  return (
+    <Chart className={CHART_CLASS_NAME} definition={definition} height={220} ariaLabel={node.title ?? 'Pie chart'} />
+  );
 }
 
 function LiquidChartLegend({ node }: { node: LiquidChartNode }) {

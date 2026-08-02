@@ -9,6 +9,7 @@ import { Chart } from '@tanstack/react-charts';
 import { Text } from '@/components/primitives/text';
 import { EmptyChart } from '@/components/usage/charts/usage-chart-utils';
 import { formatCost } from '@/components/usage/utils/usage-dashboard-utils';
+import { CHART_CLASS_NAME, CHART_THEME, CHART_TOOLTIP_CLASS_NAME } from '@/lib/chart-colors';
 
 type StackedBarDataset = { label: string; data: number[]; color: string };
 
@@ -41,8 +42,16 @@ export function StackedBarChart({ title, subtitle, emptyMessage, labels, dataset
         range: datasets.map((dataset) => dataset.color),
         legend: colorLegend(),
       },
+      theme: CHART_THEME,
       focus: 'group-x',
-      tooltip: { use: tooltip, items: ['x', { channel: 'y', text: (point) => formatCost(point.yValue) }, 'group'] },
+      tooltip: {
+        use: tooltip,
+        className: CHART_TOOLTIP_CLASS_NAME,
+        anchor: 'group-center',
+        placement: ['top', 'right', 'left', 'bottom'],
+        offset: 8,
+        items: ['x', { channel: 'y', text: (point) => formatCost(point.yValue) }, 'group'],
+      },
     });
   }, [datasets, labels]);
 
@@ -58,7 +67,12 @@ export function StackedBarChart({ title, subtitle, emptyMessage, labels, dataset
       </div>
       <div className="h-80">
         {hasData ? (
-          <Chart definition={definition} height={320} ariaLabel={`${title}. ${subtitle}.`} />
+          <Chart
+            className={CHART_CLASS_NAME}
+            definition={definition}
+            height={320}
+            ariaLabel={`${title}. ${subtitle}.`}
+          />
         ) : (
           <EmptyChart message={emptyMessage} />
         )}
