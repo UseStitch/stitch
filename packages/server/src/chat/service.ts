@@ -24,7 +24,7 @@ import { runStream } from '@/llm/stream/runner.js';
 import * as LocalModels from '@/models/llm/local.js';
 import * as Models from '@/models/llm/registry.js';
 import { abortPermissionResponses } from '@/permission/service.js';
-import { isLlmProviderCredentials } from '@/provider/config/schema.js';
+import { isLlmProviderCredentials, type LlmProviderCredentials } from '@/provider/config/schema.js';
 import { listProvidersWithCapabilities, type ProviderWithCapabilities } from '@/provider/service.js';
 import { abortQuestions } from '@/question/service.js';
 import { normalizeUsage } from '@/utils/usage.js';
@@ -41,6 +41,10 @@ type SendMessageInput = {
 };
 
 type RedoMessageInput = SendMessageInput & { editedMessageId: PrefixedString<'msg'> };
+
+type TurnSession = typeof sessions.$inferSelect;
+type TurnProviderConfig = typeof providerConfig.$inferSelect;
+type LlmTurnConfig = TurnProviderConfig & { credentials: LlmProviderCredentials };
 
 async function buildUserMessageParts(input: {
   content: string;
@@ -146,24 +150,70 @@ async function maybeGenerateTitle(input: {
   });
 }
 
+async function loadTurnContext(
+  sessionId: PrefixedString<'ses'>,
+  providerId: string,
+): Promise<ServiceResult<{ session: TurnSession; config: LlmTurnConfig }>> {
+  const db = getDb();
+
+  const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
+  if (!session) {
+    return err('Session not found', 404);
+  }
+
+  const [config] = await db.select().from(providerConfig).where(eq(providerConfig.providerId, providerId));
+  if (!config) {
+    return err(`Provider "${providerId}" is not configured`, 400);
+  }
+
+  if (config.credentials.providerId !== providerId || !isLlmProviderCredentials(config.credentials)) {
+    return err(`Provider "${providerId}" is not configured for LLM usage`, 400);
+  }
+
+  return ok({ session, config: config as LlmTurnConfig });
+}
+
+async function runTurn(input: {
+  sessionId: PrefixedString<'ses'>;
+  assistantMessageId: string;
+  session: TurnSession;
+  config: LlmTurnConfig;
+  modelId: string;
+}): Promise<void> {
+  const llmMessages = await buildSessionLlmMessages(input.sessionId, { useBasePrompt: true, systemPrompt: null });
+
+  const abortSignal = AbortRegistry.register(input.sessionId);
+
+  const isChildSession = input.session.parentSessionId !== null;
+
+  void runStream({
+    sessionId: input.sessionId,
+    assistantMessageId: input.assistantMessageId as PrefixedString<'msg'>,
+    modelId: input.modelId,
+    llmMessages,
+    credentials: input.config.credentials,
+    abortSignal,
+    allowTaskTool: !isChildSession,
+    excludedToolsetIds: isChildSession ? ['browser'] : undefined,
+  })
+    .catch((error) => {
+      log.error(
+        { event: 'stream.failed', sessionId: input.sessionId, messageId: input.assistantMessageId, error },
+        'stream run failed',
+      );
+    })
+    .finally(() => {
+      AbortRegistry.cleanup(input.sessionId);
+    });
+}
+
 export async function sendMessage(
   input: SendMessageInput,
 ): Promise<ServiceResult<{ messageId: string; userMessageId: string }>> {
   const db = getDb();
 
-  const [session] = await db.select().from(sessions).where(eq(sessions.id, input.sessionId));
-  if (!session) {
-    return err('Session not found', 404);
-  }
-
-  const [config] = await db.select().from(providerConfig).where(eq(providerConfig.providerId, input.providerId));
-  if (!config) {
-    return err(`Provider "${input.providerId}" is not configured`, 400);
-  }
-
-  if (config.credentials.providerId !== input.providerId || !isLlmProviderCredentials(config.credentials)) {
-    return err(`Provider "${input.providerId}" is not configured for LLM usage`, 400);
-  }
+  const context = await loadTurnContext(input.sessionId, input.providerId);
+  if (context.error) return context;
 
   await maybeGenerateTitle({
     sessionId: input.sessionId,
@@ -195,33 +245,15 @@ export async function sendMessage(
 
   await db.update(sessions).set({ updatedAt: Date.now() }).where(eq(sessions.id, input.sessionId));
 
-  const llmMessages = await buildSessionLlmMessages(input.sessionId, { useBasePrompt: true, systemPrompt: null });
-  const assistantMessageId = input.assistantMessageId as PrefixedString<'msg'>;
-  const abortSignal = AbortRegistry.register(input.sessionId);
-
-  const isChildSession = session.parentSessionId !== null;
-
-  void runStream({
+  await runTurn({
     sessionId: input.sessionId,
-    assistantMessageId,
+    assistantMessageId: input.assistantMessageId,
+    session: context.data.session,
+    config: context.data.config,
     modelId: input.modelId,
-    llmMessages,
-    credentials: config.credentials,
-    abortSignal,
-    allowTaskTool: !isChildSession,
-    excludedToolsetIds: isChildSession ? ['browser'] : undefined,
-  })
-    .catch((error) => {
-      log.error(
-        { event: 'stream.failed', sessionId: input.sessionId, messageId: assistantMessageId, error },
-        'stream run failed',
-      );
-    })
-    .finally(() => {
-      AbortRegistry.cleanup(input.sessionId);
-    });
+  });
 
-  return ok({ messageId: assistantMessageId, userMessageId });
+  return ok({ messageId: input.assistantMessageId, userMessageId });
 }
 
 export async function redoMessage(
@@ -229,19 +261,8 @@ export async function redoMessage(
 ): Promise<ServiceResult<{ messageId: string; userMessageId: string }>> {
   const db = getDb();
 
-  const [session] = await db.select().from(sessions).where(eq(sessions.id, input.sessionId));
-  if (!session) {
-    return err('Session not found', 404);
-  }
-
-  const [config] = await db.select().from(providerConfig).where(eq(providerConfig.providerId, input.providerId));
-  if (!config) {
-    return err(`Provider "${input.providerId}" is not configured`, 400);
-  }
-
-  if (config.credentials.providerId !== input.providerId || !isLlmProviderCredentials(config.credentials)) {
-    return err(`Provider "${input.providerId}" is not configured for LLM usage`, 400);
-  }
+  const context = await loadTurnContext(input.sessionId, input.providerId);
+  if (context.error) return context;
 
   const [editedMessage] = await db
     .select()
@@ -293,33 +314,15 @@ export async function redoMessage(
     await tx.update(sessions).set({ updatedAt: now }).where(eq(sessions.id, input.sessionId));
   });
 
-  const llmMessages = await buildSessionLlmMessages(input.sessionId, { useBasePrompt: true, systemPrompt: null });
-  const assistantMessageId = input.assistantMessageId as PrefixedString<'msg'>;
-  const abortSignal = AbortRegistry.register(input.sessionId);
-
-  const isChildSession = session.parentSessionId !== null;
-
-  void runStream({
+  await runTurn({
     sessionId: input.sessionId,
-    assistantMessageId,
+    assistantMessageId: input.assistantMessageId,
+    session: context.data.session,
+    config: context.data.config,
     modelId: input.modelId,
-    llmMessages,
-    credentials: config.credentials,
-    abortSignal,
-    allowTaskTool: !isChildSession,
-    excludedToolsetIds: isChildSession ? ['browser'] : undefined,
-  })
-    .catch((error) => {
-      log.error(
-        { event: 'stream.failed', sessionId: input.sessionId, messageId: assistantMessageId, error },
-        'stream run failed',
-      );
-    })
-    .finally(() => {
-      AbortRegistry.cleanup(input.sessionId);
-    });
+  });
 
-  return ok({ messageId: assistantMessageId, userMessageId });
+  return ok({ messageId: input.assistantMessageId, userMessageId });
 }
 
 export function resolveDoomLoop(
