@@ -13,11 +13,11 @@ import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { addCacheControlToMessages } from '@/llm/cache-control.js';
 import { CompactionModelNotFoundError } from '@/llm/errors.js';
-import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { getPromptUserContext } from '@/llm/prompt/builder.js';
 import { getProviderOptions } from '@/llm/provider-options.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
+import { buildHistoryMessages, findLastSummaryIndex } from '@/llm/session-history.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import { getSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { getToolPruneProtectOverrides } from '@/llm/tool-prune-policy.js';
@@ -294,13 +294,7 @@ export async function compact(input: {
     const markerIndex = allMsgs.findIndex((m) => m.id === compactionMarkerId);
     const historyMsgs = allMsgs.slice(0, markerIndex);
 
-    let startIndex = 0;
-    for (let i = historyMsgs.length - 1; i >= 0; i--) {
-      if (historyMsgs[i].isSummary) {
-        startIndex = i;
-        break;
-      }
-    }
+    let startIndex = findLastSummaryIndex(historyMsgs);
     const relevantMsgs = historyMsgs.slice(startIndex);
 
     const historyMessages = buildHistoryMessages(relevantMsgs, {
