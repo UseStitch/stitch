@@ -6,6 +6,9 @@ import { useQuery } from '@tanstack/react-query';
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
 import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
 
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { ProviderConfig } from '@/components/settings/providers/provider-config';
 import { ProviderLogo } from '@/components/settings/providers/provider-logo';
 import { Button } from '@/components/ui/button';
@@ -19,18 +22,26 @@ type ProviderRowProps = { provider: ProviderSummary; onSelect: (provider: Provid
 function ProviderRow({ provider, onSelect }: ProviderRowProps) {
   const meta = PROVIDER_META[provider.id as ProviderId];
   return (
-    <div className="flex items-center justify-between border-b border-border/50 px-1 py-3 last:border-0">
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="shrink-0 text-muted-foreground">
+    <div className="flex items-center justify-between border-b border-border-subtle px-space-xs py-space-l last:border-0">
+      <div className="flex min-w-0 items-center gap-space-l">
+        <Text as="div" variant="body" tone="muted">
           <ProviderLogo providerId={provider.id} providerName={meta.displayName} />
-        </div>
+        </Text>
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{meta.displayName}</p>
-          {meta.description && <p className="truncate text-xs text-muted-foreground">{meta.description}</p>}
+          <Text variant="body-strong" truncate>
+            {meta.displayName}
+          </Text>
+          {meta.description && (
+            <Text variant="caption" tone="muted" truncate>
+              {meta.description}
+            </Text>
+          )}
         </div>
       </div>
       <Button size="sm" variant="outline" onClick={() => onSelect(provider)}>
-        <PlusIcon className="mr-1 size-3.5" />
+        <span className="mr-space-xs">
+          <Icon as={PlusIcon} size="s" />
+        </span>
         Connect
       </Button>
     </div>
@@ -64,7 +75,11 @@ export function ProviderStep({ onConnected }: Props) {
   const handleBack = () => setSelected(null);
 
   if (!providers) {
-    return <div className="text-sm text-muted-foreground">Loading providers...</div>;
+    return (
+      <Text as="div" variant="body" tone="muted">
+        Loading providers...
+      </Text>
+    );
   }
 
   if (selected) {
@@ -80,27 +95,33 @@ export function ProviderStep({ onConnected }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <Stack gap="2xl">
       <div>
-        <h2 className="text-lg font-semibold">Setup Provider</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Connect one provider to unlock models and start chatting.</p>
+        <Text variant="heading-s">Setup Provider</Text>
+        <div className="mt-space-xs">
+          <Text variant="body" tone="muted">
+            Connect one provider to unlock models and start chatting.
+          </Text>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-2">
+      <Stack gap="m">
         <SearchInput placeholder="Search providers..." value={search} onChange={(e) => setSearch(e.target.value)} />
 
         <div className="thin-scrollbar flex max-h-96 flex-col overflow-y-auto">
           {filteredProviders.length === 0 ? (
-            <p className="px-1 py-3 text-sm text-muted-foreground">
-              {search ? 'No providers match your search.' : 'All available providers are already connected.'}
-            </p>
+            <div className="px-space-xs py-space-l">
+              <Text variant="body" tone="muted">
+                {search ? 'No providers match your search.' : 'All available providers are already connected.'}
+              </Text>
+            </div>
           ) : (
             filteredProviders.map((provider) => (
               <ProviderRow key={provider.id} provider={provider} onSelect={setSelected} />
             ))
           )}
         </div>
-      </div>
-    </div>
+      </Stack>
+    </Stack>
   );
 }

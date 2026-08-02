@@ -119,14 +119,16 @@ export function SessionPage({ sessionId }: SessionPageProps) {
           generateAutomationPending={generateAutomation.isPending}
         />
 
-        <ResizablePanelGroup orientation="horizontal" className="h-full min-h-0 w-full pt-0 pr-0 pb-0 pl-6">
+        <ResizablePanelGroup
+          orientation="horizontal"
+          className="h-full min-h-0 w-full pt-space-none pr-space-none pb-space-none pl-space-2xl">
           <ResizablePanel defaultSize={rightPanelOpen ? '70%' : '100%'} minSize="45%">
             <SessionChatPane sessionId={sessionId} onGenerateAutomation={handleGenerateAutomation} />
           </ResizablePanel>
 
           {rightPanelOpen ? (
             <>
-              <ResizableHandle className="hidden bg-foreground/25 after:w-0 lg:flex" />
+              <ResizableHandle className="hidden bg-border after:w-0 lg:flex" />
 
               <ResizablePanel defaultSize="30%" minSize="24%" maxSize="55%">
                 {rightPanel === 'browser' ? (

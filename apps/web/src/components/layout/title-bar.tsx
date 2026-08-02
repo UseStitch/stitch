@@ -2,6 +2,7 @@ import { Copy, Minus, PanelLeftClose, PanelLeftOpen, Square, X } from 'lucide-re
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 
 import { ServerStatus } from '@/components/layout/server-status';
+import { Icon } from '@/components/primitives/icon';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useFullScreen } from '@/hooks/ui/use-fullscreen';
@@ -13,10 +14,10 @@ export function TitleBar() {
 
   return (
     <TitleBarShell>
-      <TitleBarSection className={cn(isMac && !isFullScreen && 'pl-6')}>
+      <TitleBarSection className={cn(isMac && !isFullScreen && 'pl-space-2xl')}>
         <SidebarToggleButton />
       </TitleBarSection>
-      <TitleBarSection className={cn(isMac && 'pr-2')}>
+      <TitleBarSection className={cn(isMac && 'pr-space-m')}>
         <ServerStatus />
         {!isMac && <WindowsControls />}
       </TitleBarSection>
@@ -50,13 +51,11 @@ function SidebarToggleButton() {
   const { open, toggleSidebar } = useSidebar();
 
   return (
-    <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-full w-9 rounded-none">
-      {open ? (
-        <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
-      ) : (
-        <PanelLeftOpen className="h-4 w-4 text-muted-foreground" />
-      )}
-    </Button>
+    <div className="flex h-full w-9 items-center justify-center">
+      <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+        {open ? <Icon as={PanelLeftClose} size="m" tone="muted" /> : <Icon as={PanelLeftOpen} size="m" tone="muted" />}
+      </Button>
+    </div>
   );
 }
 
@@ -89,23 +88,21 @@ function WindowsControls() {
 
   return (
     <>
-      <Button variant="ghost" size="icon" onClick={handleMinimize} className="h-full w-12 rounded-none">
-        <Minus className="h-4 w-4 text-muted-foreground" />
-      </Button>
-      <Button variant="ghost" size="icon" onClick={handleMaximize} className="h-full w-12 rounded-none">
-        {isMaximized ? (
-          <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-        ) : (
-          <Square className="h-3.5 w-3.5 text-muted-foreground" />
-        )}
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={handleClose}
-        className="group h-full w-12 rounded-none hover:bg-destructive hover:text-destructive-foreground">
-        <X className="h-4 w-4 text-muted-foreground group-hover:text-destructive-foreground" />
-      </Button>
+      <div className="flex h-full w-12 items-center justify-center">
+        <Button variant="ghost" size="icon" onClick={handleMinimize}>
+          <Icon as={Minus} size="m" tone="muted" />
+        </Button>
+      </div>
+      <div className="flex h-full w-12 items-center justify-center">
+        <Button variant="ghost" size="icon" onClick={handleMaximize}>
+          {isMaximized ? <Icon as={Copy} size="s" tone="muted" /> : <Icon as={Square} size="s" tone="muted" />}
+        </Button>
+      </div>
+      <div className="group flex h-full w-12 items-center justify-center hover:bg-destructive">
+        <Button variant="quiet" size="icon" onClick={handleClose}>
+          <Icon as={X} size="m" tone="muted" />
+        </Button>
+      </div>
     </>
   );
 }

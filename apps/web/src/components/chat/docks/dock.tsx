@@ -1,6 +1,9 @@
 import { CheckIcon, ChevronDownIcon } from 'lucide-react';
 import * as React from 'react';
 
+import { Icon } from '@/components/primitives/icon.js';
+import { Stack } from '@/components/primitives/stack.js';
+import { Text } from '@/components/primitives/text.js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -23,9 +26,9 @@ type DockIconProps = React.ComponentProps<'div'>;
 
 type DockBodyProps = React.ComponentProps<'div'>;
 
-type DockTitleProps = React.ComponentProps<'div'>;
+type DockTitleProps = { children: React.ReactNode; title?: string; tone?: 'default' | 'destructive'; lineClamp?: '2' };
 
-type DockDescriptionProps = React.ComponentProps<'div'>;
+type DockDescriptionProps = { children: React.ReactNode; tone?: 'muted' | 'destructive'; flush?: boolean };
 
 type DockActionsProps = React.ComponentProps<'div'>;
 
@@ -34,47 +37,68 @@ type DockInputProps = React.ComponentProps<'input'>;
 type DockSelectableProps = React.ComponentProps<'button'> & { selected: boolean; description?: React.ReactNode };
 
 const variantStyles = {
-  default: { header: 'text-foreground hover:bg-muted/50', icon: 'text-muted-foreground' },
-  primary: { header: 'bg-primary/5 text-primary hover:bg-primary/10', icon: 'text-primary' },
-  warning: { header: 'bg-warning/10 text-warning hover:bg-warning/20', icon: 'text-warning' },
-  destructive: { header: 'bg-destructive/5 text-destructive hover:bg-destructive/10', icon: 'text-destructive' },
+  default: { header: 'text-foreground hover:bg-accent', icon: 'text-muted-foreground' },
+  primary: { header: 'bg-primary-subtle text-primary hover:bg-primary-subtle', icon: 'text-primary' },
+  warning: { header: 'bg-warning-subtle text-warning hover:bg-warning-subtle', icon: 'text-warning' },
+  destructive: {
+    header: 'bg-destructive-subtle text-destructive hover:bg-destructive-subtle',
+    icon: 'text-destructive',
+  },
 } satisfies Record<DockVariant, { header: string; icon: string }>;
 
 type DockContainerProps = { docks: DockItem[]; className?: string };
 
-function DockRoot({ className, ...props }: DockRootProps) {
-  return <div className={cn('flex flex-col gap-3 text-sm', className)} {...props} />;
+function DockRoot({ children }: DockRootProps) {
+  return <Stack gap="l">{children}</Stack>;
 }
 
 function DockInline({ className, ...props }: DockRootProps) {
-  return <div className={cn('flex items-start gap-3', className)} {...props} />;
+  const { children, ...rest } = props;
+  return (
+    <div className={className} {...rest}>
+      <Stack direction="row" align="start" gap="l">
+        {children}
+      </Stack>
+    </div>
+  );
 }
 
 function DockIcon({ className, ...props }: DockIconProps) {
-  return <div className={cn('mt-0.5 shrink-0', className)} {...props} />;
+  return <div className={cn('mt-space-2xs shrink-0', className)} {...props} />;
 }
 
 function DockBody({ className, ...props }: DockBodyProps) {
   return <div className={cn('min-w-0 flex-1', className)} {...props} />;
 }
 
-function DockTitle({ className, ...props }: DockTitleProps) {
-  return <div className={cn('text-sm text-foreground', className)} {...props} />;
+function DockTitle({ tone = 'default', lineClamp, ...props }: DockTitleProps) {
+  return <Text as="div" variant="body" tone={tone} lineClamp={lineClamp} {...props} />;
 }
 
-function DockDescription({ className, ...props }: DockDescriptionProps) {
-  return <div className={cn('mt-1 text-xs text-muted-foreground', className)} {...props} />;
+function DockDescription({ tone = 'muted', flush = false, ...props }: DockDescriptionProps) {
+  return (
+    <div className={flush ? undefined : 'mt-space-xs'}>
+      <Text as="div" variant="caption" tone={tone} {...props} />
+    </div>
+  );
 }
 
 function DockActions({ className, ...props }: DockActionsProps) {
-  return <div className={cn('flex flex-wrap items-center gap-2', className)} {...props} />;
+  const { children, ...rest } = props;
+  return (
+    <div className={className} {...rest}>
+      <Stack direction="row" align="center" gap="m" wrap>
+        {children}
+      </Stack>
+    </div>
+  );
 }
 
 function DockInput({ className, ...props }: DockInputProps) {
   return (
     <Input
       className={cn(
-        'flex-1 rounded-md border-border bg-background px-2 text-sm focus:ring-1 focus:ring-primary focus-visible:ring-1 focus-visible:ring-primary',
+        'flex-1 rounded-md border-border bg-background px-space-m text-sm focus:ring-1 focus:ring-primary focus-visible:ring-1 focus-visible:ring-primary',
         className,
       )}
       {...props}
@@ -86,23 +110,27 @@ function DockSelectable({ selected, description, children, className, ...props }
   return (
     <Button
       type="button"
-      variant="ghost"
-      className={cn(
-        'h-auto w-full items-start justify-start gap-2 rounded-md p-2 text-left',
-        selected ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50',
-        className,
-      )}
+      variant={selected ? 'secondary' : 'outline'}
+      width="full"
+      align="start"
+      className={cn('items-start gap-space-m', className)}
       {...props}>
       <div
         className={cn(
-          'mt-0.5 flex size-3.5 shrink-0 items-center justify-center rounded-full border',
+          'mt-space-2xs flex size-3.5 shrink-0 items-center justify-center rounded-full border',
           selected ? 'border-primary bg-primary' : 'border-muted-foreground',
         )}>
-        {selected ? <CheckIcon className="size-2 text-primary-foreground" /> : null}
+        {selected ? <Icon as={CheckIcon} size="xs" color="var(--primary-foreground)" /> : null}
       </div>
       <div className="min-w-0">
-        <div className="truncate text-foreground">{children}</div>
-        {description ? <div className="truncate text-xs text-muted-foreground">{description}</div> : null}
+        <Text as="div" variant="body" truncate>
+          {children}
+        </Text>
+        {description ? (
+          <Text as="div" variant="caption" tone="muted" truncate>
+            {description}
+          </Text>
+        ) : null}
       </div>
     </Button>
   );
@@ -125,39 +153,38 @@ function CollapsibleDockItem({ title, defaultExpanded = true, children, isLast, 
   const styles = variantStyles[variant];
 
   return (
-    <div className={cn('overflow-hidden bg-transparent', !isLast && 'border-b border-border/60')}>
-      <div className="flex items-center">
+    <div className={cn('overflow-hidden bg-transparent', !isLast && 'border-b border-border-subtle')}>
+      <div className={styles.header}>
         <Button
           type="button"
-          variant="ghost"
+          variant="quiet"
+          width="full"
+          align="start"
           onClick={() => setIsExpanded((prev) => !prev)}
           aria-expanded={isExpanded}
-          className={cn(
-            'h-auto flex-1 justify-start gap-3 px-4 py-3 text-left',
-            'transition-colors duration-150 ease-out',
-            styles.header,
-            'focus-visible:outline-none',
-          )}>
+          className="gap-space-l">
           <span
             className={cn(
-              'transition-transform duration-150 ease-out',
+              'transition-transform duration-fast ease-standard',
               styles.icon,
               isExpanded ? 'rotate-0' : '-rotate-90',
             )}>
-            <ChevronDownIcon className="size-4 shrink-0" />
+            <Icon as={ChevronDownIcon} size="m" />
           </span>
-          <span>{title}</span>
+          <Text as="span" variant="body-strong">
+            {title}
+          </Text>
         </Button>
       </div>
 
       <div
         className={cn(
-          'grid transition-[opacity,grid-template-rows] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]',
+          'grid transition-[opacity,grid-template-rows] duration-slow ease-standard',
           isExpanded ? 'opacity-100' : 'opacity-0',
         )}
         style={{ gridTemplateRows: isExpanded ? '1fr' : '0fr' }}>
         <div className="min-h-0 overflow-hidden">
-          <div className="px-4 pt-1 pb-4">{children}</div>
+          <div className="px-space-xl pt-space-xs pb-space-xl">{children}</div>
         </div>
       </div>
     </div>
@@ -191,7 +218,7 @@ export function DockContainer({ docks, className }: DockContainerProps) {
     <div
       className={cn(
         'pointer-events-auto grid transition-[grid-template-rows,opacity]',
-        isOpen ? 'duration-340 ease-[cubic-bezier(0.23,1,0.32,1)] opacity-100' : 'duration-300 ease-in opacity-0',
+        isOpen ? 'duration-slow ease-standard opacity-100' : 'duration-slow ease-emphasized opacity-0',
         className,
       )}
       style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
@@ -200,9 +227,7 @@ export function DockContainer({ docks, className }: DockContainerProps) {
         <div
           className={cn(
             'flex flex-col transition-transform',
-            isOpen
-              ? 'translate-y-0 duration-340 ease-[cubic-bezier(0.23,1,0.32,1)]'
-              : 'translate-y-1 duration-300 ease-in',
+            isOpen ? 'translate-y-0 duration-slow ease-standard' : 'translate-y-1 duration-slow ease-emphasized',
           )}>
           {renderedDocks.map((dock, index) => (
             <CollapsibleDockItem

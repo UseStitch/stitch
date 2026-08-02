@@ -6,6 +6,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { CATEGORY_LABELS, CATEGORY_VARIANTS, CONFIDENCE_LABELS } from '@/components/memories/constants';
 import { MemoryDetailSheet } from '@/components/memories/memory-detail-sheet';
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -180,7 +183,7 @@ export function MemoriesPage() {
         <PageHeader>
           <PageHeaderContent>
             <PageIcon>
-              <BrainIcon className="size-5" />
+              <Icon as={BrainIcon} size="l" />
             </PageIcon>
             <div>
               <PageTitle>Memories</PageTitle>
@@ -190,38 +193,36 @@ export function MemoriesPage() {
             </div>
           </PageHeaderContent>
           {stats && !isSearching && (
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span>
+            <Stack direction="row" align="center" gap="xl">
+              <Text as="span" variant="caption" tone="muted">
                 <strong>{stats.pinned}</strong> pinned
-              </span>
-              <span>
+              </Text>
+              <Text as="span" variant="caption" tone="muted">
                 <strong>{stats.stale}</strong> stale
-              </span>
-              <span>
+              </Text>
+              <Text as="span" variant="caption" tone="muted">
                 <strong>{stats.avgAccessCount.toFixed(1)}</strong> avg accesses
-              </span>
+              </Text>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => pruneMutation.mutate()}
-                disabled={pruneMutation.isPending || maintenanceMutation.isPending}
-                className="px-2 text-xs">
+                disabled={pruneMutation.isPending || maintenanceMutation.isPending}>
                 Prune Stale
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => maintenanceMutation.mutate()}
-                disabled={maintenanceMutation.isPending || pruneMutation.isPending}
-                className="px-2 text-xs">
+                disabled={maintenanceMutation.isPending || pruneMutation.isPending}>
                 {maintenanceMutation.isPending ? 'Running…' : 'Run Maintenance'}
               </Button>
-            </div>
+            </Stack>
           )}
         </PageHeader>
 
         {/* Toolbar */}
-        <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="mb-space-xl flex flex-wrap items-center gap-space-m">
           <div className="w-64">
             <SearchInput
               placeholder="Search memories…"
@@ -299,8 +300,8 @@ export function MemoriesPage() {
                 ) : memories.length === 0 ? (
                   <Table.EmptyRow colSpan={7}>
                     <Empty>
-                      <EmptyMedia>
-                        <BrainIcon className="size-10 text-muted-foreground/30" />
+                      <EmptyMedia variant="icon">
+                        <Icon as={BrainIcon} size="m" />
                       </EmptyMedia>
                       <EmptyTitle>{isSearching ? 'No memories match your search' : 'No memories yet'}</EmptyTitle>
                       {!isSearching && (
@@ -327,7 +328,7 @@ export function MemoriesPage() {
           </Table.Scroller>
 
           {totalPages > 1 ? (
-            <div className="border-t border-border px-3 py-3">
+            <div className="border-t border-border px-space-l py-space-l">
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
@@ -411,7 +412,7 @@ function MemoryRow({ memory, selected, onToggleSelect, onClick }: MemoryRowProps
   const pinMutation = useMutation(pinMemoryMutationOptions(queryClient));
 
   return (
-    <Table.Row className={cn('cursor-pointer', selected && 'bg-muted/40')} onClick={onClick}>
+    <Table.Row className={cn('cursor-pointer', selected && 'bg-surface-sunken')} onClick={onClick}>
       <Table.Cell
         className="w-14 text-center"
         onClick={(e) => {
@@ -427,9 +428,11 @@ function MemoryRow({ memory, selected, onToggleSelect, onClick }: MemoryRowProps
           pinMutation.mutate({ id: memory.id, pinned: !memory.pinned });
         }}>
         {memory.pinned ? (
-          <PinIcon className="h-4 w-4 fill-foreground text-foreground" />
+          <Icon as={PinIcon} size="m" fill="currentColor" />
         ) : (
-          <PinIcon className="h-4 w-4 opacity-30 hover:opacity-100" />
+          <span className="opacity-30 hover:opacity-100">
+            <Icon as={PinIcon} size="m" />
+          </span>
         )}
       </Table.Cell>
 

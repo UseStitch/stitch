@@ -5,6 +5,7 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import type { EmbeddingProviderModels } from '@stitch/shared/embedding/types';
 
 import { ModelCombobox, type ModelSelection } from '@/components/model-selectors/model-combobox';
+import { Text } from '@/components/primitives/text';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
   NumberSettingRow,
@@ -160,7 +161,9 @@ function MemoryToggles() {
         </SettingRow>
       </SettingRows>
       {!memoryEnabled && !canEnableMemory ? (
-        <p className="text-xs text-muted-foreground">Select an embedding model to enable memory.</p>
+        <Text variant="caption" tone="muted">
+          Select an embedding model to enable memory.
+        </Text>
       ) : null}
     </>
   );
@@ -347,9 +350,7 @@ function EmbeddingModelContent() {
 
   if (providerModels.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        No embedding models in providers configured. Please add another provider that has one
-      </p>
+      <Text tone="muted">No embedding models in providers configured. Please add another provider that has one</Text>
     );
   }
 
@@ -374,7 +375,7 @@ export function MemorySettings() {
 
   return (
     <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
-      <Tabs defaultValue="general" className="space-y-5">
+      <Tabs defaultValue="general" className="space-y-space-xl">
         <TabsList variant="line">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="embedding">Embedding</TabsTrigger>
@@ -384,27 +385,27 @@ export function MemorySettings() {
         </TabsList>
 
         <TabsContent value="general">
-          <SettingSection className="mt-0">
+          <SettingSection className="mt-space-none">
             <MemoryToggles />
           </SettingSection>
         </TabsContent>
         <TabsContent value="embedding">
-          <SettingSection className="mt-0">
+          <SettingSection className="mt-space-none">
             <EmbeddingModelContent />
           </SettingSection>
         </TabsContent>
         <TabsContent value="extraction">
-          <SettingSection className="mt-0">
+          <SettingSection className="mt-space-none">
             <ExtractionSettings />
           </SettingSection>
         </TabsContent>
         <TabsContent value="retention">
-          <SettingSection className="mt-0">
+          <SettingSection className="mt-space-none">
             <RetentionSettings />
           </SettingSection>
         </TabsContent>
         <TabsContent value="retrieval">
-          <SettingSection className="mt-0">
+          <SettingSection className="mt-space-none">
             <RetrievalSettings />
           </SettingSection>
         </TabsContent>

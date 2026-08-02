@@ -5,6 +5,8 @@ import { useQuery } from '@tanstack/react-query';
 import type { McpServer } from '@stitch/shared/mcp/types';
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
+import { Icon } from '@/components/primitives/icon';
+import { Text } from '@/components/primitives/text';
 import { SettingSubPage } from '@/components/settings/settings-ui';
 import { getErrorMessage } from '@/lib/errors';
 import { mcpToolsQueryOptions } from '@/lib/queries/mcp';
@@ -14,25 +16,37 @@ export function McpToolsPreview({ server, onBack }: { server: McpServer; onBack:
 
   return (
     <SettingSubPage title={server.name} onBack={onBack} backLabel="Back to MCP servers">
-      {isLoading && <p className="text-sm text-muted-foreground">Connecting to server...</p>}
+      {isLoading && <Text tone="muted">Connecting to server...</Text>}
 
-      {isError && <p className="text-sm text-destructive">{getErrorMessage(error, 'Failed to load tools')}</p>}
+      {isError && <Text tone="destructive">{getErrorMessage(error, 'Failed to load tools')}</Text>}
 
-      {tools && tools.length === 0 && <p className="text-sm text-muted-foreground">No tools exposed by this server.</p>}
+      {tools && tools.length === 0 && <Text tone="muted">No tools exposed by this server.</Text>}
 
       {tools && tools.length > 0 && (
-        <ul className="overflow-hidden rounded-lg border border-border/60">
+        <ul className="overflow-hidden rounded-lg border border-border-subtle">
           {tools.map((tool) => (
-            <li key={tool.name} className="border-b border-border/50 last:border-b-0">
+            <li key={tool.name} className="border-b border-border-subtle last:border-b-0">
               <details className="group">
-                <summary className="flex cursor-pointer list-none items-center gap-2.5 px-3 py-2.5 hover:bg-muted/20">
-                  <ChevronRightIcon className="size-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
-                  <WrenchIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                  <span className="text-sm font-medium">{tool.title ?? tool.name}</span>
-                  {tool.title && <span className="text-xs text-muted-foreground/60">{tool.name}</span>}
+                <summary className="flex cursor-pointer list-none items-center gap-space-m px-space-l py-space-m hover:bg-surface-sunken">
+                  <span className="inline-flex transition-transform group-open:rotate-90">
+                    <Text as="span" tone="muted">
+                      <Icon as={ChevronRightIcon} size="s" />
+                    </Text>
+                  </span>
+                  <Text as="div" tone="muted">
+                    <Icon as={WrenchIcon} size="s" />
+                  </Text>
+                  <Text as="span" variant="body-strong">
+                    {tool.title ?? tool.name}
+                  </Text>
+                  {tool.title && (
+                    <Text variant="caption" tone="faint">
+                      {tool.name}
+                    </Text>
+                  )}
                 </summary>
                 {tool.description && (
-                  <div className="px-9 pt-1 pb-3">
+                  <div className="px-space-3xl pt-space-xs pb-space-l">
                     <ChatMarkdown text={tool.description} className="text-xs [&_.prose]:text-xs" />
                   </div>
                 )}

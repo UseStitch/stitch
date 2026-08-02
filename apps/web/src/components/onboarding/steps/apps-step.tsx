@@ -2,6 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 
 import { APP_IDS, type AppId } from '@stitch/shared/apps/types';
 
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -22,32 +25,38 @@ export function AppsStep({ onContinue }: Props) {
   }
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-xl flex-col justify-center gap-6">
-      <div className="space-y-2 text-center">
-        <h2 className="text-2xl font-semibold tracking-tight">Choose your mini-apps</h2>
-        <p className="text-sm text-muted-foreground">
+    <div className="mx-auto flex h-full w-full max-w-xl flex-col justify-center gap-space-2xl">
+      <div className="space-y-space-m text-center">
+        <Text variant="heading-l">Choose your mini-apps</Text>
+        <Text variant="body" tone="muted">
           Pick what should appear in Stitch. You can change these later in Settings.
-        </p>
+        </Text>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-space-l">
         {APP_IDS.map((appId) => {
           const page = SETTINGS_PAGE_BY_ID[appId];
-          const Icon = page.icon;
+          const PageIcon = page.icon;
           const toggleId = `onboarding-${appId}-app-toggle`;
           return (
             <div
               key={appId}
-              className="flex items-center justify-between gap-4 rounded-xl border border-border/70 bg-card px-4 py-3">
-              <div className="flex min-w-0 items-start gap-3">
-                <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                  <Icon className="size-4" />
+              className="flex items-center justify-between gap-space-xl rounded-xl border border-border-subtle bg-card px-space-xl py-space-l">
+              <div className="flex min-w-0 items-start gap-space-l">
+                <div className="mt-space-2xs flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+                  <Icon as={PageIcon} size="m" tone="muted" />
                 </div>
                 <div className="min-w-0">
-                  <label htmlFor={toggleId} className="text-sm font-medium">
-                    {page.label}
+                  <label htmlFor={toggleId}>
+                    <Text as="span" variant="body-strong">
+                      {page.label}
+                    </Text>
                   </label>
-                  <p className="mt-1 text-sm text-muted-foreground">{page.description}</p>
+                  <div className="mt-space-xs">
+                    <Text variant="body" tone="muted">
+                      {page.description}
+                    </Text>
+                  </div>
                 </div>
               </div>
               <Switch
@@ -61,14 +70,14 @@ export function AppsStep({ onContinue }: Props) {
         })}
       </div>
 
-      <div className="flex justify-center gap-2">
+      <Stack direction="row" justify="center" gap="m">
         <Button variant="outline" onClick={onContinue} disabled={setAppEnabledState.isPending}>
           Skip
         </Button>
         <Button onClick={onContinue} disabled={setAppEnabledState.isPending}>
           Continue
         </Button>
-      </div>
+      </Stack>
     </div>
   );
 }

@@ -4,6 +4,8 @@ import type { StoredPart } from '@stitch/shared/chat/messages';
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { extractTextFromParts } from '@/components/chat/message-bubble/extract-text.js';
+import { Icon } from '@/components/primitives/icon.js';
+import { Text } from '@/components/primitives/text.js';
 
 type CompactionDividerProps = { summaryParts?: StoredPart[] };
 
@@ -20,24 +22,34 @@ export function CompactionDivider({ summaryParts }: CompactionDividerProps) {
 
   if (!hasSummary) {
     return (
-      <div className="flex items-center gap-3 py-2">
-        <div className="h-px flex-1 bg-border/60" />
-        <span className="text-xs font-medium text-muted-foreground">Session compacted</span>
-        <div className="h-px flex-1 bg-border/60" />
+      <div className="flex items-center gap-space-l py-space-m">
+        <div className="h-px flex-1 bg-border-subtle" />
+        <Text as="span" variant="label" tone="muted">
+          Session compacted
+        </Text>
+        <div className="h-px flex-1 bg-border-subtle" />
       </div>
     );
   }
 
   return (
     <details className="group">
-      <summary className="flex cursor-pointer list-none items-center gap-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
-        <div className="h-px flex-1 bg-border/60" />
-        <span className="flex items-center gap-1.5">
-          <ChevronRightIcon className="size-3 shrink-0 group-open:hidden" />
-          <ChevronDownIcon className="hidden size-3 shrink-0 group-open:block" />
-          Session compacted
+      <summary
+        aria-label="Session compacted"
+        className="flex cursor-pointer list-none items-center gap-space-l py-space-m text-xs font-medium text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
+        <div className="h-px flex-1 bg-border-subtle" />
+        <span className="flex items-center gap-space-s">
+          <span className="group-open:hidden">
+            <Icon as={ChevronRightIcon} size="xs" />
+          </span>
+          <span className="hidden group-open:block">
+            <Icon as={ChevronDownIcon} size="xs" />
+          </span>
+          <Text as="span" variant="label" tone="muted">
+            Session compacted
+          </Text>
         </span>
-        <div className="h-px flex-1 bg-border/60" />
+        <div className="h-px flex-1 bg-border-subtle" />
       </summary>
       <div className="w-full">
         <ChatMarkdown text={summaryText} />

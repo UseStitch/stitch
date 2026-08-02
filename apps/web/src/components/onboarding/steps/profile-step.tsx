@@ -1,5 +1,7 @@
 import * as React from 'react';
 
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -49,47 +51,57 @@ export function ProfileStep({ initialName, initialTimezone, isSaving, onContinue
   }
 
   return (
-    <form className="mx-auto flex h-full w-full max-w-md flex-col justify-center gap-6" onSubmit={handleSubmit}>
-      <div className="space-y-2 text-center">
-        <h2 className="text-2xl font-semibold tracking-tight">Tell us your name</h2>
-        <p className="text-sm text-muted-foreground">
-          We&apos;ll use it to personalize responses and transcription speaker labels.
-        </p>
-      </div>
+    <div className="mx-auto h-full w-full max-w-md">
+      <Stack as="form" height="full" justify="center" gap="2xl" onSubmit={handleSubmit}>
+        <div className="space-y-space-m text-center">
+          <Text variant="heading-l">Tell us your name</Text>
+          <Text variant="body" tone="muted">
+            We&apos;ll use it to personalize responses and transcription speaker labels.
+          </Text>
+        </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="onboarding-name">Name</Label>
-        <Input
-          id="onboarding-name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          onBlur={() => setTouched(true)}
-          placeholder="Jane"
-          maxLength={80}
-        />
-        {hasError && <p className="text-xs text-destructive">Please enter your name.</p>}
-      </div>
+        <div className="space-y-space-m">
+          <Label htmlFor="onboarding-name">Name</Label>
+          <Input
+            id="onboarding-name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            onBlur={() => setTouched(true)}
+            placeholder="Jane"
+            maxLength={80}
+          />
+          {hasError && (
+            <Text variant="caption" tone="destructive">
+              Please enter your name.
+            </Text>
+          )}
+        </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="onboarding-timezone">Timezone</Label>
-        <Select value={timezone} onValueChange={(value) => setTimezone(value ?? '')}>
-          <SelectTrigger id="onboarding-timezone" className="w-full">
-            <SelectValue placeholder="Select your timezone" />
-          </SelectTrigger>
-          <SelectContent className="max-h-80">
-            {timezoneOptions.map((value) => (
-              <SelectItem key={value} value={value}>
-                {value}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {hasTimezoneError && <p className="text-xs text-destructive">Please select a timezone.</p>}
-      </div>
+        <div className="space-y-space-m">
+          <Label htmlFor="onboarding-timezone">Timezone</Label>
+          <Select value={timezone} onValueChange={(value) => setTimezone(value ?? '')}>
+            <SelectTrigger id="onboarding-timezone" className="w-full">
+              <SelectValue placeholder="Select your timezone" />
+            </SelectTrigger>
+            <SelectContent className="max-h-80">
+              {timezoneOptions.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {hasTimezoneError && (
+            <Text variant="caption" tone="destructive">
+              Please select a timezone.
+            </Text>
+          )}
+        </div>
 
-      <Button size="lg" type="submit" disabled={isSaving || trimmed.length === 0 || trimmedTimezone.length === 0}>
-        {isSaving ? 'Saving...' : 'Continue'}
-      </Button>
-    </form>
+        <Button size="lg" type="submit" disabled={isSaving || trimmed.length === 0 || trimmedTimezone.length === 0}>
+          {isSaving ? 'Saving...' : 'Continue'}
+        </Button>
+      </Stack>
+    </div>
   );
 }

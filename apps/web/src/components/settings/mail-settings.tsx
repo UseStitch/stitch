@@ -1,5 +1,6 @@
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 
+import { Text } from '@/components/primitives/text';
 import { AppEnableSetting } from '@/components/settings/app-enable-setting';
 import { EligibleAccountsSection } from '@/components/settings/mail/eligible-accounts-section.js';
 import { EnrolledAccountsSection } from '@/components/settings/mail/enrolled-accounts-section.js';
@@ -18,14 +19,14 @@ export function MailSettings() {
 
   return (
     <SettingPage title={page.title} description={page.description} icon={<page.icon />}>
-      <Tabs defaultValue="accounts" className="space-y-5">
+      <Tabs defaultValue="accounts" className="space-y-space-xl">
         <TabsList variant="line">
           <TabsTrigger value="accounts">Accounts</TabsTrigger>
           <TabsTrigger value="enrolled">Enrolled accounts</TabsTrigger>
         </TabsList>
 
         <TabsContent value="accounts">
-          <SettingSection className="mt-0">
+          <SettingSection className="mt-space-none">
             <AppEnableSetting appId="mail" label="Mail" />
           </SettingSection>
 
@@ -49,10 +50,8 @@ export function MailSettings() {
 
         <TabsContent value="enrolled">
           <SettingSection title="Enrolled accounts" description="Manage local Gmail sync settings per account.">
-            {isLoading ? <p className="text-sm text-muted-foreground">Loading mail accounts...</p> : null}
-            {error ? (
-              <p className="text-sm text-destructive">{getErrorMessage(error, 'Failed to load mail accounts')}</p>
-            ) : null}
+            {isLoading ? <Text tone="muted">Loading mail accounts...</Text> : null}
+            {error ? <Text tone="destructive">{getErrorMessage(error, 'Failed to load mail accounts')}</Text> : null}
             {accounts ? <EnrolledAccountsSection accounts={accounts} statuses={statuses} /> : null}
           </SettingSection>
         </TabsContent>

@@ -3,6 +3,7 @@ import * as React from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 
 import { MailPage } from '@/components/mail/mail-page';
+import { Text } from '@/components/primitives/text';
 import {
   getDefaultMailLabel,
   mailAccountsQueryOptions,
@@ -21,7 +22,12 @@ export const Route = createFileRoute('/mail/')({
     await context.queryClient.ensureInfiniteQueryData(mailThreadsInfiniteQueryOptions(account.id, labelId));
   },
   component: () => (
-    <React.Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading mail...</div>}>
+    <React.Suspense
+      fallback={
+        <div className="p-space-xl">
+          <Text tone="muted">Loading mail...</Text>
+        </div>
+      }>
       <MailPage />
     </React.Suspense>
   ),

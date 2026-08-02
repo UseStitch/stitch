@@ -6,6 +6,9 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import type { McpAuthStatus, McpServer } from '@stitch/shared/mcp/types';
 
 import { McpServerLogo } from '@/components/mcp/mcp-server-logo';
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { SettingsIconButtonTooltip } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
@@ -75,8 +78,8 @@ export function McpServerList({ onAdd, onPreview }: { onAdd: () => void; onPrevi
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-end gap-2">
+    <Stack gap="xl">
+      <Stack direction="row" align="center" justify="end" gap="m">
         <div className="h-8 flex-1" aria-hidden />
         <SettingsIconButtonTooltip label="Refresh MCP servers">
           <Button
@@ -85,91 +88,102 @@ export function McpServerList({ onAdd, onPreview }: { onAdd: () => void; onPrevi
             onClick={() => void handleRefresh()}
             aria-label="Refresh MCP servers"
             disabled={refreshServers.isPending}>
-            <RefreshCwIcon className={`size-4 ${refreshServers.isPending ? 'animate-spin' : ''}`} />
+            <span className={refreshServers.isPending ? 'animate-spin' : undefined}>
+              <Icon as={RefreshCwIcon} size="m" />
+            </span>
           </Button>
         </SettingsIconButtonTooltip>
         <Button size="sm" variant="outline" onClick={onAdd} aria-label="Add MCP server">
-          <PlusIcon className="size-4" />
+          <Icon as={PlusIcon} size="m" />
           Add custom
         </Button>
-      </div>
+      </Stack>
 
-      <div className="overflow-hidden rounded-lg border border-border/60">
-        {servers.length === 0 && <p className="px-4 py-5 text-sm text-muted-foreground">No MCP servers configured.</p>}
+      <div className="overflow-hidden rounded-lg border border-border-subtle">
+        {servers.length === 0 && (
+          <div className="px-space-xl py-space-xl">
+            <Text tone="muted">No MCP servers configured.</Text>
+          </div>
+        )}
 
         {servers.map((server) => {
           const badge = AUTH_STATUS_BADGE[server.authStatus];
           const isOAuth = server.authStatus !== 'none';
           const isConnected = server.authStatus === 'connected';
           return (
-            <div
-              key={server.id}
-              className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3 last:border-b-0">
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <div className="flex items-center gap-2">
-                  <McpServerLogo serverId={server.id} name={server.name} className="size-4" />
-                  <p className="truncate text-sm font-medium">{server.name}</p>
-                  {badge && (
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <StatusDot color={badge.dotColor} size="sm" aria-hidden />
-                      {badge.label}
-                    </span>
-                  )}
+            <div key={server.id} className="border-b border-border-subtle px-space-xl py-space-l last:border-b-0">
+              <Stack direction="row" align="center" justify="between" gap="l">
+                <div className="min-w-0">
+                  <Stack gap="2xs">
+                    <Stack direction="row" align="center" gap="m">
+                      <McpServerLogo serverId={server.id} name={server.name} className="size-4" />
+                      <Text variant="body-strong" truncate>
+                        {server.name}
+                      </Text>
+                      {badge && (
+                        <Stack direction="row" align="center" gap="xs">
+                          <StatusDot color={badge.dotColor} size="sm" aria-hidden />
+                          <Text variant="caption" tone="muted">
+                            {badge.label}
+                          </Text>
+                        </Stack>
+                      )}
+                    </Stack>
+                    <Text variant="caption" tone="muted" truncate>
+                      {server.url}
+                    </Text>
+                  </Stack>
                 </div>
-                <p className="truncate text-xs text-muted-foreground">{server.url}</p>
-              </div>
-              <ButtonGroup className="shrink-0">
-                {isOAuth &&
-                  (isConnected ? (
-                    <SettingsIconButtonTooltip label={`Disconnect Server`}>
-                      <Button
-                        size="icon-sm"
-                        variant="outline"
-                        className="text-foreground"
-                        onClick={() => void handleLogout(server)}
-                        disabled={logout.isPending}
-                        aria-label={`Disconnect ${server.name}`}>
-                        <LogOutIcon className="size-3.5" />
-                      </Button>
-                    </SettingsIconButtonTooltip>
-                  ) : (
-                    <SettingsIconButtonTooltip label={`Authenticate ${server.name}`}>
-                      <Button
-                        size="icon-sm"
-                        variant="outline"
-                        className="text-foreground"
-                        onClick={() => void handleAuth(server)}
-                        disabled={startAuth.isPending}
-                        aria-label={`Authenticate ${server.name}`}>
-                        <KeyIcon className="size-3.5" />
-                      </Button>
-                    </SettingsIconButtonTooltip>
-                  ))}
-                <SettingsIconButtonTooltip label={`Preview tools`}>
-                  <Button
-                    size="icon-sm"
-                    variant="outline"
-                    className="text-foreground"
-                    onClick={() => onPreview(server)}
-                    aria-label={`Preview tools`}>
-                    <EyeIcon className="size-3.5" />
-                  </Button>
-                </SettingsIconButtonTooltip>
-                <SettingsIconButtonTooltip label={`Delete Server`}>
-                  <Button
-                    size="icon-sm"
-                    variant="destructive"
-                    onClick={() => void handleDelete(server)}
-                    disabled={deleteServer.isPending}
-                    aria-label={`Delete Server`}>
-                    <Trash2Icon className="size-3.5" />
-                  </Button>
-                </SettingsIconButtonTooltip>
-              </ButtonGroup>
+                <ButtonGroup className="shrink-0">
+                  {isOAuth &&
+                    (isConnected ? (
+                      <SettingsIconButtonTooltip label={`Disconnect Server`}>
+                        <Button
+                          size="icon-sm"
+                          variant="outline"
+                          onClick={() => void handleLogout(server)}
+                          disabled={logout.isPending}
+                          aria-label={`Disconnect ${server.name}`}>
+                          <Icon as={LogOutIcon} size="s" />
+                        </Button>
+                      </SettingsIconButtonTooltip>
+                    ) : (
+                      <SettingsIconButtonTooltip label={`Authenticate ${server.name}`}>
+                        <Button
+                          size="icon-sm"
+                          variant="outline"
+                          onClick={() => void handleAuth(server)}
+                          disabled={startAuth.isPending}
+                          aria-label={`Authenticate ${server.name}`}>
+                          <Icon as={KeyIcon} size="s" />
+                        </Button>
+                      </SettingsIconButtonTooltip>
+                    ))}
+                  <SettingsIconButtonTooltip label={`Preview tools`}>
+                    <Button
+                      size="icon-sm"
+                      variant="outline"
+                      onClick={() => onPreview(server)}
+                      aria-label={`Preview tools`}>
+                      <Icon as={EyeIcon} size="s" />
+                    </Button>
+                  </SettingsIconButtonTooltip>
+                  <SettingsIconButtonTooltip label={`Delete Server`}>
+                    <Button
+                      size="icon-sm"
+                      variant="destructive"
+                      onClick={() => void handleDelete(server)}
+                      disabled={deleteServer.isPending}
+                      aria-label={`Delete Server`}>
+                      <Icon as={Trash2Icon} size="s" />
+                    </Button>
+                  </SettingsIconButtonTooltip>
+                </ButtonGroup>
+              </Stack>
             </div>
           );
         })}
       </div>
-    </div>
+    </Stack>
   );
 }

@@ -7,6 +7,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MEMORY_CATEGORIES, MEMORY_CONFIDENCES } from '@stitch/shared/memory/types';
 
 import { CATEGORY_LABELS, CONFIDENCE_LABELS } from '@/components/memories/constants';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -139,11 +141,11 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
             <SheetTitle>Memory</SheetTitle>
           </SheetHeader>
 
-          <div className="flex flex-1 flex-col gap-5 px-4">
+          <div className="flex flex-1 flex-col gap-space-xl px-space-xl">
             {/* Content */}
             <form.Field name="content">
               {(field) => (
-                <div className="flex flex-col gap-1.5">
+                <Stack gap="s">
                   <Label>Content</Label>
                   <Textarea
                     value={field.state.value}
@@ -156,14 +158,14 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
                     className="min-h-28 resize-none"
                     placeholder="Memory content..."
                   />
-                </div>
+                </Stack>
               )}
             </form.Field>
 
             {/* Category */}
             <form.Field name="category">
               {(field) => (
-                <div className="flex flex-col gap-1.5">
+                <Stack gap="s">
                   <Label>Category</Label>
                   <Select
                     value={field.state.value}
@@ -183,14 +185,14 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
+                </Stack>
               )}
             </form.Field>
 
             {/* Confidence */}
             <form.Field name="confidence">
               {(field) => (
-                <div className="flex flex-col gap-1.5">
+                <Stack gap="s">
                   <Label>Confidence</Label>
                   <Select
                     value={field.state.value}
@@ -210,34 +212,50 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
+                </Stack>
               )}
             </form.Field>
 
             {/* Read-only metadata */}
-            <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Source</span>
-                <Badge variant="outline" className="capitalize">
-                  {memory.source}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Accessed</span>
-                <span className="text-foreground">{memory.accessCount} times</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Created</span>
-                <span className="text-foreground">{formatDate(memory.createdAt)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Updated</span>
-                <span className="text-foreground">{formatDate(memory.updatedAt)}</span>
-              </div>
+            <div className="rounded-lg border border-border bg-surface-sunken">
+              <Stack gap="m" padding="l">
+                <Stack direction="row" align="center" justify="between">
+                  <Text as="span" variant="body" tone="muted">
+                    Source
+                  </Text>
+                  <Badge variant="outline" className="capitalize">
+                    {memory.source}
+                  </Badge>
+                </Stack>
+                <Stack direction="row" align="center" justify="between">
+                  <Text as="span" variant="body" tone="muted">
+                    Accessed
+                  </Text>
+                  <Text as="span" variant="body">
+                    {memory.accessCount} times
+                  </Text>
+                </Stack>
+                <Stack direction="row" align="center" justify="between">
+                  <Text as="span" variant="body" tone="muted">
+                    Created
+                  </Text>
+                  <Text as="span" variant="body">
+                    {formatDate(memory.createdAt)}
+                  </Text>
+                </Stack>
+                <Stack direction="row" align="center" justify="between">
+                  <Text as="span" variant="body" tone="muted">
+                    Updated
+                  </Text>
+                  <Text as="span" variant="body">
+                    {formatDate(memory.updatedAt)}
+                  </Text>
+                </Stack>
+              </Stack>
             </div>
           </div>
 
-          <SheetFooter className="flex flex-row items-center justify-between gap-2">
+          <SheetFooter className="flex flex-row items-center justify-between gap-space-m">
             <Button
               variant="destructive"
               size="sm"
@@ -245,7 +263,11 @@ export function MemoryDetailSheet({ memory, open, onOpenChange }: Props) {
               disabled={deleteMutation.isPending}>
               Delete
             </Button>
-            {updateMutation.isPending && <span className="text-xs text-muted-foreground">Saving…</span>}
+            {updateMutation.isPending && (
+              <Text as="span" variant="caption" tone="muted">
+                Saving…
+              </Text>
+            )}
           </SheetFooter>
         </SheetContent>
       </Sheet>

@@ -3,6 +3,8 @@ import * as React from 'react';
 
 import { MicLevelMeter } from './mic-level-meter';
 
+import { Icon } from '@/components/primitives/icon.js';
+import { Text } from '@/components/primitives/text.js';
 import { Button } from '@/components/ui/button';
 import { StatusDot } from '@/components/ui/status-dot';
 
@@ -42,20 +44,25 @@ export function RecordingBar({ audioLevel, startedAt, isStopping, onCancel, onSt
   const elapsedMs = useElapsed(startedAt);
 
   return (
-    <output className="flex w-full items-center gap-2" aria-live="polite">
+    <output className="flex w-full items-center gap-space-m" aria-live="polite">
       <StatusDot color="destructive" pulse={!isStopping} />
-      <span className="text-xs font-medium text-destructive">{isStopping ? 'Transcribing…' : 'Recording'}</span>
+      <Text as="span" variant="label" tone="destructive">
+        {isStopping ? 'Transcribing…' : 'Recording'}
+      </Text>
       <MicLevelMeter level={isStopping ? 0 : audioLevel} />
-      <span className="ml-auto text-xs font-medium text-muted-foreground tabular-nums">{formatElapsed(elapsedMs)}</span>
+      <span className="ml-auto">
+        <Text as="span" variant="label" tone="muted" tabular>
+          {formatElapsed(elapsedMs)}
+        </Text>
+      </span>
       <Button
         type="button"
         size="icon-xs"
-        variant="ghost"
+        variant="quiet"
         onClick={onCancel}
         disabled={isStopping}
-        title="Discard recording"
-        className="text-muted-foreground hover:text-foreground">
-        <XIcon className="size-3.5" />
+        title="Discard recording">
+        <Icon as={XIcon} size="s" />
       </Button>
       <Button
         type="button"
@@ -64,7 +71,7 @@ export function RecordingBar({ audioLevel, startedAt, isStopping, onCancel, onSt
         onClick={onStop}
         disabled={isStopping}
         title="Stop and insert transcript">
-        <CheckIcon className="size-3.5" />
+        <Icon as={CheckIcon} size="s" />
       </Button>
     </output>
   );

@@ -38,19 +38,22 @@ function McpServersContent() {
 
   return (
     <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
-      <Tabs value={view.tab} onValueChange={(tab) => setView({ type: 'home', tab: tab as Tab })} className="space-y-4">
+      <Tabs
+        value={view.tab}
+        onValueChange={(tab) => setView({ type: 'home', tab: tab as Tab })}
+        className="space-y-space-xl">
         <TabsList variant="line">
           <TabsTrigger value="configured">Configured</TabsTrigger>
           <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="configured" className="mt-0">
+        <TabsContent value="configured" className="mt-space-none">
           <McpServerList
             onAdd={() => setView({ type: 'add-custom', returnTab: 'configured' })}
             onPreview={(server) => setView({ type: 'preview', server, returnTab: 'configured' })}
           />
         </TabsContent>
-        <TabsContent value="marketplace" className="mt-0">
+        <TabsContent value="marketplace" className="mt-space-none">
           <McpRegistryList
             onAddCustom={() => setView({ type: 'add-custom', returnTab: 'marketplace' })}
             onInstall={(server) => setView({ type: 'install', server, returnTab: 'marketplace' })}

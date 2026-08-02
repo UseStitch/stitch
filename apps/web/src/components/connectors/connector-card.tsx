@@ -3,6 +3,9 @@ import { PlusIcon, CheckCircle2Icon } from 'lucide-react';
 import type { ConnectorDefinition } from '@stitch/shared/connectors/types';
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -13,49 +16,55 @@ export function ConnectorCard({ definition, instanceCount, onSetup }: ConnectorC
   const isConnected = instanceCount > 0;
 
   return (
-    <Card className="border-border/60 bg-card/70 transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/5">
-      <CardHeader className="gap-3 border-b border-border/40 pb-3">
-        <div className="flex items-start gap-3">
-          <div className="shrink-0 rounded-lg border border-border/70 bg-muted/70 p-1.5">
+    <Card className="border-border-subtle bg-card transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-md hover:shadow-border-subtle">
+      <CardHeader className="gap-space-l border-b border-border-subtle pb-space-l">
+        <Stack direction="row" align="start" gap="l">
+          <div className="shrink-0 rounded-lg border border-border-subtle bg-surface-sunken p-space-s">
             <ConnectorIcon icon={definition.icon} className="size-8 rounded-md" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2">
+            <Stack direction="row" align="start" justify="between" gap="m">
               <CardTitle>{definition.name}</CardTitle>
               <Badge variant="outline" className="capitalize">
                 {definition.authType === 'oauth2' ? 'OAuth' : 'API key'}
               </Badge>
-            </div>
-            <CardDescription className="mt-1 line-clamp-2">{definition.description}</CardDescription>
+            </Stack>
+            <CardDescription className="mt-space-xs line-clamp-2">{definition.description}</CardDescription>
           </div>
-        </div>
+        </Stack>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-xs text-muted-foreground">
+        <div className="space-y-space-l">
+          <Stack direction="row" align="center" justify="between" gap="l">
+            <div>
               {isConnected ? (
-                <span className="inline-flex items-center gap-1 text-success">
-                  <CheckCircle2Icon className="size-3" />
-                  {instanceCount} connected
+                <span className="inline-flex items-center gap-space-xs">
+                  <Icon as={CheckCircle2Icon} size="xs" />
+                  <Text as="span" variant="caption" tone="success">
+                    {instanceCount} connected
+                  </Text>
                 </span>
               ) : (
-                <span>Not connected</span>
+                <Text as="span" variant="caption" tone="muted">
+                  Not connected
+                </Text>
               )}
             </div>
             <Button variant={isConnected ? 'outline' : 'default'} size="sm" onClick={onSetup}>
-              <PlusIcon className="size-3.5" />
+              <Icon as={PlusIcon} size="s" />
               {isConnected ? 'Add Another' : 'Connect'}
             </Button>
-          </div>
+          </Stack>
 
           {definition.serviceIcons && Object.keys(definition.serviceIcons).length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border/60 bg-muted/60 p-2">
-              {Object.entries(definition.serviceIcons).map(([key, icon]) => (
-                <div key={key} className="rounded-md border border-border/70 bg-muted p-1">
-                  <ConnectorIcon icon={icon} className="size-4" />
-                </div>
-              ))}
+            <div className="rounded-lg border border-border-subtle bg-surface-sunken p-space-m">
+              <Stack direction="row" align="center" gap="s" wrap>
+                {Object.entries(definition.serviceIcons).map(([key, icon]) => (
+                  <div key={key} className="rounded-md border border-border-subtle bg-muted p-space-xs">
+                    <ConnectorIcon icon={icon} className="size-4" />
+                  </div>
+                ))}
+              </Stack>
             </div>
           )}
         </div>

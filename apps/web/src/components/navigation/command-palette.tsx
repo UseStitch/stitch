@@ -35,7 +35,7 @@ export function CommandPalette({ actions }: CommandPaletteProps) {
         <DialogDescription>Search for a command to run...</DialogDescription>
       </DialogHeader>
       <DialogContent
-        className="top-1/3! translate-y-0! overflow-hidden rounded-xl! p-0 sm:max-w-lg!"
+        className="top-1/3! translate-y-0! overflow-hidden rounded-xl! p-space-none sm:max-w-lg!"
         showCloseButton={false}>
         <Command>
           <CommandInput placeholder="Type a command or search..." />
@@ -67,7 +67,7 @@ export function CommandPalette({ actions }: CommandPaletteProps) {
                   <CommandItem key={action.id} onSelect={() => handleSelect(action)}>
                     <span className="flex-1">{action.label}</span>
                     {hotkey && (
-                      <span className="ml-auto flex items-center gap-1.5">
+                      <span className="ml-auto flex items-center gap-space-s">
                         {keyItems.map((item) => (
                           <Kbd key={item.id} size="sm">
                             {item.label}

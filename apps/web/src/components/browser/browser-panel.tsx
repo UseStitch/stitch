@@ -3,6 +3,9 @@ import * as React from 'react';
 
 import type { ElectronBrowserDownload, ElectronBrowserState } from '@stitch/shared/browser/electron';
 
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -83,102 +86,113 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
 
   const controllerBadgeClass =
     state.controller === 'agent'
-      ? 'bg-warning/20 text-warning'
+      ? 'bg-warning-subtle text-warning'
       : state.controller === 'human'
-        ? 'bg-success/20 text-success'
+        ? 'bg-success-subtle text-success'
         : 'bg-muted text-muted-foreground';
 
   const controllerLabel = state.controller === 'agent' ? 'Agent' : state.controller === 'human' ? 'You' : 'Ready';
 
   return (
-    <section className="flex h-full min-h-0 flex-col overflow-hidden border-l border-border bg-background">
-      {/* Tab strip */}
-      <div className="flex h-8 shrink-0 items-center gap-0.5 overflow-x-auto border-b border-border bg-muted/30 px-1">
-        {state.tabs.length === 0 ? (
-          <span className="px-2 text-xs text-muted-foreground">Starting...</span>
-        ) : (
-          state.tabs.map((tab) => (
-            <div
-              key={tab.id}
-              className={cn(
-                'group flex h-6 max-w-40 shrink-0 items-center rounded text-xs',
-                tab.active ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted/60',
-              )}>
-              <Button
-                variant="ghost"
-                className="h-auto min-w-0 flex-1 justify-start truncate px-2 py-0.5 text-left font-normal hover:bg-transparent"
-                onClick={() => void window.api?.browser.focusTab(tab.id)}
-                type="button"
-                title={tab.url}>
-                {tab.title || tab.url || 'New tab'}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                className="mr-0.5 size-4 shrink-0 rounded opacity-0 group-hover:opacity-60 hover:bg-muted hover:opacity-100!"
-                onClick={() => void window.api?.browser.closeTab(tab.id)}
-                type="button"
-                aria-label="Close tab">
-                <XIcon className="size-2.5" />
-              </Button>
+    <div className="h-full min-h-0 border-l border-border bg-background">
+      <Stack as="section" height="full" overflow="hidden">
+        {/* Tab strip */}
+        <div className="flex h-8 shrink-0 items-center gap-space-2xs overflow-x-auto border-b border-border bg-surface-sunken px-space-xs">
+          {state.tabs.length === 0 ? (
+            <div className="px-space-m">
+              <Text as="span" variant="caption" tone="muted">
+                Starting...
+              </Text>
             </div>
-          ))
-        )}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="ml-0.5 shrink-0"
-          onClick={() => void window.api?.browser.newTab()}
-          aria-label="New tab">
-          <PlusIcon className="size-3.5" />
-        </Button>
-      </div>
+          ) : (
+            state.tabs.map((tab) => (
+              <div
+                key={tab.id}
+                className={cn(
+                  'group flex h-6 max-w-40 shrink-0 items-center rounded-sm',
+                  tab.active ? 'bg-background shadow-sm' : 'hover:bg-accent',
+                )}>
+                <Button
+                  variant="ghost"
+                  size="inline"
+                  align="start"
+                  className="min-w-0 flex-1 truncate"
+                  onClick={() => void window.api?.browser.focusTab(tab.id)}
+                  type="button"
+                  title={tab.url}>
+                  <Text as="span" variant="caption" tone={tab.active ? 'default' : 'muted'} truncate>
+                    {tab.title || tab.url || 'New tab'}
+                  </Text>
+                </Button>
+                <span className="mr-space-2xs shrink-0 opacity-0 group-hover:opacity-60 hover:opacity-100!">
+                  <Button
+                    variant="ghost"
+                    size="inline"
+                    onClick={() => void window.api?.browser.closeTab(tab.id)}
+                    type="button"
+                    aria-label="Close tab">
+                    <Icon as={XIcon} size="xs" />
+                  </Button>
+                </span>
+              </div>
+            ))
+          )}
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="ml-space-2xs shrink-0"
+            onClick={() => void window.api?.browser.newTab()}
+            aria-label="New tab">
+            <Icon as={PlusIcon} size="s" />
+          </Button>
+        </div>
 
-      {/* Nav bar */}
-      <div className="flex h-9 shrink-0 items-center gap-1 border-b border-border px-2">
-        <Button variant="ghost" size="icon-sm" onClick={() => void window.api?.browser.goBack()} aria-label="Back">
-          <ArrowLeftIcon className="size-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => void window.api?.browser.goForward()}
-          aria-label="Forward">
-          <ArrowRightIcon className="size-4" />
-        </Button>
-        <Button variant="ghost" size="icon-sm" onClick={() => void window.api?.browser.reload()} aria-label="Reload">
-          <RotateCwIcon className="size-4" />
-        </Button>
+        {/* Nav bar */}
+        <div className="flex h-9 shrink-0 items-center gap-space-xs border-b border-border px-space-m">
+          <Button variant="ghost" size="icon-sm" onClick={() => void window.api?.browser.goBack()} aria-label="Back">
+            <Icon as={ArrowLeftIcon} size="m" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => void window.api?.browser.goForward()}
+            aria-label="Forward">
+            <Icon as={ArrowRightIcon} size="m" />
+          </Button>
+          <Button variant="ghost" size="icon-sm" onClick={() => void window.api?.browser.reload()} aria-label="Reload">
+            <Icon as={RotateCwIcon} size="m" />
+          </Button>
 
-        <form className="min-w-0 flex-1" onSubmit={submitAddress}>
-          <Input
-            className="h-7 w-full rounded border-border bg-muted/40 px-2 py-0 text-xs focus:border-primary focus-visible:ring-0"
-            value={address}
-            onChange={(event) => setAddress(event.target.value)}
-          />
-        </form>
+          <form className="min-w-0 flex-1" onSubmit={submitAddress}>
+            <Input
+              className="h-7 w-full rounded-sm border-border bg-surface-sunken px-space-m py-space-none text-xs focus:border-primary focus-visible:ring-0"
+              value={address}
+              onChange={(event) => setAddress(event.target.value)}
+            />
+          </form>
 
-        <Badge variant="soft" size="xs" className={cn('shrink-0', controllerBadgeClass)}>
-          {controllerLabel}
-        </Badge>
+          <Badge variant="soft" size="xs" className={cn('shrink-0', controllerBadgeClass)}>
+            {controllerLabel}
+          </Badge>
 
-        <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Close browser">
-          <XIcon className="size-4" />
-        </Button>
-      </div>
+          <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Close browser">
+            <Icon as={XIcon} size="m" />
+          </Button>
+        </div>
 
-      <webview
-        ref={(node) => {
-          webviewRef.current = node as WebviewElement | null;
-        }}
-        className="min-h-0 flex-1"
-        src="about:blank"
-        partition="persist:stitch-browser"
-        useragent={getStandardChromeUserAgent()}
-      />
+        <webview
+          ref={(node) => {
+            webviewRef.current = node as WebviewElement | null;
+          }}
+          className="min-h-0 flex-1"
+          src="about:blank"
+          partition="persist:stitch-browser"
+          useragent={getStandardChromeUserAgent()}
+        />
 
-      <DownloadsPanel downloads={state.downloads} />
-    </section>
+        <DownloadsPanel downloads={state.downloads} />
+      </Stack>
+    </div>
   );
 }
 
@@ -186,14 +200,24 @@ function DownloadsPanel({ downloads }: { downloads: ElectronBrowserDownload[] })
   if (downloads.length === 0) return null;
 
   return (
-    <div className="max-h-36 shrink-0 overflow-y-auto border-t border-border bg-muted/20 p-2">
-      <div className="mb-1 text-xs font-medium">Downloads</div>
-      <div className="space-y-1">
+    <div className="max-h-36 shrink-0 overflow-y-auto border-t border-border bg-surface-sunken p-space-m">
+      <Text as="div" variant="label">
+        Downloads
+      </Text>
+      <div className="space-y-space-xs">
         {downloads.slice(0, 5).map((download) => (
-          <div className="flex items-center gap-2 text-xs" key={download.id} title={download.path}>
-            <span className="min-w-0 flex-1 truncate">{download.filename}</span>
-            <span className="shrink-0 text-muted-foreground">{formatDownloadState(download)}</span>
-          </div>
+          <Stack direction="row" align="center" gap="m" key={download.id} title={download.path}>
+            <div className="min-w-0 flex-1">
+              <Text as="span" variant="caption" truncate>
+                {download.filename}
+              </Text>
+            </div>
+            <div className="shrink-0">
+              <Text as="span" variant="caption" tone="muted">
+                {formatDownloadState(download)}
+              </Text>
+            </div>
+          </Stack>
         ))}
       </div>
     </div>

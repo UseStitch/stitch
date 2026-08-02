@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
 import { ModelCombobox, type ModelSelection } from '@/components/model-selectors/model-combobox';
+import { Text } from '@/components/primitives/text';
 import { SettingsModelSelect } from '@/components/settings/model-select';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
@@ -76,9 +77,9 @@ function SttModelSelect() {
 
   if (sttProviders.length === 0) {
     return (
-      <p className="py-1 text-sm text-muted-foreground">
-        No STT providers configured. Add OpenAI, ElevenLabs, or Google credentials first.
-      </p>
+      <div className="py-space-xs">
+        <Text tone="muted">No STT providers configured. Add OpenAI, ElevenLabs, or Google credentials first.</Text>
+      </div>
     );
   }
 
@@ -98,9 +99,9 @@ function ModelsContent() {
 
   if (providerModels.length === 0) {
     return (
-      <p className="py-3 text-sm text-muted-foreground">
-        No providers are connected. Configure a provider first to select preferred models.
-      </p>
+      <div className="py-space-l">
+        <Text tone="muted">No providers are connected. Configure a provider first to select preferred models.</Text>
+      </div>
     );
   }
 
@@ -215,7 +216,13 @@ function AutoUpdatesContent() {
           ) : null}
         </ButtonGroup>
       </SettingRow>
-      {updater.error ? <p className="pb-2 text-xs text-destructive">{updater.error}</p> : null}
+      {updater.error ? (
+        <div className="pb-space-m">
+          <Text variant="caption" tone="destructive">
+            {updater.error}
+          </Text>
+        </div>
+      ) : null}
     </SettingRows>
   );
 }

@@ -4,6 +4,7 @@ import type { RecordingPlatform } from '@stitch/shared/recordings/types';
 
 import { PLATFORM_CONFIG } from './formatting';
 
+import { Icon } from '@/components/primitives/icon';
 import { SimpleIcon } from '@/components/ui/simple-icon';
 import { Table } from '@/components/ui/table';
 
@@ -13,13 +14,9 @@ export function PlatformBadge({ platform }: { platform: RecordingPlatform }) {
   return (
     <Table.IconText>
       {config.slug ? (
-        <SimpleIcon
-          slug={config.slug}
-          className="size-3.5 shrink-0"
-          fallback={<VideoIcon className="size-3.5 shrink-0" />}
-        />
+        <SimpleIcon slug={config.slug} className="size-3.5 shrink-0" fallback={<Icon as={VideoIcon} size="s" />} />
       ) : (
-        <VideoIcon className="size-3.5 shrink-0" />
+        <Icon as={VideoIcon} size="s" />
       )}
       <span>{config.label}</span>
     </Table.IconText>

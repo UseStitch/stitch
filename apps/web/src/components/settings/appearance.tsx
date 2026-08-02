@@ -1,13 +1,14 @@
 import type { AppearanceMode } from '@stitch/shared/appearance/types';
 import { APPEARANCE_MODES } from '@stitch/shared/appearance/types';
 
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage, SettingSection } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/ui/use-theme';
 import { THEMES } from '@/lib/theme';
 import type { ThemeTokens } from '@/lib/theme';
-import { cn } from '@/lib/utils';
 
 const MODE_LABELS: Record<AppearanceMode, string> = { light: 'Light', dark: 'Dark', system: 'System' };
 
@@ -31,41 +32,42 @@ export function AppearanceSelector() {
   return (
     <>
       <SettingSection title="Mode">
-        <div className="flex gap-2">
+        <Stack direction="row" gap="m">
           {APPEARANCE_MODES.map((m) => (
             <Button
               key={m}
               type="button"
-              variant="ghost"
-              onClick={() => setMode(m)}
-              className={cn(
-                'h-auto flex-1 rounded-xl px-3 py-3 text-center',
-                mode === m
-                  ? 'border-primary bg-primary/5 ring-2 ring-primary/20 text-foreground shadow-sm'
-                  : 'border-border bg-background text-muted-foreground hover:text-foreground hover:bg-accent/50',
-              )}>
-              {MODE_LABELS[m]}
+              variant={mode === m ? 'secondary' : 'outline'}
+              size="inline"
+              width="full"
+              onClick={() => setMode(m)}>
+              <Stack width="full" align="center" padding="l">
+                <Text as="span" variant="body-strong">
+                  {MODE_LABELS[m]}
+                </Text>
+              </Stack>
             </Button>
           ))}
-        </div>
+        </Stack>
       </SettingSection>
 
       <SettingSection title="Theme">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-space-l sm:grid-cols-4">
           {THEMES.map((t) => (
             <Button
               key={t.name}
               type="button"
-              variant="ghost"
-              onClick={() => setTheme(t.name)}
-              className={cn(
-                'h-auto flex-col items-stretch space-y-2 rounded-xl p-3 text-left',
-                themeName === t.name
-                  ? 'border-primary bg-primary/5 ring-2 ring-primary/20 shadow-sm'
-                  : 'border-border bg-background hover:bg-accent/50 hover:border-foreground/20',
-              )}>
-              <ThemePreview tokens={effectiveMode === 'dark' ? t.dark : t.light} />
-              <span className="text-xs font-medium">{t.label}</span>
+              variant={themeName === t.name ? 'secondary' : 'outline'}
+              size="inline"
+              width="full"
+              align="start"
+              onClick={() => setTheme(t.name)}>
+              <Stack width="full" gap="m" padding="l">
+                <ThemePreview tokens={effectiveMode === 'dark' ? t.dark : t.light} />
+                <Text as="span" variant="label">
+                  {t.label}
+                </Text>
+              </Stack>
             </Button>
           ))}
         </div>
@@ -76,14 +78,11 @@ export function AppearanceSelector() {
 
 function ThemePreview({ tokens }: { tokens: ThemeTokens }) {
   return (
-    <div
-      className="flex h-12 gap-1 overflow-hidden rounded-md p-1.5"
-      style={{ background: tokens['background'], border: `1px solid ${tokens['border']}` }}>
-      <div className="w-5 shrink-0 rounded-sm" style={{ background: tokens['sidebar'] }} />
-      <div className="flex flex-1 flex-col gap-1">
-        <div className="h-2 w-3/4 rounded-sm" style={{ background: tokens['muted'] }} />
-        <div className="h-2 w-1/2 rounded-sm" style={{ background: tokens['primary'] }} />
-      </div>
-    </div>
+    <svg viewBox="0 0 120 48" className="h-12 w-full rounded-md" aria-hidden="true">
+      <rect x="0.5" y="0.5" width="119" height="47" rx="6" fill={tokens['background']} stroke={tokens['border']} />
+      <rect x="7" y="7" width="22" height="34" rx="3" fill={tokens['sidebar']} />
+      <rect x="36" y="10" width="58" height="8" rx="3" fill={tokens['muted']} />
+      <rect x="36" y="25" width="39" height="8" rx="3" fill={tokens['primary']} />
+    </svg>
   );
 }

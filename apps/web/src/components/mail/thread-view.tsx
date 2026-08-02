@@ -9,6 +9,9 @@ import type { MailAccountId, MailLabelView, MailMessageView, MailThreadId } from
 import { Composer } from '@/components/mail/composer';
 import { getLabelDisplayName } from '@/components/mail/mail-label-utils';
 import { MessageBody } from '@/components/mail/message-body';
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -39,10 +42,10 @@ function LabelCombobox({
   return (
     <Popover>
       <PopoverTrigger render={<Button variant="outline" size="sm" />}>
-        <TagIcon className="size-3.5" />
+        <Icon as={TagIcon} size="s" />
         {selectedLabels.length > 0 ? `${selectedLabels.length} labels` : 'Labels'}
       </PopoverTrigger>
-      <PopoverContent side="bottom" sideOffset={4} align="end" className="w-72 p-0">
+      <PopoverContent side="bottom" sideOffset={4} align="end" className="w-72 p-space-none">
         <Command>
           <CommandInput placeholder="Search labels..." />
           <CommandList className="thin-scrollbar max-h-72">
@@ -56,8 +59,12 @@ function LabelCombobox({
                     key={label.id}
                     value={getLabelDisplayName(label)}
                     onSelect={() => onChange(label.id, !checked)}>
-                    <CheckIcon className={checked ? 'size-4 opacity-100' : 'size-4 opacity-0'} />
-                    <span className="truncate">{getLabelDisplayName(label)}</span>
+                    <span className={checked ? 'opacity-100' : 'opacity-0'}>
+                      <Icon as={CheckIcon} size="m" />
+                    </span>
+                    <Text as="span" variant="body" truncate>
+                      {getLabelDisplayName(label)}
+                    </Text>
                   </CommandItem>
                 );
               })}
@@ -92,24 +99,36 @@ function MessageCard({
     <div
       className={
         fillAvailableHeight
-          ? 'flex min-h-0 flex-1 flex-col rounded-lg border border-border bg-card p-4 text-card-foreground'
-          : 'rounded-lg border border-border bg-card p-4 text-card-foreground'
+          ? 'flex min-h-0 flex-1 flex-col rounded-lg border border-border bg-card p-space-xl text-card-foreground'
+          : 'rounded-lg border border-border bg-card p-space-xl text-card-foreground'
       }>
       <Button
         type="button"
         variant="ghost"
-        className="h-auto w-full items-start justify-between gap-3 p-0 text-left hover:bg-transparent"
+        size="inline"
+        width="full"
+        align="between"
+        className="items-start gap-space-l"
         onClick={() => setOpen(!open)}>
         <div className="min-w-0">
-          <div className="truncate text-sm font-medium">{formatAddress(message)}</div>
-          <div className="text-xs text-muted-foreground">
+          <Text as="div" variant="body-strong" truncate>
+            {formatAddress(message)}
+          </Text>
+          <Text as="div" variant="caption" tone="muted">
             To: {message.to.map((address) => address.email).join(', ') || 'Undisclosed'}
-          </div>
+          </Text>
         </div>
-        <div className="shrink-0 text-xs text-muted-foreground">{formatDateTime(message.internalDate)}</div>
+        <Text as="div" variant="caption" tone="muted">
+          {formatDateTime(message.internalDate)}
+        </Text>
       </Button>
       {open ? (
-        <div className={fillAvailableHeight ? 'mt-4 flex min-h-0 flex-1 flex-col space-y-3' : 'mt-4 space-y-3'}>
+        <div
+          className={
+            fillAvailableHeight
+              ? 'mt-space-xl flex min-h-0 flex-1 flex-col space-y-space-l'
+              : 'mt-space-xl space-y-space-l'
+          }>
           <MessageBody
             bodyHtml={message.bodyHtml}
             bodyText={message.bodyText}
@@ -117,19 +136,18 @@ function MessageCard({
             fillAvailableHeight={fillAvailableHeight}
           />
           {message.attachments.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
+            <Stack direction="row" wrap gap="m">
               {message.attachments.map((attachment) => (
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="xs"
                   key={attachment.id}
-                  onClick={() => openAttachment(attachment.id)}
-                  className="border-border text-muted-foreground hover:bg-muted">
+                  onClick={() => openAttachment(attachment.id)}>
                   {attachment.filename}
                 </Button>
               ))}
-            </div>
+            </Stack>
           ) : null}
         </div>
       ) : null}
@@ -156,7 +174,12 @@ export function ThreadView({ accountId, threadId, onClose }: ThreadViewProps) {
     }
   }, [accountId, modifyMutation, thread]);
 
-  if (isLoading || !thread) return <div className="p-6 text-sm text-muted-foreground">Loading thread…</div>;
+  if (isLoading || !thread)
+    return (
+      <div className="p-space-2xl">
+        <Text tone="muted">Loading thread…</Text>
+      </div>
+    );
 
   const currentThread = thread;
   const latestMessage = currentThread.messages.at(-1) ?? null;
@@ -189,27 +212,29 @@ export function ThreadView({ accountId, threadId, onClose }: ThreadViewProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex min-h-12 items-center gap-2 border-b border-border px-4">
+      <div className="flex min-h-12 items-center gap-space-m border-b border-border px-space-xl">
         <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Back to thread list">
-          <ArrowLeftIcon className="size-4" />
+          <Icon as={ArrowLeftIcon} size="m" />
         </Button>
-        <div className="min-w-0 flex-1 truncate text-sm font-medium">{currentThread.subject || '(No subject)'}</div>
+        <Text as="div" variant="body-strong" truncate>
+          {currentThread.subject || '(No subject)'}
+        </Text>
         <LabelCombobox labels={labels} selectedLabels={latestMessage?.labels ?? []} onChange={handleLabel} />
         <Button
           variant="outline"
           size="sm"
           onClick={() => latestMessage && setReplyTo(latestMessage)}
           disabled={!latestMessage}>
-          <ReplyIcon className="size-3.5" />
+          <Icon as={ReplyIcon} size="s" />
           Reply
         </Button>
         <Button variant={currentThread.isTrashed ? 'outline' : 'destructive'} size="sm" onClick={handleTrash}>
-          {currentThread.isTrashed ? <Undo2Icon className="size-3.5" /> : <TrashIcon className="size-3.5" />}
+          {currentThread.isTrashed ? <Icon as={Undo2Icon} size="s" /> : <Icon as={TrashIcon} size="s" />}
           {currentThread.isTrashed ? 'Restore' : 'Trash'}
         </Button>
       </div>
-      <div className="thin-scrollbar min-h-0 flex-1 overflow-y-auto p-6">
-        <div className="flex min-h-full w-full flex-col space-y-4">
+      <div className="thin-scrollbar min-h-0 flex-1 overflow-y-auto p-space-2xl">
+        <div className="flex min-h-full w-full flex-col space-y-space-xl">
           {currentThread.messages.map((message, index) => {
             const isLatestMessage = index === currentThread.messages.length - 1;
             const collapseQuotedReplies = index > 0 || Boolean(message.inReplyTo);

@@ -1,19 +1,19 @@
 import type { SessionTodo } from '@stitch/shared/todos/types';
 
+import { Text } from '@/components/primitives/text.js';
 import { StatusDot, type statusDotVariants } from '@/components/ui/status-dot';
-import { cn } from '@/lib/utils';
 import type { VariantProps } from 'class-variance-authority';
 
 type TodoDockProps = { todos: SessionTodo[] };
 
 const statusStyles = {
-  in_progress: { dotColor: 'primary', content: '' },
-  completed: { dotColor: 'success', content: 'text-muted-foreground line-through' },
-  cancelled: { dotColor: 'muted', content: 'text-muted-foreground' },
-  pending: { dotColor: 'warning', content: '' },
+  in_progress: { dotColor: 'primary', tone: 'default' },
+  completed: { dotColor: 'success', tone: 'muted' },
+  cancelled: { dotColor: 'muted', tone: 'muted' },
+  pending: { dotColor: 'warning', tone: 'default' },
 } satisfies Record<
   SessionTodo['status'],
-  { dotColor: VariantProps<typeof statusDotVariants>['color']; content: string }
+  { dotColor: VariantProps<typeof statusDotVariants>['color']; tone: 'default' | 'muted' }
 >;
 
 function statusLabel(status: SessionTodo['status']): string {
@@ -22,16 +22,22 @@ function statusLabel(status: SessionTodo['status']): string {
 
 export function TodoDock({ todos }: TodoDockProps) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-space-m">
       {todos.map((todo) => (
-        <div key={todo.id} className="flex items-start gap-3 rounded-xl border border-border/60 px-3 py-2">
-          <StatusDot color={statusStyles[todo.status].dotColor} className="mt-1" />
+        <div
+          key={todo.id}
+          className="flex items-start gap-space-l rounded-xl border border-border-subtle px-space-l py-space-m">
+          <StatusDot color={statusStyles[todo.status].dotColor} className="mt-space-xs" />
           <div className="min-w-0 flex-1">
-            <div className={cn('text-sm leading-5', statusStyles[todo.status].content)}>{todo.content}</div>
-            <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="capitalize">{statusLabel(todo.status)}</span>
-              <span aria-hidden="true">/</span>
-              <span className="capitalize">{todo.priority}</span>
+            <Text as="div" variant="body" tone={statusStyles[todo.status].tone}>
+              {todo.status === 'completed' ? <s>{todo.content}</s> : todo.content}
+            </Text>
+            <div className="mt-space-xs flex items-center gap-space-m">
+              <Text as="span" variant="caption" tone="muted">
+                <span className="capitalize">{statusLabel(todo.status)}</span>
+                <span aria-hidden="true">/</span>
+                <span className="capitalize">{todo.priority}</span>
+              </Text>
             </div>
           </div>
         </div>

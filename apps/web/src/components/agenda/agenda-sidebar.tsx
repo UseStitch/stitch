@@ -7,6 +7,9 @@ import { Link, useNavigate, useParams } from '@tanstack/react-router';
 import type { AgendaListWithCounts } from '@stitch/shared/agenda/types';
 
 import { InternalSidebar } from '@/components/navigation/internal-sidebar';
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -64,51 +67,65 @@ function ListRow({ list, isActive, isDragging, mergeIndicator, onDragStart, onMo
         className: cn(
           'group/listrow rounded-md transition-all',
           isDragging && 'opacity-40',
-          mergeIndicator && 'ring-2 ring-primary bg-primary/10',
+          mergeIndicator && 'ring-2 ring-primary bg-primary-subtle',
         ),
       }}
       isActive={isActive}
-      className="h-auto py-1.5"
-      render={<Link to="/agenda/$listId" params={{ listId: list.id }} className="flex items-center gap-2" />}>
-      <FolderIcon className="size-3.5 shrink-0 text-muted-foreground" />
+      className="h-auto py-space-s"
+      render={<Link to="/agenda/$listId" params={{ listId: list.id }} className="flex items-center gap-space-m" />}>
+      <Icon as={FolderIcon} size="s" tone="muted" />
       <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-sm">{list.name}</span>
+        <Stack direction="row" align="center" justify="between" gap="m">
+          <Text as="span" variant="body" truncate>
+            {list.name}
+          </Text>
           {mergeIndicator ? (
-            <Badge variant="default" size="xs" className="animate-in zoom-in-95 fade-in">
-              {mergeIndicator === 'list' ? (
-                <span className="flex items-center gap-0.5">
-                  <MergeIcon className="size-2.5" />
-                  Merge
-                </span>
-              ) : (
-                <span className="flex items-center gap-0.5">
-                  <ArrowRightIcon className="size-2.5" />
-                  Move
-                </span>
-              )}
-            </Badge>
+            <span className="animate-in zoom-in-95 fade-in">
+              <Badge variant="default" size="xs">
+                {mergeIndicator === 'list' ? (
+                  <Stack direction="row" align="center" gap="2xs">
+                    <Icon as={MergeIcon} size="xs" />
+                    Merge
+                  </Stack>
+                ) : (
+                  <Stack direction="row" align="center" gap="2xs">
+                    <Icon as={ArrowRightIcon} size="xs" />
+                    Move
+                  </Stack>
+                )}
+              </Badge>
+            </span>
           ) : openCount > 0 ? (
             <Badge variant="secondary" size="xs">
               {openCount}
             </Badge>
           ) : null}
-        </div>
-        <div className="flex items-center gap-1 text-2xs text-muted-foreground">
-          <span>{list.itemCounts.total} items</span>
+        </Stack>
+        <Stack direction="row" align="center" gap="xs">
+          <Text as="span" variant="micro" tone="muted">
+            {list.itemCounts.total} items
+          </Text>
           {list.itemCounts.overdue > 0 && (
             <>
-              <span>·</span>
-              <span className="text-destructive">{list.itemCounts.overdue} overdue</span>
+              <Text as="span" variant="micro" tone="muted">
+                ·
+              </Text>
+              <Text as="span" variant="micro" tone="destructive">
+                {list.itemCounts.overdue} overdue
+              </Text>
             </>
           )}
           {list.itemCounts.dueSoon > 0 && (
             <>
-              <span>·</span>
-              <span className="text-warning">{list.itemCounts.dueSoon} due soon</span>
+              <Text as="span" variant="micro" tone="muted">
+                ·
+              </Text>
+              <Text as="span" variant="micro" tone="warning">
+                {list.itemCounts.dueSoon} due soon
+              </Text>
             </>
           )}
-        </div>
+        </Stack>
       </div>
     </InternalSidebar.Item>
   );
@@ -233,9 +250,11 @@ export function AgendaSidebarContent() {
       <InternalSidebar.Header>
         <InternalSidebar.Top>
           <InternalSidebar.TopTitle>
-            <Link to="/agenda" className="flex min-w-0 items-center gap-2 truncate">
-              <ListTodoIcon className="size-4 shrink-0" />
-              <span className="truncate">Agenda</span>
+            <Link to="/agenda" className="flex min-w-0 items-center gap-space-m truncate">
+              <Icon as={ListTodoIcon} size="m" />
+              <Text as="span" variant="body" truncate>
+                Agenda
+              </Text>
             </Link>
           </InternalSidebar.TopTitle>
           <InternalSidebar.TopAction
@@ -245,7 +264,7 @@ export function AgendaSidebarContent() {
               setCreateOpen(true);
             }}
             aria-label="Create list">
-            <PlusIcon className="size-3.5" />
+            <Icon as={PlusIcon} size="s" />
           </InternalSidebar.TopAction>
         </InternalSidebar.Top>
       </InternalSidebar.Header>
@@ -262,7 +281,7 @@ export function AgendaSidebarContent() {
               const isMergeTarget = mergeTargetId === list.id && dragListId !== list.id;
               return (
                 <React.Fragment key={list.id}>
-                  {showDropBefore && <div className="mx-2 h-0.5 rounded bg-primary" />}
+                  {showDropBefore && <div className="mx-space-m h-0.5 rounded-sm bg-primary" />}
                   <div onDragOver={(e) => handleListDragOver(e, index)}>
                     <ListRow
                       list={list}
@@ -276,11 +295,11 @@ export function AgendaSidebarContent() {
                 </React.Fragment>
               );
             })}
-            {dropIndex === lists.length && dragListId && <div className="mx-2 h-0.5 rounded bg-primary" />}
+            {dropIndex === lists.length && dragListId && <div className="mx-space-m h-0.5 rounded-sm bg-primary" />}
             {lists.length === 0 && (
               <Empty size="compact">
-                <EmptyMedia>
-                  <ListTodoIcon className="size-8 text-muted-foreground/40" />
+                <EmptyMedia variant="icon">
+                  <Icon as={ListTodoIcon} size="m" />
                 </EmptyMedia>
                 <EmptyTitle>No lists yet</EmptyTitle>
                 <EmptyDescription>Click + to create your first list.</EmptyDescription>
@@ -295,8 +314,8 @@ export function AgendaSidebarContent() {
           <DialogHeader>
             <DialogTitle>New List</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
+          <Stack gap="xl">
+            <Stack gap="s">
               <Label>Name</Label>
               <Input
                 placeholder="List name..."
@@ -306,10 +325,13 @@ export function AgendaSidebarContent() {
                   if (e.key === 'Enter' && newListName.trim()) handleCreateList();
                 }}
               />
-            </div>
-            <div className="flex flex-col gap-1.5">
+            </Stack>
+            <Stack gap="s">
               <Label>
-                Description <span className="font-normal text-muted-foreground">(optional)</span>
+                Description{' '}
+                <Text as="span" variant="caption" tone="muted">
+                  (optional)
+                </Text>
               </Label>
               <Textarea
                 placeholder="What is this list for?"
@@ -317,8 +339,8 @@ export function AgendaSidebarContent() {
                 onChange={(e) => setNewListDescription(e.target.value)}
                 className="min-h-16 resize-none"
               />
-            </div>
-          </div>
+            </Stack>
+          </Stack>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
               Cancel

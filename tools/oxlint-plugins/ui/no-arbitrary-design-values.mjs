@@ -1,6 +1,7 @@
 import { getStaticClassNames, getTailwindUtility, isUiComponentFile } from './jsx-style-utils.mjs';
 
-const ARBITRARY_DESIGN_UTILITY = /^(?:accent|bg|border(?:-[xytrblse])?|caret|decoration|divide-[xy]|fill|from|gap(?:-[xy])?|leading|m[xytrblse]?|outline|p[xytrblse]?|ring|rounded(?:-[trblse]|-[trblse]{2})?|shadow|space-[xy]|stroke|text|to|tracking|via)-\[/;
+const ARBITRARY_DESIGN_UTILITY =
+  /^(?:accent|bg|border(?:-[xytrblse])?|caret|decoration|divide-[xy]|fill|from|gap(?:-[xy])?|leading|m[xytrblse]?|outline|p[xytrblse]?|ring|rounded(?:-[trblse]|-[trblse]{2})?|shadow|space-[xy]|stroke|text|to|tracking|via)-\[/;
 
 /** @type {import('eslint').Rule.RuleModule} */
 const noArbitraryDesignValues = {
@@ -8,7 +9,8 @@ const noArbitraryDesignValues = {
     type: 'suggestion',
     docs: { description: 'Require design tokens for arbitrary color, spacing, radius, and typography values' },
     messages: {
-      useDesignToken: 'Replace arbitrary design class "{{className}}" with a named token or shared component variant.',
+      useDesignToken:
+        'Replace arbitrary design class "{{className}}" with an existing semantic class or shared component variant.',
     },
     schema: [],
   },

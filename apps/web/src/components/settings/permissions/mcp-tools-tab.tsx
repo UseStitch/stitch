@@ -3,6 +3,9 @@ import { Settings2Icon } from 'lucide-react';
 import { EmptyState, SectionCard } from './components';
 
 import { McpServerLogo } from '@/components/mcp/mcp-server-logo';
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import type { EditingTarget } from '@/components/settings/permissions/types';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -84,23 +87,26 @@ export function McpToolsTab({ groups, getEnabled, updateEnabled, isMutating, onE
       title="MCP servers"
       description="Enable entire servers and open settings to manage server tools"
       count={groups.length}>
-      <div className="divide-y divide-border/40">
+      <div className="divide-y divide-border-subtle">
         {groups.map((group) => (
-          <div key={group.serverId} className="flex flex-col">
-            <div className="grid grid-cols-[minmax(0,1fr)_5rem_2.5rem] items-center gap-3 px-3 py-2.5 sm:px-4">
-              <div className="flex min-w-0 items-center gap-2.5">
+          <Stack key={group.serverId}>
+            <div className="grid grid-cols-[minmax(0,1fr)_5rem_2.5rem] items-center gap-space-l px-space-l py-space-m sm:px-space-xl">
+              <div className="flex min-w-0 items-center gap-space-m">
                 <McpServerLogo serverId={group.serverId} name={group.serverName} className="size-4 shrink-0" />
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{group.serverName}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <Text variant="body-strong" truncate>
+                    {group.serverName}
+                  </Text>
+                  <Text variant="caption" tone="muted">
                     {group.tools.length} tool{group.tools.length === 1 ? '' : 's'}
-                  </p>
+                  </Text>
                 </div>
               </div>
               <Button
                 size="sm"
-                variant="ghost"
-                className="w-full justify-start px-2 text-muted-foreground hover:text-foreground"
+                variant="quiet"
+                width="full"
+                align="start"
                 onClick={() =>
                   onEditTarget({
                     type: 'toolset',
@@ -111,7 +117,7 @@ export function McpToolsTab({ groups, getEnabled, updateEnabled, isMutating, onE
                     tools: group.tools.map((tool) => ({ toolName: tool.toolName, displayName: tool.displayName })),
                   })
                 }>
-                <Settings2Icon className="size-3.5" />
+                <Icon as={Settings2Icon} size="s" />
                 Settings
               </Button>
               <div className="flex w-10 justify-end">
@@ -122,7 +128,7 @@ export function McpToolsTab({ groups, getEnabled, updateEnabled, isMutating, onE
                 />
               </div>
             </div>
-          </div>
+          </Stack>
         ))}
       </div>
     </SectionCard>

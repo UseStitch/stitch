@@ -4,6 +4,9 @@ import * as React from 'react';
 import type { QuestionRequest } from '@stitch/shared/questions/types';
 
 import { Dock } from '@/components/chat/docks/dock';
+import { Icon } from '@/components/primitives/icon.js';
+import { Stack } from '@/components/primitives/stack.js';
+import { Text } from '@/components/primitives/text.js';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
@@ -81,14 +84,14 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
   const allAnswered = items.every((_, idx) => isAnswered(idx));
 
   return (
-    <form className="flex flex-col gap-2" onSubmit={handleSubmit}>
+    <Stack as="form" gap="m" onSubmit={handleSubmit}>
       <Tabs value={String(tab)} onValueChange={(v) => setTab(Number(v))}>
         {total > 1 && (
           <TabsList variant="line" className="w-full justify-start">
             {items.map((item, idx) => (
-              <TabsTrigger key={item.question} value={String(idx)} className="gap-1.5 text-xs">
+              <TabsTrigger key={item.question} value={String(idx)} className="gap-space-s text-xs">
                 {item.header}
-                {isAnswered(idx) && <CheckIcon className="size-3 text-primary" />}
+                {isAnswered(idx) && <Icon as={CheckIcon} size="xs" color="var(--primary)" />}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -99,13 +102,19 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
           const isTabSelected = (label: string) => answers[idx]?.includes(label) ?? false;
 
           return (
-            <TabsContent key={item.question} value={String(idx)} className="mt-0">
-              <div className="mb-1 text-sm text-foreground">{item.question}</div>
-              <div className="mb-2 text-2xs text-muted-foreground">
-                {isMultiQ ? 'Select all that apply' : 'Select one option'}
+            <TabsContent key={item.question} value={String(idx)} className="mt-space-none">
+              <div className="mb-space-xs">
+                <Text as="div" variant="body">
+                  {item.question}
+                </Text>
+              </div>
+              <div className="mb-space-m">
+                <Text as="div" variant="micro" tone="muted">
+                  {isMultiQ ? 'Select all that apply' : 'Select one option'}
+                </Text>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-space-s">
                 {item.options.map((option) => (
                   <Dock.Selectable
                     key={option.label}
@@ -121,7 +130,7 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
                   value={customAnswers[idx] ?? ''}
                   onChange={(e) => handleCustomChange(idx, e.target.value)}
                   placeholder="Type a custom answer..."
-                  className="h-auto w-full p-2 text-foreground placeholder:text-muted-foreground"
+                  className="h-auto w-full p-space-m text-foreground placeholder:text-muted-foreground"
                 />
               </div>
             </TabsContent>
@@ -129,15 +138,17 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
         })}
       </Tabs>
 
-      <div className="flex items-center justify-between gap-2 pt-1">
-        <Button variant="ghost" size="sm" onClick={() => onReject(request.id)} className="px-2">
-          <XIcon className="mr-1 size-3" />
+      <div className="flex items-center justify-between gap-space-m pt-space-xs">
+        <Button variant="ghost" size="sm" onClick={() => onReject(request.id)}>
+          <span className="mr-space-xs">
+            <Icon as={XIcon} size="xs" />
+          </span>
           Dismiss
         </Button>
-        <Button variant="default" size="sm" type="submit" disabled={!allAnswered} className="h-7">
+        <Button variant="default" size="sm" type="submit" disabled={!allAnswered}>
           Submit
         </Button>
       </div>
-    </form>
+    </Stack>
   );
 }

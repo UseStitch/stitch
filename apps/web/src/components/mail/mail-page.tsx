@@ -10,6 +10,7 @@ import { useMailStore } from '@/components/mail/mail-store';
 import { ThreadList } from '@/components/mail/thread-list';
 import { ThreadView } from '@/components/mail/thread-view';
 import { InternalSidebar } from '@/components/navigation/internal-sidebar';
+import { Icon } from '@/components/primitives/icon';
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { getDefaultMailLabel, mailAccountsQueryOptions, mailLabelsQueryOptions } from '@/lib/queries/mail';
 
@@ -25,7 +26,7 @@ export function MailPage() {
 
 function NoMailAccounts() {
   return (
-    <div className="flex h-full items-center justify-center p-8">
+    <div className="flex h-full items-center justify-center p-space-3xl">
       <Empty>
         <EmptyHeader>
           <EmptyMedia>
@@ -65,7 +66,7 @@ function MailPageContent({
           <InternalSidebar.Top>
             <InternalSidebar.TopTitle>Threads</InternalSidebar.TopTitle>
             <InternalSidebar.TopAction onClick={() => setComposerOpen(true)} aria-label="Compose mail">
-              <EditIcon className="size-3.5" />
+              <Icon as={EditIcon} size="s" />
             </InternalSidebar.TopAction>
           </InternalSidebar.Top>
         </InternalSidebar.Header>
@@ -80,7 +81,7 @@ function MailPageContent({
         {selectedThreadId ? (
           <ThreadView accountId={accountId} threadId={selectedThreadId} onClose={() => setSelectedThreadId(null)} />
         ) : (
-          <div className="flex h-full items-center justify-center p-8">
+          <div className="flex h-full items-center justify-center p-space-3xl">
             <Empty>
               <EmptyContent>
                 <EmptyHeader>

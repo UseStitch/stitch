@@ -2,6 +2,7 @@
 import { spawnSync } from 'bun';
 
 const steps = [
+  { name: 'design-system', cmd: ['bun', 'run', 'scripts/check-design-system.ts'] },
   { name: 'knip', cmd: ['bunx', 'knip', '--fix', '--allow-remove-files'] },
   { name: 'typecheck', cmd: ['bun', 'run', 'typecheck'] },
   { name: 'test', cmd: ['bun', 'run', 'test'] },

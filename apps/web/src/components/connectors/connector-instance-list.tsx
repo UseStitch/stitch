@@ -10,6 +10,9 @@ import type {
 } from '@stitch/shared/connectors/types';
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text, type TextProps } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { StatusDot, statusDotVariants } from '@/components/ui/status-dot';
@@ -30,13 +33,13 @@ const STATUS_CONFIG: Record<
     label: string;
     dotColor: NonNullable<VariantProps<typeof statusDotVariants>['color']>;
     glow?: boolean;
-    textClassName: string;
+    tone: NonNullable<TextProps['tone']>;
   }
 > = {
-  connected: { label: 'Connected', dotColor: 'success', glow: true, textClassName: 'text-success' },
-  awaiting_auth: { label: 'Awaiting Auth', dotColor: 'warning', textClassName: 'text-warning' },
-  pending_setup: { label: 'Pending Setup', dotColor: 'muted', textClassName: 'text-muted-foreground' },
-  error: { label: 'Error', dotColor: 'destructive', glow: true, textClassName: 'text-destructive' },
+  connected: { label: 'Connected', dotColor: 'success', glow: true, tone: 'success' },
+  awaiting_auth: { label: 'Awaiting Auth', dotColor: 'warning', tone: 'warning' },
+  pending_setup: { label: 'Pending Setup', dotColor: 'muted', tone: 'muted' },
+  error: { label: 'Error', dotColor: 'destructive', glow: true, tone: 'destructive' },
 };
 
 const AUTH_ISSUE_COPY: Record<ConnectorAuthIssue, { label: string; message: string; actionLabel: string }> = {
@@ -133,7 +136,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-space-l">
       {instances.map((instance) => {
         const def = getDefinition(instance.connectorId);
         const statusConfig = getStatusPresentation(instance);
@@ -143,86 +146,110 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
         return (
           <div
             key={instance.id}
-            className="flex flex-col gap-4 rounded-xl border border-border/60 bg-card/80 px-5 py-4 text-sm sm:flex-row sm:items-center">
-            <div className="flex min-w-0 flex-1 items-start gap-4">
-              <div className="shrink-0 rounded-xl border border-border/70 bg-muted/70 p-2">
-                <ConnectorIcon
-                  icon={def?.icon ?? { type: 'simpleIcons', slug: instance.connectorId }}
-                  className="size-8 rounded-lg"
-                />
+            className="rounded-xl border border-border-subtle bg-card px-space-xl py-space-xl sm:*:flex-row sm:*:items-center">
+            <Stack gap="xl">
+              <div className="min-w-0 flex-1">
+                <Stack direction="row" align="start" gap="xl">
+                  <div className="shrink-0 rounded-xl border border-border-subtle bg-surface-sunken p-space-m">
+                    <ConnectorIcon
+                      icon={def?.icon ?? { type: 'simpleIcons', slug: instance.connectorId }}
+                      className="size-8 rounded-lg"
+                    />
+                  </div>
+
+                  <div className="min-w-0 flex-1 space-y-space-m">
+                    <div>
+                      <Text as="span" variant="body-strong">
+                        {instance.label}
+                      </Text>
+                    </div>
+                    <div className="min-w-0 *:gap-x-space-m *:gap-y-space-xs">
+                      <Stack direction="row" align="center" wrap>
+                        <span className="inline-flex items-center gap-space-s">
+                          <StatusDot color={statusConfig.dotColor} glow={statusConfig.glow} size="sm" />
+                          <Text as="span" variant="caption" tone={statusConfig.tone}>
+                            {statusConfig.label}
+                          </Text>
+                        </span>
+                        {instance.accountEmail && (
+                          <>
+                            <Text as="span" variant="caption" tone="faint">
+                              /
+                            </Text>
+                            <Text as="span" variant="caption" tone="muted" truncate>
+                              {instance.accountEmail}
+                            </Text>
+                          </>
+                        )}
+                        {instance.upgrade?.available && (
+                          <>
+                            <Text as="span" variant="caption" tone="faint">
+                              /
+                            </Text>
+                            <span className="inline-flex items-center gap-space-xs">
+                              <Icon as={ArrowUpCircleIcon} size="xs" />
+                              <Text as="span" variant="caption" tone="warning">
+                                Upgrade available
+                              </Text>
+                            </span>
+                          </>
+                        )}
+                      </Stack>
+                    </div>
+                    {statusConfig.message && (
+                      <Text as="p" variant="caption" tone="muted">
+                        {statusConfig.message}
+                      </Text>
+                    )}
+                  </div>
+                </Stack>
               </div>
 
-              <div className="min-w-0 flex-1 space-y-2">
-                <div className="flex items-center gap-2.5">
-                  <span className="leading-6 font-medium">{instance.label}</span>
-                </div>
-                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                  <span className={`inline-flex items-center gap-1.5 ${statusConfig.textClassName}`}>
-                    <StatusDot color={statusConfig.dotColor} glow={statusConfig.glow} size="sm" />
-                    {statusConfig.label}
-                  </span>
-                  {instance.accountEmail && (
-                    <>
-                      <span className="text-muted-foreground/60">/</span>
-                      <span className="truncate text-muted-foreground">{instance.accountEmail}</span>
-                    </>
-                  )}
+              <div className="self-end sm:self-auto">
+                <Stack direction="row" align="center" gap="m">
                   {instance.upgrade?.available && (
-                    <>
-                      <span className="text-muted-foreground/60">/</span>
-                      <span className="inline-flex items-center gap-1 text-warning">
-                        <ArrowUpCircleIcon className="size-3" />
-                        Upgrade available
-                      </span>
-                    </>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleUpgrade(instance)}
+                      disabled={upgradeMutation.isPending}>
+                      <Icon as={ArrowUpCircleIcon} size="s" />
+                      Upgrade
+                    </Button>
                   )}
-                </div>
-                {statusConfig.message && <p className="text-xs text-muted-foreground">{statusConfig.message}</p>}
+                  {canReauthorize && (instance.status === 'awaiting_auth' || instance.status === 'error') && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleReauthorize(instance.id)}
+                      disabled={authorizeMutation.isPending}>
+                      <Icon as={ExternalLinkIcon} size="s" />
+                      {statusConfig.actionLabel}
+                    </Button>
+                  )}
+                  {canReauthorize && instance.status === 'connected' && !instance.upgrade?.available && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleReauthorize(instance.id)}
+                      disabled={authorizeMutation.isPending}>
+                      <Icon as={ExternalLinkIcon} size="s" />
+                      Reauthorize
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon-sm" onClick={() => handleTest(instance.id)} disabled={isTesting}>
+                    {isTesting ? <Spinner size="sm" /> : <Icon as={RefreshCwIcon} size="s" />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => handleDelete(instance.id, instance.label)}
+                    disabled={deleteMutation.isPending}>
+                    <Icon as={Trash2Icon} size="s" color="var(--destructive)" />
+                  </Button>
+                </Stack>
               </div>
-            </div>
-
-            <div className="flex items-center gap-2 self-end sm:self-auto">
-              {instance.upgrade?.available && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleUpgrade(instance)}
-                  disabled={upgradeMutation.isPending}>
-                  <ArrowUpCircleIcon className="size-3.5" />
-                  Upgrade
-                </Button>
-              )}
-              {canReauthorize && (instance.status === 'awaiting_auth' || instance.status === 'error') && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleReauthorize(instance.id)}
-                  disabled={authorizeMutation.isPending}>
-                  <ExternalLinkIcon className="size-3.5" />
-                  {statusConfig.actionLabel}
-                </Button>
-              )}
-              {canReauthorize && instance.status === 'connected' && !instance.upgrade?.available && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleReauthorize(instance.id)}
-                  disabled={authorizeMutation.isPending}>
-                  <ExternalLinkIcon className="size-3.5" />
-                  Reauthorize
-                </Button>
-              )}
-              <Button variant="ghost" size="icon-sm" onClick={() => handleTest(instance.id)} disabled={isTesting}>
-                {isTesting ? <Spinner size="sm" /> : <RefreshCwIcon className="size-3.5" />}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => handleDelete(instance.id, instance.label)}
-                disabled={deleteMutation.isPending}>
-                <Trash2Icon className="size-3.5 text-destructive" />
-              </Button>
-            </div>
+            </Stack>
           </div>
         );
       })}

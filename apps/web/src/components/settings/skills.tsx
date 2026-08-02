@@ -6,6 +6,9 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { createSkillSchema, type Skill } from '@stitch/shared/skills/types';
 
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
   SettingPage,
@@ -63,31 +66,39 @@ function ImportSkillView({ onBack }: { onBack: () => void }) {
       description="Search the public agent skills directory and import into Stitch."
       onBack={onBack}
       backLabel="Back to skills">
-      <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-space-xl">
         <Input
           value={search}
           placeholder="Search skills, e.g. frontend design"
           onChange={(event) => setSearch(event.target.value)}
         />
-        <div className="thin-scrollbar min-h-0 flex-1 overflow-auto rounded-lg border border-border/50">
+        <div className="thin-scrollbar min-h-0 flex-1 overflow-auto rounded-lg border border-border-subtle">
           {search.trim().length < 2 ? (
-            <div className="px-4 py-6 text-center text-xs text-muted-foreground">
-              Type at least 2 characters to search
+            <div className="px-space-xl py-space-2xl">
+              <Text variant="caption" tone="muted" align="center">
+                Type at least 2 characters to search
+              </Text>
             </div>
           ) : searchResults.length === 0 ? (
-            <div className="px-4 py-6 text-center text-xs text-muted-foreground">
-              {isSearching ? 'Searching...' : 'No skills found'}
+            <div className="px-space-xl py-space-2xl">
+              <Text variant="caption" tone="muted" align="center">
+                {isSearching ? 'Searching...' : 'No skills found'}
+              </Text>
             </div>
           ) : (
             searchResults.map((skill) => (
               <div
                 key={`${skill.source}/${skill.slug}`}
-                className="flex items-center justify-between gap-4 border-b border-border/50 px-4 py-3 last:border-b-0">
+                className="flex items-center justify-between gap-space-xl border-b border-border-subtle px-space-xl py-space-l last:border-b-0">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{skill.name}</p>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {skill.source} - {formatInstalls(skill.installs)} installs
-                  </p>
+                  <Text variant="body-strong" truncate>
+                    {skill.name}
+                  </Text>
+                  <div className="mt-space-2xs">
+                    <Text variant="caption" tone="muted" truncate>
+                      {skill.source} - {formatInstalls(skill.installs)} installs
+                    </Text>
+                  </div>
                 </div>
                 <Button
                   variant={skill.isImported ? 'secondary' : 'outline'}
@@ -133,15 +144,17 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
       description="Markdown instructions the agent can load when a task matches the description."
       onBack={onBack}
       backLabel="Back to skills">
-      <form
-        className="flex min-h-0 flex-1 flex-col gap-5"
+      <Stack
+        as="form"
+        gap="xl"
+        grow
         onSubmit={(event) => {
           event.preventDefault();
           void form.handleSubmit();
         }}>
         <form.Field name="name">
           {(field) => (
-            <div className="grid gap-2">
+            <div className="grid gap-space-m">
               <Label htmlFor="skill-name">Name</Label>
               <Input
                 id="skill-name"
@@ -152,16 +165,16 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
                 onChange={(event) => field.handleChange(event.target.value)}
               />
               <FieldError meta={field.state.meta} />
-              <p className="text-xs text-muted-foreground">
+              <Text variant="caption" tone="muted">
                 Lowercase letters, numbers, and single hyphens only. Names must be unique.
-              </p>
+              </Text>
             </div>
           )}
         </form.Field>
 
         <form.Field name="description">
           {(field) => (
-            <div className="grid gap-2">
+            <div className="grid gap-space-m">
               <Label htmlFor="skill-description">Description</Label>
               <Textarea
                 id="skill-description"
@@ -179,7 +192,7 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
 
         <form.Field name="content">
           {(field) => (
-            <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-2">
+            <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-space-m">
               <Label htmlFor="skill-content">Markdown instructions</Label>
               <Textarea
                 id="skill-content"
@@ -197,7 +210,7 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
 
         <form.Subscribe selector={(state) => state.isSubmitting}>
           {(isSubmitting) => (
-            <div className="mt-auto flex justify-end gap-2 border-t border-border/50 pt-4">
+            <div className="mt-auto flex justify-end gap-space-m border-t border-border-subtle pt-space-xl">
               <Button type="button" variant="outline" onClick={onBack} disabled={isSubmitting}>
                 Cancel
               </Button>
@@ -207,14 +220,14 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
             </div>
           )}
         </form.Subscribe>
-      </form>
+      </Stack>
     </SettingSubPage>
   );
 }
 
 export function SkillsSettings() {
   const page = SETTINGS_PAGE_BY_ID.skills;
-  const Icon = page.icon;
+  const PageIcon = page.icon;
   const { data: skills } = useSuspenseQuery(skillsQueryOptions);
   const deleteSkill = useDeleteSkill();
   const [view, setView] = React.useState<SkillView>({ type: 'list' });
@@ -250,15 +263,15 @@ export function SkillsSettings() {
     <SettingPage
       title={page.title}
       description={page.description}
-      icon={<Icon className="size-5" />}
+      icon={<PageIcon className="size-5" />}
       actions={
         <ButtonGroup>
           <Button variant="outline" onClick={() => setView({ type: 'import' })}>
-            <DownloadIcon className="size-4" />
+            <Icon as={DownloadIcon} size="m" />
             Import
           </Button>
           <Button onClick={handleAdd}>
-            <PlusIcon className="size-4" />
+            <Icon as={PlusIcon} size="m" />
             Add Skill
           </Button>
         </ButtonGroup>
@@ -274,15 +287,19 @@ export function SkillsSettings() {
         <SettingSection title="My Skills">
           <SettingRows>
             {skills.map((skill) => (
-              <div key={skill.name} className="flex items-center justify-between gap-4 py-3">
+              <div key={skill.name} className="flex items-center justify-between gap-space-xl py-space-l">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{skill.name}</p>
-                  <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{skill.description}</p>
+                  <Text variant="body-strong" truncate>
+                    {skill.name}
+                  </Text>
+                  <Text variant="caption" tone="muted" lineClamp="2">
+                    {skill.description}
+                  </Text>
                 </div>
                 <ButtonGroup>
                   <SettingsIconButtonTooltip label={`View Skill`}>
                     <Button variant="outline" size="icon" onClick={() => handleEdit(skill)} aria-label={`View Skill`}>
-                      <EyeIcon className="size-4" />
+                      <Icon as={EyeIcon} size="m" />
                     </Button>
                   </SettingsIconButtonTooltip>
                   <SettingsIconButtonTooltip label={`Delete Skill`}>
@@ -292,7 +309,7 @@ export function SkillsSettings() {
                       onClick={() => handleDelete(skill)}
                       disabled={deleteSkill.isPending}
                       aria-label={`Delete Skill`}>
-                      <Trash2Icon className="size-4" />
+                      <Icon as={Trash2Icon} size="m" />
                     </Button>
                   </SettingsIconButtonTooltip>
                 </ButtonGroup>

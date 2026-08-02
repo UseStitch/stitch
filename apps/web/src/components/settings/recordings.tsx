@@ -6,6 +6,8 @@ import { useForm, useStore } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { AppEnableSetting } from '@/components/settings/app-enable-setting';
 import { SettingsModelSelect } from '@/components/settings/model-select';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
@@ -107,11 +109,13 @@ function PermissionStatus() {
   };
 
   return (
-    <div className="rounded-lg border border-warning/30 bg-warning/5 p-3">
-      <div className="flex items-start justify-between gap-3">
+    <div className="rounded-lg border border-warning-subtle bg-warning-subtle p-space-l">
+      <Stack direction="row" align="start" justify="between" gap="l">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-warning">Missing Permissions</p>
-          <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+          <Text variant="body-strong" tone="warning">
+            Missing Permissions
+          </Text>
+          <ul className="mt-space-xs space-y-space-xs text-xs text-muted-foreground">
             {micDenied ? <li>Microphone access is required to capture audio.</li> : null}
             {screenDenied ? <li>System audio recording access is required to capture system audio.</li> : null}
           </ul>
@@ -119,12 +123,12 @@ function PermissionStatus() {
         <Button
           type="button"
           size="sm"
-          className="shrink-0 text-xs hover:bg-primary/90"
+          className="shrink-0"
           disabled={requesting}
           onClick={() => void handleGrantPermissions()}>
           {requesting ? 'Requesting...' : 'Grant Permissions'}
         </Button>
-      </div>
+      </Stack>
     </div>
   );
 }
@@ -278,9 +282,9 @@ function RecordingsContent() {
           </SettingRowControl>
         </SettingRow>
         {noModelsAvailable ? (
-          <p className="py-3 text-sm text-muted-foreground">
-            No audio-capable models are available for recording transcription.
-          </p>
+          <div className="py-space-l">
+            <Text tone="muted">No audio-capable models are available for recording transcription.</Text>
+          </div>
         ) : (
           RECORDING_MODEL_PREFERENCES.map((pref) => (
             <SettingRow key={pref.providerIdKey} label={pref.label} description={pref.description}>
@@ -298,9 +302,11 @@ function RecordingsContent() {
         )}
       </SettingRows>
       {!canEnableAutoAnalyze ? (
-        <p className="mt-1 text-xs text-muted-foreground">
-          Select transcription, analysis, and notes template settings to enable auto analyze.
-        </p>
+        <div className="mt-space-xs">
+          <Text variant="caption" tone="muted">
+            Select transcription, analysis, and notes template settings to enable auto analyze.
+          </Text>
+        </div>
       ) : null}
     </>
   );
@@ -327,24 +333,32 @@ function MarkdownHelpDialog() {
             <DialogTitle>Markdown basics</DialogTitle>
             <DialogDescription>Use Markdown to shape how the note template should be filled in.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 text-sm">
+          <Stack gap="l">
             <div>
-              <p className="font-medium">Headings</p>
-              <code className="text-xs text-muted-foreground"># Title, ## Section</code>
+              <Text variant="body-strong">Headings</Text>
+              <Text variant="code" tone="muted">
+                # Title, ## Section
+              </Text>
             </div>
             <div>
-              <p className="font-medium">Lists</p>
-              <code className="text-xs text-muted-foreground">- Bullet item</code>
+              <Text variant="body-strong">Lists</Text>
+              <Text variant="code" tone="muted">
+                - Bullet item
+              </Text>
             </div>
             <div>
-              <p className="font-medium">Tasks</p>
-              <code className="text-xs text-muted-foreground">- [ ] Owner: action item</code>
+              <Text variant="body-strong">Tasks</Text>
+              <Text variant="code" tone="muted">
+                - [ ] Owner: action item
+              </Text>
             </div>
             <div>
-              <p className="font-medium">Emphasis</p>
-              <code className="text-xs text-muted-foreground">**important** or _note_</code>
+              <Text variant="body-strong">Emphasis</Text>
+              <Text variant="code" tone="muted">
+                **important** or _note_
+              </Text>
             </div>
-          </div>
+          </Stack>
           <DialogFooter showCloseButton />
         </DialogContent>
       </Dialog>
@@ -402,12 +416,12 @@ function MeetingNoteTemplatesSettings() {
 
   return (
     <form
-      className="space-y-4"
+      className="space-y-space-xl"
       onSubmit={(event) => {
         event.preventDefault();
         void form.handleSubmit();
       }}>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-space-m sm:flex-row sm:items-center sm:justify-between">
         <Select value={selectedId ?? undefined} onValueChange={setSelectedId}>
           <SelectTrigger className="w-full sm:w-80">
             <SelectValue placeholder="Select a template">{selectedTemplate?.name ?? 'Select a template'}</SelectValue>
@@ -464,7 +478,7 @@ function MeetingNoteTemplatesSettings() {
 
       <form.Field name="name">
         {(field) => (
-          <div className="space-y-1.5">
+          <div className="space-y-space-s">
             <Label className="text-xs text-muted-foreground">Title</Label>
             <Input
               value={field.state.value}
@@ -477,9 +491,11 @@ function MeetingNoteTemplatesSettings() {
         )}
       </form.Field>
 
-      <div className="grid gap-3 xl:grid-cols-2">
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">Editor</p>
+      <div className="grid gap-space-l xl:grid-cols-2">
+        <div className="space-y-space-m">
+          <Text variant="label" tone="muted">
+            Editor
+          </Text>
           <form.Field name="content">
             {(field) => (
               <Textarea
@@ -492,14 +508,12 @@ function MeetingNoteTemplatesSettings() {
             )}
           </form.Field>
         </div>
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">Preview</p>
-          <div className="min-h-96 rounded-lg border bg-card p-4">
-            {content.trim() ? (
-              <ChatMarkdown text={content} />
-            ) : (
-              <p className="text-sm text-muted-foreground">Preview appears here.</p>
-            )}
+        <div className="space-y-space-m">
+          <Text variant="label" tone="muted">
+            Preview
+          </Text>
+          <div className="min-h-96 rounded-lg border bg-card p-space-xl">
+            {content.trim() ? <ChatMarkdown text={content} /> : <Text tone="muted">Preview appears here.</Text>}
           </div>
         </div>
       </div>
@@ -519,7 +533,7 @@ export function RecordingsSettings() {
           <TabsTrigger value="templates">Templates</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="settings" className="pt-4">
+        <TabsContent value="settings" className="pt-space-xl">
           <SettingSection title="App">
             <SettingRows>
               <AppEnableSetting appId="recordings" label="Recordings" />
@@ -534,11 +548,11 @@ export function RecordingsSettings() {
           </SettingSection>
         </TabsContent>
 
-        <TabsContent value="templates" className="pt-4">
+        <TabsContent value="templates" className="pt-space-xl">
           <SettingSection
             title="Meeting Note Templates"
             description="Create and edit markdown templates used to summarize meeting transcripts."
-            className="mt-0">
+            className="mt-space-none">
             <MeetingNoteTemplatesSettings />
           </SettingSection>
         </TabsContent>

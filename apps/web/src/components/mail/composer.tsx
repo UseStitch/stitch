@@ -14,6 +14,9 @@ import type {
   MailMessageView,
 } from '@stitch/shared/mail/types';
 
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { FieldError, fieldErrorMessage } from '@/components/ui/field-error';
 import { Input } from '@/components/ui/input';
@@ -149,42 +152,29 @@ export function Composer({ accountId, draft, replyTo, onClose }: ComposerProps) 
   }, [values]);
 
   return (
-    <form
-      className="fixed right-6 bottom-6 z-40 flex w-lg max-w-[calc(100vw-3rem)] flex-col rounded-lg border border-border bg-card shadow-lg"
-      onSubmit={(event) => {
-        event.preventDefault();
-      }}>
-      <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <div className="text-sm font-medium">{replyTo ? 'Reply' : draft ? 'Edit draft' : 'New message'}</div>
-        <Button type="button" variant="ghost" size="icon-xs" onClick={onClose} aria-label="Close composer">
-          <XIcon className="size-3.5" />
-        </Button>
-      </div>
-      <div className="space-y-3 p-3">
-        <form.Field name="to">
-          {(field) => (
-            <div className="space-y-1">
-              <Label htmlFor="mail-to">To</Label>
-              <Input
-                id="mail-to"
-                value={field.state.value}
-                placeholder="name@example.com"
-                aria-invalid={!!fieldErrorMessage(field.state.meta)}
-                onBlur={field.handleBlur}
-                onChange={(event) => field.handleChange(event.target.value)}
-              />
-              <FieldError meta={field.state.meta} />
-            </div>
-          )}
-        </form.Field>
-        <div className="grid grid-cols-2 gap-2">
-          <form.Field name="cc">
+    <div className="fixed right-6 bottom-6 z-40 w-lg max-w-[calc(100vw-3rem)] rounded-lg border border-border bg-card shadow-lg">
+      <Stack
+        as="form"
+        onSubmit={(event) => {
+          event.preventDefault();
+        }}>
+        <div className="flex items-center justify-between border-b border-border px-space-l py-space-m">
+          <Text as="div" variant="body-strong">
+            {replyTo ? 'Reply' : draft ? 'Edit draft' : 'New message'}
+          </Text>
+          <Button type="button" variant="ghost" size="icon-xs" onClick={onClose} aria-label="Close composer">
+            <Icon as={XIcon} size="s" />
+          </Button>
+        </div>
+        <div className="space-y-space-l p-space-l">
+          <form.Field name="to">
             {(field) => (
-              <div className="space-y-1">
-                <Label htmlFor="mail-cc">Cc</Label>
+              <div className="space-y-space-xs">
+                <Label htmlFor="mail-to">To</Label>
                 <Input
-                  id="mail-cc"
+                  id="mail-to"
                   value={field.state.value}
+                  placeholder="name@example.com"
                   aria-invalid={!!fieldErrorMessage(field.state.meta)}
                   onBlur={field.handleBlur}
                   onChange={(event) => field.handleChange(event.target.value)}
@@ -193,61 +183,80 @@ export function Composer({ accountId, draft, replyTo, onClose }: ComposerProps) 
               </div>
             )}
           </form.Field>
-          <form.Field name="bcc">
+          <div className="grid grid-cols-2 gap-space-m">
+            <form.Field name="cc">
+              {(field) => (
+                <div className="space-y-space-xs">
+                  <Label htmlFor="mail-cc">Cc</Label>
+                  <Input
+                    id="mail-cc"
+                    value={field.state.value}
+                    aria-invalid={!!fieldErrorMessage(field.state.meta)}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                  />
+                  <FieldError meta={field.state.meta} />
+                </div>
+              )}
+            </form.Field>
+            <form.Field name="bcc">
+              {(field) => (
+                <div className="space-y-space-xs">
+                  <Label htmlFor="mail-bcc">Bcc</Label>
+                  <Input
+                    id="mail-bcc"
+                    value={field.state.value}
+                    aria-invalid={!!fieldErrorMessage(field.state.meta)}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                  />
+                  <FieldError meta={field.state.meta} />
+                </div>
+              )}
+            </form.Field>
+          </div>
+          <form.Field name="subject">
             {(field) => (
-              <div className="space-y-1">
-                <Label htmlFor="mail-bcc">Bcc</Label>
+              <div className="space-y-space-xs">
+                <Label htmlFor="mail-subject">Subject</Label>
                 <Input
-                  id="mail-bcc"
+                  id="mail-subject"
                   value={field.state.value}
-                  aria-invalid={!!fieldErrorMessage(field.state.meta)}
                   onBlur={field.handleBlur}
                   onChange={(event) => field.handleChange(event.target.value)}
                 />
-                <FieldError meta={field.state.meta} />
               </div>
+            )}
+          </form.Field>
+          <form.Field name="bodyText">
+            {(field) => (
+              <Textarea
+                value={field.state.value}
+                placeholder="Write your message…"
+                className="min-h-40"
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+              />
             )}
           </form.Field>
         </div>
-        <form.Field name="subject">
-          {(field) => (
-            <div className="space-y-1">
-              <Label htmlFor="mail-subject">Subject</Label>
-              <Input
-                id="mail-subject"
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(event) => field.handleChange(event.target.value)}
-              />
-            </div>
-          )}
-        </form.Field>
-        <form.Field name="bodyText">
-          {(field) => (
-            <Textarea
-              value={field.state.value}
-              placeholder="Write your message…"
-              className="min-h-40"
-              onBlur={field.handleBlur}
-              onChange={(event) => field.handleChange(event.target.value)}
-            />
-          )}
-        </form.Field>
-      </div>
-      <div className="flex items-center justify-between border-t border-border px-3 py-2">
-        <div className="text-xs text-muted-foreground">Drafts autosave after a short pause.</div>
-        <form.Subscribe selector={(state) => state.isSubmitting}>
-          {(isSubmitting) => (
-            <Button
-              type="button"
-              disabled={isSubmitting || sendDraft.isPending || sendMessage.isPending}
-              onClick={() => void form.handleSubmit()}>
-              <SendIcon className="size-3.5" />
-              Send
-            </Button>
-          )}
-        </form.Subscribe>
-      </div>
-    </form>
+        <div className="flex items-center justify-between border-t border-border px-space-l py-space-m">
+          <Text as="div" variant="caption" tone="muted">
+            Drafts autosave after a short pause.
+          </Text>
+          <form.Subscribe selector={(state) => state.isSubmitting}>
+            {(isSubmitting) => (
+              <Button
+                type="button"
+                disabled={isSubmitting || sendDraft.isPending || sendMessage.isPending}
+                onClick={() => void form.handleSubmit()}>
+                <Icon as={SendIcon} size="s" />
+                Send
+              </Button>
+            )}
+          </form.Subscribe>
+        </div>
+      </Stack>
+    </div>
   );
 }

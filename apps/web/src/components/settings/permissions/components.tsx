@@ -2,6 +2,9 @@ import { ServerIcon, Settings2Icon, WrenchIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { RemoteImageIcon } from '@/components/icons/remote-icon';
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyMedia } from '@/components/ui/empty';
 import { Switch } from '@/components/ui/switch';
@@ -46,23 +49,21 @@ export function ToolRow({
   return (
     <div
       className={cn(
-        'grid items-center gap-3 px-3 py-2.5 sm:px-4',
+        'grid items-center gap-space-l px-space-l py-space-m sm:px-space-xl',
         reserveMiddleSlot ? 'grid-cols-[minmax(0,1fr)_5rem_5rem_2.5rem]' : 'grid-cols-[minmax(0,1fr)_5rem_2.5rem]',
-        isNested && 'pl-10 sm:pl-12 bg-muted/10',
+        isNested && 'pl-space-3xl sm:pl-space-3xl bg-surface-sunken',
       )}>
-      <div className="flex min-w-0 items-center gap-2.5">
+      <div className="flex min-w-0 items-center gap-space-m">
         {icon ??
           (iconPath && <RemoteImageIcon path={iconPath} label={`${name} icon`} className="size-4" fallback={null} />)}
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{name}</p>
+          <Text variant="body-strong" truncate>
+            {name}
+          </Text>
         </div>
       </div>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={onConfigure}
-        className="w-full justify-start px-2 text-muted-foreground hover:text-foreground">
-        <Settings2Icon className="size-3.5" />
+      <Button size="sm" variant="quiet" width="full" align="start" onClick={onConfigure}>
+        <Icon as={Settings2Icon} size="s" />
         Settings
       </Button>
       {reserveMiddleSlot && <div className="h-7 w-full" aria-hidden="true" />}
@@ -84,25 +85,28 @@ export function ToolsetRow({
   settingsAlign = 'start',
 }: ToolsetRowProps) {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_5rem_2.5rem] items-center gap-3 px-3 py-2.5 sm:px-4">
-      <div className="flex min-w-0 items-center gap-2.5">
-        {icon ?? <ServerIcon className="size-4 shrink-0 text-muted-foreground" />}
+    <div className="grid grid-cols-[minmax(0,1fr)_5rem_2.5rem] items-center gap-space-l px-space-l py-space-m sm:px-space-xl">
+      <div className="flex min-w-0 items-center gap-space-m">
+        {icon ?? (
+          <Text as="div" tone="muted">
+            <Icon as={ServerIcon} size="m" />
+          </Text>
+        )}
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{name}</p>
-          <p className="truncate text-xs text-muted-foreground">{description}</p>
+          <Text variant="body-strong" truncate>
+            {name}
+          </Text>
+          <Text variant="caption" tone="muted" truncate>
+            {description}
+          </Text>
         </div>
       </div>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={onConfigure}
-        className={cn(
-          'w-full px-2 text-muted-foreground hover:text-foreground',
-          settingsAlign === 'end' ? 'justify-end' : 'justify-start',
-        )}>
-        <Settings2Icon className="size-3.5" />
-        Settings
-      </Button>
+      <Stack direction="row" justify={settingsAlign === 'end' ? 'end' : 'start'}>
+        <Button size="sm" variant="quiet" onClick={onConfigure}>
+          <Icon as={Settings2Icon} size="s" />
+          Settings
+        </Button>
+      </Stack>
       <div className="flex w-10 justify-end">
         <Switch checked={enabled} onCheckedChange={onToggleEnabled} disabled={isMutating} />
       </div>
@@ -122,15 +126,19 @@ export function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-xl border border-border/60 bg-card/40">
-      <div className="flex items-start justify-between gap-3 border-b border-border/50 px-4 py-3">
+    <section className="overflow-hidden rounded-xl border border-border-subtle bg-card">
+      <div className="flex items-start justify-between gap-space-l border-b border-border-subtle px-space-xl py-space-l">
         <div>
-          <p className="text-sm font-semibold">{title}</p>
-          <p className="text-xs text-muted-foreground">{description}</p>
+          <Text variant="body-strong">{title}</Text>
+          <Text variant="caption" tone="muted">
+            {description}
+          </Text>
         </div>
-        <p className="rounded-md border border-border/60 bg-muted/20 px-2 py-0.5 text-xs text-muted-foreground">
-          {count}
-        </p>
+        <div className="rounded-md border border-border-subtle bg-surface-sunken px-space-m py-space-2xs">
+          <Text variant="caption" tone="muted">
+            {count}
+          </Text>
+        </div>
       </div>
       {children}
     </section>
@@ -141,7 +149,9 @@ export function EmptyState() {
   return (
     <Empty surface="bordered" size="compact">
       <EmptyMedia>
-        <WrenchIcon className="size-4 text-muted-foreground" />
+        <Text as="div" tone="muted">
+          <Icon as={WrenchIcon} size="m" />
+        </Text>
       </EmptyMedia>
       <EmptyDescription>No tools match your current filters.</EmptyDescription>
     </Empty>

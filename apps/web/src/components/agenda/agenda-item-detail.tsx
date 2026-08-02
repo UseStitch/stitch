@@ -9,6 +9,9 @@ import { AGENDA_ITEM_PRIORITIES, AGENDA_ITEM_STATUSES } from '@stitch/shared/age
 
 import { PRIORITY_LABELS, STATUS_LABELS } from '@/components/agenda/constants';
 import { formatDateInTz, useUserTimezone } from '@/components/agenda/utils';
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -169,24 +172,34 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
             <SheetTitle>Agenda Item</SheetTitle>
           </SheetHeader>
 
-          <div className="flex flex-1 flex-col gap-5 px-4">
+          <div className="flex flex-1 flex-col gap-space-xl px-space-xl">
             {/* List + Created info */}
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <span>{item.listName ?? 'Unknown'}</span>
-              <span>·</span>
-              <span>Created {formatDateInTz(item.createdAt, timeZone)}</span>
+            <Stack direction="row" align="center" gap="l">
+              <Text as="span" variant="caption" tone="muted">
+                {item.listName ?? 'Unknown'}
+              </Text>
+              <Text as="span" variant="caption" tone="muted">
+                ·
+              </Text>
+              <Text as="span" variant="caption" tone="muted">
+                Created {formatDateInTz(item.createdAt, timeZone)}
+              </Text>
               {item.completedAt && (
                 <>
-                  <span>·</span>
-                  <span>Completed {formatDateInTz(item.completedAt, timeZone)}</span>
+                  <Text as="span" variant="caption" tone="muted">
+                    ·
+                  </Text>
+                  <Text as="span" variant="caption" tone="muted">
+                    Completed {formatDateInTz(item.completedAt, timeZone)}
+                  </Text>
                 </>
               )}
-            </div>
+            </Stack>
 
             {/* Title */}
             <form.Field name="title">
               {(field) => (
-                <div className="flex flex-col gap-1.5">
+                <Stack gap="s">
                   <Label>Title</Label>
                   <Input
                     value={field.state.value}
@@ -198,14 +211,14 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
                     }}
                     placeholder="Item title..."
                   />
-                </div>
+                </Stack>
               )}
             </form.Field>
 
             {/* Description */}
             <form.Field name="description">
               {(field) => (
-                <div className="flex flex-col gap-1.5">
+                <Stack gap="s">
                   <Label>Description</Label>
                   <Textarea
                     value={field.state.value}
@@ -218,15 +231,15 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
                     className="min-h-20 resize-none"
                     placeholder="Details..."
                   />
-                </div>
+                </Stack>
               )}
             </form.Field>
 
             {/* Status + Priority row */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-space-l">
               <form.Field name="status">
                 {(field) => (
-                  <div className="flex flex-col gap-1.5">
+                  <Stack gap="s">
                     <Label>Status</Label>
                     <Select
                       value={field.state.value}
@@ -244,13 +257,13 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </Stack>
                 )}
               </form.Field>
 
               <form.Field name="priority">
                 {(field) => (
-                  <div className="flex flex-col gap-1.5">
+                  <Stack gap="s">
                     <Label>Priority</Label>
                     <Select
                       value={field.state.value}
@@ -268,7 +281,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
+                  </Stack>
                 )}
               </form.Field>
             </div>
@@ -276,16 +289,16 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
             {/* Due date */}
             <form.Field name="dueDate">
               {(field) => (
-                <div className="flex flex-col gap-1.5">
+                <Stack gap="s">
                   <Label>Due Date</Label>
                   <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                    <div className="flex items-center gap-1.5">
+                    <Stack direction="row" align="center" gap="s">
                       <PopoverTrigger
                         className={cn(
-                          'flex h-8 w-full items-center gap-2 rounded-lg border border-input bg-transparent px-2.5 text-sm transition-colors hover:bg-muted/50',
+                          'flex h-8 w-full items-center gap-space-m rounded-lg border border-input bg-transparent px-space-m text-sm transition-colors hover:bg-accent',
                           !field.state.value && 'text-muted-foreground',
                         )}>
-                        <CalendarIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                        <Icon as={CalendarIcon} size="s" tone="muted" />
                         {field.state.value ? formatDateInTz(dateToMs(field.state.value), timeZone) : 'Pick a date'}
                       </PopoverTrigger>
                       {field.state.value && (
@@ -293,16 +306,15 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
                           type="button"
                           variant="ghost"
                           size="icon-xs"
-                          className="shrink-0 text-muted-foreground hover:text-foreground"
                           onClick={() => {
                             field.handleChange(null);
                             queueSave(item.id, { dueAt: null });
                           }}>
-                          <XIcon className="size-3" />
+                          <Icon as={XIcon} size="xs" />
                         </Button>
                       )}
-                    </div>
-                    <PopoverContent align="start" className="w-auto p-0">
+                    </Stack>
+                    <PopoverContent align="start" className="w-auto p-space-none">
                       <Calendar
                         mode="single"
                         selected={field.state.value ?? undefined}
@@ -315,21 +327,25 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
                       />
                     </PopoverContent>
                   </Popover>
-                </div>
+                </Stack>
               )}
             </form.Field>
           </div>
 
-          <SheetFooter className="flex flex-row items-center justify-between gap-2">
+          <SheetFooter className="flex flex-row items-center justify-between gap-space-m">
             <Button
               variant="destructive"
               size="sm"
               onClick={() => setConfirmDeleteOpen(true)}
               disabled={deleteMutation.isPending}>
-              <Trash2Icon className="size-3.5" />
+              <Icon as={Trash2Icon} size="s" />
               Delete
             </Button>
-            {updateMutation.isPending && <span className="text-xs text-muted-foreground">Saving…</span>}
+            {updateMutation.isPending && (
+              <Text as="span" variant="caption" tone="muted">
+                Saving…
+              </Text>
+            )}
           </SheetFooter>
         </SheetContent>
       </Sheet>

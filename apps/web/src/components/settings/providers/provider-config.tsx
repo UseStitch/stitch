@@ -16,6 +16,8 @@ import { validateBaseURL } from '@stitch/shared/providers/validation';
 
 import { ProviderLogo } from './provider-logo';
 
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { LocalModelsPanel } from '@/components/settings/providers/local-models-panel';
 import {
   buildProviderConfigBody,
@@ -84,44 +86,44 @@ function LocalProviderStatusBadge({ provider }: { provider: LocalProviderId }) {
   if (!data) return null;
   if (data.reachable) {
     return (
-      <span className="flex items-center gap-1.5 text-xs font-medium text-success">
+      <Stack direction="row" align="center" gap="s">
         <StatusDot color="success" size="sm" />
-        Connected
-      </span>
+        <Text variant="label" tone="success">
+          Connected
+        </Text>
+      </Stack>
     );
   }
   return (
-    <span className="flex items-center gap-1.5 text-xs font-medium text-warning">
+    <Stack direction="row" align="center" gap="s">
       <StatusDot color="warning" size="sm" />
-      Server not reachable
-    </span>
+      <Text variant="label" tone="warning">
+        Server not reachable
+      </Text>
+    </Stack>
   );
 }
 
 function NoFieldsNote({ method }: { method: string }) {
   if (method === 'adc') {
     return (
-      <p className="text-sm text-muted-foreground">
+      <Text tone="muted">
         Uses Application Default Credentials from your environment. No additional configuration needed.
-      </p>
+      </Text>
     );
   }
 
   if (method === 'credential-provider') {
     return (
-      <p className="text-sm text-muted-foreground">
+      <Text tone="muted">
         Uses the AWS credential provider chain (environment variables, shared credentials file, IAM role, etc.). No
         additional configuration needed.
-      </p>
+      </Text>
     );
   }
 
   if (method === 'none') {
-    return (
-      <p className="text-sm text-muted-foreground">
-        No authentication required. Ollama runs locally and does not need an API key.
-      </p>
-    );
+    return <Text tone="muted">No authentication required. Ollama runs locally and does not need an API key.</Text>;
   }
 
   return null;
@@ -225,7 +227,7 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
 
   function renderFields(fields: FieldDef[], providerId: string, method?: string) {
     return (
-      <div className="flex flex-col gap-3">
+      <Stack gap="l">
         {fields.map((fieldDef) => {
           const name = method
             ? (`fieldsByMethod.${method}.${fieldDef.key}` as const)
@@ -233,10 +235,16 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
           return (
             <form.Field key={fieldDef.key} name={name}>
               {(field) => (
-                <div className="flex flex-col gap-1.5">
+                <Stack gap="s">
                   <Label htmlFor={`${providerId}-${fieldDef.key}`}>
                     {fieldDef.label}
-                    {!fieldDef.required ? <span className="ml-1 text-xs text-muted-foreground">(optional)</span> : null}
+                    {!fieldDef.required ? (
+                      <span className="ml-space-xs">
+                        <Text variant="caption" tone="muted">
+                          (optional)
+                        </Text>
+                      </span>
+                    ) : null}
                   </Label>
                   {fieldDef.type === 'select' ? (
                     <Select value={field.state.value ?? ''} onValueChange={(value) => field.handleChange(value || '')}>
@@ -269,12 +277,12 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
                     />
                   )}
                   <FieldError meta={field.state.meta} />
-                </div>
+                </Stack>
               )}
             </form.Field>
           );
         })}
-      </div>
+      </Stack>
     );
   }
 
@@ -289,23 +297,25 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
       onBack={onBack}
       backLabel="Back to providers"
       actions={
-        <div className="flex items-center gap-3">
+        <Stack direction="row" align="center" gap="l">
           <ProviderLogo providerId={provider.id} providerName={meta.displayName} className="size-5" />
           {provider.enabled &&
             (isLocalProviderId(provider.id) ? (
               <LocalProviderStatusBadge provider={provider.id} />
             ) : (
-              <span className="flex items-center gap-1.5 text-xs font-medium text-success">
+              <Stack direction="row" align="center" gap="s">
                 <StatusDot color="success" size="sm" />
-                Connected
-              </span>
+                <Text variant="label" tone="success">
+                  Connected
+                </Text>
+              </Stack>
             ))}
-        </div>
+        </Stack>
       }>
       {isLocalProviderId(provider.id) && provider.enabled ? (
-        <div className="flex flex-1 flex-col gap-5">
+        <div className="flex flex-1 flex-col gap-space-xl">
           {meta.extraFields.length > 0 && renderFields(meta.extraFields, provider.id)}
-          <ButtonGroup className="pt-1">
+          <ButtonGroup className="pt-space-xs">
             <Button onClick={handleSubmit} disabled={saveMutation.isPending} size="sm">
               {saveMutation.isPending ? 'Saving...' : saveLabel}
             </Button>
@@ -322,7 +332,7 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
           <LocalModelsPanel provider={provider.id} />
         </div>
       ) : (
-        <div className="flex flex-1 flex-col gap-5">
+        <div className="flex flex-1 flex-col gap-space-xl">
           {/* Extra top-level fields (region, project, location, etc.) */}
           {meta.extraFields.length > 0 && renderFields(meta.extraFields, provider.id)}
 
@@ -337,7 +347,7 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
                 ))}
               </TabsList>
               {enabledAuthMethods.map((m) => (
-                <TabsContent key={m.method} value={m.method} className="mt-4">
+                <TabsContent key={m.method} value={m.method} className="mt-space-xl">
                   {m.fields.length > 0 ? (
                     renderFields(m.fields, `${provider.id}-${m.method}`, m.method)
                   ) : (
@@ -355,7 +365,7 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
             ))
           )}
 
-          <ButtonGroup className="pt-1">
+          <ButtonGroup className="pt-space-xs">
             <Button onClick={handleSubmit} disabled={saveMutation.isPending} size="sm">
               {saveMutation.isPending ? 'Saving...' : saveLabel}
             </Button>

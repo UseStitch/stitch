@@ -2,6 +2,8 @@ import { BookPlus, Scissors, Copy, ClipboardPaste, Terminal, ChevronRight, Spell
 import { useCallback, useEffect, useLayoutEffect, useState, useRef, forwardRef } from 'react';
 import { createPortal } from 'react-dom';
 
+import { Icon } from '@/components/primitives/icon';
+import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import type { ContextMenuParams } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -28,24 +30,22 @@ const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(function MenuItem(
       ref={ref}
       type="button"
       variant="ghost"
-      className={cn(
-        'h-auto w-full cursor-default justify-start gap-1.5 rounded-md px-1.5 py-1',
-        'hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
-        '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
-        className,
-      )}
+      size="sm"
+      width="full"
+      align={hasSubmenu ? 'between' : 'start'}
+      className={cn('cursor-default', className)}
       onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}>
       {children}
-      {hasSubmenu && <ChevronRight className="ml-auto" />}
+      {hasSubmenu && <Icon as={ChevronRight} size="m" />}
     </Button>
   );
 });
 
 function Separator() {
-  return <div className="-mx-1 my-1 h-px bg-border" />;
+  return <div className="-mx-space-xs my-space-xs h-px bg-border" />;
 }
 
 interface SpellingSubmenuProps {
@@ -69,7 +69,7 @@ function SpellingSubmenu({
   onMouseEnter,
   onMouseLeave,
 }: SpellingSubmenuProps) {
-  const [style, setStyle] = useState<React.CSSProperties>({});
+  const [style, setStyle] = useState<Pick<React.CSSProperties, 'top' | 'left'>>({});
 
   useLayoutEffect(() => {
     if (!anchorRef.current) return;
@@ -77,17 +77,23 @@ function SpellingSubmenu({
     const submenuWidth = 192;
     const spaceRight = window.innerWidth - rect.right;
     const left = spaceRight >= submenuWidth ? rect.right + 2 : rect.left - submenuWidth - 2;
-    setStyle({ position: 'fixed', top: rect.top, left });
+    setStyle({ top: rect.top, left });
   }, [anchorRef]);
 
   return createPortal(
     <div
       ref={panelRef}
-      className="fixed z-60 min-w-48 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10"
-      style={style}
+      className="fixed z-60 min-w-48 rounded-lg bg-popover p-space-xs text-popover-foreground shadow-md ring-1 ring-border-subtle"
+      style={{ top: style.top, left: style.left }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}>
-      {suggestions.length === 0 && <div className="px-1.5 py-1 text-sm text-muted-foreground">No suggestions</div>}
+      {suggestions.length === 0 && (
+        <div className="px-space-s py-space-xs">
+          <Text variant="body" tone="muted">
+            No suggestions
+          </Text>
+        </div>
+      )}
       {suggestions.slice(0, 5).map((s) => (
         <MenuItem key={s} onClick={() => onReplace(s)}>
           {s}
@@ -95,7 +101,7 @@ function SpellingSubmenu({
       ))}
       {suggestions.length > 0 && <Separator />}
       <MenuItem onClick={onAddToDictionary}>
-        <BookPlus />
+        <Icon as={BookPlus} size="m" />
         Add &ldquo;{misspelledWord}&rdquo; to Dictionary
       </MenuItem>
     </div>,
@@ -211,7 +217,7 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
         createPortal(
           <div
             ref={menuRef}
-            className="fixed z-50 min-w-48 rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10"
+            className="fixed z-50 min-w-48 rounded-lg bg-popover p-space-xs text-popover-foreground shadow-md ring-1 ring-border-subtle"
             style={{ left: params.x, top: params.y }}>
             {isMisspelled && (
               <>
@@ -220,7 +226,7 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
                   hasSubmenu
                   onMouseEnter={handleSpellingMouseEnter}
                   onMouseLeave={handleSpellingMouseLeave}>
-                  <SpellCheck />
+                  <Icon as={SpellCheck} size="m" />
                   Spelling
                 </MenuItem>
                 {spellingOpen && (
@@ -243,19 +249,19 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
               <>
                 {canCut && (
                   <MenuItem onClick={handleCut}>
-                    <Scissors />
+                    <Icon as={Scissors} size="m" />
                     Cut
                   </MenuItem>
                 )}
                 {canCopy && (
                   <MenuItem onClick={handleCopy}>
-                    <Copy />
+                    <Icon as={Copy} size="m" />
                     Copy
                   </MenuItem>
                 )}
                 {canPaste && (
                   <MenuItem onClick={handlePaste}>
-                    <ClipboardPaste />
+                    <Icon as={ClipboardPaste} size="m" />
                     Paste
                   </MenuItem>
                 )}
@@ -264,7 +270,7 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
             )}
 
             <MenuItem onClick={handleOpenDevTools}>
-              <Terminal />
+              <Icon as={Terminal} size="m" />
               Open Developer Tools
             </MenuItem>
           </div>,

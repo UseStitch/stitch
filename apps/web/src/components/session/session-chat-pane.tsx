@@ -11,6 +11,7 @@ import type { Attachment } from '@/components/chat/chat-input-parts/types';
 import { DockContainer } from '@/components/chat/docks/dock';
 import { extractTextFromParts } from '@/components/chat/message-bubble/extract-text';
 import { MessageList } from '@/components/chat/message-list';
+import { Text } from '@/components/primitives/text';
 import { findLastUsedModel } from '@/components/session/session-chat-pane/session-message-context';
 import { useSeededInput } from '@/components/session/session-chat-pane/use-seeded-input';
 import { Button } from '@/components/ui/button';
@@ -189,9 +190,11 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
   }
 
   return (
-    <div className="h-full min-w-0 pt-4 pr-4">
+    <div className="h-full min-w-0 pt-space-xl pr-space-xl">
       <StickToBottom className="relative h-full min-w-0 flex-1 overflow-hidden" resize="smooth" initial="smooth">
-        <StickToBottom.Content scrollClassName="no-scrollbar" className={cn('pt-2', isChildSession ? 'pb-8' : 'pb-40')}>
+        <StickToBottom.Content
+          scrollClassName="no-scrollbar"
+          className={cn('pt-space-m', isChildSession ? 'pb-space-3xl' : 'pb-space-3xl')}>
           <div className="mx-auto max-w-4xl" style={{ viewTransitionName: 'chat-thread' }}>
             <MessageList
               messages={visibleMessages}
@@ -208,15 +211,17 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
 
         {isChildSession ? null : (
           <>
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-muted via-muted/80 to-transparent pt-10 pb-5" />
-            <div className="pointer-events-auto absolute inset-x-0 bottom-0 pb-5">
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-muted via-muted to-transparent pt-space-3xl pb-space-xl" />
+            <div className="pointer-events-auto absolute inset-x-0 bottom-0 pb-space-xl">
               <div className="mx-auto max-w-4xl">
                 <div className={cn('streaming-border-wrapper', streamState.isStreaming && 'is-streaming')}>
                   <div className="streaming-border-content shadow-sm" style={{ viewTransitionName: 'chat-input' }}>
                     <DockContainer docks={docks} />
                     {editingMessage && (
-                      <div className="flex items-center justify-between gap-3 border-b border-border/60 px-3 py-2 text-xs text-muted-foreground">
-                        <span>Editing this message will redo the conversation from that point.</span>
+                      <div className="flex items-center justify-between gap-space-l border-b border-border-subtle px-space-l py-space-m">
+                        <Text as="span" variant="caption" tone="muted">
+                          Editing this message will redo the conversation from that point.
+                        </Text>
                         <Button type="button" variant="ghost" size="xs" onClick={cancelEdit}>
                           Cancel
                         </Button>

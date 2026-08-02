@@ -1,20 +1,29 @@
 import { FileIcon } from 'lucide-react';
 import * as React from 'react';
 
+import { Icon } from '@/components/primitives/icon.js';
+import { Text } from '@/components/primitives/text.js';
 import { CopyButton } from '@/components/ui/copy-button';
 
-export const MESSAGE_ACTION_BUTTON_CLASS =
-  'h-auto items-center gap-1 rounded-none p-0 text-xs leading-none font-normal text-muted-foreground hover:bg-transparent hover:text-foreground';
+export const MESSAGE_ACTION_BUTTON_CLASS = 'items-center gap-space-xs leading-none';
 
 export function InterruptedLabel() {
-  return <p className="mt-1 text-xs text-muted-foreground/60">Interrupted</p>;
+  return (
+    <div className="mt-space-xs">
+      <Text as="p" variant="caption" tone="faint">
+        Interrupted
+      </Text>
+    </div>
+  );
 }
 
 export function FileBlock({ mediaType }: { mediaType: string }) {
   return (
-    <div className="my-2 inline-flex items-center gap-1.5 rounded-lg border border-border/40 bg-muted/25 px-3 py-1.5 text-xs text-muted-foreground">
-      <FileIcon className="size-3 shrink-0" />
-      <span>{mediaType}</span>
+    <div className="my-space-m inline-flex items-center gap-space-s rounded-lg border border-border-subtle bg-surface-sunken px-space-l py-space-s">
+      <Icon as={FileIcon} size="xs" />
+      <Text as="span" variant="caption" tone="muted">
+        {mediaType}
+      </Text>
     </div>
   );
 }
@@ -22,7 +31,7 @@ export function FileBlock({ mediaType }: { mediaType: string }) {
 export function AssistantBubbleWrapper({ children }: { children: React.ReactNode }) {
   return (
     <div className="group flex justify-start">
-      <div className="w-full space-y-3">{children}</div>
+      <div className="w-full space-y-space-l">{children}</div>
     </div>
   );
 }
@@ -34,8 +43,8 @@ export function MessageCopyButton({ text }: { text: string }) {
       copyLabel="Copy"
       copiedLabel="Copied"
       showLabel
-      variant="ghost"
-      size="xs"
+      variant="quiet"
+      size="inline"
       className={MESSAGE_ACTION_BUTTON_CLASS}
       aria-label="Copy message"
       title={undefined}

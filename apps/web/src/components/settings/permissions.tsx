@@ -8,6 +8,7 @@ import { SETTINGS_SCHEMAS } from '@stitch/shared/settings/types';
 import { PermissionPolicyEditor } from './permissions/permission-policy-editor';
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
+import { Text } from '@/components/primitives/text';
 import { EmptyState, SectionCard, ToolRow, ToolsetRow } from '@/components/settings/permissions/components';
 import { filterCoreTools, filterToolsetsByQuery } from '@/components/settings/permissions/filtering';
 import { McpToolsTab, filterMcpGroups, useMcpToolsetGroups } from '@/components/settings/permissions/mcp-tools-tab';
@@ -158,7 +159,7 @@ function ToolsContent() {
 
   return (
     <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
-      <div className="space-y-5">
+      <div className="space-y-space-xl">
         {scope !== 'settings' && (
           <div>
             <SearchInput
@@ -169,7 +170,7 @@ function ToolsContent() {
           </div>
         )}
 
-        <Tabs value={scope} onValueChange={(value) => setScope(value as ScopeFilter)} className="space-y-4">
+        <Tabs value={scope} onValueChange={(value) => setScope(value as ScopeFilter)} className="space-y-space-xl">
           <TabsList variant="line">
             <TabsTrigger value="stitch">Core tools</TabsTrigger>
             <TabsTrigger value="native">Native toolsets</TabsTrigger>
@@ -184,7 +185,7 @@ function ToolsContent() {
                 title="Core tools"
                 description="Built-in tools provided by Stitch"
                 count={stitchTools.length}>
-                <div className="divide-y divide-border/40">
+                <div className="divide-y divide-border-subtle">
                   {stitchTools.map((tool) => (
                     <ToolRow
                       key={tool.toolName}
@@ -217,7 +218,7 @@ function ToolsContent() {
                 title="Native toolsets"
                 description="Built-in toolsets available in Stitch"
                 count={nativeToolsets.length}>
-                <div className="divide-y divide-border/40">
+                <div className="divide-y divide-border-subtle">
                   {nativeToolsets.map((toolset) => (
                     <ToolsetRow
                       key={toolset.id}
@@ -254,7 +255,7 @@ function ToolsContent() {
                 title="Connector tools"
                 description="Toolsets from connected apps like Google Workspace"
                 count={connectorToolsets.length}>
-                <div className="divide-y divide-border/40">
+                <div className="divide-y divide-border-subtle">
                   {connectorToolsets.map((toolset) => (
                     <ToolsetRow
                       key={toolset.id}
@@ -302,10 +303,13 @@ function ToolsContent() {
           </TabsContent>
         </Tabs>
 
-        <p className="text-xs text-muted-foreground">
-          Tip: use <span className="font-medium text-foreground">Settings</span> to configure ask, allow, deny, and
-          path/command rules.
-        </p>
+        <Text variant="caption" tone="muted">
+          Tip: use{' '}
+          <Text as="span" variant="label">
+            Settings
+          </Text>{' '}
+          to configure ask, allow, deny, and path/command rules.
+        </Text>
       </div>
     </SettingPage>
   );

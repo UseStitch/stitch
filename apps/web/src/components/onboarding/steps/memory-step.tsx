@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { EmbeddingProviderModels } from '@stitch/shared/embedding/types';
 
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -54,7 +56,11 @@ export function MemoryStep({ onComplete, onBackToProviders }: Props) {
   const selectedValue = chosenValue ?? defaultValue;
 
   if (!settings || !providerModels) {
-    return <div className="text-sm text-muted-foreground">Loading memory settings...</div>;
+    return (
+      <Text as="div" variant="body" tone="muted">
+        Loading memory settings...
+      </Text>
+    );
   }
 
   const hasModels = modelOptions.length > 0;
@@ -80,16 +86,16 @@ export function MemoryStep({ onComplete, onBackToProviders }: Props) {
   }
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-lg flex-col justify-center gap-6">
-      <div className="space-y-2 text-center">
-        <h2 className="text-2xl font-semibold tracking-tight">Enable memories?</h2>
-        <p className="text-sm text-muted-foreground">
+    <div className="mx-auto flex h-full w-full max-w-lg flex-col justify-center gap-space-2xl">
+      <div className="space-y-space-m text-center">
+        <Text variant="heading-l">Enable memories?</Text>
+        <Text variant="body" tone="muted">
           Memories help Stitch remember preferences and recurring context across sessions.
-        </p>
+        </Text>
       </div>
 
       {hasModels ? (
-        <div className="space-y-2">
+        <div className="space-y-space-m">
           <Label htmlFor="onboarding-memory-model">Embedding model</Label>
           <Select value={selectedValue} onValueChange={(value) => setChosenValue(value ?? '')}>
             <SelectTrigger id="onboarding-memory-model" className="w-full">
@@ -105,12 +111,14 @@ export function MemoryStep({ onComplete, onBackToProviders }: Props) {
           </Select>
         </div>
       ) : (
-        <p className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-          No embedding models in providers configured. Please add another provider that has one
-        </p>
+        <div className="rounded-md border border-border-subtle bg-surface-sunken px-space-l py-space-m">
+          <Text variant="body" tone="muted">
+            No embedding models in providers configured. Please add another provider that has one
+          </Text>
+        </div>
       )}
 
-      <div className="flex items-center justify-center gap-2">
+      <Stack direction="row" align="center" justify="center" gap="m">
         {!hasModels && (
           <Button variant="outline" onClick={onBackToProviders} disabled={isSaving}>
             Add provider
@@ -122,7 +130,7 @@ export function MemoryStep({ onComplete, onBackToProviders }: Props) {
         <Button onClick={handleEnableMemories} disabled={isSaving || !hasModels || !selectedOption}>
           {isSaving ? 'Saving...' : 'Enable memories'}
         </Button>
-      </div>
+      </Stack>
     </div>
   );
 }

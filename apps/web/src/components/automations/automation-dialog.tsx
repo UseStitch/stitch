@@ -7,6 +7,8 @@ import type { Automation, AutomationSchedule, GeneratedAutomationDraft } from '@
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { CronExpressionBuilder } from '@/components/cron-expression-builder';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FieldError, fieldErrorMessage } from '@/components/ui/field-error';
@@ -117,7 +119,7 @@ export function AutomationDialog({ open, ...formProps }: AutomationDialogProps) 
       <DialogHeader className="sr-only">
         <DialogTitle>{formProps.mode === 'create' ? 'Create automation' : 'Edit automation'}</DialogTitle>
       </DialogHeader>
-      <DialogContent className="flex max-h-[calc(100vh-2rem)] w-[min(1080px,calc(100vw-2rem))] max-w-none flex-col overflow-hidden p-0 sm:max-w-none">
+      <DialogContent className="flex max-h-[calc(100vh-2rem)] w-[min(1080px,calc(100vw-2rem))] max-w-none flex-col overflow-hidden p-space-none sm:max-w-none">
         <AutomationForm {...formProps} />
       </DialogContent>
     </Dialog>
@@ -187,18 +189,22 @@ function AutomationForm({
 
   return (
     <>
-      <div className="border-b border-border/60 px-6 py-5">
-        <h2 className="text-xl font-semibold tracking-tight">
+      <div className="border-b border-border-subtle px-space-2xl py-space-xl">
+        <Text as="h2" variant="heading-m">
           {mode === 'create' ? 'Create automation' : 'Edit automation'}
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">Save a reusable model + prompt pair for recurring tasks.</p>
+        </Text>
+        <div className="mt-space-xs">
+          <Text variant="body" tone="muted">
+            Save a reusable model + prompt pair for recurring tasks.
+          </Text>
+        </div>
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(280px,1fr)_minmax(0,2fr)]">
-        <div className="space-y-5 overflow-y-auto border-b border-border/50 bg-muted/10 px-6 py-5 lg:border-r lg:border-b-0">
+        <div className="space-y-space-xl overflow-y-auto border-b border-border-subtle bg-surface-sunken px-space-2xl py-space-xl lg:border-r lg:border-b-0">
           <form.Field name="title">
             {(field) => (
-              <div className="space-y-1.5">
+              <div className="space-y-space-s">
                 <Label htmlFor="automation-title">Title</Label>
                 <Input
                   id="automation-title"
@@ -221,7 +227,7 @@ function AutomationForm({
               },
             }}>
             {(field) => (
-              <div className="space-y-1.5">
+              <div className="space-y-space-s">
                 <Label>Provider</Label>
                 <Select value={field.state.value} onValueChange={(value) => field.handleChange(value ?? '')}>
                   <SelectTrigger className="w-full">
@@ -242,7 +248,7 @@ function AutomationForm({
 
           <form.Field name="modelId">
             {(field) => (
-              <div className="space-y-1.5">
+              <div className="space-y-space-s">
                 <Label>Model</Label>
                 <Select value={field.state.value} onValueChange={(value) => field.handleChange(value ?? '')}>
                   <SelectTrigger className="w-full">
@@ -263,7 +269,7 @@ function AutomationForm({
 
           <form.Field name="isScheduled">
             {(field) => (
-              <div className="space-y-1.5">
+              <div className="space-y-space-s">
                 <Label>Trigger</Label>
                 <Select
                   value={field.state.value ? 'scheduled' : 'manual'}
@@ -284,75 +290,80 @@ function AutomationForm({
             )}
           </form.Field>
 
-          <div className="rounded-lg border border-border/60 bg-card/70 px-3 py-2.5">
-            <p className="text-2xs font-semibold tracking-wide text-muted-foreground uppercase">Current schedule</p>
-            <p className="mt-1 text-sm text-foreground">{scheduleSummary}</p>
+          <div className="rounded-lg border border-border-subtle bg-card px-space-l py-space-m">
+            <Text variant="micro" tone="muted">
+              Current schedule
+            </Text>
+            <div className="mt-space-xs">
+              <Text variant="body">{scheduleSummary}</Text>
+            </div>
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-col px-6 py-5">
-          <div className="mb-3 inline-flex w-fit gap-1 rounded-md border border-border/60 bg-muted/30 p-1">
+        <div className="flex min-h-0 flex-col px-space-2xl py-space-xl">
+          <div className="mb-space-l inline-flex w-fit gap-space-xs rounded-md border border-border-subtle bg-surface-sunken p-space-xs">
             <Button
               type="button"
               size="sm"
-              variant={editorView === 'prompt' ? 'default' : 'ghost'}
-              onClick={() => setEditorView('prompt')}
-              className={editorView === 'prompt' ? 'bg-background text-foreground shadow-sm hover:bg-background' : ''}>
+              variant={editorView === 'prompt' ? 'outline' : 'ghost'}
+              onClick={() => setEditorView('prompt')}>
               Prompt
             </Button>
             <Button
               type="button"
               size="sm"
-              variant={editorView === 'preview' ? 'default' : 'ghost'}
-              onClick={() => setEditorView('preview')}
-              className={editorView === 'preview' ? 'bg-background text-foreground shadow-sm hover:bg-background' : ''}>
+              variant={editorView === 'preview' ? 'outline' : 'ghost'}
+              onClick={() => setEditorView('preview')}>
               Preview
             </Button>
             {values.isScheduled && (
               <Button
                 type="button"
                 size="sm"
-                variant={editorView === 'schedule' ? 'default' : 'ghost'}
-                onClick={() => setEditorView('schedule')}
-                className={
-                  editorView === 'schedule' ? 'bg-background text-foreground shadow-sm hover:bg-background' : ''
-                }>
+                variant={editorView === 'schedule' ? 'outline' : 'ghost'}
+                onClick={() => setEditorView('schedule')}>
                 Schedule
               </Button>
             )}
           </div>
 
           {editorView === 'preview' ? (
-            <div className="flex min-h-0 flex-1 flex-col space-y-2">
-              <div className="flex items-center justify-between">
+            <div className="flex min-h-0 flex-1 flex-col space-y-space-m">
+              <Stack direction="row" align="center" justify="between">
                 <Label>Prompt preview</Label>
-                <span className="text-xs text-muted-foreground">Markdown</span>
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border/60 bg-muted/10 p-3">
+                <Text as="span" variant="caption" tone="muted">
+                  Markdown
+                </Text>
+              </Stack>
+              <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border-subtle bg-surface-sunken p-space-l">
                 {values.initialMessage.trim() ? (
                   <ChatMarkdown text={values.initialMessage} />
                 ) : (
-                  <p className="text-sm text-muted-foreground">Prompt preview appears here.</p>
+                  <Text variant="body" tone="muted">
+                    Prompt preview appears here.
+                  </Text>
                 )}
               </div>
             </div>
           ) : editorView === 'prompt' || !values.isScheduled ? (
             <form.Field name="initialMessage">
               {(field) => (
-                <div className="flex min-h-0 flex-1 flex-col space-y-2">
-                  <div className="flex items-center justify-between">
+                <div className="flex min-h-0 flex-1 flex-col space-y-space-m">
+                  <Stack direction="row" align="center" justify="between">
                     <Label htmlFor="automation-message">Initial prompt</Label>
-                    <span className="text-xs text-muted-foreground">{field.state.value.length} chars</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
+                    <Text as="span" variant="caption" tone="muted">
+                      {field.state.value.length} chars
+                    </Text>
+                  </Stack>
+                  <Text variant="caption" tone="muted">
                     This message is used to kick off the session when the automation runs.
-                  </p>
-                  <div className="flex min-h-0 flex-1 rounded-xl border border-border/60 bg-muted/15 p-3">
+                  </Text>
+                  <div className="flex min-h-0 flex-1 rounded-xl border border-border-subtle bg-surface-sunken p-space-l">
                     <Textarea
                       id="automation-message"
                       value={field.state.value}
                       placeholder="Write the prompt that should be sent when this automation starts..."
-                      className="min-h-55 flex-1 resize-none overflow-y-auto border-0 bg-transparent px-1.5 py-1 text-sm leading-6 shadow-none focus-visible:ring-0"
+                      className="min-h-55 flex-1 resize-none overflow-y-auto border-0 bg-transparent px-space-s py-space-xs text-sm leading-6 shadow-none focus-visible:ring-0"
                       onBlur={field.handleBlur}
                       onChange={(event) => field.handleChange(event.target.value)}
                     />
@@ -364,8 +375,8 @@ function AutomationForm({
           ) : (
             <form.Field name="cronExpression">
               {(field) => (
-                <div className="flex min-h-0 flex-1 flex-col space-y-2">
-                  <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border/60 bg-muted/15 p-3">
+                <div className="flex min-h-0 flex-1 flex-col space-y-space-m">
+                  <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border-subtle bg-surface-sunken p-space-l">
                     <CronExpressionBuilder
                       value={field.state.value}
                       onChange={field.handleChange}
@@ -380,7 +391,7 @@ function AutomationForm({
         </div>
       </div>
 
-      <div className="flex justify-end gap-2 border-t border-border/60 px-6 py-4">
+      <div className="flex justify-end gap-space-m border-t border-border-subtle px-space-2xl py-space-xl">
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
           Cancel
         </Button>

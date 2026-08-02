@@ -13,6 +13,8 @@ import { Bar, Line, Pie } from 'react-chartjs-2';
 
 import type { LiquidUiNode } from '@stitch/shared/liquid-ui/schema';
 
+import { Stack } from '@/components/primitives/stack.js';
+import { Text } from '@/components/primitives/text.js';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -24,7 +26,15 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointEleme
 type RenderChildren = (children: string[]) => React.ReactNode;
 type LiquidUiRendererProps<TNode extends LiquidUiNode> = { node: TNode; renderChildren: RenderChildren };
 
-const spacingClasses = { none: 'gap-0', xs: 'gap-1', sm: 'gap-2', md: 'gap-3', lg: 'gap-4' } as const;
+const spacingClasses = {
+  none: 'gap-space-none',
+  xs: 'gap-space-xs',
+  sm: 'gap-space-m',
+  md: 'gap-space-l',
+  lg: 'gap-space-xl',
+} as const;
+
+const stackGaps = { none: 'none', xs: 'xs', sm: 'm', md: 'l', lg: 'xl' } as const;
 
 const gridClasses = {
   '1': 'grid-cols-1',
@@ -33,30 +43,23 @@ const gridClasses = {
   '4': 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4',
 } as const;
 
-const alignClasses = {
-  start: 'items-start justify-start',
-  center: 'items-center justify-center',
-  end: 'items-end justify-end',
-  between: 'items-center justify-between',
-} as const;
-
 const badgeVariantClasses = {
   default: '',
-  success: 'bg-success/10 text-success border-success/20',
-  warning: 'bg-warning/10 text-warning border-warning/20',
+  success: 'bg-success-subtle text-success border-success',
+  warning: 'bg-warning-subtle text-warning border-warning',
   destructive: '',
-  info: 'bg-info/10 text-info border-info/20',
+  info: 'bg-info-subtle text-info border-info',
 } as const;
 
-const textVariantClasses = {
-  body: 'text-sm text-foreground',
-  muted: 'text-sm text-muted-foreground',
-  heading: 'text-base font-semibold text-foreground',
-  caption: 'text-xs text-muted-foreground',
+const textVariants = {
+  body: { variant: 'body', tone: 'default' },
+  muted: { variant: 'body', tone: 'muted' },
+  heading: { variant: 'heading-s', tone: 'default' },
+  caption: { variant: 'caption', tone: 'muted' },
 } as const;
 
 function LiquidStack({ node, renderChildren }: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Stack' }>>) {
-  return <div className={cn('flex flex-col', spacingClasses[node.spacing])}>{renderChildren(node.children)}</div>;
+  return <Stack gap={stackGaps[node.spacing]}>{renderChildren(node.children)}</Stack>;
 }
 
 function LiquidGrid({ node, renderChildren }: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Grid' }>>) {
@@ -68,10 +71,12 @@ function LiquidGrid({ node, renderChildren }: LiquidUiRendererProps<Extract<Liqu
 }
 
 function LiquidRow({ node, renderChildren }: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Row' }>>) {
+  const align = node.align === 'between' ? 'center' : node.align;
+  const justify = node.align === 'between' ? 'between' : node.align;
   return (
-    <div className={cn('flex flex-wrap', spacingClasses[node.gap], alignClasses[node.align])}>
+    <Stack direction="row" gap={stackGaps[node.gap]} align={align} justify={justify} wrap>
       {renderChildren(node.children)}
-    </div>
+    </Stack>
   );
 }
 
@@ -84,7 +89,7 @@ function LiquidCard({ node, renderChildren }: LiquidUiRendererProps<Extract<Liqu
           {node.description && <CardDescription>{node.description}</CardDescription>}
         </CardHeader>
       )}
-      <CardContent className="flex flex-col gap-3">{renderChildren(node.children)}</CardContent>
+      <CardContent className="flex flex-col gap-space-l">{renderChildren(node.children)}</CardContent>
     </Card>
   );
 }
@@ -103,12 +108,20 @@ function LiquidStat({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { comp
   const trendText = node.trend ? node.trend : null;
 
   return (
-    <div className="rounded-lg border bg-card p-3">
-      <div className="text-xs font-medium text-muted-foreground">{node.label}</div>
-      <div className="mt-1 text-2xl font-semibold tracking-tight text-foreground">{node.value}</div>
+    <div className="rounded-lg border bg-card p-space-l">
+      <Text as="div" variant="label" tone="muted">
+        {node.label}
+      </Text>
+      <div className="mt-space-xs">
+        <Text as="div" variant="metric">
+          {node.value}
+        </Text>
+      </div>
       {(node.caption || trendText) && (
-        <div className="mt-1 text-xs text-muted-foreground">
-          {[node.caption, trendText].filter(Boolean).join(' · ')}
+        <div className="mt-space-xs">
+          <Text as="div" variant="caption" tone="muted">
+            {[node.caption, trendText].filter(Boolean).join(' · ')}
+          </Text>
         </div>
       )}
     </div>
@@ -117,19 +130,30 @@ function LiquidStat({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { comp
 
 function LiquidKeyValue({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'KeyValue' }>>) {
   return (
-    <div className="flex items-start justify-between gap-4 rounded-md border bg-muted/30 px-3 py-2 text-sm">
-      <span className="text-muted-foreground">{node.label}</span>
-      <span className="text-right font-medium text-foreground">{node.value}</span>
+    <div className="flex items-start justify-between gap-space-xl rounded-md border bg-surface-sunken px-space-l py-space-m">
+      <Text as="span" variant="body" tone="muted">
+        {node.label}
+      </Text>
+      <span className="text-right">
+        <Text as="span" variant="body-strong">
+          {node.value}
+        </Text>
+      </span>
     </div>
   );
 }
 
 function LiquidText({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Text' }>>) {
-  return <p className={textVariantClasses[node.variant]}>{node.text}</p>;
+  const text = textVariants[node.variant];
+  return (
+    <Text as="p" variant={text.variant} tone={text.tone}>
+      {node.text}
+    </Text>
+  );
 }
 
 function LiquidDivider() {
-  return <Separator className="my-1" />;
+  return <Separator className="my-space-xs" />;
 }
 
 function LiquidChart({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Chart' }>>) {
@@ -160,8 +184,14 @@ function LiquidChart({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { com
     );
 
   return (
-    <div className="rounded-lg border bg-card p-3">
-      {node.title && <div className="mb-3 text-sm font-medium text-foreground">{node.title}</div>}
+    <div className="rounded-lg border bg-card p-space-l">
+      {node.title && (
+        <div className="mb-space-l">
+          <Text as="div" variant="body-strong">
+            {node.title}
+          </Text>
+        </div>
+      )}
       <div className="h-64">{chart}</div>
     </div>
   );

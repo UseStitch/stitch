@@ -1,3 +1,4 @@
+import { Text } from '@/components/primitives/text.js';
 import { cn } from '@/lib/utils';
 
 type MicLevelMeterProps = {
@@ -23,19 +24,23 @@ const BARS = [
 export function MicLevelMeter({ level, className }: MicLevelMeterProps) {
   return (
     <span className={cn('flex items-center', className)} aria-hidden="true">
-      <span className="flex h-4 items-center gap-0.5 motion-reduce:hidden">
+      <span className="flex h-4 items-center gap-space-2xs motion-reduce:hidden">
         {BARS.map(({ id, weight }) => {
           const height = Math.max(3, Math.min(16, level * weight * 16 + 3));
           return (
             <span
               key={id}
-              className="w-0.5 rounded-full bg-destructive transition-[height] duration-75 ease-out"
+              className="duration-fast w-0.5 rounded-full bg-destructive transition-[height] ease-standard"
               style={{ height: `${height}px` }}
             />
           );
         })}
       </span>
-      <span className="hidden text-xs font-medium text-destructive motion-reduce:inline">Listening</span>
+      <span className="hidden motion-reduce:inline">
+        <Text as="span" variant="label" tone="destructive">
+          Listening
+        </Text>
+      </span>
     </span>
   );
 }

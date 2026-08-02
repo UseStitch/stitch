@@ -5,6 +5,9 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 
 import type { RecordingAnalysis } from '@stitch/shared/recordings/types';
 
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Empty, EmptyDescription } from '@/components/ui/empty';
 import { StatusDot } from '@/components/ui/status-dot';
 import { useLiveTranscript } from '@/hooks/sse/use-live-transcript';
@@ -75,64 +78,69 @@ export function TranscriptSidebar({ analysis, isRunning, recordingId, isRecordin
   const hasTranscript = entries.length > 0;
 
   return (
-    <aside className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border/50 bg-muted/20 shadow-inner">
-      <div className="shrink-0 border-b border-border/50 bg-muted/30 px-5 py-4">
-        <h2 className="flex items-center text-sm font-semibold tracking-wide text-foreground">
-          <MessageSquareIcon className="mr-2 size-4 text-muted-foreground" />
-          {isRecording ? 'Live Transcript' : 'Full Transcript'}
-          {showLive ? <StatusDot color="destructive" pulse className="ml-2" /> : null}
-        </h2>
-      </div>
+    <div className="h-full min-h-0 overflow-hidden rounded-xl border border-border-subtle bg-surface-sunken shadow-inner">
+      <Stack as="aside" height="full" overflow="hidden">
+        <div className="shrink-0 border-b border-border-subtle bg-surface-sunken px-space-xl py-space-xl">
+          <Stack direction="row" align="center" gap="m">
+            <Icon as={MessageSquareIcon} size="m" tone="muted" />
+            <Text as="h2" variant="body-strong">
+              {isRecording ? 'Live Transcript' : 'Full Transcript'}
+            </Text>
+            {showLive ? <StatusDot color="destructive" pulse className="ml-space-m" /> : null}
+          </Stack>
+        </div>
 
-      <div ref={scrollParentRef} className="thin-scrollbar h-0 flex-1 overflow-y-auto">
-        {hasTranscript ? (
-          <div className="relative px-5" style={{ height: `${rowVirtualizer.getTotalSize() + 40}px` }}>
-            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const entry = entries[virtualRow.index];
+        <div ref={scrollParentRef} className="thin-scrollbar h-0 flex-1 overflow-y-auto">
+          {hasTranscript ? (
+            <div className="relative px-space-xl" style={{ height: `${rowVirtualizer.getTotalSize() + 40}px` }}>
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                const entry = entries[virtualRow.index];
 
-              return entry ? (
-                <div
-                  key={virtualRow.key}
-                  data-index={virtualRow.index}
-                  ref={rowVirtualizer.measureElement}
-                  className="pb-4"
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: '1.25rem',
-                    right: '1.25rem',
-                    transform: `translateY(${virtualRow.start + 20}px)`,
-                  }}>
+                return entry ? (
                   <div
-                    className={`group rounded-xl border border-border/40 bg-background px-4 py-3.5 shadow-sm transition-colors hover:border-border/80 ${
-                      entry.source === 'mic' ? 'ml-2' : entry.source === 'speaker' ? 'mr-2' : ''
-                    }`}>
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <p className="text-xs font-bold tracking-wide text-primary/80 uppercase">{entry.speaker}</p>
+                    key={virtualRow.key}
+                    data-index={virtualRow.index}
+                    ref={rowVirtualizer.measureElement}
+                    className="absolute right-space-xl pb-space-xl"
+                    style={{ top: 0, left: '1.25rem', transform: `translateY(${virtualRow.start + 20}px)` }}>
+                    <div
+                      className={`group rounded-xl border border-border-subtle bg-background px-space-xl py-space-l shadow-sm transition-colors hover:border-border-subtle ${
+                        entry.source === 'mic' ? 'ml-space-m' : entry.source === 'speaker' ? 'mr-space-m' : ''
+                      }`}>
+                      <div className="mb-space-s flex items-center justify-between">
+                        <Text variant="label" tone="primary">
+                          {entry.speaker.toUpperCase()}
+                        </Text>
+                      </div>
+                      {entry.isPartial ? (
+                        <div className="italic">
+                          <Text variant="body" tone="muted">
+                            {entry.content}
+                          </Text>
+                        </div>
+                      ) : (
+                        <Text variant="body">{entry.content}</Text>
+                      )}
                     </div>
-                    <p
-                      className={`text-sm leading-relaxed ${entry.isPartial ? 'text-foreground/60 italic' : 'text-foreground/90'}`}>
-                      {entry.content}
-                    </p>
                   </div>
-                </div>
-              ) : null;
-            })}
-          </div>
-        ) : (
-          <div className="p-5">
-            <Empty surface="bordered" size="compact" className="h-32">
-              <EmptyDescription>
-                {isRecording
-                  ? 'Waiting for transcription...'
-                  : isRunning
-                    ? 'Analyzing recording...'
-                    : 'No transcript generated yet.'}
-              </EmptyDescription>
-            </Empty>
-          </div>
-        )}
-      </div>
-    </aside>
+                ) : null;
+              })}
+            </div>
+          ) : (
+            <div className="p-space-xl">
+              <Empty surface="bordered" size="compact" className="h-32">
+                <EmptyDescription>
+                  {isRecording
+                    ? 'Waiting for transcription...'
+                    : isRunning
+                      ? 'Analyzing recording...'
+                      : 'No transcript generated yet.'}
+                </EmptyDescription>
+              </Empty>
+            </div>
+          )}
+        </div>
+      </Stack>
+    </div>
   );
 }

@@ -11,6 +11,8 @@ import {
   buildRows,
   estimateRowHeight,
 } from '@/components/chat/message-list/rows';
+import { Stack } from '@/components/primitives/stack.js';
+import { Text } from '@/components/primitives/text.js';
 import type { SessionStreamState } from '@/stores/stream-store';
 
 type MessageListProps = {
@@ -100,7 +102,7 @@ export function MessageList({
   const nonVirtualizedRows = rows.slice(virtualizedRowCount);
 
   return (
-    <div ref={parentRef} className="flex flex-col gap-6 py-4">
+    <div ref={parentRef} className="flex flex-col gap-space-2xl py-space-xl">
       {virtualizedRowCount > 0 && (
         <div className="relative" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
           {virtualRows.map((virtualRow) => {
@@ -158,9 +160,11 @@ export function MessageList({
       })}
 
       {!hasStreamContent && messages.length === 0 && (
-        <div className="flex justify-start">
-          <div className="text-sm text-muted-foreground">Start a conversation...</div>
-        </div>
+        <Stack direction="row" justify="start">
+          <Text as="div" variant="body" tone="muted">
+            Start a conversation...
+          </Text>
+        </Stack>
       )}
     </div>
   );

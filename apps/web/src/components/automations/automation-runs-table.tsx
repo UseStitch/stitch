@@ -16,6 +16,7 @@ import {
 
 import type { Session } from '@stitch/shared/chat/messages';
 
+import { Icon } from '@/components/primitives/icon';
 import { Button } from '@/components/ui/button';
 import { Table } from '@/components/ui/table';
 
@@ -46,7 +47,7 @@ function ActionsCell({ row, table }: CellContext<typeof features, Session, unkno
   return (
     <Table.Actions>
       <Button variant="outline" size="sm" onClick={() => onOpen(row.original.id)}>
-        <ArrowUpRightIcon data-icon="inline-start" className="size-4" />
+        <Icon as={ArrowUpRightIcon} size="m" data-icon="inline-start" />
         View
       </Button>
     </Table.Actions>

@@ -5,6 +5,8 @@ import type { DesktopNotificationEvent } from '@stitch/shared/ipc/types';
 
 import { DesktopNotification } from './desktop-notification';
 
+import { Icon } from '@/components/primitives/icon';
+import { Text } from '@/components/primitives/text';
 import { PLATFORM_CONFIG } from '@/components/recordings/shared/formatting';
 import { getErrorMessage } from '@/lib/errors';
 import { useStartRecording } from '@/lib/queries/recordings';
@@ -23,14 +25,24 @@ export function MeetingDetectedNotification({ event, exiting, onDismiss }: Meeti
   return (
     <DesktopNotification exiting={exiting} onDismiss={() => onDismiss(event.id)}>
       <DesktopNotification.Icon>
-        <VideoIcon className="size-4" />
+        <Icon as={VideoIcon} size="m" tone="primary" />
       </DesktopNotification.Icon>
       <DesktopNotification.Content>
         <DesktopNotification.Title>Meeting detected</DesktopNotification.Title>
         <DesktopNotification.Description>
-          Active call detected in <span className="font-medium text-foreground">{platformLabel}</span>.
+          Active call detected in{' '}
+          <Text as="span" variant="body-strong">
+            {platformLabel}
+          </Text>
+          .
         </DesktopNotification.Description>
-        {error ? <p className="mt-1.5 text-xs leading-4 wrap-break-word text-destructive">{error}</p> : null}
+        {error ? (
+          <div className="mt-space-s wrap-break-word">
+            <Text variant="caption" tone="destructive">
+              {error}
+            </Text>
+          </div>
+        ) : null}
         <DesktopNotification.Actions>
           <DesktopNotification.Action
             onClick={() => {

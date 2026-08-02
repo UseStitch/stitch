@@ -10,6 +10,9 @@ import type { Automation } from '@stitch/shared/automations/types';
 import { AutomationDialog } from '@/components/automations/automation-dialog';
 import { AutomationRunsTable } from '@/components/automations/automation-runs-table';
 import { AutomationsTable } from '@/components/automations/automations-table';
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -147,7 +150,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
         <PageHeader>
           <PageHeaderContent>
             <PageIcon>
-              <BotIcon className="size-5" />
+              <Icon as={BotIcon} size="l" />
             </PageIcon>
             <div>
               <PageTitle>{pageTitle}</PageTitle>
@@ -155,7 +158,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
             </div>
           </PageHeaderContent>
           <Button onClick={openCreateDialog}>
-            <PlusIcon data-icon="inline-start" className="size-4" />
+            <Icon as={PlusIcon} size="m" data-icon="inline-start" />
             New automation
           </Button>
         </PageHeader>
@@ -174,37 +177,45 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
             onDelete={(automation) => handleDelete(automation)}
           />
         ) : selectedAutomation ? (
-          <div className="space-y-4">
-            <div className="rounded-xl border border-border/60 bg-card/70 p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <p className="text-base font-semibold">{selectedAutomation.title}</p>
-                  <p className="text-sm text-muted-foreground">
+          <div className="space-y-space-xl">
+            <div className="rounded-xl border border-border-subtle bg-card p-space-xl">
+              <Stack direction="row" wrap align="start" justify="between" gap="l">
+                <div className="space-y-space-xs">
+                  <Text variant="heading-s">{selectedAutomation.title}</Text>
+                  <Text variant="body" tone="muted">
                     {modelLabelByKey.get(`${selectedAutomation.providerId}:${selectedAutomation.modelId}`) ??
                       selectedAutomation.modelId}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{selectedAutomation.runCount} total runs</p>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground">Schedule: {selectedScheduleLabel}</span>
-                    {upcomingRuns.length > 0 && <span className="text-xs text-muted-foreground">· Next runs:</span>}
+                  </Text>
+                  <Text variant="caption" tone="muted">
+                    {selectedAutomation.runCount} total runs
+                  </Text>
+                  <Stack direction="row" wrap align="center" gap="s">
+                    <Text as="span" variant="caption" tone="muted">
+                      Schedule: {selectedScheduleLabel}
+                    </Text>
+                    {upcomingRuns.length > 0 && (
+                      <Text as="span" variant="caption" tone="muted">
+                        · Next runs:
+                      </Text>
+                    )}
                     {upcomingRuns.map((run) => (
                       <Badge key={run} variant="soft" size="xs">
                         {run}
                       </Badge>
                     ))}
-                  </div>
+                  </Stack>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <Stack direction="row" wrap align="center" gap="m">
                   <Button
                     size="sm"
                     onClick={() => void handleRun(selectedAutomation)}
                     disabled={runAutomation.isPending}>
-                    <PlayIcon data-icon="inline-start" className="size-4" />
+                    <Icon as={PlayIcon} size="m" data-icon="inline-start" />
                     Run
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => openEditDialog(selectedAutomation.id)}>
-                    <PencilIcon data-icon="inline-start" className="size-4" />
+                    <Icon as={PencilIcon} size="m" data-icon="inline-start" />
                     Edit
                   </Button>
                   <Button
@@ -212,11 +223,11 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
                     variant="outline"
                     onClick={() => handleDelete(selectedAutomation)}
                     disabled={deleteAutomation.isPending}>
-                    <Trash2Icon data-icon="inline-start" className="size-4 text-destructive" />
+                    <Icon as={Trash2Icon} size="m" tone="destructive" data-icon="inline-start" />
                     Delete
                   </Button>
-                </div>
-              </div>
+                </Stack>
+              </Stack>
             </div>
 
             {automationSessions.length === 0 ? (
@@ -308,21 +319,27 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
         pendingLabel="Delete"
         isPending={deleteAutomation.isPending}
         contentClassName="max-w-sm">
-        <label
-          htmlFor="archive-automation-sessions"
-          className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/40 p-3 text-sm">
-          <Checkbox
-            id="archive-automation-sessions"
-            checked={archiveDeletedAutomationSessions}
-            onCheckedChange={(checked) => setArchiveDeletedAutomationSessions(Boolean(checked))}
-            disabled={deleteAutomation.isPending}
-            aria-label="Archive automation sessions"
-          />
-          <span className="space-y-1 text-left">
-            <span className="block font-medium text-foreground">Archive run sessions</span>
-            <span className="block text-muted-foreground">Keep sessions and cost data, hidden from lists.</span>
-          </span>
-        </label>
+        <div className="rounded-lg border border-border-subtle bg-surface-sunken">
+          <Text as="label" variant="body">
+            <Stack direction="row" align="start" gap="l" padding="l">
+              <Checkbox
+                id="archive-automation-sessions"
+                checked={archiveDeletedAutomationSessions}
+                onCheckedChange={(checked) => setArchiveDeletedAutomationSessions(Boolean(checked))}
+                disabled={deleteAutomation.isPending}
+                aria-label="Archive automation sessions"
+              />
+              <Stack gap="xs">
+                <Text as="span" variant="body-strong">
+                  Archive run sessions
+                </Text>
+                <Text as="span" variant="body" tone="muted">
+                  Keep sessions and cost data, hidden from lists.
+                </Text>
+              </Stack>
+            </Stack>
+          </Text>
+        </div>
       </ConfirmDialog>
     </Page>
   );

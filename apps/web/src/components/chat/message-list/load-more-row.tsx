@@ -1,5 +1,7 @@
 import * as React from 'react';
 
+import { Stack } from '@/components/primitives/stack.js';
+import { Text } from '@/components/primitives/text.js';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -11,18 +13,16 @@ type LoadMoreRowProps = {
 
 export function LoadMoreRow({ isFetchingMore, onLoadMore, sentinelRef }: LoadMoreRowProps) {
   return (
-    <div ref={sentinelRef} className="flex items-center justify-center py-3">
+    <div ref={sentinelRef} className="flex items-center justify-center py-space-l">
       {isFetchingMore ? (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Spinner size="sm" className="text-muted-foreground" />
-          Loading older messages...
-        </div>
+        <Stack direction="row" align="center" gap="m">
+          <Spinner size="sm" tone="muted" />
+          <Text as="span" variant="caption" tone="muted">
+            Loading older messages...
+          </Text>
+        </Stack>
       ) : (
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={onLoadMore}
-          className="h-auto p-0 text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-foreground">
+        <Button type="button" variant="quiet" size="inline" onClick={onLoadMore}>
           Load older messages
         </Button>
       )}

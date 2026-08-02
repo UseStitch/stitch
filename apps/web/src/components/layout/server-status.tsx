@@ -1,4 +1,4 @@
-import { HardDrive, Check } from 'lucide-react';
+import { Check, HardDrive } from 'lucide-react';
 import * as React from 'react';
 import { useState } from 'react';
 
@@ -13,6 +13,9 @@ import {
   type StatusState,
 } from './server-status-state';
 
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { StatusDot } from '@/components/ui/status-dot';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -75,30 +78,31 @@ export function ServerStatus() {
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger
-        className="relative flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-muted/50"
+        className="relative flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-accent"
         aria-label="Server status">
-        <HardDrive className="h-3.75 w-3.75 text-muted-foreground" />
-        <StatusDot
-          color={STATE_COLOR[overallState]}
-          className="absolute top-1 right-1 border-2 border-background transition-colors"
-        />
+        <Icon as={HardDrive} size="s" tone="muted" />
+        <StatusDot color={STATE_COLOR[overallState]} bordered className="absolute top-1 right-1" />
       </PopoverTrigger>
       <PopoverContent
         side="bottom"
         align="start"
-        className="w-70 overflow-hidden rounded-xl border-border p-0 shadow-lg">
-        <Tabs defaultValue="servers" className="gap-0">
-          <div className="bg-muted/30 px-4 pt-3">
-            <TabsList variant="line" className="h-auto gap-5 p-0">
-              <TabsTrigger value="servers" className="h-auto flex-none cursor-default rounded-none px-0 pb-2.5">
+        className="w-70 overflow-hidden rounded-xl border-border p-space-none shadow-lg">
+        <Tabs defaultValue="servers" className="gap-space-none">
+          <div className="bg-surface-sunken px-space-xl pt-space-l">
+            <TabsList variant="line" className="h-auto gap-space-xl p-space-none">
+              <TabsTrigger
+                value="servers"
+                className="h-auto flex-none cursor-default rounded-none px-space-none pb-space-m">
                 Servers
               </TabsTrigger>
-              <TabsTrigger value="info" className="h-auto flex-none cursor-default rounded-none px-0 pb-2.5">
+              <TabsTrigger
+                value="info"
+                className="h-auto flex-none cursor-default rounded-none px-space-none pb-space-m">
                 Info
               </TabsTrigger>
             </TabsList>
           </div>
-          <TabsContent value="servers" className="flex flex-col gap-4 bg-popover p-4">
+          <TabsContent value="servers" className="flex flex-col gap-space-xl bg-popover p-space-xl">
             <StatusItem state={serverState} label={serverLabel} subtitle={serverSubtitle} />
             <StatusItem
               state={eventBusState}
@@ -106,7 +110,7 @@ export function ServerStatus() {
               subtitle={formatEventBusSubtitle(sseStatus, lastHeartbeat)}
             />
           </TabsContent>
-          <TabsContent value="info" className="bg-popover p-4">
+          <TabsContent value="info" className="bg-popover p-space-xl">
             <InfoPanel />
           </TabsContent>
         </Tabs>
@@ -120,24 +124,32 @@ type StatusItemProps = { state: StatusState; label: string; subtitle?: string };
 function StatusItem({ state, label, subtitle }: StatusItemProps) {
   const isOk = state === 'ok';
   return (
-    <div className="flex cursor-default items-center justify-between">
-      <div className="flex items-center gap-3">
-        <StatusDot color={STATE_COLOR[state]} glow pulse={state === 'pending'} className="shrink-0" />
-        <div className="flex flex-col gap-0.5">
-          <span className={`text-sm ${isOk ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>{label}</span>
-          {subtitle && <span className="text-2xs text-muted-foreground">{subtitle}</span>}
-        </div>
-      </div>
-      {isOk && <Check className="h-3.5 w-3.5 text-muted-foreground" />}
+    <div className="cursor-default">
+      <Stack direction="row" align="center" justify="between">
+        <Stack direction="row" align="center" gap="l">
+          <StatusDot color={STATE_COLOR[state]} glow pulse={state === 'pending'} className="shrink-0" />
+          <Stack gap="2xs">
+            <Text as="span" variant={isOk ? 'body-strong' : 'body'} tone={isOk ? 'default' : 'muted'}>
+              {label}
+            </Text>
+            {subtitle && (
+              <Text as="span" variant="micro" tone="muted">
+                {subtitle}
+              </Text>
+            )}
+          </Stack>
+        </Stack>
+        {isOk && <Icon as={Check} size="s" tone="muted" />}
+      </Stack>
     </div>
   );
 }
 
 function InfoPanel() {
   return (
-    <div className="flex flex-col gap-3">
+    <Stack gap="l">
       <InfoRow label="Version" value={__APP_VERSION__} />
-    </div>
+    </Stack>
   );
 }
 
@@ -145,9 +157,15 @@ type InfoRowProps = { label: string; value: string };
 
 function InfoRow({ label, value }: InfoRowProps) {
   return (
-    <div className="flex cursor-default items-center justify-between">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium text-foreground">{value}</span>
+    <div className="cursor-default">
+      <Stack direction="row" align="center" justify="between">
+        <Text as="span" variant="body" tone="muted">
+          {label}
+        </Text>
+        <Text as="span" variant="body-strong">
+          {value}
+        </Text>
+      </Stack>
     </div>
   );
 }

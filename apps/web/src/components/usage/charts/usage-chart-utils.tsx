@@ -1,5 +1,8 @@
 import { BarChart3Icon } from 'lucide-react';
 
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { getChartGridColor, getChartTickColor } from '@/lib/chart-colors';
 import type { ScriptableContext } from 'chart.js';
 
@@ -26,12 +29,18 @@ export function useChartTheme() {
 
 export function EmptyChart({ message }: { message: string }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-      <BarChart3Icon className="size-8 text-muted-foreground/40" />
-      <div>
-        <p className="text-sm font-medium text-foreground/60">No data</p>
-        <p className="text-xs text-muted-foreground">{message}</p>
-      </div>
+    <div className="grid h-full place-items-center text-center">
+      <Stack gap="l" align="center">
+        <Icon as={BarChart3Icon} size="l" tone="faint" />
+        <div>
+          <Text as="p" variant="body-strong" tone="faint">
+            No data
+          </Text>
+          <Text as="p" variant="caption" tone="muted">
+            {message}
+          </Text>
+        </div>
+      </Stack>
     </div>
   );
 }

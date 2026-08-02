@@ -11,9 +11,7 @@ const noRawTailwindColors = {
   meta: {
     type: 'suggestion',
     docs: { description: 'Require semantic theme colors instead of Tailwind palette colors' },
-    messages: {
-      useSemanticColor: 'Replace raw color class "{{className}}" with a semantic theme token.',
-    },
+    messages: { useSemanticColor: 'Replace raw color class "{{className}}" with an existing semantic theme class.' },
     schema: [],
   },
   create(context) {

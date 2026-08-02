@@ -9,6 +9,8 @@ import { createMessageId } from '@stitch/shared/id';
 
 import { ChatInput } from '@/components/chat/chat-input';
 import type { Attachment } from '@/components/chat/chat-input-parts/types';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { useChatModel } from '@/hooks/session/use-chat-model';
 import { setNextSessionInputSeed } from '@/lib/chat-input-transition-seed';
 import { sessionKeys, useCreateSession, useSendMessage } from '@/lib/queries/chat';
@@ -66,25 +68,31 @@ export function NewSessionPage() {
   }
 
   return (
-    <div className="flex h-full flex-col items-center justify-center px-6">
-      <div className="flex w-full max-w-4xl flex-col gap-8">
-        <div className="space-y-3 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">What can I help you with?</h1>
-          <p className="text-base text-muted-foreground">Select a model and start a conversation</p>
-        </div>
-        <div>
-          <ChatInput
-            value={value}
-            onChange={setValue}
-            onSubmit={(text, attachments) => {
-              void handleSubmit(text, attachments);
-            }}
-            selectedModel={selectedModel}
-            onModelChange={handleModelChange}
-            placeholder={isSubmitting ? 'Starting session...' : 'Ask anything...'}
-            disabled={isSubmitting}
-          />
-        </div>
+    <div className="grid h-full place-items-center px-space-2xl">
+      <div className="w-full max-w-4xl">
+        <Stack gap="3xl">
+          <div className="space-y-space-l text-center">
+            <Text as="h1" variant="heading-l" align="center">
+              What can I help you with?
+            </Text>
+            <Text as="p" variant="heading-s" tone="muted">
+              Select a model and start a conversation
+            </Text>
+          </div>
+          <div>
+            <ChatInput
+              value={value}
+              onChange={setValue}
+              onSubmit={(text, attachments) => {
+                void handleSubmit(text, attachments);
+              }}
+              selectedModel={selectedModel}
+              onModelChange={handleModelChange}
+              placeholder={isSubmitting ? 'Starting session...' : 'Ask anything...'}
+              disabled={isSubmitting}
+            />
+          </div>
+        </Stack>
       </div>
     </div>
   );

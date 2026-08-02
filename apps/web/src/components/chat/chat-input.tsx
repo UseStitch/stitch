@@ -31,14 +31,14 @@ export function ChatInput({ className, hasDockAbove, embedded, ...props }: ChatI
         fallback={
           <div
             className={cn(
-              'relative flex flex-col rounded-2xl border border-border/60 bg-card shadow-sm',
+              'relative flex flex-col rounded-2xl border border-border-subtle bg-card shadow-sm',
               embedded && 'rounded-none border-0 bg-transparent shadow-none',
               hasDockAbove && !embedded && 'rounded-t-none border-t-0',
             )}>
-            <div className="px-4 pt-4 pb-2">
+            <div className="px-space-xl pt-space-xl pb-space-m">
               <Skeleton className="h-5 w-32" />
             </div>
-            <div className="flex items-center justify-between px-3 pt-1 pb-3">
+            <div className="flex items-center justify-between px-space-l pt-space-xs pb-space-l">
               <Skeleton className="h-6 w-24" />
               <Skeleton className="size-6" />
             </div>

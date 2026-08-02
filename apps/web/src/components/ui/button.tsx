@@ -15,6 +15,8 @@ const buttonVariants = cva(
           'bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground',
         ghost:
           'hover:bg-muted hover:text-foreground dark:hover:bg-muted/50 aria-expanded:bg-muted aria-expanded:text-foreground',
+        quiet: 'bg-transparent text-muted-foreground hover:bg-transparent hover:text-foreground',
+        'destructive-quiet': 'bg-transparent text-destructive hover:bg-transparent hover:text-destructive',
         destructive:
           'bg-destructive/10 hover:bg-destructive/20 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/20 text-destructive focus-visible:border-destructive/40 dark:hover:bg-destructive/30',
         link: 'text-primary underline-offset-4 hover:underline',
@@ -29,7 +31,10 @@ const buttonVariants = cva(
           "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
         'icon-sm': 'size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg',
         'icon-lg': 'size-9',
+        inline: 'h-auto gap-1 p-0 text-xs',
       },
+      width: { full: 'w-full' },
+      align: { start: 'justify-start text-left', between: 'justify-between text-left' },
     },
     defaultVariants: { variant: 'default', size: 'default' },
   },
@@ -39,9 +44,17 @@ function Button({
   className,
   variant = 'default',
   size = 'default',
+  width,
+  align,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
-  return <ButtonPrimitive data-slot="button" className={cn(buttonVariants({ variant, size, className }))} {...props} />;
+  return (
+    <ButtonPrimitive
+      data-slot="button"
+      className={cn(buttonVariants({ variant, size, width, align, className }))}
+      {...props}
+    />
+  );
 }
 
 export { Button, buttonVariants };

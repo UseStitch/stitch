@@ -7,6 +7,8 @@ import {
   filterProviderModels,
   findProviderModelOption,
 } from '@/components/model-selectors/provider-model-utils';
+import { Icon } from '@/components/primitives/icon.js';
+import { Text } from '@/components/primitives/text.js';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { ProviderModels } from '@/lib/queries/providers';
@@ -29,37 +31,49 @@ export function ModelSelectorPopover({ selectedValue, onSelect, providerModels }
     <Popover>
       <PopoverTrigger
         className={cn(
-          'flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition-colors',
-          'text-muted-foreground hover:text-foreground hover:bg-muted/50',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+          'flex items-center gap-space-s rounded-md px-space-m py-space-xs text-xs font-medium transition-colors',
+          'text-muted-foreground hover:text-foreground hover:bg-accent',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         )}>
-        <CpuIcon className="size-3.5 shrink-0" />
+        <Icon as={CpuIcon} size="s" />
         <span>{selectedOption?.modelName ?? 'Select model'}</span>
-        <ChevronDownIcon className="size-3 shrink-0 opacity-60" />
+        <span className="opacity-60">
+          <Icon as={ChevronDownIcon} size="xs" />
+        </span>
       </PopoverTrigger>
 
       <PopoverContent
         side="top"
         sideOffset={6}
         align="start"
-        className="max-h-80 w-96 gap-0 p-0 shadow-lg outline-none">
-        <div className="flex items-center gap-2 border-b border-border/50 px-3 py-2">
-          <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" />
+        className="max-h-80 w-96 gap-space-none p-space-none shadow-lg outline-none">
+        <div className="flex items-center gap-space-m border-b border-border-subtle px-space-l py-space-m">
+          <Icon as={SearchIcon} size="s" color="var(--muted-foreground)" />
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search models"
-            className="h-auto flex-1 rounded-none border-0 bg-transparent px-0 py-0 text-sm focus-visible:ring-0 dark:bg-transparent"
+            className="h-auto flex-1 rounded-none border-0 bg-transparent px-space-none py-space-none text-sm focus-visible:ring-0"
           />
         </div>
 
         <div className="no-scrollbar max-h-70 overflow-y-auto overscroll-contain">
-          <div className="p-1">
-            {filtered.length === 0 && <p className="py-4 text-center text-xs text-muted-foreground">No models found</p>}
+          <div className="p-space-xs">
+            {filtered.length === 0 && (
+              <div className="py-space-xl text-center">
+                <Text as="p" variant="caption" tone="muted">
+                  No models found
+                </Text>
+              </div>
+            )}
             {filtered.map((provider, index) => (
               <div key={provider.providerId}>
-                {index > 0 && <div className="my-1 h-px bg-border/50" />}
-                <p className="px-2 py-1 text-xs font-medium text-muted-foreground">{provider.providerName}</p>
+                {index > 0 && <div className="my-space-xs h-px bg-border-subtle" />}
+                <div className="px-space-m py-space-xs">
+                  <Text as="p" variant="label" tone="muted">
+                    {provider.providerName}
+                  </Text>
+                </div>
                 {provider.models.map((model) => {
                   const isSelected =
                     selectedValue?.providerId === provider.providerId && selectedValue?.modelId === model.id;
@@ -68,13 +82,13 @@ export function ModelSelectorPopover({ selectedValue, onSelect, providerModels }
                       key={model.id}
                       onClick={() => onSelect({ providerId: provider.providerId, modelId: model.id })}
                       className={cn(
-                        'w-full flex items-center justify-between rounded-md px-2 py-1.5 text-sm cursor-default',
+                        'w-full flex items-center justify-between rounded-md px-space-m py-space-s text-sm cursor-default',
                         'transition-colors hover:bg-accent hover:text-accent-foreground',
                         'focus-visible:outline-none focus-visible:bg-accent',
                         isSelected && 'font-medium',
                       )}>
                       <span>{model.name}</span>
-                      {isSelected && <CheckIcon className="size-3.5 shrink-0" />}
+                      {isSelected && <Icon as={CheckIcon} size="s" />}
                     </PopoverClose>
                   );
                 })}

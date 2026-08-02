@@ -3,6 +3,9 @@ import * as React from 'react';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { Icon } from '@/components/primitives/icon';
+import { Stack } from '@/components/primitives/stack';
+import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,16 +39,22 @@ export function SettingSubPage({
 }: SettingSubPageProps) {
   return (
     <div className="flex h-full flex-col">
-      <div className="mb-6">
-        <div className="mb-3 flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 w-fit px-2">
-            <ArrowLeftIcon className="size-3.5" />
-            {backLabel}
-          </Button>
+      <div className="mb-space-2xl">
+        <div className="mb-space-l flex items-center justify-between">
+          <div className="-ml-space-m">
+            <Button variant="ghost" size="sm" onClick={onBack}>
+              <Icon as={ArrowLeftIcon} size="s" />
+              {backLabel}
+            </Button>
+          </div>
           {actions}
         </div>
-        <h2 className="text-base font-bold">{title}</h2>
-        {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
+        <Text variant="heading-s">{title}</Text>
+        {description ? (
+          <div className="mt-space-xs">
+            <Text tone="muted">{description}</Text>
+          </div>
+        ) : null}
       </div>
       {children}
     </div>
@@ -67,7 +76,7 @@ type SettingPageProps = {
 export function SettingPage({ title, description, icon, actions, children }: SettingPageProps) {
   return (
     <div className="flex h-full flex-col">
-      <PageHeader className="mb-6">
+      <PageHeader className="mb-space-2xl">
         <PageHeaderContent>
           <PageIcon>{icon}</PageIcon>
           <div>
@@ -101,9 +110,17 @@ type SettingSectionProps = { title?: string; description?: string; className?: s
 
 export function SettingSection({ title, description, className, children }: SettingSectionProps) {
   return (
-    <section className={cn('mt-8 first:mt-0 space-y-3', className)}>
-      {title ? <h3 className="text-sm font-medium">{title}</h3> : null}
-      {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+    <section className={cn('mt-space-3xl first:mt-space-none space-y-space-l', className)}>
+      {title ? (
+        <Text as="h3" variant="label">
+          {title}
+        </Text>
+      ) : null}
+      {description ? (
+        <Text variant="caption" tone="muted">
+          {description}
+        </Text>
+      ) : null}
       {children}
     </section>
   );
@@ -116,7 +133,9 @@ export function SettingSection({ title, description, className, children }: Sett
 type SettingRowsProps = { className?: string; children: React.ReactNode };
 
 export function SettingRows({ className, children }: SettingRowsProps) {
-  return <div className={cn('*:border-b *:border-border/50 [&>*:last-child]:border-b-0', className)}>{children}</div>;
+  return (
+    <div className={cn('*:border-b *:border-border-subtle [&>*:last-child]:border-b-0', className)}>{children}</div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -133,12 +152,16 @@ type SettingRowProps = {
 
 export function SettingRow({ label, description, htmlFor, className, children }: SettingRowProps) {
   return (
-    <div className={cn('flex items-center justify-between gap-4 py-3', className)}>
-      <div className="flex min-w-0 flex-col gap-0.5">
+    <div className={cn('flex items-center justify-between gap-space-xl py-space-l', className)}>
+      <div className="flex min-w-0 flex-col gap-space-2xs">
         <Label htmlFor={htmlFor} className="text-sm font-medium">
           {label}
         </Label>
-        {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+        {description ? (
+          <Text variant="caption" tone="muted">
+            {description}
+          </Text>
+        ) : null}
       </div>
       {children}
     </div>
@@ -247,7 +270,7 @@ export function SliderSettingRow({
   return (
     <SettingRow label={label} description={description}>
       <SettingRowControl>
-        <div className="flex items-center gap-3">
+        <Stack direction="row" align="center" gap="l">
           <Slider
             value={[localValue]}
             min={min}
@@ -260,10 +283,12 @@ export function SliderSettingRow({
               saveMutation.mutate(formatValue(nextValue));
             }}
           />
-          <span className="w-10 text-right text-xs font-medium text-muted-foreground tabular-nums">
-            {formatValue(localValue)}
-          </span>
-        </div>
+          <div className="w-10 text-right">
+            <Text variant="label" tone="muted" tabular>
+              {formatValue(localValue)}
+            </Text>
+          </div>
+        </Stack>
       </SettingRowControl>
     </SettingRow>
   );

@@ -17,6 +17,7 @@ import {
 
 import type { Automation } from '@stitch/shared/automations/types';
 
+import { Icon } from '@/components/primitives/icon';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import {
@@ -106,14 +107,14 @@ function ActionsCell({ row, table }: CellContext<typeof features, Automation, un
         onClick={() => onRun(row.original)}
         disabled={runPending}
         aria-label={`Run ${row.original.title}`}>
-        <PlayIcon className="size-3.5" />
+        <Icon as={PlayIcon} size="s" />
       </Button>
       <Button
         variant="ghost"
         size="icon-sm"
         onClick={() => onEdit(row.original.id)}
         aria-label={`Edit ${row.original.title}`}>
-        <PencilIcon className="size-3.5" />
+        <Icon as={PencilIcon} size="s" />
       </Button>
       <Button
         variant="ghost"
@@ -121,7 +122,7 @@ function ActionsCell({ row, table }: CellContext<typeof features, Automation, un
         onClick={() => onDelete(row.original)}
         disabled={deletePending}
         aria-label={`Delete ${row.original.title}`}>
-        <Trash2Icon className="size-3.5 text-destructive" />
+        <Icon as={Trash2Icon} size="s" tone="destructive" />
       </Button>
     </Table.Actions>
   );
@@ -207,8 +208,8 @@ export function AutomationsTable({
             {table.getRowModel().rows.length === 0 ? (
               <Table.EmptyRow colSpan={columns.length}>
                 <Empty>
-                  <EmptyMedia>
-                    <BotIcon className="size-10 text-muted-foreground/30" />
+                  <EmptyMedia variant="icon">
+                    <Icon as={BotIcon} size="m" />
                   </EmptyMedia>
                   <EmptyTitle>No automations yet</EmptyTitle>
                   <EmptyDescription>Create your first automation to speed up recurring workflows.</EmptyDescription>
@@ -230,7 +231,7 @@ export function AutomationsTable({
       </Table.Scroller>
 
       {totalPages > 1 ? (
-        <div className="border-t border-border px-3 py-3">
+        <div className="border-t border-border px-space-l py-space-l">
           <Pagination>
             <PaginationContent>
               <PaginationItem>

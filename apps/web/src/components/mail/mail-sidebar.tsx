@@ -26,6 +26,8 @@ import {
 } from '@/components/mail/mail-label-utils';
 import { useMailStore } from '@/components/mail/mail-store';
 import { InternalSidebar } from '@/components/navigation/internal-sidebar';
+import { Icon } from '@/components/primitives/icon';
+import { Text } from '@/components/primitives/text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -73,9 +75,9 @@ function LabelIcon({ label }: { label: MailLabelView }) {
 }
 
 function getLabelDepthClassName(depth: number): string | undefined {
-  if (depth === 1) return 'pl-6';
-  if (depth === 2) return 'pl-10';
-  if (depth >= 3) return 'pl-14';
+  if (depth === 1) return 'pl-space-2xl';
+  if (depth === 2) return 'pl-space-3xl';
+  if (depth >= 3) return 'pl-space-3xl';
   return undefined;
 }
 
@@ -133,15 +135,19 @@ function LabelDivider({
   onToggle: () => void;
 }) {
   return (
-    <li className="py-1">
+    <li className="py-space-xs">
       <Button
         type="button"
         variant="ghost"
         size="xs"
+        width="full"
+        align="start"
         onClick={onToggle}
-        className="w-full gap-2 text-2xs tracking-wide text-muted-foreground uppercase hover:text-sidebar-foreground">
-        {collapsed ? <ChevronRightIcon className="size-3" /> : <ChevronDownIcon className="size-3" />}
-        <span>{children}</span>
+        className="gap-space-m">
+        {collapsed ? <Icon as={ChevronRightIcon} size="xs" /> : <Icon as={ChevronDownIcon} size="xs" />}
+        <Text as="span" variant="micro" tone="muted">
+          {children}
+        </Text>
         <span className="h-px flex-1 bg-sidebar-border" />
       </Button>
     </li>
@@ -180,13 +186,17 @@ function LabelItem({
         isActive={active}
         onClick={onSelect}
         className={cn(
-          'justify-start gap-2',
+          'justify-start gap-space-m',
           getLabelDepthClassName(depth),
           depth > 0 && 'text-muted-foreground',
           label.unreadCount > 0 && 'font-medium',
         )}>
         <LabelIcon label={label} />
-        <span className="min-w-0 flex-1 truncate">{getLabelDisplayName(label)}</span>
+        <div className="min-w-0 flex-1">
+          <Text as="span" variant="body" truncate>
+            {getLabelDisplayName(label)}
+          </Text>
+        </div>
         {!hasChildren ? <LabelBadge count={label.unreadCount} /> : null}
       </SidebarMenuButton>
       {hasChildren && onToggle ? (
@@ -198,7 +208,7 @@ function LabelItem({
             event.stopPropagation();
             onToggle();
           }}>
-          {childrenExpanded ? <ChevronDownIcon className="size-3.5" /> : <ChevronRightIcon className="size-3.5" />}
+          {childrenExpanded ? <Icon as={ChevronDownIcon} size="s" /> : <Icon as={ChevronRightIcon} size="s" />}
         </SidebarMenuAction>
       ) : null}
     </SidebarMenuItem>
@@ -240,9 +250,13 @@ function UserLabelTreeItem({
         <SidebarMenuItem>
           <SidebarMenuButton
             onClick={() => toggleCollapsedLabel(node.key)}
-            className={cn('justify-start gap-2 text-muted-foreground', getLabelDepthClassName(depth))}>
-            <TagIcon className="size-3.5 text-muted-foreground" />
-            <span className="min-w-0 flex-1 truncate">{titleCase(node.name)}</span>
+            className={cn('justify-start gap-space-m text-muted-foreground', getLabelDepthClassName(depth))}>
+            <Icon as={TagIcon} size="s" color="var(--muted-foreground)" />
+            <div className="min-w-0 flex-1">
+              <Text as="span" variant="body" tone="muted" truncate>
+                {titleCase(node.name)}
+              </Text>
+            </div>
           </SidebarMenuButton>
           <SidebarMenuAction
             aria-label={expanded ? `Collapse ${node.name}` : `Expand ${node.name}`}
@@ -250,7 +264,7 @@ function UserLabelTreeItem({
               event.stopPropagation();
               toggleCollapsedLabel(node.key);
             }}>
-            {expanded ? <ChevronDownIcon className="size-3.5" /> : <ChevronRightIcon className="size-3.5" />}
+            {expanded ? <Icon as={ChevronDownIcon} size="s" /> : <Icon as={ChevronRightIcon} size="s" />}
           </SidebarMenuAction>
         </SidebarMenuItem>
       )}
@@ -387,27 +401,31 @@ export function MailSidebarContent() {
       <InternalSidebar.Header>
         <InternalSidebar.Top>
           <InternalSidebar.TopTitle>
-            <MailIcon className="size-4" />
-            <span>Mail</span>
+            <Icon as={MailIcon} size="m" />
+            <Text as="span" variant="body">
+              Mail
+            </Text>
           </InternalSidebar.TopTitle>
         </InternalSidebar.Top>
         {selectedAccount ? (
           <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  variant="outline"
-                  className="mx-2 mb-2 w-[calc(100%-1rem)] min-w-0 justify-between"
-                  aria-label="Switch mail account"
-                />
-              }>
-              <span className="truncate">{selectedAccount.email}</span>
-              <ChevronDownIcon className="size-4 text-muted-foreground" />
-            </DropdownMenuTrigger>
+            <div className="mx-space-m mb-space-m">
+              <DropdownMenuTrigger
+                render={<Button variant="outline" width="full" align="between" aria-label="Switch mail account" />}>
+                <div className="min-w-0 flex-1">
+                  <Text as="span" variant="body" truncate>
+                    {selectedAccount.email}
+                  </Text>
+                </div>
+                <Icon as={ChevronDownIcon} size="m" color="var(--muted-foreground)" />
+              </DropdownMenuTrigger>
+            </div>
             <DropdownMenuContent>
               {accounts.map((account) => (
                 <DropdownMenuItem key={account.id} onClick={() => setSelectedAccountId(account.id)}>
-                  <span className="truncate">{account.email}</span>
+                  <Text as="span" variant="body" truncate>
+                    {account.email}
+                  </Text>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -418,7 +436,7 @@ export function MailSidebarContent() {
         {!selectedAccount ? (
           <Empty size="compact">
             <EmptyMedia>
-              <MailIcon className="size-8 text-muted-foreground/40" />
+              <Icon as={MailIcon} size="l" color="var(--text-faint)" />
             </EmptyMedia>
             <EmptyTitle>No mail accounts</EmptyTitle>
             <EmptyDescription>Enroll an account in Settings.</EmptyDescription>
