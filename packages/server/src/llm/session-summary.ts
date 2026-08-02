@@ -13,11 +13,10 @@ import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { addCacheControlToMessages } from '@/llm/cache-control.js';
 import { CompactionModelNotFoundError } from '@/llm/errors.js';
-import { getPromptUserContext } from '@/llm/prompt/builder.js';
 import { getProviderOptions } from '@/llm/provider-options.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
-import { buildHistoryMessages, findLastSummaryIndex } from '@/llm/session-history.js';
+import { buildSessionLlmMessages } from '@/llm/session-history.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import { getSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { getToolPruneProtectOverrides } from '@/llm/tool-prune-policy.js';
@@ -25,7 +24,6 @@ import * as LocalModels from '@/models/llm/local.js';
 import * as Models from '@/models/llm/registry.js';
 import type { LlmProviderCredentials } from '@/provider/config/schema.js';
 import { getSettings } from '@/settings/service.js';
-import { getSessionTodosPromptBlock } from '@/todos/service.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
 import { estimate } from '@/utils/token.js';
@@ -242,11 +240,9 @@ export async function compact(input: {
   try {
     log.info({ sessionId, auto: input.auto }, 'compaction starting');
 
-    const [compactionSettings, promptUserContext, resolved, todoContext] = await Promise.all([
+    const [compactionSettings, resolved] = await Promise.all([
       input.compactionSettings ?? getCompactionSettings(),
-      getPromptUserContext(),
       resolveCompactionModel(input.providerId, input.modelId),
-      getSessionTodosPromptBlock(sessionId),
     ]);
 
     internalBus.emit('session.compaction.started', { sessionId, messageId: summaryMessageId });
@@ -291,19 +287,14 @@ export async function compact(input: {
       await prune(allMsgs);
     }
 
-    const markerIndex = allMsgs.findIndex((m) => m.id === compactionMarkerId);
-    const historyMsgs = allMsgs.slice(0, markerIndex);
-
-    let startIndex = findLastSummaryIndex(historyMsgs);
-    const relevantMsgs = historyMsgs.slice(startIndex);
-
-    const historyMessages = buildHistoryMessages(relevantMsgs, {
+    const historyMessages = await buildSessionLlmMessages(sessionId, {
       useBasePrompt: true,
       systemPrompt: null,
-      userName: promptUserContext.userName,
-      userTimezone: promptUserContext.userTimezone,
-      memoryContext: null,
-      todoContext,
+      systemPromptFromSettings: false,
+      includeMemory: false,
+      includeTodos: true,
+      messages: allMsgs,
+      upToMessageId: compactionMarkerId,
     });
 
     const provider = createProvider(resolved.credentials);

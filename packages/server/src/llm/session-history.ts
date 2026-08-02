@@ -28,10 +28,20 @@ type StoredPartWithProviderOptions = StoredPart & {
   providerOptions?: ProviderOptions;
   callProviderMetadata?: ProviderOptions;
 };
+type BuildableMessage = Pick<Message, 'id' | 'role' | 'parts' | 'isSummary' | 'modelId'>;
 
-function extractMessageText(message: { parts: StoredPart[] }): string {
-  return extractText(message.parts);
-}
+export type BuildSessionHistoryOptions = {
+  useBasePrompt: boolean;
+  systemPrompt: string | null;
+  /** When systemPrompt is null, fall back to the user's custom instructions. Defaults true (chat). */
+  systemPromptFromSettings?: boolean;
+  /** Reuse an already-loaded message list instead of fetching. */
+  messages?: BuildableMessage[];
+  /** Cut the conversation before this message id (compaction marker). */
+  upToMessageId?: string;
+  includeMemory?: boolean;
+  includeTodos?: boolean;
+};
 
 function extractText(parts: StoredPart[]): string {
   return parts
@@ -50,77 +60,118 @@ function getPartProviderOptions(part: StoredPart): ProviderOptions | undefined {
 }
 
 /**
- * Index of the latest summary message, or -1 if none exists. Messages before
- * this boundary are treated as settled history and folded into the summary.
+ * Index of the latest summary message, or 0 when none exists, so callers can
+ * slice from it directly without a -1 sentinel edge case.
  */
-export function findLastSummaryIndex(msgs: Array<Pick<Message, 'isSummary'>>): number {
+function findSummaryStartIndex(msgs: Array<Pick<Message, 'isSummary'>>): number {
   for (let i = msgs.length - 1; i >= 0; i--) {
     if (msgs[i].isSummary) {
       return i;
     }
   }
-  return -1;
+  return 0;
 }
 
-/**
- * Build the LLM message history for a session, starting from the latest summary boundary.
- */
-export async function buildSessionLlmMessages(
+async function resolveMemoryContext(
+  msgs: BuildableMessage[],
   sessionId: PrefixedString<'ses'>,
-  promptConfig: Pick<PromptConfig, 'useBasePrompt' | 'systemPrompt'>,
-): Promise<ModelMessage[]> {
-  const db = getDb();
-
-  const [msgs, promptUserContext, promptSettings, sessionRow, todoContext] = await Promise.all([
-    db
-      .select()
-      .from(messages)
-      .where(and(eq(messages.sessionId, sessionId), isNull(messages.archivedAt)))
-      .orderBy(asc(messages.createdAt)),
-    getPromptUserContext(),
-    getSettings(['agents.customInstructions'] as const),
-    db.select({ type: sessions.type }).from(sessions).where(eq(sessions.id, sessionId)).limit(1),
-    getSessionTodosPromptBlock(sessionId),
-  ]);
-
-  // Automations can read all memories; chat only sees 'chat' memories.
-  const memorySourceFilter = sessionRow[0]?.type === 'automation' ? undefined : ('chat' as const);
-
-  const startIndex = findLastSummaryIndex(msgs);
-
-  let memoryContext: string | null = null;
+  memorySourceFilter: 'chat' | undefined,
+): Promise<string | null> {
   const msgsDesc = [...msgs].reverse();
   const latestUserIndex = msgsDesc.findIndex((m) => m.role === 'user');
   const latestUserMsg = latestUserIndex >= 0 ? msgsDesc[latestUserIndex] : undefined;
 
-  if (latestUserMsg) {
-    const userText = extractMessageText(latestUserMsg);
+  if (!latestUserMsg) {
+    return null;
+  }
 
-    if (userText.length > 0) {
-      const previousAssistantMsg = msgsDesc.slice(latestUserIndex + 1).find((m) => m.role === 'assistant');
-      const previousAssistantText = previousAssistantMsg ? extractMessageText(previousAssistantMsg) : null;
-      const memoryConfig = await getMemoryConfig();
-      const query = buildRetrievalQuery({
-        userText,
-        previousAssistantText,
-        contextAwareQuery: memoryConfig.retrievalContextAwareQuery,
-        skipLowSignal: memoryConfig.retrievalSkipLowSignal,
-      });
+  const userText = extractText(latestUserMsg.parts);
+  if (userText.length === 0) {
+    return null;
+  }
 
-      if (query === null) {
-        memoryContext = getCachedSessionMemoryContext(sessionId);
-      } else {
-        memoryContext = await retrieveMemoryContext(query, memorySourceFilter).catch(() => null);
-        if (memoryContext !== null) {
-          setCachedSessionMemoryContext(sessionId, memoryContext);
-        }
-      }
+  const previousAssistantMsg = msgsDesc.slice(latestUserIndex + 1).find((m) => m.role === 'assistant');
+  const previousAssistantText = previousAssistantMsg ? extractText(previousAssistantMsg.parts) : null;
+  const memoryConfig = await getMemoryConfig();
+  const query = buildRetrievalQuery({
+    userText,
+    previousAssistantText,
+    contextAwareQuery: memoryConfig.retrievalContextAwareQuery,
+    skipLowSignal: memoryConfig.retrievalSkipLowSignal,
+  });
+
+  if (query === null) {
+    return getCachedSessionMemoryContext(sessionId);
+  }
+
+  const memoryContext = await retrieveMemoryContext(query, memorySourceFilter).catch(() => null);
+  if (memoryContext !== null) {
+    setCachedSessionMemoryContext(sessionId, memoryContext);
+  }
+  return memoryContext;
+}
+
+/**
+ * Build the LLM message history for a session, starting from the latest summary
+ * boundary. The single seam every caller uses to turn stored messages into LLM
+ * context; chat, automation-drafting, and compaction all pass explicit options.
+ */
+export async function buildSessionLlmMessages(
+  sessionId: PrefixedString<'ses'>,
+  options: BuildSessionHistoryOptions,
+): Promise<ModelMessage[]> {
+  const {
+    useBasePrompt,
+    systemPrompt,
+    systemPromptFromSettings = true,
+    messages: overrideMsgs,
+    upToMessageId,
+    includeMemory = true,
+    includeTodos = true,
+  } = options;
+
+  const [promptUserContext, promptSettings] = await Promise.all([
+    getPromptUserContext(),
+    systemPromptFromSettings ? getSettings(['agents.customInstructions'] as const) : null,
+  ]);
+
+  let msgs: BuildableMessage[] = overrideMsgs ?? [];
+  let memoryContext: string | null = null;
+
+  if (!overrideMsgs) {
+    const db = getDb();
+    const [fetched, sessionRow] = await Promise.all([
+      db
+        .select()
+        .from(messages)
+        .where(and(eq(messages.sessionId, sessionId), isNull(messages.archivedAt)))
+        .orderBy(asc(messages.createdAt)),
+      db.select({ type: sessions.type }).from(sessions).where(eq(sessions.id, sessionId)).limit(1),
+    ]);
+    msgs = fetched;
+
+    if (includeMemory) {
+      // Automations can read all memories; chat only sees 'chat' memories.
+      const memorySourceFilter = sessionRow[0]?.type === 'automation' ? undefined : ('chat' as const);
+      memoryContext = await resolveMemoryContext(msgs, sessionId, memorySourceFilter);
     }
   }
 
-  return buildHistoryMessages(msgs.slice(startIndex), {
-    useBasePrompt: promptConfig.useBasePrompt,
-    systemPrompt: promptConfig.systemPrompt ?? promptSettings['agents.customInstructions'],
+  if (upToMessageId) {
+    const cut = msgs.findIndex((m) => m.id === upToMessageId);
+    if (cut >= 0) {
+      msgs = msgs.slice(0, cut);
+    }
+  }
+
+  const relevantMsgs = msgs.slice(findSummaryStartIndex(msgs));
+  const todoContext = includeTodos ? await getSessionTodosPromptBlock(sessionId) : null;
+  const resolvedSystemPrompt =
+    systemPrompt ?? (systemPromptFromSettings ? (promptSettings?.['agents.customInstructions'] ?? null) : null);
+
+  return buildHistoryMessages(relevantMsgs, {
+    useBasePrompt,
+    systemPrompt: resolvedSystemPrompt,
     userName: promptUserContext.userName,
     userTimezone: promptUserContext.userTimezone,
     memoryContext,
