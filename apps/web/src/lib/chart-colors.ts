@@ -1,6 +1,4 @@
 const CHART_FALLBACK_COLORS = ['#f97316', '#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#14b8a6'];
-const CHART_TICK_FALLBACK = '#71717a';
-const CHART_GRID_FALLBACK = '#27272a';
 
 function resolveCssVar(varName: string, fallback: string): string {
   if (typeof window === 'undefined') return fallback;
@@ -26,12 +24,4 @@ export function getChartColor(index: number): string {
 /** Resolves a chart color for an arbitrary series key by hashing it onto the chart palette. */
 export function getChartColorForKey(key: string): string {
   return getChartColor(hashString(key));
-}
-
-export function getChartTickColor(): string {
-  return resolveCssVar('--muted-foreground', CHART_TICK_FALLBACK);
-}
-
-export function getChartGridColor(): string {
-  return resolveCssVar('--border', CHART_GRID_FALLBACK);
 }

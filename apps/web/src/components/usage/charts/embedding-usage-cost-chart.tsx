@@ -1,7 +1,6 @@
 import type { EmbeddingUsageDashboardResponse } from '@stitch/shared/usage/types';
 
 import { StackedBarChart } from '@/components/usage/charts/stacked-bar-chart';
-import { getStackSegmentRadius } from '@/components/usage/charts/usage-chart-utils';
 import { getChartColor } from '@/lib/chart-colors';
 
 function labelForModelKey(modelKey: string): string {
@@ -26,10 +25,7 @@ export function EmbeddingUsageCostChart({ usageData }: EmbeddingUsageCostChartPr
   const datasets = modelKeys.map((key, i) => ({
     label: labelForModelKey(key),
     data: usageData?.buckets.map((b) => b.costUsdByModel[key] ?? 0) ?? [],
-    backgroundColor: getChartColor(i),
-    borderRadius: (ctx: import('chart.js').ScriptableContext<'bar'>) => getStackSegmentRadius(ctx),
-    borderSkipped: false as const,
-    inflateAmount: 0,
+    color: getChartColor(i),
   }));
 
   return (
