@@ -66,15 +66,6 @@ export class GoogleAccountInsufficientScopesError extends ConnectorValidationErr
   }
 }
 
-export class GoogleAccountNotAuthorizedError extends ConnectorValidationError {
-  readonly accountEmail: string;
-  constructor(connectorId: string, accountEmail: string) {
-    super(connectorId, `Google account ${accountEmail} is not authorized.`);
-    this.name = 'GoogleAccountNotAuthorizedError';
-    this.accountEmail = accountEmail;
-  }
-}
-
 export class GoogleAccountNoAccessTokenError extends ConnectorValidationError {
   readonly accountEmail: string;
   constructor(connectorId: string, accountEmail: string) {

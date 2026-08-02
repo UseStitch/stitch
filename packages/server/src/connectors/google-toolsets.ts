@@ -14,28 +14,20 @@ import {
   canActivateToolset,
 } from '@stitch-connectors/google/toolsets';
 
-import type { OAuthConfig } from '@stitch/shared/connectors/types';
-
-import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
-import { refreshAccessToken, requiresOAuthReauth } from '@/connectors/auth/oauth2.js';
-import { withRefreshLock } from '@/connectors/auth/refresh-lock.js';
+import { ensureFreshAccessToken } from '@/connectors/auth/token-vault.js';
 import {
   GoogleAccountInsufficientScopesError,
   GoogleAccountNoAccessTokenError,
-  GoogleAccountNotAuthorizedError,
   GoogleAccountNotFoundError,
 } from '@/connectors/errors.js';
-import { getConnectorDefinition } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema/connectors.js';
-import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 import { registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
 
 const log = Log.create({ service: 'google-toolsets' });
-const REFRESH_BUFFER_MS = 60_000;
 
 /** Convert a @stitch-connectors/google toolset definition into the server Toolset type. */
 function toServerToolset(def: GoogleToolsetDefinition): Toolset {
@@ -100,92 +92,9 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
 
         const client = new GoogleClient({
           getAccessToken: async (options) => {
-            const forceRefresh = options?.forceRefresh === true;
-            const now = Date.now();
-
-            const [latest] = await db
-              .select({
-                id: connectorInstances.id,
-                connectorId: connectorInstances.connectorId,
-                accessToken: connectorInstances.accessToken,
-                refreshToken: connectorInstances.refreshToken,
-                tokenExpiresAt: connectorInstances.tokenExpiresAt,
-                connectorRefId: connectorInstances.connectorRefId,
-              })
-              .from(connectorInstances)
-              .where(eq(connectorInstances.id, chosen.id));
-
-            if (!latest) {
-              throw new GoogleAccountNotAuthorizedError('google', chosen.accountEmail ?? chosen.label);
-            }
-
-            const shouldRefresh =
-              Boolean(latest.refreshToken) &&
-              (forceRefresh ||
-                latest.accessToken === null ||
-                (latest.tokenExpiresAt !== null && latest.tokenExpiresAt <= now + REFRESH_BUFFER_MS));
-
-            if (shouldRefresh) {
-              const definition = getConnectorDefinition(latest.connectorId);
-              if (definition?.authType === 'oauth2') {
-                const creds = await resolveOAuthCredentials(latest);
-                if (creds && latest.refreshToken) {
-                  const config = definition.authConfig as OAuthConfig;
-                  const refreshToken = latest.refreshToken;
-                  try {
-                    const refreshed = await withRefreshLock(chosen.id, () =>
-                      refreshAccessToken(config.tokenUrl, creds.clientId, creds.clientSecret, refreshToken),
-                    );
-
-                    await db
-                      .update(connectorInstances)
-                      .set({
-                        accessToken: refreshed.accessToken,
-                        refreshToken: refreshed.refreshToken ?? refreshToken,
-                        tokenExpiresAt: refreshed.expiresIn ? now + refreshed.expiresIn * 1000 : null,
-                        status: 'connected',
-                        authIssue: null,
-                        updatedAt: now,
-                      })
-                      .where(eq(connectorInstances.id, chosen.id));
-
-                    internalBus.emit('connector.token.refreshed', { instanceId: chosen.id });
-
-                    return refreshed.accessToken;
-                  } catch (error) {
-                    const message = error instanceof Error ? error.message : String(error);
-                    const requiresReauth = requiresOAuthReauth(error);
-                    log.error(
-                      {
-                        event: 'google.token.refresh.failed',
-                        instanceId: chosen.id,
-                        accountEmail: chosen.accountEmail,
-                        forceRefresh,
-                        requiresReauth,
-                        error: message,
-                      },
-                      requiresReauth
-                        ? 'Google token refresh failed and requires reauthorization'
-                        : 'Google token refresh failed',
-                    );
-                    if (requiresReauth) {
-                      await db
-                        .update(connectorInstances)
-                        .set({ status: 'error', authIssue: 'reauthorization_required', updatedAt: Date.now() })
-                        .where(eq(connectorInstances.id, chosen.id));
-                      internalBus.emit('connector.auth.failed', { instanceId: chosen.id });
-                    }
-                    throw error;
-                  }
-                }
-              }
-            }
-
-            if (!latest.accessToken) {
-              throw new GoogleAccountNoAccessTokenError('google', chosen.accountEmail ?? chosen.label);
-            }
-
-            return latest.accessToken;
+            const token = await ensureFreshAccessToken(chosen.id, { forceRefresh: options?.forceRefresh === true });
+            if (!token) throw new GoogleAccountNoAccessTokenError('google', chosen.accountEmail ?? chosen.label);
+            return token;
           },
           logger: log,
           quotaAccountKey: chosen.id,

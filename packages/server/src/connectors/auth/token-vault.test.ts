@@ -5,7 +5,7 @@ import type { ConnectorDefinition } from '@stitch/shared/connectors/types';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { OAuthRefreshError } from '@/connectors/auth/oauth2.js';
-import { refreshExpiringTokens } from '@/connectors/auth/token-refresh.js';
+import { refreshExpiringTokens } from '@/connectors/auth/token-vault.js';
 import { registerConnector, unregisterConnector } from '@/connectors/registry.js';
 import { getDb } from '@/db/client.js';
 import { connectorInstances, connectors } from '@/db/schema/connectors.js';

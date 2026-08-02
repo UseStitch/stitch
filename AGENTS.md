@@ -272,19 +272,10 @@ function ProductList({ filters, minRating }: Props) {
   - `fix/resolve-workflow-execution-error`
   - `chore/update-dependencies`
 
-### Commit Messages
-
-- NEVER include the coding agent (Claude or any other agent) as an author in commit messages.
-- NEVER `Co-Authored-By: Claude <noreply@anthropic.com>` or similar attribution.
-- NEVER commit changes without explicit go-ahead from the user.
-
 ### Pull Requests
-
-- Never include the coding agent (Claude or any other agent) as an author in pull request descriptions.
 
 **Creating Pull Requests:**
 
-- Never include the coding agent (Claude or any other agent) as an author in pull request descriptions.
 - Use `gh` command for all GitHub-related tasks.
 - Never add test plans directly to the PR body for merges into `dev`.
 - Example structure:

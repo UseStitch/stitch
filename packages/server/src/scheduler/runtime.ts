@@ -1,7 +1,7 @@
 import { createScheduler } from '@stitch/scheduler';
 import type { RegisteredJob } from '@stitch/scheduler';
 
-import { refreshExpiringTokens } from '@/connectors/auth/token-refresh.js';
+import { refreshExpiringTokens } from '@/connectors/auth/token-vault.js';
 import * as Log from '@/lib/log.js';
 import { runMailSyncTick } from '@/mail/wiring.js';
 import { refreshMcpRegistryCache } from '@/mcp/registry-service.js';
