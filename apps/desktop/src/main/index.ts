@@ -155,11 +155,13 @@ void app.whenReady().then(async () => {
     }
 
     app.on('second-instance', () => {
-      if (mainWindow) {
-        if (mainWindow.isMinimized()) mainWindow.restore();
-        mainWindow.show();
-        mainWindow.focus();
+      if (!mainWindow) {
+        return;
       }
+
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
     });
 
     serverState.serverUrl = await resolveServerUrl();
@@ -199,7 +201,7 @@ void app.whenReady().then(async () => {
     });
   } catch (error) {
     await shutdownRuntime();
-    const detail = error instanceof Error ? (error.stack ?? error.message) : String(error);
+    const detail = Error.isError(error) ? (error.stack ?? error.message) : String(error);
     dialog.showErrorBox('Stitch failed to start', detail);
     app.exit(1);
   }

@@ -145,8 +145,10 @@ const generatedFiles = new Map([
   [join(ROOT, 'tools/oxlint-plugins/ui/design-system.generated.mjs'), renderToolManifest(getVendoredUiFiles())],
 ]);
 
+const normalizeNewlines = (content: string) => content.replaceAll('\r\n', '\n');
 const stale = [...generatedFiles].filter(
-  ([path, content]) => !existsSync(path) || readFileSync(path, 'utf8') !== content,
+  ([path, content]) =>
+    !existsSync(path) || normalizeNewlines(readFileSync(path, 'utf8')) !== normalizeNewlines(content),
 );
 if (write) {
   for (const [path, content] of generatedFiles) writeFileSync(path, content);

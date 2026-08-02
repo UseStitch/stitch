@@ -39,8 +39,10 @@ export function initTray(getWindow: () => BrowserWindow | null): void {
 }
 
 export function destroyTray(): void {
-  if (tray) {
-    tray.destroy();
-    tray = null;
+  if (!tray) {
+    return;
   }
+
+  tray.destroy();
+  tray = null;
 }

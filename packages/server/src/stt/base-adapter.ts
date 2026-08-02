@@ -325,7 +325,7 @@ export async function createManagedConnection(config: ManagedConnectionConfig): 
         reconnecting = false;
         return;
       } catch (err) {
-        const asError = err instanceof Error ? err : new Error(String(err));
+        const asError = Error.isError(err) ? err : new Error(String(err));
         const classification = classifyError(asError);
         if (classification.fatal) {
           reconnecting = false;

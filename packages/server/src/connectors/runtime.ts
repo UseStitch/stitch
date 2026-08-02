@@ -10,10 +10,12 @@ const log = Log.create({ service: 'connector-runtime' });
 const modulesById = new Map<string, ConnectorModule>();
 
 async function refreshConnectorToolsets(connectorId: string): Promise<void> {
-  if (connectorId === 'google') {
-    const mod = await import('@/connectors/google-toolsets.js');
-    await mod.registerGoogleToolsets();
+  if (!(connectorId === 'google')) {
+    return;
   }
+
+  const mod = await import('@/connectors/google-toolsets.js');
+  await mod.registerGoogleToolsets();
 }
 
 function registerModules(modules: ConnectorModule[]): void {

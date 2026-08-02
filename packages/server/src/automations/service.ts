@@ -145,7 +145,7 @@ export async function createAutomationAndSync(
     return result;
   } catch (error) {
     await deleteAutomation(result.data.id);
-    return err(error instanceof Error ? error.message : 'Failed to schedule automation', 500);
+    return err(Error.isError(error) ? error.message : 'Failed to schedule automation', 500);
   }
 }
 
@@ -237,13 +237,13 @@ export async function updateAutomationAndSync(
         {
           event: 'automation.schedule.rollback.failed',
           automationId,
-          error: syncError instanceof Error ? syncError.message : String(syncError),
+          error: Error.isError(syncError) ? syncError.message : String(syncError),
         },
         'failed to restore automation schedule after update rollback',
       );
     });
 
-    return err(error instanceof Error ? error.message : 'Failed to schedule automation', 500);
+    return err(Error.isError(error) ? error.message : 'Failed to schedule automation', 500);
   }
 }
 

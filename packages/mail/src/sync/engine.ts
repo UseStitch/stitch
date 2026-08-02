@@ -95,7 +95,7 @@ const ACCOUNT_CONCURRENCY = 3;
 const THREADS_CHANGED_DEBOUNCE_MS = 500;
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  return Error.isError(error) ? error.message : String(error);
 }
 
 function isAbortError(error: unknown): boolean {

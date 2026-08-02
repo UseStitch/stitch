@@ -92,7 +92,7 @@ export function createScheduler(options: SchedulerOptions) {
       await callback();
       await store.completeRun({ runId: startedRun.id, key: jobKey, finishedAt: Date.now(), succeeded: true });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = Error.isError(error) ? error.message : String(error);
       await store.completeRun({
         runId: startedRun.id,
         key: jobKey,
@@ -149,7 +149,7 @@ export function createScheduler(options: SchedulerOptions) {
     const results = await Promise.allSettled(Array.from(jobs.keys()).map((jobKey) => evaluateDue(jobKey)));
     for (const result of results) {
       if (result.status === 'rejected') {
-        const error = result.reason instanceof Error ? result.reason.message : String(result.reason);
+        const error = Error.isError(result.reason) ? result.reason.message : String(result.reason);
         logger.error({ event: 'scheduler.tick.failed', error }, 'scheduler tick failed');
       }
     }

@@ -162,7 +162,7 @@ async function fetchWithRefreshError(url: string, options: oauth.CustomFetchOpti
 
 function findOAuthRefreshError(error: unknown): OAuthRefreshError | null {
   let current: unknown = error;
-  while (current instanceof Error) {
+  while (Error.isError(current)) {
     if (current instanceof OAuthRefreshError) return current;
     current = current.cause;
   }
@@ -272,7 +272,7 @@ export async function startOAuthFlow(
 
         resolveOnce(tokens);
       } catch (e) {
-        const message = e instanceof Error ? e.message : String(e);
+        const message = Error.isError(e) ? e.message : String(e);
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end(buildHtmlResponse('Authorization Failed', `Token exchange failed: ${message}`, false));
         rejectOnce(e);

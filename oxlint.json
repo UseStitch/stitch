@@ -3,6 +3,7 @@
   "plugins": ["unicorn", "typescript", "oxc", "import", "react", "jsx-a11y"],
   "jsPlugins": [
     { "name": "stitch", "specifier": "./tools/oxlint-plugins/index.mjs" },
+    { "name": "unicorn-js", "specifier": "eslint-plugin-unicorn" },
     { "name": "react-doctor", "specifier": "oxlint-plugin-react-doctor" }
   ],
   "options": { "typeAware": true },
@@ -10,8 +11,12 @@
     "unicorn/no-useless-fallback-in-spread": "error",
     "unicorn/prefer-set-has": "error",
     "unicorn/no-array-sort": "error",
+    "unicorn-js/prefer-early-return": "error",
+    "unicorn-js/prefer-error-is-error": "error",
+    "unicorn-js/no-lonely-if": "error",
     "no-unused-vars": "error",
     "eqeqeq": "error",
+    "no-else-return": "error",
     "typescript/no-unnecessary-type-assertion": "error",
     "typescript/no-floating-promises": "error",
     "typescript/no-non-null-assertion": "error",
@@ -35,8 +40,7 @@
     "jsx-a11y/control-has-associated-label": "error",
     "jsx-a11y/label-has-associated-control": "error",
     "jsx-a11y/no-autofocus": "error",
-    "jsx-a11y/no-redundant-roles": "error",
-    "stitch/no-collapsible-if": "error"
+    "jsx-a11y/no-redundant-roles": "error"
   },
   "overrides": [
     {

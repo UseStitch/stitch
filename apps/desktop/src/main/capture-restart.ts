@@ -70,7 +70,7 @@ export function createCaptureRestarter(options: CaptureRestarterOptions): Captur
         return;
       }
       if (attempts >= maxAttempts) {
-        options.onGiveUp(error instanceof Error ? error.message : String(error));
+        options.onGiveUp(Error.isError(error) ? error.message : String(error));
       } else {
         schedule(backoffMs * attempts);
       }

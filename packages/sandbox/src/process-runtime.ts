@@ -49,7 +49,7 @@ export function startProcessRuntime(preloadedModules: Record<string, Record<stri
 
   function stringifyLogValue(value: unknown): string {
     if (typeof value === 'string') return value;
-    if (value instanceof Error) return value.stack ?? value.message;
+    if (Error.isError(value)) return value.stack ?? value.message;
     try {
       return JSON.stringify(value);
     } catch {

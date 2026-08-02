@@ -14,7 +14,7 @@ export function stripTypeScript(source: string): StripResult {
     const code = start !== -1 && end > start ? transpiled.slice(start + WRAPPER_PREFIX.length, end) : transpiled;
     return { code, error: null };
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = Error.isError(err) ? err.message : String(err);
     return { code: null, error: `TypeScript syntax error: ${message}` };
   }
 }

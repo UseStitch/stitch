@@ -117,7 +117,7 @@ export class GoogleClient {
           this.log.debug({ url, method, queuedMs }, 'Delayed Google API request due to local quota queue');
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Local Google quota queue wait exceeded';
+        const message = Error.isError(error) ? error.message : 'Local Google quota queue wait exceeded';
         throw new GoogleApiError(429, message, { reason: 'localRateLimitExceeded' });
       }
 

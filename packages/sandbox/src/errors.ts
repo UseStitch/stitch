@@ -1,5 +1,5 @@
 export function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  return Error.isError(error) ? error.message : String(error);
 }
 
 export class SandboxError extends Error {

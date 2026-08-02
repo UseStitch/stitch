@@ -92,7 +92,7 @@ describe('runPendingMigrations', () => {
         await runPendingMigrations(db, { getConnection: async () => connection as never });
       } catch (e) {
         threw = true;
-        expect(e instanceof Error && e.message.includes('checksum mismatch')).toBe(true);
+        expect(Error.isError(e) && e.message.includes('checksum mismatch')).toBe(true);
       }
       expect(threw).toBe(true);
     });
@@ -122,7 +122,7 @@ describe('runPendingMigrations', () => {
         await runPendingMigrations(db, { getConnection: async () => connection as never });
       } catch (e) {
         threw = true;
-        expect(e instanceof Error && e.message.includes('prevId mismatch')).toBe(true);
+        expect(Error.isError(e) && e.message.includes('prevId mismatch')).toBe(true);
       }
       expect(threw).toBe(true);
     });

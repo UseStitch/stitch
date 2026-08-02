@@ -247,7 +247,7 @@ export async function startRecording(input: StartRecordingInput): Promise<Servic
       'recording started',
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to start recording';
+    const message = Error.isError(error) ? error.message : 'Failed to start recording';
     return err(message, 400);
   }
 
@@ -309,7 +309,7 @@ export async function stopRecording(input: StopRecordingInput): Promise<ServiceR
       );
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to stop recording';
+    const message = Error.isError(error) ? error.message : 'Failed to stop recording';
     await db
       .update(recordings)
       .set({ status: 'failed', error: message, endedAt: Date.now(), updatedAt: Date.now() })

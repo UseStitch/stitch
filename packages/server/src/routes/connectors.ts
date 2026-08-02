@@ -96,7 +96,7 @@ connectorsRouter.post('/instances/:id/authorize', async (c) => {
 
   const { waitForTokens } = result.data;
   void waitForTokens().catch((error) => {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = Error.isError(error) ? error.message : String(error);
     log.warn(
       { event: 'connector.authorize.background_failed', id, error: message },
       'background connector authorization failed',

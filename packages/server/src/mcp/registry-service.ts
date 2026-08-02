@@ -120,7 +120,7 @@ export async function refreshMcpRegistryCache(
     inMemoryRegistry = payload;
     return ok(payload);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = Error.isError(error) ? error.message : String(error);
     log.warn({ event: 'mcp_registry.refresh_failed', error: message }, 'failed to refresh MCP registry');
     return err(`Failed to refresh MCP registry: ${message}`, 500);
   }

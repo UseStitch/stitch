@@ -174,7 +174,7 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
         return {
           childSessionId,
           childSessionName: childSession.title,
-          summary: `Task failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          summary: `Task failed: ${Error.isError(error) ? error.message : 'Unknown error'}`,
         };
       } finally {
         deps.parentAbortSignal.removeEventListener('abort', onParentAbort);

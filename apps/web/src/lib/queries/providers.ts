@@ -121,7 +121,7 @@ export const providerConfigQueryOptions = (providerId: string) =>
     queryKey: providerKeys.config(providerId),
     queryFn: () =>
       serverRequest<ProviderCredentials | null>(`/llm/provider/${providerId}/config`).catch((err) => {
-        if (err instanceof Error && err.message.includes('status 404')) return null;
+        if (Error.isError(err) && err.message.includes('status 404')) return null;
         throw err;
       }),
   });

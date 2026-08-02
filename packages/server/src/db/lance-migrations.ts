@@ -173,7 +173,7 @@ export async function runPendingMigrations(db: Db, deps?: { getConnection?: type
           name: migration.name,
           checksum: migration.checksum,
           status: 'failed',
-          error: error instanceof Error ? error.message : String(error),
+          error: Error.isError(error) ? error.message : String(error),
           appliedAt: Date.now(),
         })
         .onConflictDoUpdate({
@@ -184,7 +184,7 @@ export async function runPendingMigrations(db: Db, deps?: { getConnection?: type
             name: migration.name,
             checksum: migration.checksum,
             status: 'failed',
-            error: error instanceof Error ? error.message : String(error),
+            error: Error.isError(error) ? error.message : String(error),
           },
         })
         .run();

@@ -88,7 +88,7 @@ export async function fetchMcpTools(serverId: string): Promise<ServiceResult<Mcp
     const result = await withMcpClient(server, (client) => client.listTools());
     rawTools = Object.fromEntries(result.tools.map((tool) => [tool.name, tool]));
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
+    const message = Error.isError(e) ? e.message : String(e);
     return err(`MCP server error: ${message}`, 400);
   }
 
@@ -145,7 +145,7 @@ export async function getMcpServersWithCachedTools(): Promise<McpServerWithTools
 }
 
 function isClientRegistrationError(error: unknown): boolean {
-  const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
+  const message = (Error.isError(error) ? error.message : String(error)).toLowerCase();
   return message.includes('registration') || message.includes('client_id');
 }
 
@@ -195,7 +195,7 @@ export async function startMcpAuth(
     } else {
       await setMcpAuthStatus(server.id, 'error');
     }
-    const message = error instanceof Error ? error.message : String(error);
+    const message = Error.isError(error) ? error.message : String(error);
     return err(`Failed to start MCP authorization: ${message}`, 400);
   }
 
@@ -227,7 +227,7 @@ export async function startMcpAuth(
       await setMcpAuthStatus(server.id, 'connected');
       await refreshMcpToolsets({ serverIds: [server.id], refreshTools: true });
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = Error.isError(error) ? error.message : String(error);
       log.warn(
         { event: 'mcp.oauth.wait_failed', serverId: server.id, error: message },
         'MCP OAuth token exchange failed',
@@ -301,7 +301,7 @@ export async function refreshExpiringMcpTokens(): Promise<void> {
       await auth(provider, { serverUrl: server.url });
       await transport.close();
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = Error.isError(error) ? error.message : String(error);
       log.warn({ event: 'mcp.token_refresh.failed', serverId: server.id, error: message }, 'MCP token refresh failed');
       await setMcpAuthStatus(server.id, 'reauthorization_required');
     }

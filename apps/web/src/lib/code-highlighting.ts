@@ -169,7 +169,7 @@ export function highlightToHast(
   } catch (error) {
     console.warn(
       `Code highlighting failed for language "${language}", falling back to plain text.`,
-      error instanceof Error ? error.message : error,
+      Error.isError(error) ? error.message : error,
     );
     return highlighter.codeToHast(code, { ...options, lang: 'text' });
   }

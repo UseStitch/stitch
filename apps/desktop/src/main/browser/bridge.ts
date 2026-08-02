@@ -37,7 +37,7 @@ export class BrowserBridge {
           id: message.id,
           type: 'browser:result',
           ok: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: Error.isError(error) ? error.message : String(error),
         }),
       );
     }

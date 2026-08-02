@@ -5,10 +5,12 @@ export function useFullScreen() {
 
   useEffect(() => {
     const checkFullScreen = async () => {
-      if (window.api?.window?.isFullScreen) {
-        const fullScreen = await window.api.window.isFullScreen();
-        setIsFullScreen(fullScreen);
+      if (!window.api?.window?.isFullScreen) {
+        return;
       }
+
+      const fullScreen = await window.api.window.isFullScreen();
+      setIsFullScreen(fullScreen);
     };
     void checkFullScreen();
 

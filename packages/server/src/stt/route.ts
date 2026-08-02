@@ -202,7 +202,7 @@ async function handleStart(
     send(ws, { type: 'ready', sttSessionId: message.sttSessionId, capabilityResolution: session.capabilityResolution });
   } catch (err) {
     const code = err instanceof STTSessionError ? err.code : 'session_start_failed';
-    const msg = err instanceof Error ? err.message : 'Unknown error';
+    const msg = Error.isError(err) ? err.message : 'Unknown error';
     log.error({ error: err, sttSessionId: message.sttSessionId }, 'failed to start STT session');
     send(ws, { type: 'error', sttSessionId: message.sttSessionId, message: msg, code });
     ws.close(4000, code);
@@ -244,7 +244,7 @@ async function handleStop(
     send(ws, {
       type: 'error',
       sttSessionId: sessionId,
-      message: err instanceof Error ? err.message : 'Unknown error',
+      message: Error.isError(err) ? err.message : 'Unknown error',
       code: 'stop_failed',
     });
   }
@@ -293,12 +293,14 @@ export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
         },
 
         onClose() {
-          if (state.session) {
-            state.session.stop().catch((err) => {
-              log.warn({ error: err }, 'error during session cleanup on WS close');
-            });
-            state.session = null;
+          if (!state.session) {
+            return;
           }
+
+          state.session.stop().catch((err) => {
+            log.warn({ error: err }, 'error during session cleanup on WS close');
+          });
+          state.session = null;
         },
       };
     }),

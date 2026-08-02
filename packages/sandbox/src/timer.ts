@@ -13,10 +13,12 @@ export function createPausableTimer(): PausableTimer {
       if (pausedAt === null) pausedAt = Date.now();
     },
     resume() {
-      if (pausedAt !== null) {
-        totalPausedMs += Date.now() - pausedAt;
-        pausedAt = null;
+      if (!(pausedAt !== null)) {
+        return;
       }
+
+      totalPausedMs += Date.now() - pausedAt;
+      pausedAt = null;
     },
     getElapsed(startedAt: number): number {
       const paused = pausedAt !== null ? Date.now() - pausedAt : 0;
@@ -44,10 +46,12 @@ export function createAbortRace(abortSignal: AbortSignal | undefined, message: s
   });
 
   const cleanup = () => {
-    if (onAbort !== null) {
-      abortSignal.removeEventListener('abort', onAbort);
-      onAbort = null;
+    if (!(onAbort !== null)) {
+      return;
     }
+
+    abortSignal.removeEventListener('abort', onAbort);
+    onAbort = null;
   };
 
   return { promise, cleanup };
@@ -79,10 +83,12 @@ export function createToolTimeoutRace(
   });
 
   const cleanup = () => {
-    if (timeoutId !== null) {
-      clearTimeout(timeoutId);
-      timeoutId = null;
+    if (!(timeoutId !== null)) {
+      return;
     }
+
+    clearTimeout(timeoutId);
+    timeoutId = null;
   };
 
   return { promise, cleanup };

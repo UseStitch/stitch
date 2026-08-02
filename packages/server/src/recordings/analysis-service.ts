@@ -392,7 +392,7 @@ async function runRecordingAnalysis(
       return;
     }
 
-    const message = error instanceof Error ? error.message : 'Failed to analyze recording';
+    const message = Error.isError(error) ? error.message : 'Failed to analyze recording';
 
     if (input.preserveExistingUntilComplete) {
       log.error({ analysisId, recordingId: input.recordingId, error: message }, 'recording analysis rerun failed');

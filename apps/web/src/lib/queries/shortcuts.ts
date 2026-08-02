@@ -37,7 +37,7 @@ export function useDeleteShortcut() {
   return useMutation({
     mutationFn: (actionId: string) =>
       serverRequest<void>(`/shortcuts/${actionId}`, { method: 'DELETE' }).catch((err) => {
-        if (err instanceof Error && err.message.includes('status 404')) return;
+        if (Error.isError(err) && err.message.includes('status 404')) return;
         throw err;
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: shortcutKeys.all }),

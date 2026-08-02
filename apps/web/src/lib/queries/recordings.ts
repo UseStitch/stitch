@@ -212,10 +212,10 @@ async function preflightPermissionCheck(): Promise<void> {
       }
     }
   } catch (error) {
-    if (error instanceof Error && error.message.includes('permission is needed')) {
+    if (Error.isError(error) && error.message.includes('permission is needed')) {
       throw error;
     }
-    if (error instanceof Error && error.message.includes('access is denied')) {
+    if (Error.isError(error) && error.message.includes('access is denied')) {
       throw error;
     }
   }

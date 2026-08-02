@@ -66,7 +66,7 @@ export const mailRouter = new Hono();
 type ConnectorInstanceId = (typeof connectorInstances.$inferSelect)['id'];
 
 function errorResponse(c: Context, error: unknown, status: 400 | 404 | 500 = 500): Response {
-  return c.json({ error: error instanceof Error ? error.message : String(error) }, status);
+  return c.json({ error: Error.isError(error) ? error.message : String(error) }, status);
 }
 
 async function connectorInstanceById(connectorInstanceId: string) {

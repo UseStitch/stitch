@@ -234,7 +234,7 @@ export function useMarkSessionRead() {
   return useMutation({
     mutationFn: (sessionId: string) =>
       serverRequest<void>(`/chat/sessions/${sessionId}/read`, { method: 'PATCH' }).catch((err) => {
-        if (err instanceof Error && err.message.includes('status 404')) return;
+        if (Error.isError(err) && err.message.includes('status 404')) return;
         throw err;
       }),
     onSuccess: () => {
