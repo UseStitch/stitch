@@ -2,6 +2,7 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 @import 'katex/dist/katex.min.css';
+@import '../themes/themes.css';
 @import './markdown.css';
 @import './view-transitions.css';
 
@@ -32,9 +33,9 @@
   --ease-*: initial;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-emphasized: cubic-bezier(0.3, 0, 0.8, 0.15);
-  --duration-fast: 120ms;
-  --duration-base: 200ms;
-  --duration-slow: 320ms;
+  --transition-duration-fast: 120ms;
+  --transition-duration-base: 200ms;
+  --transition-duration-slow: 320ms;
 
   --size-icon-xs: 12px;
   --size-icon-s: 14px;

@@ -23,7 +23,7 @@ import { useActions } from '@/lib/actions';
 import { resetServerUrlCache } from '@/lib/api';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { shortcutsQueryOptions } from '@/lib/queries/shortcuts';
-import { applyAppearanceMode, DEFAULT_MODE, DEFAULT_THEME, getTheme, injectThemeCss, removeSplash } from '@/lib/theme';
+import { applyAppearanceMode, applyTheme, DEFAULT_MODE, DEFAULT_THEME, getTheme, removeSplash } from '@/lib/theme';
 import { useGlobalHotkeys } from '@/lib/use-global-hotkeys';
 
 interface RouterContext {
@@ -99,7 +99,7 @@ function ServerConnectionSync() {
       void router.navigate({ to: '/settings/connection' }).then(async () => {
         router.options.context.queryClient.clear();
         const settings = await router.options.context.queryClient.ensureQueryData(settingsQueryOptions);
-        injectThemeCss(getTheme(settings['appearance.theme'] ?? DEFAULT_THEME));
+        applyTheme(getTheme(settings['appearance.theme'] ?? DEFAULT_THEME));
         applyAppearanceMode((settings['appearance.mode'] as AppearanceMode | undefined) ?? DEFAULT_MODE);
         void router.invalidate();
       });

@@ -8,7 +8,7 @@ import type { DesktopNotificationEvent } from '@stitch/shared/ipc/types';
 import { MeetingDetectedNotification } from './meeting-detected-notification';
 
 import { settingsQueryOptions } from '@/lib/queries/settings';
-import { applyAppearanceMode, DEFAULT_MODE, DEFAULT_THEME, getTheme, injectThemeCss } from '@/lib/theme';
+import { applyAppearanceMode, applyTheme, DEFAULT_MODE, DEFAULT_THEME, getTheme } from '@/lib/theme';
 
 const EXIT_ANIMATION_MS = 220;
 const NOTIFICATION_HASH_PREFIX = '#/desktop-notifications?';
@@ -93,7 +93,7 @@ function useDesktopNotificationTheme(): void {
   const mode = (settings?.['appearance.mode'] as AppearanceMode | undefined) ?? DEFAULT_MODE;
 
   React.useEffect(() => {
-    injectThemeCss(getTheme(themeName));
+    applyTheme(getTheme(themeName));
   }, [themeName]);
 
   React.useEffect(() => {

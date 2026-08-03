@@ -1,7 +1,7 @@
 // Runs synchronously before the app bundle so the very first paint uses the
 // correct themed background, avoiding a white flash on launch. Mirrors the
 // approach in opencode's oc-theme-preload.js. The cached values are written by
-// applyAppearanceMode/injectThemeCss in src/lib/theme.ts on every launch.
+// applyAppearanceMode/applyTheme in src/lib/theme.ts on every launch.
 (function () {
   // The transparent desktop-notification window shares this HTML; skip it so we
   // don't paint an opaque background over its transparency.
