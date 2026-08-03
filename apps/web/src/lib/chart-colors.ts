@@ -1,12 +1,17 @@
-const CHART_FALLBACK_COLORS = ['#f97316', '#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#14b8a6'];
-const CHART_TICK_FALLBACK = '#71717a';
-const CHART_GRID_FALLBACK = '#27272a';
+import type { ChartTheme } from '@tanstack/charts';
 
-function resolveCssVar(varName: string, fallback: string): string {
-  if (typeof window === 'undefined') return fallback;
-  const value = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-  return value.length > 0 ? value : fallback;
-}
+const CHART_FALLBACK_COLORS = ['#f97316', '#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#14b8a6'];
+
+export const CHART_THEME = {
+  foreground: 'var(--muted-foreground)',
+  muted: 'color-mix(in oklab, var(--muted-foreground) 65%, transparent)',
+  grid: 'var(--border)',
+  background: 'transparent',
+  palette: CHART_FALLBACK_COLORS.map((fallback, index) => `var(--chart-${index + 1}, ${fallback})`),
+} satisfies Partial<ChartTheme>;
+
+export const CHART_CLASS_NAME = 'stitch-chart';
+export const CHART_TOOLTIP_CLASS_NAME = 'stitch-chart-tooltip';
 
 function hashString(str: string): number {
   let hash = 0;
@@ -20,18 +25,10 @@ function hashString(str: string): number {
 export function getChartColor(index: number): string {
   const position = index % CHART_FALLBACK_COLORS.length;
   const fallback = CHART_FALLBACK_COLORS[position] ?? '#6b7280';
-  return resolveCssVar(`--chart-${position + 1}`, fallback);
+  return `var(--chart-${position + 1}, ${fallback})`;
 }
 
 /** Resolves a chart color for an arbitrary series key by hashing it onto the chart palette. */
 export function getChartColorForKey(key: string): string {
   return getChartColor(hashString(key));
-}
-
-export function getChartTickColor(): string {
-  return resolveCssVar('--muted-foreground', CHART_TICK_FALLBACK);
-}
-
-export function getChartGridColor(): string {
-  return resolveCssVar('--border', CHART_GRID_FALLBACK);
 }

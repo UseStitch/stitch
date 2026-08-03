@@ -1,15 +1,12 @@
-import {
-  BarElement,
-  CategoryScale,
-  Chart as ChartJS,
-  ArcElement,
-  Legend,
-  LinearScale,
-  LineElement,
-  PointElement,
-  Tooltip,
-} from 'chart.js';
-import { Bar, Line, Pie } from 'react-chartjs-2';
+import { useMemo } from 'react';
+
+import { barY, defineChart, group, lineY } from '@tanstack/charts';
+import { scaleBand } from '@tanstack/charts-scales/band';
+import { scaleLinear } from '@tanstack/charts-scales/linear';
+import { scalePoint } from '@tanstack/charts-scales/point';
+import { polar, radialArc } from '@tanstack/charts/polar';
+import { tooltip } from '@tanstack/charts/tooltip';
+import { Chart } from '@tanstack/react-charts';
 
 import type { LiquidUiNode } from '@stitch/shared/liquid-ui/schema';
 
@@ -18,10 +15,8 @@ import { Text } from '@/components/primitives/text.js';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { getChartColor } from '@/lib/chart-colors';
+import { CHART_CLASS_NAME, CHART_THEME, CHART_TOOLTIP_CLASS_NAME, getChartColor } from '@/lib/chart-colors';
 import { cn } from '@/lib/utils';
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Tooltip, Legend);
 
 type RenderChildren = (children: string[]) => React.ReactNode;
 type LiquidUiRendererProps<TNode extends LiquidUiNode> = { node: TNode; renderChildren: RenderChildren };
@@ -50,6 +45,15 @@ const badgeVariantClasses = {
   destructive: '',
   info: 'bg-info-subtle text-info border-info',
 } as const;
+
+const chartSwatchClasses = [
+  'bg-chart-1',
+  'bg-chart-2',
+  'bg-chart-3',
+  'bg-chart-4',
+  'bg-chart-5',
+  'bg-chart-6',
+] as const;
 
 const textVariants = {
   body: { variant: 'body', tone: 'default' },
@@ -156,31 +160,154 @@ function LiquidDivider() {
   return <Separator className="my-space-xs" />;
 }
 
-function LiquidChart({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { component: 'Chart' }>>) {
-  const chartData = {
-    labels: node.labels,
-    datasets: node.datasets.map((dataset, index) => {
-      const color = getChartColor(index);
-      return {
-        ...dataset,
-        backgroundColor: node.kind === 'pie' ? dataset.data.map((_, itemIndex) => getChartColor(itemIndex)) : color,
-        borderColor: color,
-        tension: 0.35,
-      };
-    }),
-  };
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { position: 'bottom' as const } },
-  };
+type LiquidChartNode = Extract<LiquidUiNode, { component: 'Chart' }>;
+
+function getLiquidChartRows(node: LiquidChartNode) {
+  return node.datasets.flatMap((dataset, datasetIndex) =>
+    node.labels.map((label, labelIndex) => ({
+      id: `${datasetIndex}:${labelIndex}`,
+      label,
+      series: dataset.label,
+      value: dataset.data[labelIndex] ?? 0,
+      color: getChartColor(datasetIndex),
+    })),
+  );
+}
+
+function LiquidBarChart({ node }: { node: LiquidChartNode }) {
+  const definition = useMemo(() => {
+    const rows = getLiquidChartRows(node);
+    return defineChart({
+      marks: [
+        barY(rows, {
+          x: 'label',
+          y: 'value',
+          z: 'series',
+          key: 'id',
+          fill: (row) => row.color,
+          layout: group({ padding: 0.15 }),
+          radius: 4,
+        }),
+      ],
+      x: { scale: () => scaleBand().padding(0.15) },
+      y: { scale: scaleLinear, nice: true, grid: true },
+      theme: CHART_THEME,
+      focus: 'group-x',
+      tooltip: { use: tooltip, className: CHART_TOOLTIP_CLASS_NAME, anchor: 'group-center', offset: 8 },
+    });
+  }, [node]);
+
+  return (
+    <Chart className={CHART_CLASS_NAME} definition={definition} height={220} ariaLabel={node.title ?? 'Bar chart'} />
+  );
+}
+
+function LiquidLineChart({ node }: { node: LiquidChartNode }) {
+  const definition = useMemo(() => {
+    const rows = getLiquidChartRows(node);
+    return defineChart({
+      marks: [
+        lineY(rows, {
+          x: 'label',
+          y: 'value',
+          z: 'series',
+          key: 'id',
+          stroke: (row) => row.color,
+          strokeWidth: 2,
+          points: true,
+        }),
+      ],
+      x: { scale: scalePoint },
+      y: { scale: scaleLinear, nice: true, grid: true },
+      theme: CHART_THEME,
+      focus: 'group-x',
+      tooltip: { use: tooltip, className: CHART_TOOLTIP_CLASS_NAME, anchor: 'group-center', offset: 8 },
+    });
+  }, [node]);
+
+  return (
+    <Chart className={CHART_CLASS_NAME} definition={definition} height={220} ariaLabel={node.title ?? 'Line chart'} />
+  );
+}
+
+function LiquidPieChart({ node }: { node: LiquidChartNode }) {
+  const definition = useMemo(() => {
+    const ringCount = node.datasets.length;
+    const marks = node.datasets.map((dataset, datasetIndex) => {
+      const total = dataset.data.reduce((sum, value) => sum + Math.max(0, value), 0);
+      let angle = 0;
+      const arcs = node.labels.map((label, labelIndex) => {
+        const value = dataset.data[labelIndex] ?? 0;
+        const startAngle = angle;
+        angle += total === 0 ? 0 : (Math.max(0, value) / total) * Math.PI * 2;
+        return {
+          id: `${datasetIndex}:${labelIndex}`,
+          label,
+          series: dataset.label,
+          value,
+          startAngle,
+          endAngle: angle,
+          color: getChartColor(labelIndex),
+        };
+      });
+      const ringWidth = 1 / Math.max(ringCount, 1);
+      const outerRatio = 1 - datasetIndex * ringWidth;
+      const innerRatio = outerRatio - ringWidth;
+
+      return radialArc(arcs, {
+        key: 'id',
+        fill: (arc) => arc.color,
+        innerRadius: ({ radius }) => radius * innerRatio,
+        outerRadius: ({ radius }) => radius * outerRatio,
+        cornerRadius: 3,
+      });
+    });
+
+    return defineChart({
+      marks: [polar({ marks, inset: 4 })],
+      guides: false,
+      theme: CHART_THEME,
+      tooltip: {
+        use: tooltip,
+        className: CHART_TOOLTIP_CLASS_NAME,
+        offset: 8,
+        format: (point) => `${point.datum.label}: ${point.datum.value.toLocaleString()}`,
+      },
+    });
+  }, [node]);
+
+  return (
+    <Chart className={CHART_CLASS_NAME} definition={definition} height={220} ariaLabel={node.title ?? 'Pie chart'} />
+  );
+}
+
+function LiquidChartLegend({ node }: { node: LiquidChartNode }) {
+  const labels = node.kind === 'pie' ? node.labels : node.datasets.map((dataset) => dataset.label);
+
+  return (
+    <Stack direction="row" gap="l" justify="center" wrap>
+      {labels.map((label, index) => (
+        <Stack key={label} direction="row" gap="xs" align="center">
+          <span
+            className={cn('inline-block rounded-sm p-space-xs', chartSwatchClasses[index % chartSwatchClasses.length])}
+          />
+          <Text as="span" variant="caption" tone="muted">
+            {label}
+          </Text>
+        </Stack>
+      ))}
+    </Stack>
+  );
+}
+
+function LiquidChart({ node }: LiquidUiRendererProps<LiquidChartNode>) {
   const chart =
     node.kind === 'line' ? (
-      <Line data={chartData} options={options} />
+      <LiquidLineChart node={node} />
     ) : node.kind === 'bar' ? (
-      <Bar data={chartData} options={options} />
+      <LiquidBarChart node={node} />
     ) : (
-      <Pie data={chartData} options={options} />
+      <LiquidPieChart node={node} />
     );
 
   return (
@@ -192,7 +319,8 @@ function LiquidChart({ node }: LiquidUiRendererProps<Extract<LiquidUiNode, { com
           </Text>
         </div>
       )}
-      <div className="h-64">{chart}</div>
+      {chart}
+      <LiquidChartLegend node={node} />
     </div>
   );
 }

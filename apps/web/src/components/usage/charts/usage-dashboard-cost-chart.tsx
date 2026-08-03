@@ -1,7 +1,6 @@
 import type { UsageDashboardResponse } from '@stitch/shared/usage/types';
 
 import { StackedBarChart } from '@/components/usage/charts/stacked-bar-chart';
-import { getStackSegmentRadius } from '@/components/usage/charts/usage-chart-utils';
 import { getSourceLabel, useSourceOrder } from '@/components/usage/utils/usage-dashboard-utils';
 import { getChartColor, getChartColorForKey } from '@/lib/chart-colors';
 
@@ -29,10 +28,7 @@ export function UsageDashboardCostChart({ usageData }: UsageDashboardCostChartPr
   const datasets = sources.map((source) => ({
     label: getSourceLabel(source),
     data: usageData?.buckets.map((b) => b.costUsdBySource[source] ?? 0) ?? [],
-    backgroundColor: getSourceColor(source),
-    borderRadius: (ctx: import('chart.js').ScriptableContext<'bar'>) => getStackSegmentRadius(ctx),
-    borderSkipped: false as const,
-    inflateAmount: 0,
+    color: getSourceColor(source),
   }));
 
   return (

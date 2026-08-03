@@ -190,11 +190,9 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
   }
 
   return (
-    <div className="h-full min-w-0 pt-space-xl pr-space-xl">
-      <StickToBottom className="relative h-full min-w-0 flex-1 overflow-hidden" resize="smooth" initial="smooth">
-        <StickToBottom.Content
-          scrollClassName="no-scrollbar"
-          className={cn('pt-space-m', isChildSession ? 'pb-space-3xl' : 'pb-space-3xl')}>
+    <div className="flex h-full min-h-0 min-w-0 flex-col pt-space-xl pr-space-xl">
+      <StickToBottom className="relative min-h-0 min-w-0 flex-1 overflow-hidden" resize="smooth" initial="smooth">
+        <StickToBottom.Content scrollClassName="no-scrollbar" className="pt-space-m pb-space-3xl">
           <div className="mx-auto max-w-4xl" style={{ viewTransitionName: 'chat-thread' }}>
             <MessageList
               messages={visibleMessages}
@@ -208,49 +206,47 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
             />
           </div>
         </StickToBottom.Content>
+      </StickToBottom>
 
-        {isChildSession ? null : (
-          <>
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-muted via-muted to-transparent pt-space-3xl pb-space-xl" />
-            <div className="pointer-events-auto absolute inset-x-0 bottom-0 pb-space-xl">
-              <div className="mx-auto max-w-4xl">
-                <div className={cn('streaming-border-wrapper', streamState.isStreaming && 'is-streaming')}>
-                  <div className="streaming-border-content shadow-sm" style={{ viewTransitionName: 'chat-input' }}>
-                    <DockContainer docks={docks} />
-                    {editingMessage && (
-                      <div className="flex items-center justify-between gap-space-l border-b border-border-subtle px-space-l py-space-m">
-                        <Text as="span" variant="caption" tone="muted">
-                          Editing this message will redo the conversation from that point.
-                        </Text>
-                        <Button type="button" variant="ghost" size="xs" onClick={cancelEdit}>
-                          Cancel
-                        </Button>
-                      </div>
-                    )}
-                    <div>
-                      <ChatInput
-                        value={value}
-                        onChange={setValue}
-                        onSubmit={(text, attachments) => {
-                          void handleSubmit(text, attachments);
-                        }}
-                        onStop={() => void abortStream(id)}
-                        isStreaming={streamState.isStreaming}
-                        selectedModel={selectedModel}
-                        onModelChange={handleModelChange}
-                        placeholder={isCompacting ? 'Compacting conversation...' : 'Ask anything...'}
-                        disabled={isCompacting || !canSend}
-                        embedded
-                        completionGroups={slashCommands.completionGroups}
-                      />
-                    </div>
+      {isChildSession ? null : (
+        <div className="relative shrink-0 pb-space-xl">
+          <div className="pointer-events-none absolute inset-x-0 -top-space-3xl bottom-0 bg-linear-to-t from-muted via-muted to-transparent" />
+          <div className="pointer-events-auto relative mx-auto max-w-4xl">
+            <div className={cn('streaming-border-wrapper', streamState.isStreaming && 'is-streaming')}>
+              <div className="streaming-border-content shadow-sm" style={{ viewTransitionName: 'chat-input' }}>
+                <DockContainer docks={docks} />
+                {editingMessage && (
+                  <div className="flex items-center justify-between gap-space-l border-b border-border-subtle px-space-l py-space-m">
+                    <Text as="span" variant="caption" tone="muted">
+                      Editing this message will redo the conversation from that point.
+                    </Text>
+                    <Button type="button" variant="ghost" size="xs" onClick={cancelEdit}>
+                      Cancel
+                    </Button>
                   </div>
+                )}
+                <div>
+                  <ChatInput
+                    value={value}
+                    onChange={setValue}
+                    onSubmit={(text, attachments) => {
+                      void handleSubmit(text, attachments);
+                    }}
+                    onStop={() => void abortStream(id)}
+                    isStreaming={streamState.isStreaming}
+                    selectedModel={selectedModel}
+                    onModelChange={handleModelChange}
+                    placeholder={isCompacting ? 'Compacting conversation...' : 'Ask anything...'}
+                    disabled={isCompacting || !canSend}
+                    embedded
+                    completionGroups={slashCommands.completionGroups}
+                  />
                 </div>
               </div>
             </div>
-          </>
-        )}
-      </StickToBottom>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -128,6 +128,45 @@
 }
 
 @layer utilities {
+  .stitch-chart {
+    --ts-chart-focus-fill: var(--card);
+    color: var(--muted-foreground);
+    font-family: var(--font-sans);
+  }
+
+  .stitch-chart .ts-chart:focus-visible {
+    border-radius: var(--radius-lg);
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .stitch-chart-tooltip {
+    z-index: 50 !important;
+    padding: var(--spacing-space-m) var(--spacing-space-l) !important;
+    border: 1px solid color-mix(in oklab, var(--foreground) 10%, transparent) !important;
+    border-radius: var(--radius-lg) !important;
+    background: var(--popover) !important;
+    color: var(--popover-foreground) !important;
+    box-shadow: 0 4px 12px color-mix(in oklab, var(--foreground) 12%, transparent) !important;
+    font-family: var(--font-sans) !important;
+    font-size: 0.75rem !important;
+    line-height: 1.25rem !important;
+  }
+
+  .stitch-chart-tooltip .ts-chart-tooltip__rows {
+    display: grid;
+    gap: var(--spacing-space-2xs);
+  }
+
+  .stitch-chart-tooltip .ts-chart-tooltip__row > :nth-child(2) {
+    color: var(--muted-foreground);
+  }
+
+  .stitch-chart-tooltip .ts-chart-tooltip__row > :last-child {
+    color: var(--popover-foreground);
+    font-weight: 600;
+  }
+
   .thin-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
