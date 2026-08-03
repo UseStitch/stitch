@@ -5,11 +5,11 @@ export type CodeTheme = { light: string; dark: string };
 
 type ThemeDefinition = { name: string; label: string; code: CodeTheme };
 
-export const THEMES: ThemeDefinition[] = [
+const THEMES: ThemeDefinition[] = [
   { name: 'default', label: 'Default', code: { light: 'github-light', dark: 'github-dark' } },
-  { name: 'tokyonight', label: 'Tokyo Night', code: { light: 'one-light', dark: 'tokyo-night' } },
-  { name: 'solarized', label: 'Solarized', code: { light: 'solarized-light', dark: 'solarized-dark' } },
-  { name: 'dracula', label: 'Dracula', code: { light: 'catppuccin-latte', dark: 'dracula' } },
+  { name: 'tokyonight', label: 'Tokyo Night', code: { light: 'tokyo-night', dark: 'tokyo-night' } },
+  { name: 'solarized', label: 'Solarized', code: { light: 'solarized-light', dark: 'solarized-light' } },
+  { name: 'dracula', label: 'Dracula', code: { light: 'dracula', dark: 'dracula' } },
 ];
 
 export const DEFAULT_THEME = 'default';
