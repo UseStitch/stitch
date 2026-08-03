@@ -3,8 +3,5 @@
   "agent": { "explore": { "model": "google/gemini-3-flash-preview" } },
   "formatter": { "oxfmt": { "command": ["bun", "fmt"] } },
   "lsp": false,
-  "permission": {
-    "skill": { "*": "allow" },
-    "external_directory": { "C:\\Users\\mahar\\.cache\\gitloops\\**": "allow" }
-  }
+  "permission": { "skill": { "*": "allow" } }
 }
