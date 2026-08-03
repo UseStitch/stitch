@@ -25,6 +25,7 @@
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
     "cnfast": "^0.0.7",
+    "d3-scale": "4.0.2",
     "date-fns": "^4.1.0",
     "hast-util-to-jsx-runtime": "^2.3.6",
     "katex": "^0.16.38",

@@ -44,6 +44,8 @@ const config: KnipConfig = {
     'tw-animate-css',
     'tailwindcss',
     '@tailwindcss/typography',
+    // Runtime dependency of @tanstack/charts (declared upstream as a devDependency), not imported directly
+    'd3-scale',
   ],
   ignoreBinaries: ['tasklist', 'pgrep', 'taskkill'],
 };
