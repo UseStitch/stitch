@@ -1,4 +1,4 @@
-import { ICON_SIZE_REPLACEMENTS } from './design-system.generated.mjs';
+import { ICON_SIZE_REPLACEMENTS } from './design-system.mjs';
 import { getJsxElementName, getStaticClassNames, getTailwindUtility, isUiComponentFile } from './jsx-style-utils.mjs';
 
 const ICON_DIMENSION = /^(?:h|w)-(\d+(?:\.\d+)?)$/;
@@ -40,7 +40,11 @@ const noIconDimensionClasses = {
           const counterpart = utility.startsWith('h-') ? `w-${match[1]}` : `h-${match[1]}`;
           if (!classNames.some((candidate) => getTailwindUtility(candidate) === counterpart)) continue;
           const size = ICON_SIZE_REPLACEMENTS.get(`size-${match[1]}`);
-          context.report({ data: size ? { element, size } : { element }, messageId: size ? 'useIconSize' : 'useIconComponent', node: node.name });
+          context.report({
+            data: size ? { element, size } : { element },
+            messageId: size ? 'useIconSize' : 'useIconComponent',
+            node: node.name,
+          });
           return;
         }
       },

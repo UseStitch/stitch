@@ -10,7 +10,6 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev --filter=@stitch/web --filter=@stitch/desktop",
-    "design-system:generate": "bun run scripts/check-design-system.ts --write",
     "format:changed": "bun run scripts/format-changed.ts",
     "format:changed:check": "bun run scripts/format-changed.ts --check",
     "typecheck": "turbo typecheck",

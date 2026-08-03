@@ -1,5 +1,5 @@
 import { createClassTokenVisitor, replaceTailwindUtility } from './class-token-rule.mjs';
-import { RADIUS_REPLACEMENTS } from './design-system.generated.mjs';
+import { RADIUS_REPLACEMENTS } from './design-system.mjs';
 import { getTailwindUtility, isUiComponentFile } from './jsx-style-utils.mjs';
 
 function getRadiusReplacement(className) {

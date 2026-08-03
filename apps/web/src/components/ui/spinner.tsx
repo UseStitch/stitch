@@ -2,7 +2,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { Loader2Icon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import { textToneClasses } from '@/styles/tokens.generated';
+import { textToneClasses } from '@/styles/tokens';
 
 const spinnerVariants = cva('animate-spin', {
   variants: { size: { sm: 'size-3.5', default: 'size-4', lg: 'size-8' }, tone: textToneClasses },

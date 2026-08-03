@@ -1,4 +1,4 @@
-import { VENDORED_UI_FILES } from './design-system.generated.mjs';
+import { VENDORED_UI_FILES } from './design-system.mjs';
 
 function isUiComponentFile(filename) {
   const normalized = filename.replaceAll('\\', '/');

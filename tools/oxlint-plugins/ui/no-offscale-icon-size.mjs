@@ -1,4 +1,4 @@
-import { ICON_SIZE_REPLACEMENTS } from './design-system.generated.mjs';
+import { ICON_SIZE_REPLACEMENTS } from './design-system.mjs';
 import { getJsxElementName, getStaticClassNames, getTailwindUtility, isUiComponentFile } from './jsx-style-utils.mjs';
 
 const ICON_SIZE = /^size-(\d+(?:\.\d+)?)$/;
