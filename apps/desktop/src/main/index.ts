@@ -10,6 +10,7 @@ import { registerIpcHandler } from './ipc/register.js';
 import { registerServerHandlers } from './ipc/server.js';
 import { registerShellHandlers } from './ipc/shell.js';
 import { registerSpellcheckHandlers } from './ipc/spellcheck.js';
+import { registerTelemetryHandlers } from './ipc/telemetry.js';
 import { registerUpdaterHandlers } from './ipc/updater.js';
 import { registerWindowHandlers } from './ipc/window.js';
 import { startMeetingDetection, stopMeetingDetection, dismissMeetingDetection } from './meeting-detection.js';
@@ -22,6 +23,7 @@ import {
 import { stopRecordingCapture } from './recording-capture.js';
 import { readServerConnectionConfig, type ServerConnectionConfig } from './server-config.js';
 import { findAvailablePort, killServer, spawnServer } from './sidecar.js';
+import { initTelemetryState } from './telemetry-state.js';
 import { destroyTray, initTray } from './tray.js';
 import { createUpdater } from './updater.js';
 import { createWindow } from './window.js';
@@ -107,6 +109,7 @@ function registerAllIpcHandlers(): void {
   registerRecordingHandlers(getServerUrl, getWindow);
   registerServerHandlers(serverState, startLocalServer, getWindow);
   registerUpdaterHandlers(updater, getWindow);
+  registerTelemetryHandlers();
   registerNotificationHandlers((event) => {
     if (event.type === 'meeting-detected') {
       dismissMeetingCall(event.payload.key);
@@ -145,6 +148,7 @@ async function spawnMainWindow(): Promise<BrowserWindow> {
 
 void app.whenReady().then(async () => {
   try {
+    await initTelemetryState();
     browserBridgePort = await findAvailablePort();
     browserManager = new ElectronBrowserManager(() => mainWindow);
     browserManager.startBridge(browserBridgePort);

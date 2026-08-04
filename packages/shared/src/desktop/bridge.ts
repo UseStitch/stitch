@@ -14,6 +14,7 @@ import type {
   StartRecordingInput,
   StartRecordingResponse,
   StopRecordingResponse,
+  TelemetryState,
   UpdaterStatePayload,
 } from '../ipc/types.js';
 
@@ -86,6 +87,7 @@ export type DesktopBridge = {
     onStateChanged: (callback: (state: ElectronBrowserState) => void) => () => void;
     onShowRequested: (callback: () => void) => () => void;
   };
+  telemetry: { getState: () => Promise<TelemetryState>; setEnabled: (enabled: boolean) => Promise<TelemetryState> };
 };
 
 export type ElectronBridge = {

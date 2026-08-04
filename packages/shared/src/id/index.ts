@@ -26,6 +26,8 @@ export const ID_PREFIXES = {
   mailMessage: 'mmsg',
   mailAttachment: 'matt',
   mailDraft: 'mdrf',
+  telemetryClient: 'tcli',
+  telemetryServer: 'tsrv',
 } as const;
 
 export type IdPrefix = (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES];
@@ -90,6 +92,15 @@ export const createMeetingNoteTemplateId = createIdFactory(ID_PREFIXES.meetingNo
 export const createAgendaListId = createIdFactory(ID_PREFIXES.agendaList);
 export const createAgendaItemId = createIdFactory(ID_PREFIXES.agendaItem);
 export const createTodoId = createIdFactory(ID_PREFIXES.todo);
+export const createTelemetryClientId = createIdFactory(ID_PREFIXES.telemetryClient);
+export const createTelemetryServerId = createIdFactory(ID_PREFIXES.telemetryServer);
+
+/**
+ * Check whether an ID string belongs to a given prefix type.
+ */
+export function isIdOfType(id: string, prefix: IdPrefix): boolean {
+  return typeof id === 'string' && id.startsWith(prefix + '_') && id.length > prefix.length + 1 && id.length <= 80;
+}
 
 export function extractTimestamp(id: string): number {
   const prefix = id.split('_')[0];

@@ -14,6 +14,7 @@ import type {
   RecordingWarningPayload,
   ServerConfigPayload,
   StartRecordingInput,
+  TelemetryState,
 } from '@stitch/shared/ipc/types';
 
 function invokeIpc<TKey extends keyof IpcContract>(
@@ -124,6 +125,10 @@ const api = {
     recordHumanInput: () => invokeIpc('browser:recordHumanInput'),
     onStateChanged: (callback: (state: ElectronBrowserState) => void) => onIpc('browser:state-changed', callback),
     onShowRequested: (callback: () => void) => onIpc('browser:show-requested', callback),
+  },
+  telemetry: {
+    getState: (): Promise<TelemetryState> => invokeIpc('telemetry:getState'),
+    setEnabled: (enabled: boolean): Promise<TelemetryState> => invokeIpc('telemetry:setEnabled', enabled),
   },
 } satisfies DesktopBridge;
 

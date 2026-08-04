@@ -18,6 +18,8 @@ import { syncDefaultPermissions } from '@/permission/default-permissions.js';
 import { startScheduler } from '@/scheduler/runtime.js';
 import { loadBuiltInSkills } from '@/skills/built-in-skills.js';
 import { syncBuiltInSkills } from '@/skills/service.js';
+import { initServerInstallationId } from '@/telemetry/identity.js';
+import { initServerTelemetry } from '@/telemetry/service.js';
 import { registerDefaultToolsets } from '@/tools/toolsets/register-default-toolsets.js';
 
 const log = Log.create({ service: 'init' });
@@ -36,6 +38,8 @@ export async function init() {
   registerAdapters();
 
   await initDb();
+  initServerInstallationId();
+  initServerTelemetry();
   await initMailDb(PATHS.filePaths.mailDb, resolveMailMigrationsDir());
   await runPendingMigrations(getDb());
 

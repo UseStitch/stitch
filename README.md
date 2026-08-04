@@ -2,7 +2,7 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/UseStitch/stitch)
 
-**Stitch** is a local-first, AI-powered desktop assistant that runs entirely on your machine — no cloud accounts, no tracking, no data leaving your computer.
+**Stitch** is a local-first, AI-powered desktop assistant that runs entirely on your machine — no cloud accounts, no data leaving your computer.
 
 Think of it as an AI pair programmer for your entire operating system: it can read and write files, run shell commands, search code, browse the web, manage your calendar and email, record and summarize meetings, and execute recurring automations — all through a natural language chat interface.
 
@@ -16,7 +16,7 @@ Think of it as an AI pair programmer for your entire operating system: it can re
 - **Memory System** — Semantic memory using LanceDB vector storage so the AI remembers your preferences, workflows, and key facts across conversations
 - **Connectors** — Integrate with external services (Google: Gmail, Drive, Calendar) via a pluggable connector framework
 - **MCP Support** — Model Context Protocol integration for additional tool ecosystems
-- **100% Local** — SQLite database, local vector store, sidecar server. No accounts, no telemetry, no cloud dependency
+- **100% Local** — SQLite database, local vector store, sidecar server. No accounts, no cloud dependency. Anonymous telemetry is enabled by default and can be disabled in Settings > General > Privacy
 
 ## Architecture
 

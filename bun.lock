@@ -19,7 +19,7 @@
     },
     "apps/desktop": {
       "name": "@stitch/desktop",
-      "version": "0.7.4",
+      "version": "0.7.5",
       "dependencies": {
         "@stitch/audio-capture": "workspace:*",
         "@stitch/meeting-detection": "workspace:*",
@@ -40,7 +40,7 @@
     },
     "apps/web": {
       "name": "@stitch/web",
-      "version": "0.7.4",
+      "version": "0.7.5",
       "dependencies": {
         "@base-ui/react": "^1.3.0",
         "@stitch/scheduler": "workspace:*",
@@ -62,6 +62,7 @@
         "hast-util-to-jsx-runtime": "^2.3.6",
         "katex": "^0.16.38",
         "lucide-react": "^0.577.0",
+        "posthog-js": "^1.410.6",
         "react": "19.2.4",
         "react-day-picker": "^9",
         "react-dom": "19.2.4",
@@ -917,9 +918,11 @@
 
     "@oxlint/binding-win32-x64-msvc": ["@oxlint/binding-win32-x64-msvc@1.74.0", "", { "os": "win32", "cpu": "x64" }, "sha512-VTC9IYTIMrVUk/i6Ms1ohzzDKZFkWn0KU2OBbPBzgmVZ2V30165T/zK4LztTr0Xgp9fZ1qQZ1rsZAu/rEmySlA=="],
 
-    "@posthog/core": ["@posthog/core@1.41.1", "", { "dependencies": { "@posthog/types": "^1.394.0" } }, "sha512-lKjPdeawDSvRhHnP14RwTSI5CofuyluhG3ISHRa+Kj6PyfSrEUyIkoVOpYWicFGgWikeaJCZzFQpo7ngHt9BcA=="],
+    "@posthog/browser-common": ["@posthog/browser-common@0.3.1", "", { "dependencies": { "@posthog/core": "^1.46.0", "@posthog/types": "^1.399.0" } }, "sha512-1nhMVY1wnHADTg8tR9yvm+lPAz5ROxznfQlBtLzB2FFo4lp/LU8lk9KyFPsARDkBxCfYachsJfvRjocL1G/AJQ=="],
 
-    "@posthog/types": ["@posthog/types@1.394.0", "", {}, "sha512-ifQ7p8o8hoHErlJmpzCFzHQcuRam0vXk8LBVhBu4BlPYP6S0tog4FSAFItnI/nwN6cHZI0WFQilr7sIqQa7Flg=="],
+    "@posthog/core": ["@posthog/core@1.46.5", "", { "dependencies": { "@posthog/types": "^1.400.0" } }, "sha512-zJr9v4bhV9DRGJENWj/FepD9S+bvsc/bwl0Sb46Md4jV7NoPWYp+2QdH4iskv8t1uZhkmCk1XxHn38RXaak/7A=="],
+
+    "@posthog/types": ["@posthog/types@1.400.0", "", {}, "sha512-0VVOXFrkh0TEAfmptoUqFGbhEzygQyWYQZYPlw0v0QYJfXTYlnlhr/QMMF3NAGKakFwOAn9ZZnlpEFeaLhZ/Cg=="],
 
     "@radix-ui/primitive": ["@radix-ui/primitive@1.1.5", "", {}, "sha512-d86WIWFYNtGA0H/d8exstrTRTp7eWJYlYJbtNofxr/3ljupZYn6EFDG/Qgu/0Kc8v7yMUxySagqJsL1+PdYjWg=="],
 
@@ -2349,7 +2352,7 @@
 
     "postcss-selector-parser": ["postcss-selector-parser@6.0.10", "", { "dependencies": { "cssesc": "^3.0.0", "util-deprecate": "^1.0.2" } }, "sha512-IQ7TZdoaqbT+LCpShg46jnZVlhWD2w6iQYAcYXfHARZ7X1t/UGhhceQDs5X0cGqKvYlHNOuv7Oa1xmb0oQuA3w=="],
 
-    "posthog-js": ["posthog-js@1.400.1", "", { "dependencies": { "@posthog/core": "^1.41.1", "@posthog/types": "^1.394.0", "core-js": "^3.49.0", "dompurify": "^3.3.2", "fflate": "^0.4.8", "preact": "^10.29.3", "query-selector-shadow-dom": "^1.0.1", "web-vitals": "^5.3.0" } }, "sha512-NGfzNwTu+VBw4FekgYs/aQbEkTFkvmpTFUKDGZw/9K6R/sG2WyuLsnnXySRcNH8RMki0Io8v9flNATrrTfmT+Q=="],
+    "posthog-js": ["posthog-js@1.410.6", "", { "dependencies": { "@posthog/browser-common": "^0.3.1", "@posthog/core": "^1.46.5", "@posthog/types": "^1.400.0", "core-js": "^3.49.0", "dompurify": "^3.3.2", "fflate": "^0.4.8", "preact": "^10.29.3", "query-selector-shadow-dom": "^1.0.1", "web-vitals": "^5.3.0" } }, "sha512-/LRekY3DN0SRDD98xS7DPXeTRGozMhkxO/mi+i9F783c3YnaGRP7UGKyS9In1adjmp0xXKc4PfKkwKHonB2liQ=="],
 
     "postject": ["postject@1.0.0-alpha.6", "", { "dependencies": { "commander": "^9.4.0" }, "bin": { "postject": "dist/cli.js" } }, "sha512-b9Eb8h2eVqNE8edvKdwqkrY6O7kAwmI8kcnBv1NScolYJbo59XUF0noFq+lxbC1yN20bmC0WBEbDC5H/7ASb0A=="],
 
@@ -2889,6 +2892,8 @@
 
     "@oxc-resolver/binding-wasm32-wasi/@emnapi/runtime": ["@emnapi/runtime@1.11.0", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-55coeOFKHv1ywEcUXJtWU5f+Jr/W5tZDvZig8DLKSwUN1JpROQ4rk/SNOQiFWmaR/VKF4zuFyW1B8JduOSv6Pg=="],
 
+    "@stitch/website/posthog-js": ["posthog-js@1.400.1", "", { "dependencies": { "@posthog/core": "^1.41.1", "@posthog/types": "^1.394.0", "core-js": "^3.49.0", "dompurify": "^3.3.2", "fflate": "^0.4.8", "preact": "^10.29.3", "query-selector-shadow-dom": "^1.0.1", "web-vitals": "^5.3.0" } }, "sha512-NGfzNwTu+VBw4FekgYs/aQbEkTFkvmpTFUKDGZw/9K6R/sG2WyuLsnnXySRcNH8RMki0Io8v9flNATrrTfmT+Q=="],
+
     "@stitch/website/vite": ["vite@8.1.4", "", { "dependencies": { "lightningcss": "^1.32.0", "picomatch": "^4.0.5", "postcss": "^8.5.16", "rolldown": "~1.1.4", "tinyglobby": "^0.2.17" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "peerDependencies": { "@types/node": "^20.19.0 || >=22.12.0", "@vitejs/devtools": "^0.3.0", "esbuild": "^0.27.0 || ^0.28.0", "jiti": ">=1.21.0", "less": "^4.0.0", "sass": "^1.70.0", "sass-embedded": "^1.70.0", "stylus": ">=0.54.8", "sugarss": "^5.0.0", "terser": "^5.16.0", "tsx": "^4.8.1", "yaml": "^2.4.2" }, "optionalPeers": ["@types/node", "@vitejs/devtools", "esbuild", "jiti", "less", "sass", "sass-embedded", "stylus", "sugarss", "terser", "tsx", "yaml"], "bin": { "vite": "bin/vite.js" } }, "sha512-bTT9PsdWO+MQMNG9ZXIP/qM9wGh37DFxTV/sPq9cFpHr3w4jkgef032PkAL9jAqhk3Nz8NQw3O8n6/xFkqO4QQ=="],
 
     "@tailwindcss/node/tailwindcss": ["tailwindcss@4.3.2", "", {}, "sha512-WtctNNSH8A9jlMIqxzuYumOHU5uGZyRv0Q5svQl+oEPy5w84YpBxdb7MdqyiSPQge5jTJ6zFQLq0PFygdccSBA=="],
@@ -3406,6 +3411,10 @@
     "@esbuild-kit/core-utils/esbuild/@esbuild/win32-ia32": ["@esbuild/win32-ia32@0.18.20", "", { "os": "win32", "cpu": "ia32" }, "sha512-Wv7QBi3ID/rROT08SABTS7eV4hX26sVduqDOTe1MvGMjNd3EjOz4b7zeexIR62GTIEKrfJXKL9LFxTYgkyeu7g=="],
 
     "@esbuild-kit/core-utils/esbuild/@esbuild/win32-x64": ["@esbuild/win32-x64@0.18.20", "", { "os": "win32", "cpu": "x64" }, "sha512-kTdfRcSiDfQca/y9QIkng02avJ+NCaQvrMejlsB3RRv5sE9rRoeBPISaZpKxHELzRxZyLvNts1P27W3wV+8geQ=="],
+
+    "@stitch/website/posthog-js/@posthog/core": ["@posthog/core@1.41.1", "", { "dependencies": { "@posthog/types": "^1.394.0" } }, "sha512-lKjPdeawDSvRhHnP14RwTSI5CofuyluhG3ISHRa+Kj6PyfSrEUyIkoVOpYWicFGgWikeaJCZzFQpo7ngHt9BcA=="],
+
+    "@stitch/website/posthog-js/@posthog/types": ["@posthog/types@1.394.0", "", {}, "sha512-ifQ7p8o8hoHErlJmpzCFzHQcuRam0vXk8LBVhBu4BlPYP6S0tog4FSAFItnI/nwN6cHZI0WFQilr7sIqQa7Flg=="],
 
     "@tanstack/router-plugin/@babel/core/@babel/code-frame": ["@babel/code-frame@7.29.7", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.29.7", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw=="],
 

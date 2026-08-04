@@ -2,6 +2,7 @@ import type { ElectronBrowserState } from '../browser/electron.js';
 import type { RecordingDeviceChangedPayload, RecordingWarningPayload } from '../recordings/events.js';
 import type { MeetingCallDetectedPayload, MeetingCallEndedPayload } from '../recordings/meeting-ipc.js';
 import type { StartRecordingInput, StartRecordingResponse, StopRecordingResponse } from '../recordings/types.js';
+import type { TelemetryState } from '../telemetry/types.js';
 
 export type {
   MeetingCallDetectedPayload,
@@ -11,6 +12,7 @@ export type {
   StartRecordingInput,
   StartRecordingResponse,
   StopRecordingResponse,
+  TelemetryState,
 };
 
 export type ServerConfigPayload = { url: string; mode: 'local' | 'remote'; remoteUrl: string | null };
@@ -92,6 +94,8 @@ export interface IpcContract {
   'browser:focusTab': { args: [tabId: string]; return: ElectronBrowserState };
   'browser:closeTab': { args: [tabId: string]; return: ElectronBrowserState };
   'browser:recordHumanInput': { args: []; return: void };
+  'telemetry:getState': { args: []; return: TelemetryState };
+  'telemetry:setEnabled': { args: [enabled: boolean]; return: TelemetryState };
 }
 
 export interface IpcEventContract {
