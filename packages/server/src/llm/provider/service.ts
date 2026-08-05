@@ -171,6 +171,7 @@ export async function listEnabledProviderEmbeddingModels(): Promise<ServiceResul
   );
 }
 
+/** @knipignore Reserved for embedding consumers. */
 export async function getEmbeddingModelDimensions(providerId: string, modelId: string): Promise<number | undefined> {
   const providers = await EmbeddingModels.getEmbeddingModels();
   const model = providers[providerId]?.models[modelId];

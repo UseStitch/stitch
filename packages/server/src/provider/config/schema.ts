@@ -112,6 +112,7 @@ export const ProviderCredentialsSchema = z.discriminatedUnion('providerId', [
 
 export type ProviderCredentials = z.infer<typeof ProviderCredentialsSchema>;
 export type LlmProviderCredentials = Extract<ProviderCredentials, { providerId: LlmProviderId }>;
+/** @knipignore Reserved for embedding consumers. */
 export type EmbeddingProviderCredentials = Extract<ProviderCredentials, { providerId: EmbeddingProviderId }>;
 export type ModelProviderCredentials = Extract<
   ProviderCredentials,
@@ -122,6 +123,7 @@ export function isLlmProviderCredentials(credentials: ProviderCredentials): cred
   return isLlmProviderId(credentials.providerId);
 }
 
+/** @knipignore Reserved for embedding consumers. */
 export function isEmbeddingProviderCredentials(
   credentials: ProviderCredentials,
 ): credentials is EmbeddingProviderCredentials {

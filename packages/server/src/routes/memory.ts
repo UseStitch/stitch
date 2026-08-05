@@ -30,6 +30,11 @@ const searchSchema = z.object({
 
 export const memoryRouter = new Hono();
 
+memoryRouter.use('*', async (_c, next) => {
+  await getMemoryConfig();
+  await next();
+});
+
 async function ensureMemoryEnabled(c: Context): Promise<Response | null> {
   return (await getMemoryConfig()).enabled ? null : c.json({ error: 'Memory is disabled.' }, 409);
 }

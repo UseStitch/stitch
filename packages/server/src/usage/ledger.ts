@@ -80,6 +80,7 @@ export async function recordLlmUsage(input: {
   return { costUsd };
 }
 
+/** @knipignore Reserved for embedding consumers. */
 export async function recordEmbeddingUsage(input: {
   providerId: string;
   modelId: string;

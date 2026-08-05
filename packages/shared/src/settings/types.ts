@@ -122,16 +122,6 @@ const SETTINGS_REGISTRY = {
     default: 'true',
     description: 'Automatically extract and store memories from conversations after each response.',
   },
-  'memory.embedding.providerId': {
-    schema: z.string(),
-    default: '',
-    description: 'Provider ID for the embedding model used by the memory system.',
-  },
-  'memory.embedding.modelId': {
-    schema: z.string(),
-    default: '',
-    description: 'Embedding model ID from the selected provider used by the memory system.',
-  },
   'memory.extraction.maxFactsPerTurn': {
     schema: z.coerce.number().int().min(1),
     default: '1',
@@ -141,16 +131,6 @@ const SETTINGS_REGISTRY = {
     schema: z.coerce.number().int().min(0),
     default: '100',
     description: 'Skip extraction if user message is shorter than this (in characters).',
-  },
-  'memory.extraction.confidenceFilter': {
-    schema: z.enum(['stated', 'all', 'stated+confirmed']),
-    default: 'stated',
-    description: 'Which confidences to auto-persist: stated, all, or stated+confirmed.',
-  },
-  'memory.extraction.importanceMinScore': {
-    schema: z.coerce.number().min(0).max(1),
-    default: '0.7',
-    description: 'Minimum importance score (0-1) a fact must have to be persisted. Lower scores are discarded.',
   },
   'memory.extraction.maxFactsPerSession': {
     schema: z.coerce.number().int().min(1),
@@ -168,52 +148,25 @@ const SETTINGS_REGISTRY = {
     description:
       'Allow automation sessions to extract and store new memories. When off, only chat sessions write memories.',
   },
-  'memory.retention.maxMemories': {
-    schema: z.coerce.number().int().min(10),
-    default: '150',
-    description: 'Hard cap on total stored memories. Oldest low-value memories pruned first.',
+  'memory.curated.memoryCharLimit': {
+    schema: z.coerce.number().int().min(1_000).max(50_000),
+    default: '8000',
+    description: 'Maximum model-visible characters in long-term memory.',
   },
-  'memory.retention.staleDays': {
-    schema: z.coerce.number().int().min(1),
-    default: '30',
-    description: 'Memories not accessed in this many days are candidates for pruning.',
+  'memory.curated.userCharLimit': {
+    schema: z.coerce.number().int().min(500).max(25_000),
+    default: '4000',
+    description: 'Maximum model-visible characters in the user profile.',
   },
-  'memory.retention.autoprune': {
+  'memory.consolidation.enabled': {
     schema: booleanSetting,
     default: 'true',
-    description: 'Run automatic pruning after extraction to stay within limits.',
+    description: 'Periodically curate eligible daily candidates into durable memory.',
   },
-  'memory.retention.dedupThreshold': {
-    schema: z.coerce.number().min(0.5).max(1),
-    default: '0.85',
-    description: 'Cosine similarity threshold (0.5-1.0) for deduplication. Lower catches more duplicates.',
-  },
-  'memory.retrieval.maxResults': {
-    schema: z.coerce.number().int().min(1),
-    default: '3',
-    description: 'Max memories injected into context per turn.',
-  },
-  'memory.retrieval.minScore': {
-    schema: z.coerce.number().min(0).max(1),
-    default: '0.6',
-    description: 'Minimum relevance score to include a memory in context.',
-  },
-  'memory.retrieval.recencyBoost': {
-    schema: booleanSetting,
-    default: 'true',
-    description: 'Boost recently-accessed memories in ranking.',
-  },
-  'memory.retrieval.contextAwareQuery': {
-    schema: booleanSetting,
-    default: 'true',
-    description:
-      'Include the preceding assistant message when building the memory search query, so vague follow-ups resolve to the conversation topic.',
-  },
-  'memory.retrieval.skipLowSignal': {
-    schema: booleanSetting,
-    default: 'true',
-    description:
-      'Skip memory retrieval for short, low-content messages (e.g. "continue", "ok do that") and reuse the previous turn\'s memories instead.',
+  'memory.consolidation.maxCandidatesPerRun': {
+    schema: z.coerce.number().int().min(1).max(200),
+    default: '50',
+    description: 'Maximum daily candidates reviewed in one consolidation run.',
   },
   'agents.customInstructions': {
     schema: z.string().max(20_000),

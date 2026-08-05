@@ -6,10 +6,7 @@ import { createProvider } from '@/llm/provider/provider.js';
 import type { EmbedManyResult, EmbedResult, Embedder } from '@/models/embedding/embedder.js';
 import type { EmbeddingProviderCredentials } from '@/provider/config/schema.js';
 
-/**
- * Embedding implementation using AI SDK providers (OpenAI, Google, etc.).
- * Wraps the AI SDK embed()/embedMany() functions into the Embedder interface.
- */
+/** Embedding implementation using AI SDK providers. */
 export class ProviderEmbedder implements Embedder {
   readonly dimensions: number;
   readonly providerId: string;

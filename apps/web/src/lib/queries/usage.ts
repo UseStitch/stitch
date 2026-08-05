@@ -1,11 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 
-import type {
-  EmbeddingUsageDashboardResponse,
-  SttUsageDashboardResponse,
-  UsageDashboardResponse,
-  UsageDateRange,
-} from '@stitch/shared/usage/types';
+import type { SttUsageDashboardResponse, UsageDashboardResponse, UsageDateRange } from '@stitch/shared/usage/types';
 
 import { serverRequest } from '@/lib/api';
 
@@ -21,7 +16,6 @@ const usageKeys = {
   all: ['usage'] as const,
   dashboard: (filters: UsageDashboardFilters) => [...usageKeys.all, 'dashboard', filters] as const,
   sttDashboard: (filters: UsageDashboardFilters) => [...usageKeys.all, 'stt-dashboard', filters] as const,
-  embeddingDashboard: (filters: UsageDashboardFilters) => [...usageKeys.all, 'embedding-dashboard', filters] as const,
 };
 
 export const usageDashboardQueryOptions = (filters: UsageDashboardFilters) =>
@@ -35,12 +29,5 @@ export const sttUsageDashboardQueryOptions = (filters: UsageDashboardFilters) =>
   queryOptions({
     queryKey: usageKeys.sttDashboard(filters),
     queryFn: () => serverRequest<SttUsageDashboardResponse>('/usage/stt', { params: filters }),
-    staleTime: 30_000,
-  });
-
-export const embeddingUsageDashboardQueryOptions = (filters: UsageDashboardFilters) =>
-  queryOptions({
-    queryKey: usageKeys.embeddingDashboard(filters),
-    queryFn: () => serverRequest<EmbeddingUsageDashboardResponse>('/usage/embedding', { params: filters }),
     staleTime: 30_000,
   });
