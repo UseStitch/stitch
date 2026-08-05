@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 
 import { getDb } from '@/db/client.js';
-import { llmUsageEvents } from '@/db/schema/usage.js';
+import { embeddingUsageEvents, llmUsageEvents } from '@/db/schema/usage.js';
 import type { LlmUsageMetadata } from '@/db/schema/usage.js';
 import * as Log from '@/lib/log.js';
-import { calculateMessageCostUsd } from '@/usage/cost.js';
+import { calculateEmbeddingCostUsd, calculateMessageCostUsd } from '@/usage/cost.js';
 import { normalizeUsage } from '@/utils/usage.js';
 import type { LanguageModelUsage } from 'ai';
 
@@ -78,4 +78,34 @@ export async function recordLlmUsage(input: {
   }
 
   return { costUsd };
+}
+
+/** @knipignore Reserved for embedding consumers. */
+export async function recordEmbeddingUsage(input: {
+  providerId: string;
+  modelId: string;
+  tokens: number;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  const costUsd = await calculateEmbeddingCostUsd({
+    providerId: input.providerId,
+    modelId: input.modelId,
+    tokens: input.tokens,
+  });
+
+  const db = getDb();
+  try {
+    await db
+      .insert(embeddingUsageEvents)
+      .values({
+        id: randomUUID(),
+        providerId: input.providerId,
+        modelId: input.modelId,
+        totalTokens: input.tokens,
+        costUsd,
+        metadata: input.metadata,
+      });
+  } catch (error) {
+    log.warn({ error, providerId: input.providerId, modelId: input.modelId }, 'embedding usage event write failed');
+  }
 }
