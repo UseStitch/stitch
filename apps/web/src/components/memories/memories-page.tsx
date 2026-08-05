@@ -1,18 +1,16 @@
-import { BrainIcon, Trash2Icon } from 'lucide-react';
-import { PinIcon } from 'lucide-react';
+import { BrainIcon, FolderOpenIcon, PlusIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { CATEGORY_LABELS, CATEGORY_VARIANTS, CONFIDENCE_LABELS } from '@/components/memories/constants';
 import { MemoryDetailSheet } from '@/components/memories/memory-detail-sheet';
 import { Icon } from '@/components/primitives/icon';
 import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { Empty, EmptyDescription, EmptyTitle } from '@/components/ui/empty';
 import {
   Page,
   PageContent,
@@ -22,160 +20,52 @@ import {
   PageIcon,
   PageTitle,
 } from '@/components/ui/page';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
 import { SearchInput } from '@/components/ui/search-input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table } from '@/components/ui/table';
-import type { MemoryCategory, MemorySource, SemanticMemory } from '@/lib/queries/memories';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { ServerRequestError } from '@/lib/api';
+import type { ManagedMemoryEntry, MemoryFileSnapshot, MemoryTarget } from '@/lib/queries/memories';
 import {
-  bulkDeleteMemoriesMutationOptions,
-  memoryStatsQueryOptions,
-  semanticMemoriesQueryOptions,
-  semanticMemorySearchQueryOptions,
-  pinMemoryMutationOptions,
-  pruneMemoriesMutationOptions,
-  runMaintenanceMutationOptions,
+  addMemoryEntryMutationOptions,
+  consolidateMemoryMutationOptions,
+  dailyMemoryQueryOptions,
+  deleteMemoryEntryMutationOptions,
+  memoryFilesQueryOptions,
+  memorySearchQueryOptions,
+  openMemoryFolderMutationOptions,
+  resetMemoriesMutationOptions,
+  saveRawMemoryMutationOptions,
 } from '@/lib/queries/memories';
-import { cn } from '@/lib/utils';
 
-type FilterSource = MemorySource | 'all';
-type FilterCategory = MemoryCategory | 'all';
-
-const SOURCE_FILTER_LABELS: Record<FilterSource, string> = {
-  all: 'All sources',
-  chat: 'Chat',
-  automation: 'Automation',
-};
-
-const CATEGORY_FILTER_LABELS: Record<FilterCategory, string> = {
-  all: 'All categories',
-  preference: CATEGORY_LABELS.preference,
-  fact: CATEGORY_LABELS.fact,
-  constraint: CATEGORY_LABELS.constraint,
-};
+type Tab = 'memory' | 'user' | 'daily' | 'dreams';
 
 export function MemoriesPage() {
   const queryClient = useQueryClient();
-  const [searchInput, setSearchInput] = React.useState('');
-  const [debouncedSearch, setDebouncedSearch] = React.useState('');
-  const [page, setPage] = React.useState(1);
-  const pageSize = 12;
-  const [filterSource, setFilterSource] = React.useState<FilterSource>('all');
-  const [filterCategory, setFilterCategory] = React.useState<FilterCategory>('all');
-  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
-  const [sheetMemory, setSheetMemory] = React.useState<SemanticMemory | null>(null);
-  const [sheetOpen, setSheetOpen] = React.useState(false);
-  const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
+  const [tab, setTab] = React.useState<Tab>('memory');
+  const [search, setSearch] = React.useState('');
+  const [selected, setSelected] = React.useState<{ entry: ManagedMemoryEntry; file: MemoryFileSnapshot } | null>(null);
+  const [resetOpen, setResetOpen] = React.useState(false);
+  const overview = useQuery(memoryFilesQueryOptions);
+  const daily = useQuery(dailyMemoryQueryOptions());
+  const searchQuery = useQuery(memorySearchQueryOptions(search.trim()));
+  const consolidate = useMutation(consolidateMemoryMutationOptions(queryClient));
+  const reset = useMutation(resetMemoriesMutationOptions(queryClient));
+  const openFolder = useMutation(openMemoryFolderMutationOptions());
 
-  const { data: stats } = useQuery(memoryStatsQueryOptions);
-  const pruneMutation = useMutation(pruneMemoriesMutationOptions(queryClient));
-  const maintenanceMutation = useMutation(runMaintenanceMutationOptions(queryClient));
+  const data = overview.data;
+  const cards = [
+    ['Long-term usage', data?.memory.capacity ? `${data.memory.capacity.used} / ${data.memory.capacity.limit}` : '-'],
+    ['Profile usage', data?.user.capacity ? `${data.user.capacity.used} / ${data.user.capacity.limit}` : '-'],
+    ['Daily candidates', String(data?.pendingCandidateCount ?? 0)],
+    ['Last consolidation', data?.consolidation.status ?? 'never'],
+  ];
 
-  React.useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchInput.trim()), 300);
-    return () => clearTimeout(timer);
-  }, [searchInput]);
-
-  const isSearching = debouncedSearch.length > 0;
-  const filterKey = `${debouncedSearch}|${filterSource}|${filterCategory}`;
-
-  const listQuery = useQuery(
-    semanticMemoriesQueryOptions({
-      page,
-      pageSize,
-      source: filterSource === 'all' ? undefined : filterSource,
-      category: filterCategory === 'all' ? undefined : filterCategory,
-    }),
-  );
-  const searchQuery = useQuery(
-    semanticMemorySearchQueryOptions({
-      q: debouncedSearch,
-      page,
-      pageSize,
-      source: filterSource === 'all' ? undefined : filterSource,
-      category: filterCategory === 'all' ? undefined : filterCategory,
-    }),
-  );
-
-  const [previousFilterKey, setPreviousFilterKey] = React.useState(filterKey);
-  if (previousFilterKey !== filterKey) {
-    setPreviousFilterKey(filterKey);
-    setPage(1);
+  function openSearchResult(filePath: string) {
+    if (filePath === 'USER.md') setTab('user');
+    else if (filePath.startsWith('daily/')) setTab('daily');
+    else setTab('memory');
+    setSearch('');
   }
-
-  const pageData = isSearching ? searchQuery.data : listQuery.data;
-  const memories = pageData?.memories ?? [];
-
-  const selectionKey = `${pageData?.page}|${pageData?.total}|${filterKey}`;
-  const [previousSelectionKey, setPreviousSelectionKey] = React.useState(selectionKey);
-  if (previousSelectionKey !== selectionKey) {
-    setPreviousSelectionKey(selectionKey);
-    setSelectedIds(new Set());
-  }
-
-  const bulkDeleteMutation = useMutation(bulkDeleteMemoriesMutationOptions(queryClient));
-
-  function toggleSelect(id: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function toggleSelectAll() {
-    if (selectedIds.size === memories.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(memories.map((m) => m.id)));
-    }
-  }
-
-  function openMemory(memory: SemanticMemory) {
-    setSheetMemory(memory);
-    setSheetOpen(true);
-  }
-
-  function handleBulkDelete() {
-    bulkDeleteMutation.mutate(Array.from(selectedIds), {
-      onSuccess: () => {
-        setSelectedIds(new Set());
-        setBulkDeleteOpen(false);
-      },
-    });
-  }
-
-  const isLoading = isSearching ? searchQuery.isLoading : listQuery.isLoading;
-  const totalPages = pageData?.totalPages ?? 0;
-  const currentPage = (pageData?.page ?? page) - 1;
-  let pageNumbers: number[] = [];
-  if (totalPages > 1) {
-    const firstPage = 0;
-    const lastPage = totalPages - 1;
-    const start = Math.max(firstPage, currentPage - 1);
-    const end = Math.min(lastPage, currentPage + 1);
-
-    const pages = new Set<number>([firstPage, lastPage]);
-    for (let index = start; index <= end; index += 1) {
-      pages.add(index);
-    }
-
-    pageNumbers = [...pages].toSorted((a, b) => a - b);
-  }
-
-  const allSelected = memories.length > 0 && selectedIds.size === memories.length;
-  const someSelected = selectedIds.size > 0 && selectedIds.size < memories.length;
-  const selectedSourceLabel = SOURCE_FILTER_LABELS[filterSource];
-  const selectedCategoryLabel = CATEGORY_FILTER_LABELS[filterCategory];
 
   return (
     <Page>
@@ -186,277 +76,313 @@ export function MemoriesPage() {
               <Icon as={BrainIcon} size="l" />
             </PageIcon>
             <div>
-              <PageTitle>Memories</PageTitle>
-              <PageDescription>
-                {isLoading ? 'Loading…' : `${memories.length} ${memories.length === 1 ? 'memory' : 'memories'} stored`}
-              </PageDescription>
+              <PageTitle>Memory files</PageTitle>
+              <PageDescription>Inspectable Markdown, curated locally</PageDescription>
             </div>
           </PageHeaderContent>
-          {stats && !isSearching && (
-            <Stack direction="row" align="center" gap="xl">
-              <Text as="span" variant="caption" tone="muted">
-                <strong>{stats.pinned}</strong> pinned
-              </Text>
-              <Text as="span" variant="caption" tone="muted">
-                <strong>{stats.stale}</strong> stale
-              </Text>
-              <Text as="span" variant="caption" tone="muted">
-                <strong>{stats.avgAccessCount.toFixed(1)}</strong> avg accesses
-              </Text>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => pruneMutation.mutate()}
-                disabled={pruneMutation.isPending || maintenanceMutation.isPending}>
-                Prune Stale
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => maintenanceMutation.mutate()}
-                disabled={maintenanceMutation.isPending || pruneMutation.isPending}>
-                {maintenanceMutation.isPending ? 'Running…' : 'Run Maintenance'}
-              </Button>
-            </Stack>
-          )}
+          <Stack direction="row" wrap gap="s">
+            <Button variant="outline" size="sm" onClick={() => openFolder.mutate()}>
+              <FolderOpenIcon /> Open folder
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => consolidate.mutate()} disabled={consolidate.isPending}>
+              <RefreshCwIcon /> {consolidate.isPending ? 'Running...' : 'Consolidate'}
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => setResetOpen(true)}>
+              <Trash2Icon /> Reset
+            </Button>
+          </Stack>
         </PageHeader>
 
-        {/* Toolbar */}
-        <div className="mb-space-xl flex flex-wrap items-center gap-space-m">
-          <div className="w-64">
-            <SearchInput
-              placeholder="Search memories…"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-            />
-          </div>
-
-          <Select value={filterSource} onValueChange={(v) => setFilterSource(v as FilterSource)}>
-            <SelectTrigger className="w-36 bg-background">
-              <SelectValue>{selectedSourceLabel}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All sources</SelectItem>
-              <SelectItem value="chat">Chat</SelectItem>
-              <SelectItem value="automation">Automation</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={filterCategory} onValueChange={(v) => setFilterCategory(v as FilterCategory)}>
-            <SelectTrigger className="w-40 bg-background">
-              <SelectValue>{selectedCategoryLabel}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All categories</SelectItem>
-              <SelectItem value="preference">Preference</SelectItem>
-              <SelectItem value="fact">Fact</SelectItem>
-              <SelectItem value="workflow">Workflow</SelectItem>
-              <SelectItem value="constraint">Constraint</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {selectedIds.size > 0 && (
-            <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)} className="ml-auto">
-              <Trash2Icon />
-              Delete {selectedIds.size}
-            </Button>
-          )}
+        <div className="grid grid-cols-2 gap-space-m lg:grid-cols-4">
+          {cards.map(([label, value]) => (
+            <Card key={label} size="sm">
+              <CardHeader>
+                <CardDescription>{label}</CardDescription>
+                <CardTitle className="capitalize">{value}</CardTitle>
+              </CardHeader>
+            </Card>
+          ))}
         </div>
 
-        <Table.Container>
-          <Table.Scroller>
-            <Table.Root className="min-w-200 table-fixed">
-              <Table.Header>
-                <Table.Row className="hover:bg-transparent">
-                  <Table.Head className="w-14 text-center">
-                    <Checkbox
-                      checked={allSelected}
-                      data-indeterminate={someSelected || undefined}
-                      onCheckedChange={toggleSelectAll}
-                      aria-label="Select all"
-                    />
-                  </Table.Head>
-                  <Table.Head className="w-10 text-center"></Table.Head>
-                  <Table.Head className="w-full min-w-0">Content</Table.Head>
-                  <Table.Head className="w-28 text-center">Category</Table.Head>
-                  <Table.Head className="w-28 text-center">Confidence</Table.Head>
-                  <Table.Head className="w-24 text-center">Source</Table.Head>
-                  <Table.Head className="w-24 text-right">Created</Table.Head>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {isLoading ? (
-                  <Table.SkeletonRows
-                    columns={[
-                      { className: 'w-14' },
-                      { className: 'w-10' },
-                      { className: 'w-full max-w-0 min-w-0 overflow-hidden', skeletonClassName: 'h-4' },
-                      { className: 'w-28', skeletonClassName: 'mx-auto h-5 w-24 rounded-full' },
-                      { className: 'w-28', skeletonClassName: 'mx-auto h-4 w-20' },
-                      { className: 'w-24', skeletonClassName: 'mx-auto h-5 w-20 rounded-full' },
-                      { className: 'w-24', skeletonClassName: 'ml-auto h-4 w-20' },
-                    ]}
-                  />
-                ) : memories.length === 0 ? (
-                  <Table.EmptyRow colSpan={7}>
-                    <Empty>
-                      <EmptyMedia variant="icon">
-                        <Icon as={BrainIcon} size="m" />
-                      </EmptyMedia>
-                      <EmptyTitle>{isSearching ? 'No memories match your search' : 'No memories yet'}</EmptyTitle>
-                      {!isSearching && (
-                        <EmptyDescription>
-                          Memories are automatically extracted from your conversations when memory is enabled in
-                          settings.
-                        </EmptyDescription>
-                      )}
-                    </Empty>
-                  </Table.EmptyRow>
-                ) : (
-                  memories.map((memory) => (
-                    <MemoryRow
-                      key={memory.id}
-                      memory={memory}
-                      selected={selectedIds.has(memory.id)}
-                      onToggleSelect={() => toggleSelect(memory.id)}
-                      onClick={() => openMemory(memory)}
-                    />
-                  ))
-                )}
-              </Table.Body>
-            </Table.Root>
-          </Table.Scroller>
-
-          {totalPages > 1 ? (
-            <div className="border-t border-border px-space-l py-space-l">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      href="#"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        if (page > 1) {
-                          setPage((current) => current - 1);
-                        }
-                      }}
-                      className={page <= 1 ? 'pointer-events-none opacity-50' : undefined}
-                    />
-                  </PaginationItem>
-
-                  {pageNumbers.map((pageNumber, index) => {
-                    const previousPage = pageNumbers[index - 1];
-                    const showGap = previousPage !== undefined && pageNumber - previousPage > 1;
-                    return (
-                      <React.Fragment key={`page-${pageNumber}`}>
-                        {showGap ? (
-                          <PaginationItem>
-                            <PaginationEllipsis />
-                          </PaginationItem>
-                        ) : null}
-                        <PaginationItem>
-                          <PaginationLink
-                            href="#"
-                            isActive={pageNumber === currentPage}
-                            onClick={(event) => {
-                              event.preventDefault();
-                              setPage(pageNumber + 1);
-                            }}>
-                            {pageNumber + 1}
-                          </PaginationLink>
-                        </PaginationItem>
-                      </React.Fragment>
-                    );
-                  })}
-
-                  <PaginationItem>
-                    <PaginationNext
-                      href="#"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        if (page < totalPages) {
-                          setPage((current) => current + 1);
-                        }
-                      }}
-                      className={page >= totalPages ? 'pointer-events-none opacity-50' : undefined}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
+        <div className="relative mt-space-xl max-w-xl">
+          <SearchInput
+            placeholder="Search curated and daily memory..."
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+          {search.trim() && searchQuery.data ? (
+            <Card className="absolute z-20 mt-space-s max-h-80 w-full overflow-y-auto shadow-lg">
+              <CardContent className="space-y-space-s">
+                {searchQuery.data.results.map((result) => (
+                  <Button
+                    key={`${result.filePath}:${result.lineStart}`}
+                    type="button"
+                    variant="ghost"
+                    size="inline"
+                    width="full"
+                    align="start"
+                    onClick={() => openSearchResult(result.filePath)}>
+                    <span className="block w-full p-space-s">
+                      <div>
+                        <Text as="span" variant="caption" tone="muted">
+                          {result.filePath}:{result.lineStart}
+                        </Text>
+                      </div>
+                      <span className="block">{result.excerpt}</span>
+                    </span>
+                  </Button>
+                ))}
+                {searchQuery.data.results.length === 0 ? (
+                  <Text as="p" variant="body" tone="muted">
+                    No matches.
+                  </Text>
+                ) : null}
+              </CardContent>
+            </Card>
           ) : null}
-        </Table.Container>
+        </div>
+
+        <Tabs value={tab} onValueChange={(value) => setTab(value as Tab)} className="mt-space-xl">
+          <TabsList variant="line" className="max-w-full overflow-x-auto">
+            <TabsTrigger value="memory">Long-term</TabsTrigger>
+            <TabsTrigger value="user">User profile</TabsTrigger>
+            <TabsTrigger value="daily">Daily notes</TabsTrigger>
+            <TabsTrigger value="dreams">Consolidation log</TabsTrigger>
+          </TabsList>
+          <TabsContent value="memory" className="mt-space-xl">
+            {data ? (
+              <CuratedFile
+                target="memory"
+                file={data.memory}
+                onEdit={(entry) => setSelected({ entry, file: data.memory })}
+              />
+            ) : null}
+          </TabsContent>
+          <TabsContent value="user" className="mt-space-xl">
+            {data ? (
+              <CuratedFile target="user" file={data.user} onEdit={(entry) => setSelected({ entry, file: data.user })} />
+            ) : null}
+          </TabsContent>
+          <TabsContent value="daily" className="mt-space-xl space-y-space-l">
+            {daily.data?.files.map((file) => (
+              <DailyFile key={file.name} file={file} processedIds={new Set(data?.processedCandidateIds ?? [])} />
+            ))}
+            {daily.data?.files.length === 0 ? (
+              <Empty>
+                <EmptyTitle>No daily candidates</EmptyTitle>
+                <EmptyDescription>Automatic capture will append durable candidates here.</EmptyDescription>
+              </Empty>
+            ) : null}
+          </TabsContent>
+          <TabsContent value="dreams" className="mt-space-xl">
+            <Card>
+              <CardContent>
+                <pre className="overflow-x-auto text-sm whitespace-pre-wrap">{data?.dreams.rawContent}</pre>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </PageContent>
 
-      {/* Detail sheet */}
-      <MemoryDetailSheet memory={sheetMemory} open={sheetOpen} onOpenChange={setSheetOpen} />
-
-      {/* Bulk delete confirmation */}
+      <MemoryDetailSheet
+        key={selected?.entry.id}
+        entry={selected?.entry ?? null}
+        file={selected?.file ?? null}
+        open={selected !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelected(null);
+        }}
+      />
       <ConfirmDialog
-        open={bulkDeleteOpen}
-        onOpenChange={setBulkDeleteOpen}
-        title={`Delete ${selectedIds.size} ${selectedIds.size === 1 ? 'memory' : 'memories'}?`}
-        description="These memories will be permanently removed and cannot be recovered."
-        onConfirm={handleBulkDelete}
-        pendingLabel="Deleting…"
-        isPending={bulkDeleteMutation.isPending}
+        open={resetOpen}
+        onOpenChange={setResetOpen}
+        title="Reset file-based memory?"
+        description="This permanently deletes MEMORY.md, USER.md, daily notes, consolidation state, and the consolidation log. Legacy LanceDB data is not migrated or changed."
+        onConfirm={() => reset.mutate(undefined, { onSuccess: () => setResetOpen(false) })}
+        isPending={reset.isPending}
+        pendingLabel="Resetting..."
       />
     </Page>
   );
 }
 
-type MemoryRowProps = { memory: SemanticMemory; selected: boolean; onToggleSelect: () => void; onClick: () => void };
-
-function MemoryRow({ memory, selected, onToggleSelect, onClick }: MemoryRowProps) {
+function CuratedFile({
+  target,
+  file,
+  onEdit,
+}: {
+  target: MemoryTarget;
+  file: MemoryFileSnapshot;
+  onEdit: (entry: ManagedMemoryEntry) => void;
+}) {
   const queryClient = useQueryClient();
-  const pinMutation = useMutation(pinMemoryMutationOptions(queryClient));
+  const [adding, setAdding] = React.useState(false);
+  const [content, setContent] = React.useState('');
+  const add = useMutation(addMemoryEntryMutationOptions(queryClient));
 
   return (
-    <Table.Row className={cn('cursor-pointer', selected && 'bg-surface-sunken')} onClick={onClick}>
-      <Table.Cell
-        className="w-14 text-center"
-        onClick={(e) => {
-          e.stopPropagation();
-        }}>
-        <Checkbox checked={selected} onCheckedChange={onToggleSelect} aria-label="Select memory" />
-      </Table.Cell>
+    <div className="grid gap-space-xl xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.8fr)]">
+      <Card>
+        <CardHeader>
+          <CardTitle>Managed entries</CardTitle>
+          <CardDescription>{file.entries.length} entries</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-space-s">
+          {file.entries.map((entry) => (
+            <Button
+              key={entry.id}
+              type="button"
+              variant="outline"
+              size="inline"
+              width="full"
+              align="start"
+              onClick={() => onEdit(entry)}>
+              <span className="block w-full p-space-m">
+                <span className="block">{entry.content}</span>
+                <div className="mt-space-xs">
+                  <Text as="span" variant="caption" tone="muted">
+                    Observed {entry.observed}
+                  </Text>
+                </div>
+              </span>
+            </Button>
+          ))}
+          {file.entries.length === 0 ? (
+            <div className="py-space-xl text-center">
+              <Text as="p" variant="body" tone="muted">
+                No managed entries yet.
+              </Text>
+            </div>
+          ) : null}
+          {adding ? (
+            <Stack gap="s">
+              <Textarea
+                value={content}
+                onChange={(event) => setContent(event.target.value)}
+                placeholder="Durable memory..."
+              />
+              <Stack direction="row" gap="s">
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    add.mutate(
+                      { target, content },
+                      {
+                        onSuccess: () => {
+                          setContent('');
+                          setAdding(false);
+                        },
+                      },
+                    )
+                  }
+                  disabled={!content.trim()}>
+                  Add
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setAdding(false)}>
+                  Cancel
+                </Button>
+              </Stack>
+            </Stack>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
+              <PlusIcon /> Add entry
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+      <RawEditor target={target} file={file} />
+    </div>
+  );
+}
 
-      <Table.Cell
-        className="w-10 cursor-pointer text-center text-muted-foreground hover:text-foreground"
-        onClick={(e) => {
-          e.stopPropagation();
-          pinMutation.mutate({ id: memory.id, pinned: !memory.pinned });
-        }}>
-        {memory.pinned ? (
-          <Icon as={PinIcon} size="m" fill="currentColor" />
-        ) : (
-          <span className="opacity-30 hover:opacity-100">
-            <Icon as={PinIcon} size="m" />
-          </span>
-        )}
-      </Table.Cell>
+function RawEditor({ target, file }: { target: MemoryTarget; file: MemoryFileSnapshot }) {
+  const queryClient = useQueryClient();
+  const [editor, setEditor] = React.useState({ hash: file.contentHash, draft: file.rawContent });
+  const [conflict, setConflict] = React.useState(false);
+  const save = useMutation(saveRawMemoryMutationOptions(queryClient));
+  if (!conflict && editor.hash !== file.contentHash) {
+    setEditor({ hash: file.contentHash, draft: file.rawContent });
+  }
+  const draft = editor.draft;
 
-      <Table.Cell className="w-full max-w-0 min-w-0 overflow-hidden">
-        <Table.Title className="block">{memory.content}</Table.Title>
-      </Table.Cell>
+  function saveRaw() {
+    save.mutate(
+      { target, content: draft, expectedHash: file.contentHash },
+      {
+        onSuccess: () => setConflict(false),
+        onError: (error) => {
+          if (!(error instanceof ServerRequestError && error.status === 409)) {
+            return;
+          }
 
-      <Table.Cell className="w-28 text-center">
-        <Table.Badge variant={CATEGORY_VARIANTS[memory.category]}>{CATEGORY_LABELS[memory.category]}</Table.Badge>
-      </Table.Cell>
+          setConflict(true);
+          void queryClient.invalidateQueries({ queryKey: ['memories'] });
+        },
+      },
+    );
+  }
 
-      <Table.Cell className="w-28 text-center">
-        <Table.Status className="normal-case">{CONFIDENCE_LABELS[memory.confidence]}</Table.Status>
-      </Table.Cell>
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Raw Markdown</CardTitle>
+        <CardDescription>Manual text is preserved during consolidation.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-space-s">
+        <Textarea
+          className="min-h-80 font-mono text-xs"
+          value={draft}
+          onChange={(event) => setEditor((current) => ({ ...current, draft: event.target.value }))}
+        />
+        {conflict ? (
+          <div className="rounded-md border border-warning bg-surface-sunken p-space-m">
+            <Text as="div" variant="body">
+              <strong>File changed externally.</strong> Your draft is preserved above. The latest disk version is shown
+              below for comparison.
+              <pre className="mt-space-s max-h-40 overflow-auto whitespace-pre-wrap">{file.rawContent}</pre>
+            </Text>
+          </div>
+        ) : null}
+        <Button onClick={saveRaw} disabled={save.isPending || draft === file.rawContent}>
+          {save.isPending ? 'Saving...' : 'Save Markdown'}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
 
-      <Table.Cell className="w-24 text-center">
-        <Table.Badge variant="outline" className="capitalize">
-          {memory.source}
-        </Table.Badge>
-      </Table.Cell>
-
-      <Table.Cell className="w-24 text-right">
-        <Table.Time value={memory.createdAt} />
-      </Table.Cell>
-    </Table.Row>
+function DailyFile({ file, processedIds }: { file: MemoryFileSnapshot; processedIds: Set<string> }) {
+  const queryClient = useQueryClient();
+  const remove = useMutation(deleteMemoryEntryMutationOptions(queryClient));
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{file.name.replace('daily/', '').replace('.md', '')}</CardTitle>
+        <CardDescription>{file.entries.length} candidates</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-space-s">
+        {file.entries.map((entry) => (
+          <div
+            key={entry.id}
+            className="flex items-start justify-between gap-space-m rounded-lg border border-border p-space-m">
+            <div>
+              <p>{entry.content}</p>
+              <div className="mt-space-xs">
+                <Text as="p" variant="caption" tone="muted">
+                  {entry.target} from {entry.source} - {processedIds.has(entry.id) ? 'reviewed' : 'pending'}
+                </Text>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => remove.mutate({ id: entry.id, expectedHash: file.contentHash })}
+              aria-label="Delete candidate">
+              <Trash2Icon />
+            </Button>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
