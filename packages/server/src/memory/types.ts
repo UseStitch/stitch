@@ -12,6 +12,7 @@ export type {
   MemoryFileSnapshot,
   MemoryMutation,
   MemoryOrigin,
+  MemorySearchResult,
   MemoryTarget,
 } from '@stitch/shared/memory/types';
 
