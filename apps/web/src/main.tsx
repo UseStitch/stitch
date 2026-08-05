@@ -7,6 +7,7 @@ import { RouterProvider, createHashHistory, createRouter } from '@tanstack/react
 
 import { DesktopNotificationRoot } from '@/components/desktop-notifications/desktop-notification-root';
 import { SseProvider } from '@/hooks/sse/sse-context';
+import { initClientTelemetry, captureClientEvent } from '@/lib/telemetry/client';
 import { applyAppearanceMode, DEFAULT_MODE, DEFAULT_THEME, getTheme, injectThemeCss } from '@/lib/theme';
 import { routeTree } from '@/routeTree.gen';
 import '@/styles/global.css';
@@ -38,6 +39,13 @@ if (isDesktopNotificationWindow) {
   injectThemeCss(getTheme(DEFAULT_THEME));
   applyAppearanceMode(DEFAULT_MODE);
   document.getElementById('stitch-splash')?.remove();
+}
+
+// Initialize telemetry (non-blocking, best-effort)
+if (!isDesktopNotificationWindow) {
+  void initClientTelemetry().then(() => {
+    captureClientEvent('app_active', { connection_mode: 'local' });
+  });
 }
 
 ReactDOM.createRoot(rootElement).render(

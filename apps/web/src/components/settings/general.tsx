@@ -17,8 +17,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
 import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
 import { sttProviderModelsQueryOptions, visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { deleteSettingMutationOptions, saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
+import { getClientTelemetryState, setClientTelemetryEnabled } from '@/lib/telemetry/client';
 import { useUpdaterStore } from '@/stores/updater-store';
 
 const MODEL_PREFERENCES = [
@@ -142,6 +144,9 @@ export function GeneralSettings() {
       <SettingSection title="Notifications">
         <NotificationsContent />
       </SettingSection>
+      <SettingSection title="Privacy">
+        <PrivacyContent />
+      </SettingSection>
     </SettingPage>
   );
 }
@@ -256,6 +261,32 @@ function DictationContent() {
         description="Record only while the dictation shortcut is held, finalizing on release. When off, the shortcut toggles recording on and off."
         checked={settings['stt.holdToTalk'] === 'true'}
       />
+    </SettingRows>
+  );
+}
+
+function PrivacyContent() {
+  const telemetryState = getClientTelemetryState();
+  const [enabled, setEnabled] = React.useState(telemetryState?.enabled ?? true);
+  const [pending, setPending] = React.useState(false);
+
+  async function handleToggle(checked: boolean) {
+    setPending(true);
+    try {
+      const newState = await setClientTelemetryEnabled(checked);
+      setEnabled(newState.enabled);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <SettingRows>
+      <SettingRow
+        label="Share anonymous usage analytics"
+        description="Help improve Stitch by sending anonymous feature usage and reliability data. Prompts, file contents, recordings, and personal data are never collected.">
+        <Switch checked={enabled} disabled={pending} onCheckedChange={handleToggle} />
+      </SettingRow>
     </SettingRows>
   );
 }

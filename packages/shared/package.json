@@ -50,6 +50,8 @@
     "./skills/events": "./src/skills/events.ts",
     "./skills/types": "./src/skills/types.ts",
     "./stt/types": "./src/stt/types.ts",
+    "./telemetry/events": "./src/telemetry/events.ts",
+    "./telemetry/types": "./src/telemetry/types.ts",
     "./logger": "./src/logger.ts"
   },
   "scripts": {

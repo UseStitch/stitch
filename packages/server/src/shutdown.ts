@@ -6,6 +6,7 @@ import * as Log from '@/lib/log.js';
 import { stopMailEngine } from '@/mail/wiring.js';
 import { stopRecording } from '@/recordings/service.js';
 import { stopScheduler } from '@/scheduler/runtime.js';
+import { shutdownServerTelemetry } from '@/telemetry/service.js';
 
 const log = Log.create({ service: 'shutdown' });
 
@@ -19,6 +20,9 @@ async function shutdown(signal: string) {
     log.warn({ error }, 'failed to stop recording during shutdown');
   });
   await shutdownConnectorRuntime();
+  await shutdownServerTelemetry().catch((error) => {
+    log.warn({ error }, 'failed to flush telemetry during shutdown');
+  });
   closeMailDb();
   closeDb();
   await Log.close();

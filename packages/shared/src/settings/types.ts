@@ -281,6 +281,11 @@ const SETTINGS_REGISTRY = {
     default: 'true',
     description: 'Always load remote images in Mail message bodies.',
   },
+  'telemetry.serverId': {
+    schema: z.string().max(80),
+    default: '',
+    description: 'Anonymous server installation identifier for telemetry.',
+  },
 } as const;
 
 export type SettingsKey = keyof typeof SETTINGS_REGISTRY;
