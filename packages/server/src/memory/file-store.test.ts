@@ -185,4 +185,28 @@ describe('MemoryFileStore', () => {
       truncated: true,
     });
   });
+
+  test('updates and deletes managed entries by stable id with hash guards', async () => {
+    const store = await createStore();
+    const added = await store.mutate('memory', [{ type: 'add', content: 'Original fact.' }]);
+    const id = added.entries[0]?.id;
+    if (!id) throw new Error('Missing test entry');
+
+    const updated = await store.updateEntry(id, 'Updated fact.', added.contentHash);
+    expect(updated.entries[0]?.content).toBe('Updated fact.');
+    expect(store.deleteEntry(id, added.contentHash)).rejects.toThrow('changed outside Stitch');
+    expect((await store.deleteEntry(id, updated.contentHash)).entries).toEqual([]);
+  });
+
+  test('resets only the file memory root and recreates canonical templates', async () => {
+    const store = await createStore();
+    await store.mutate('memory', [{ type: 'add', content: 'Will be removed.' }]);
+    await store.appendDaily([{ content: 'Candidate.', origin: 'user', source: 'ses_1', target: 'memory' }]);
+
+    await store.reset();
+
+    expect((await store.readCurated('memory')).entries).toEqual([]);
+    expect(await store.listDailyFiles()).toEqual([]);
+    expect((await store.readFile('DREAMS.md')).rawContent).toBe('# Consolidation log\n');
+  });
 });

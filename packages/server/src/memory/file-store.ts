@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { copyFile, mkdir, open, readFile, readdir, realpath, rename, stat, unlink } from 'node:fs/promises';
+import { copyFile, mkdir, open, readFile, readdir, realpath, rename, rm, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
 
 import { PATHS } from '@/lib/paths.js';
@@ -352,6 +352,25 @@ export class MemoryFileStore {
     });
   }
 
+  async updateEntry(id: string, content: string, expectedHash?: string): Promise<MemoryFileSnapshot> {
+    return this.mutateEntry(id, content, expectedHash);
+  }
+
+  async deleteEntry(id: string, expectedHash?: string): Promise<MemoryFileSnapshot> {
+    return this.mutateEntry(id, null, expectedHash);
+  }
+
+  async reset(): Promise<void> {
+    await this.withFileLock('MEMORY.md', () =>
+      this.withFileLock('USER.md', () =>
+        this.withFileLock('DREAMS.md', async () => {
+          await rm(this.rootDir, { recursive: true, force: true });
+          await this.ensureInitialized();
+        }),
+      ),
+    );
+  }
+
   async listDailyFiles(): Promise<string[]> {
     await this.ensureInitialized();
     const names = await readdir(path.join(this.rootDir, 'daily'));
@@ -439,6 +458,36 @@ export class MemoryFileStore {
   private assertCapacity(content: string, target: MemoryTarget): void {
     const capacity = capacityFor(content, target === 'memory' ? this.memoryCharLimit : this.userCharLimit);
     if (capacity.used > capacity.limit) throw new MemoryCapacityError(capacity);
+  }
+
+  private async mutateEntry(id: string, content: string | null, expectedHash?: string): Promise<MemoryFileSnapshot> {
+    const paths = ['MEMORY.md', 'USER.md', ...(await this.listDailyFiles())];
+    const snapshots = await Promise.all(paths.map((filePath) => this.readFile(filePath)));
+    const matches = snapshots.flatMap((snapshot) =>
+      snapshot.entries.filter((entry) => entry.id === id).map((entry) => ({ entry, snapshot })),
+    );
+    if (matches.length !== 1) {
+      throw new MemoryConflictError(`Memory entry id is ${matches.length === 0 ? 'missing' : 'not unique'}: ${id}`);
+    }
+    const match = matches[0];
+    if (!match) throw new MemoryConflictError(`Memory entry id is missing: ${id}`);
+
+    return this.withFileLock(match.snapshot.name, async () => {
+      const current = await this.readFile(match.snapshot.name);
+      if (expectedHash && current.contentHash !== expectedHash) {
+        throw new MemoryConflictError(`${match.snapshot.name} changed outside Stitch`);
+      }
+      const entry = current.entries.find((item) => item.id === id);
+      if (!entry) throw new MemoryConflictError(`Memory entry moved during update: ${id}`);
+      if (content !== null && !content.trim()) throw new MemoryConflictError('Memory content cannot be empty');
+      const replacement =
+        content === null ? '' : serializeEntry({ ...entry, content: content.trim(), target: entry.target });
+      const raw = replaceEntryBlock(current.rawContent, entry, replacement).replace(/\n{3,}/g, '\n\n');
+      if (current.name === 'MEMORY.md') this.assertCapacity(raw, 'memory');
+      if (current.name === 'USER.md') this.assertCapacity(raw, 'user');
+      await this.atomicWrite(current.path, raw);
+      return this.readFile(current.name);
+    });
   }
 
   private rewriteManagedBlocks(

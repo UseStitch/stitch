@@ -70,6 +70,16 @@ export async function serverFetch(path: string, init?: RequestInit): Promise<Res
 
 type QueryParams = Record<string, string | number | undefined>;
 
+export class ServerRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code: string | null,
+  ) {
+    super(message);
+  }
+}
+
 export function toQueryString(params: QueryParams): string {
   const searchParams = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -84,15 +94,17 @@ export async function serverRequest<T>(path: string, init?: RequestInit & { para
   const res = await serverFetch(params ? `${path}${toQueryString(params)}` : path, requestInit);
   if (!res.ok) {
     let errorMsg = `Request failed with status ${res.status}`;
+    let errorCode: string | null = null;
     try {
       const errJson = await res.json();
       if (errJson?.error) {
         errorMsg = errJson.error;
       }
+      if (typeof errJson?.code === 'string') errorCode = errJson.code;
     } catch {
       // JSON parsing failed; use status code fallback
     }
-    throw new Error(errorMsg);
+    throw new ServerRequestError(errorMsg, res.status, errorCode);
   }
 
   if (res.status === 204) {

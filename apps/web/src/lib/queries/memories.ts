@@ -2,191 +2,140 @@ import { toast } from 'sonner';
 
 import { queryOptions, type MutationOptions, type QueryClient } from '@tanstack/react-query';
 
+import type {
+  DailyMemoryFilesResponse,
+  ManagedMemoryEntry,
+  MemoryFileSnapshot,
+  MemoryFilesOverview,
+  MemorySearchResult,
+  MemoryTarget,
+} from '@stitch/shared/memory/types';
+
 import { serverRequest } from '@/lib/api';
 
-export type { MemoryCategory, MemoryConfidence, MemorySource, SemanticMemory } from '@stitch/shared/memory/types';
+export type { ManagedMemoryEntry, MemoryFileSnapshot, MemoryTarget };
 
-type SemanticMemoryUpdate = {
-  content?: string;
-  category?: import('@stitch/shared/memory/types').MemoryCategory;
-  confidence?: import('@stitch/shared/memory/types').MemoryConfidence;
-};
-
-const memoriesKeys = {
+const keys = {
   all: ['memories'] as const,
-  semantic: () => [...memoriesKeys.all, 'semantic'] as const,
-  semanticSearch: (q: string) => [...memoriesKeys.semantic(), 'search', q] as const,
-  stats: () => [...memoriesKeys.all, 'stats'] as const,
+  overview: () => [...keys.all, 'files'] as const,
+  daily: (page: number) => [...keys.all, 'daily', page] as const,
+  search: (query: string) => [...keys.all, 'search', query] as const,
 };
 
-type MemoryHealthStats = {
-  total: number;
-  pinned: number;
-  stale: number;
-  byCategory: Record<string, number>;
-  byConfidence: Record<string, number>;
-  avgAccessCount: number;
-  oldestCreatedAt: string | null;
-  newestCreatedAt: string | null;
-};
-
-export const memoryStatsQueryOptions = queryOptions({
-  queryKey: memoriesKeys.stats(),
-  queryFn: () => serverRequest<MemoryHealthStats>(`/memory/stats`),
+export const memoryFilesQueryOptions = queryOptions({
+  queryKey: keys.overview(),
+  queryFn: () => serverRequest<MemoryFilesOverview>('/memory/files'),
 });
 
-export const semanticMemoriesQueryOptions = (input: {
-  page: number;
-  pageSize: number;
-  source?: import('@stitch/shared/memory/types').MemorySource;
-  category?: import('@stitch/shared/memory/types').MemoryCategory;
-}) =>
+export const dailyMemoryQueryOptions = (page = 1) =>
   queryOptions({
-    queryKey: [...memoriesKeys.semantic(), input.source ?? 'all', input.category ?? 'all', input.page, input.pageSize],
-    queryFn: () =>
-      serverRequest<import('@stitch/shared/memory/types').ListSemanticMemoriesResponse>('/memory/semantic', {
-        params: { page: input.page, pageSize: input.pageSize, source: input.source, category: input.category },
-      }),
+    queryKey: keys.daily(page),
+    queryFn: () => serverRequest<DailyMemoryFilesResponse>('/memory/daily', { params: { page, pageSize: 20 } }),
   });
 
-export const semanticMemorySearchQueryOptions = (input: {
-  q: string;
-  page: number;
-  pageSize: number;
-  source?: import('@stitch/shared/memory/types').MemorySource;
-  category?: import('@stitch/shared/memory/types').MemoryCategory;
-}) =>
+export const memorySearchQueryOptions = (query: string) =>
   queryOptions({
-    queryKey: [
-      ...memoriesKeys.semanticSearch(input.q),
-      input.source ?? 'all',
-      input.category ?? 'all',
-      input.page,
-      input.pageSize,
-    ],
-    queryFn: () =>
-      serverRequest<import('@stitch/shared/memory/types').SearchSemanticMemoriesResponse>('/memory/semantic', {
-        params: {
-          q: input.q,
-          page: input.page,
-          pageSize: input.pageSize,
-          source: input.source,
-          category: input.category,
-        },
-      }),
-    enabled: input.q.trim().length > 0,
+    queryKey: keys.search(query),
+    queryFn: () => serverRequest<{ results: MemorySearchResult[] }>('/memory/search', { params: { q: query } }),
+    enabled: query.trim().length > 0,
   });
 
-export function updateMemoryMutationOptions(
+function invalidate(queryClient: QueryClient): void {
+  void queryClient.invalidateQueries({ queryKey: keys.all });
+}
+
+export function addMemoryEntryMutationOptions(
   queryClient: QueryClient,
-): MutationOptions<void, Error, { id: string; updates: SemanticMemoryUpdate }> {
+): MutationOptions<MemoryFileSnapshot, Error, { target: MemoryTarget; content: string }> {
   return {
-    mutationFn: ({ id, updates }) =>
-      serverRequest<void>(`/memory/semantic/${id}`, {
-        method: 'PATCH',
+    mutationFn: (input) =>
+      serverRequest('/memory/entries', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
+        body: JSON.stringify(input),
       }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
-      toast.success('Memory updated', { id: 'memory-update' });
+      invalidate(queryClient);
+      toast.success('Memory added');
     },
-    onError: (err) => toast.error(err.message, { id: 'memory-update' }),
+    onError: (error) => toast.error(error.message),
   };
 }
 
-export function pinMemoryMutationOptions(
+export function updateMemoryEntryMutationOptions(
   queryClient: QueryClient,
-): MutationOptions<void, Error, { id: string; pinned: boolean }> {
+): MutationOptions<MemoryFileSnapshot, Error, { id: string; content: string; expectedHash?: string }> {
   return {
-    mutationFn: ({ id, pinned }) =>
-      serverRequest<void>(`/memory/semantic/${id}/pin`, {
+    mutationFn: ({ id, ...body }) =>
+      serverRequest(`/memory/entries/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pinned }),
+        body: JSON.stringify(body),
       }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
-    },
-    onError: (err) => toast.error(err.message, { id: 'memory-pin' }),
+    onSuccess: () => invalidate(queryClient),
+    onError: (error) => toast.error(error.message),
   };
 }
 
-export function pruneMemoriesMutationOptions(queryClient: QueryClient): MutationOptions<void, Error, void> {
+export function deleteMemoryEntryMutationOptions(
+  queryClient: QueryClient,
+): MutationOptions<MemoryFileSnapshot, Error, { id: string; expectedHash?: string }> {
   return {
-    mutationFn: () => serverRequest<void>('/memory/prune', { method: 'POST' }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
-      toast.success('Stale memories pruned', { id: 'memory-prune' });
-    },
-    onError: (err) => toast.error(err.message, { id: 'memory-prune' }),
-  };
-}
-
-export function deleteMemoryMutationOptions(queryClient: QueryClient): MutationOptions<void, Error, string> {
-  return {
-    mutationFn: (id) => serverRequest<void>(`/memory/semantic/${id}`, { method: 'DELETE' }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
-      toast.success('Memory deleted', { id: 'memory-delete' });
-    },
-    onError: (err) => toast.error(err.message, { id: 'memory-delete' }),
-  };
-}
-
-export function bulkDeleteMemoriesMutationOptions(queryClient: QueryClient): MutationOptions<void, Error, string[]> {
-  return {
-    mutationFn: (ids) =>
-      serverRequest<void>('/memory/semantic', {
+    mutationFn: ({ id, expectedHash }) =>
+      serverRequest(`/memory/entries/${id}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids }),
+        body: JSON.stringify({ expectedHash }),
       }),
-    onSuccess: (_, ids) => {
-      void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
-      toast.success(`${ids.length} ${ids.length === 1 ? 'memory' : 'memories'} deleted`, { id: 'memory-bulk-delete' });
-    },
-    onError: (err) => toast.error(err.message, { id: 'memory-bulk-delete' }),
+    onSuccess: () => invalidate(queryClient),
+    onError: (error) => toast.error(error.message),
   };
 }
 
-type ConsolidationResult = { groupsReviewed: number; added: number; updated: number; deleted: number; skipped: number };
-
-type MaintenanceResult = {
-  pruned: number;
-  deduplicated: number;
-  consolidated: ConsolidationResult;
-  stats: MemoryHealthStats | null;
-};
-
-export function runMaintenanceMutationOptions(
+export function saveRawMemoryMutationOptions(
   queryClient: QueryClient,
-): MutationOptions<MaintenanceResult, Error, void> {
+): MutationOptions<MemoryFileSnapshot, Error, { target: MemoryTarget; content: string; expectedHash: string }> {
   return {
-    mutationFn: () => serverRequest<MaintenanceResult>('/memory/maintenance', { method: 'POST' }),
-    onSuccess: (result) => {
-      void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
-      const parts: string[] = [];
-      if (result.pruned > 0) parts.push(`${result.pruned} pruned`);
-      if (result.deduplicated > 0) parts.push(`${result.deduplicated} deduplicated`);
-      const consolidated = result.consolidated;
-      const consolidatedTotal = consolidated.added + consolidated.updated + consolidated.deleted;
-      if (consolidatedTotal > 0) parts.push(`${consolidatedTotal} consolidated`);
-      toast.success(
-        parts.length > 0 ? `Maintenance complete: ${parts.join(', ')}` : 'Maintenance complete — nothing to clean up',
-        { id: 'memory-maintenance' },
-      );
+    mutationFn: ({ target, ...body }) =>
+      serverRequest(`/memory/files/${target}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => {
+      invalidate(queryClient);
+      toast.success('Markdown saved');
     },
-    onError: (err) => toast.error(err.message, { id: 'memory-maintenance' }),
+  };
+}
+
+export function consolidateMemoryMutationOptions(queryClient: QueryClient): MutationOptions<unknown, Error, void> {
+  return {
+    mutationFn: () => serverRequest('/memory/consolidate', { method: 'POST' }),
+    onSuccess: () => {
+      invalidate(queryClient);
+      toast.success('Consolidation complete');
+    },
+    onError: (error) => toast.error(error.message),
   };
 }
 
 export function resetMemoriesMutationOptions(queryClient: QueryClient): MutationOptions<void, Error, void> {
   return {
-    mutationFn: () => serverRequest<void>('/memory/reset', { method: 'POST' }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: memoriesKeys.all });
-    },
-    onError: (err) => toast.error(err.message, { id: 'memory-reset' }),
+    mutationFn: () =>
+      serverRequest('/memory/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: true }),
+      }),
+    onSuccess: () => invalidate(queryClient),
+    onError: (error) => toast.error(error.message),
+  };
+}
+
+export function openMemoryFolderMutationOptions(): MutationOptions<void, Error, void> {
+  return {
+    mutationFn: () => serverRequest('/memory/open-folder', { method: 'POST' }),
+    onError: (error) => toast.error(error.message),
   };
 }
