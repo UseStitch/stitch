@@ -55,6 +55,7 @@ describe('createPaths', () => {
     expect(paths.filePaths.mailDb).toBe(path.join(paths.dirPaths.mailbox, 'mail.db'));
     expect(paths.dirPaths.mailAttachments).toBe(path.join(paths.dirPaths.mailbox, 'attachments'));
     expect(paths.dirPaths.recordings).toBe(path.join(paths.dataDir, 'recordings'));
+    expect(paths.dirPaths.memory).toBe(path.join(paths.dataDir, 'memory'));
   });
 
   test('keeps test paths isolated from production paths', () => {
