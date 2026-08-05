@@ -42,6 +42,7 @@ type ServerPaths = {
     simpleIcons: string;
     recordings: string;
     mailAttachments: string;
+    memory: string;
   };
 };
 
@@ -173,6 +174,7 @@ export function createPaths(options: CreatePathsOptions = {}): ServerPaths {
       simpleIcons: path.join(paths.cache, 'simple-icons'),
       recordings: path.join(paths.data, 'recordings'),
       mailAttachments: path.join(mailboxDir, 'attachments'),
+      memory: path.join(paths.data, 'memory'),
     },
   };
 }
