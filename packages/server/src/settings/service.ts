@@ -8,8 +8,6 @@ import { userSettings } from '@/db/schema/settings.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import { listEnabledProviderEmbeddingModels } from '@/llm/provider/service.js';
-import { getMemoryConfig, hasConfiguredEmbeddingModel } from '@/memory/config.js';
 import type { z } from 'zod';
 
 type SettingValue<K extends SettingsKey> = z.infer<(typeof SETTINGS_SCHEMAS)[K]>;
@@ -56,29 +54,6 @@ export async function listSettings(): Promise<ServiceResult<Record<string, strin
   return ok(result);
 }
 
-async function checkMemoryEnablePrerequisites(): Promise<ServiceResult<null>> {
-  const memoryConfig = await getMemoryConfig();
-  if (!hasConfiguredEmbeddingModel(memoryConfig)) {
-    return err(
-      'Cannot enable memory without an embedding model. Configure memory.embedding.providerId and memory.embedding.modelId first.',
-      400,
-    );
-  }
-
-  const providerModelsResult = await listEnabledProviderEmbeddingModels();
-  const providerModels = providerModelsResult.error ? [] : providerModelsResult.data;
-  const hasConfiguredModel = providerModels.some(
-    (provider) =>
-      provider.providerId === memoryConfig.embeddingProviderId &&
-      provider.models.some((model) => model.id === memoryConfig.embeddingModelId),
-  );
-  if (!hasConfiguredModel) {
-    return err('Cannot enable memory without a configured embedding model from an enabled provider.', 400);
-  }
-
-  return ok(null);
-}
-
 export async function saveSetting(key: string, value: string): Promise<ServiceResult<null>> {
   const schema = SETTINGS_SCHEMAS[key as SettingsKey];
   if (!schema) {
@@ -89,11 +64,6 @@ export async function saveSetting(key: string, value: string): Promise<ServiceRe
   if (!parseResult.success) {
     const issue = parseResult.error.issues[0];
     return err(`Invalid value: ${issue.message}`, 400);
-  }
-
-  if (key === 'memory.enabled' && value === 'true') {
-    const prereqResult = await checkMemoryEnablePrerequisites();
-    if (prereqResult.error) return prereqResult;
   }
 
   const db = getDb();

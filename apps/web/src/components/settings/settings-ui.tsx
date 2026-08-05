@@ -4,13 +4,11 @@ import * as React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { Icon } from '@/components/primitives/icon';
-import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PageDescription, PageHeader, PageHeaderContent, PageIcon, PageTitle } from '@/components/ui/page';
-import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { saveSettingMutationOptions } from '@/lib/queries/settings';
@@ -229,67 +227,6 @@ export function SwitchSettingRow({ settingKey, label, description, checked, disa
         disabled={disabled}
         onCheckedChange={(value) => saveMutation.mutate(value ? 'true' : 'false')}
       />
-    </SettingRow>
-  );
-}
-
-type SliderSettingRowProps = {
-  settingKey: string;
-  label: string;
-  description: string;
-  currentValue: number;
-  min: number;
-  max: number;
-  step: number;
-  precision?: number;
-};
-
-export function SliderSettingRow({
-  settingKey,
-  label,
-  description,
-  currentValue,
-  min,
-  max,
-  step,
-  precision = 2,
-}: SliderSettingRowProps) {
-  const queryClient = useQueryClient();
-  const [localValue, setLocalValue] = React.useState(currentValue);
-  const [syncedValue, setSyncedValue] = React.useState(currentValue);
-
-  if (syncedValue !== currentValue) {
-    setSyncedValue(currentValue);
-    setLocalValue(currentValue);
-  }
-
-  const saveMutation = useMutation(saveSettingMutationOptions(settingKey, queryClient, { silent: true }));
-
-  const formatValue = (value: number) => (precision === 0 ? String(Math.round(value)) : value.toFixed(precision));
-
-  return (
-    <SettingRow label={label} description={description}>
-      <SettingRowControl>
-        <Stack direction="row" align="center" gap="l">
-          <Slider
-            value={[localValue]}
-            min={min}
-            max={max}
-            step={step}
-            onValueChange={(value) => {
-              const rawValue = Array.isArray(value) ? value[0] : value;
-              const nextValue = Math.max(min, Math.min(max, rawValue ?? min));
-              setLocalValue(nextValue);
-              saveMutation.mutate(formatValue(nextValue));
-            }}
-          />
-          <div className="w-10 text-right">
-            <Text variant="label" tone="muted" tabular>
-              {formatValue(localValue)}
-            </Text>
-          </div>
-        </Stack>
-      </SettingRowControl>
     </SettingRow>
   );
 }

@@ -136,8 +136,8 @@ function replaceEntryBlock(raw: string, entry: ManagedMemoryEntry, replacement: 
 
 export class MemoryFileStore {
   readonly rootDir: string;
-  readonly memoryCharLimit: number;
-  readonly userCharLimit: number;
+  memoryCharLimit: number;
+  userCharLimit: number;
   private readonly now: () => Date;
   private readonly queues = new Map<string, Promise<void>>();
 
@@ -146,6 +146,11 @@ export class MemoryFileStore {
     this.memoryCharLimit = options.memoryCharLimit ?? 8_000;
     this.userCharLimit = options.userCharLimit ?? 4_000;
     this.now = options.now ?? (() => new Date());
+  }
+
+  setLimits(memoryCharLimit: number, userCharLimit: number): void {
+    this.memoryCharLimit = memoryCharLimit;
+    this.userCharLimit = userCharLimit;
   }
 
   async ensureInitialized(): Promise<void> {

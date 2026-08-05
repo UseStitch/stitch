@@ -47,18 +47,12 @@ export function useOnboardingState(): OnboardingState {
   const profileTimezone = settings?.['profile.timezone']?.trim() ?? '';
   const hasEnabledProvider = (providers ?? []).some((provider) => provider.enabled);
 
-  const memoryEnabled = settings?.['memory.enabled'] === 'true';
-  const hasMemoryModelConfigured =
-    (settings?.['memory.embedding.providerId']?.trim().length ?? 0) > 0 &&
-    (settings?.['memory.embedding.modelId']?.trim().length ?? 0) > 0;
-
   const isOnboardingComplete =
     settings?.['onboarding.status'] === 'completed' &&
     settings?.['onboarding.version'] === CURRENT_ONBOARDING_VERSION &&
     profileName.length > 0 &&
     profileTimezone.length > 0 &&
-    hasEnabledProvider &&
-    (!memoryEnabled || hasMemoryModelConfigured);
+    hasEnabledProvider;
 
   React.useEffect(() => {
     if (step !== 'success') return;

@@ -171,13 +171,6 @@ export async function listEnabledProviderEmbeddingModels(): Promise<ServiceResul
   );
 }
 
-export async function getEmbeddingModelDimensions(providerId: string, modelId: string): Promise<number | undefined> {
-  const providers = await EmbeddingModels.getEmbeddingModels();
-  const model = providers[providerId]?.models[modelId];
-  if (!model) return undefined;
-  return EmbeddingModels.getEmbeddingDimensions(model);
-}
-
 export async function getProviderLogo(providerId: string): Promise<ServiceResult<string>> {
   if (!isAllowedProvider(providerId)) {
     return err('Provider not found', 404);

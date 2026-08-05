@@ -90,7 +90,7 @@ function isSttProviderId(providerId: string): providerId is SttProviderId {
   return hasProviderCapability(providerId, 'stt');
 }
 
-export function isEmbeddingProviderId(providerId: string): providerId is EmbeddingProviderId {
+function isEmbeddingProviderId(providerId: string): providerId is EmbeddingProviderId {
   return hasProviderCapability(providerId, 'embedding');
 }
 

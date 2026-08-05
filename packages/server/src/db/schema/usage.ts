@@ -6,25 +6,6 @@ import type { STTUsage } from '@stitch/shared/stt/types';
 
 import type { LanguageModelUsage } from 'ai';
 
-export const embeddingUsageEvents = sqliteTable(
-  'embedding_usage_events',
-  {
-    id: text('id').primaryKey(),
-    providerId: text('provider_id').notNull(),
-    modelId: text('model_id').notNull(),
-    totalTokens: integer('total_tokens').notNull().default(0),
-    costUsd: real('cost_usd').notNull().default(0),
-    metadata: blob('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
-    createdAt: integer('created_at', { mode: 'number' })
-      .notNull()
-      .$defaultFn(() => Date.now()),
-  },
-  (table) => [
-    index('embedding_usage_events_created_at_idx').on(table.createdAt),
-    index('embedding_usage_events_provider_model_idx').on(table.providerId, table.modelId),
-  ],
-);
-
 export type ChatLlmUsageMetadata = {
   source: 'chat';
   eventType: 'step-success';

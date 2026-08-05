@@ -8,8 +8,7 @@
     "test": "bun test",
     "dev": "NODE_ENV=development bun --watch src/index.ts",
     "build": "bun build src/index.ts --compile --minify --outfile dist/stitch-server && bun build src/code-mode/sandbox-process.ts --compile --minify --outfile dist/stitch-sandbox",
-    "typecheck": "tsc --noEmit",
-    "lance:migration:new": "bun scripts/new-lance-migration.ts"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "catalog:ai",
@@ -22,7 +21,6 @@
     "@hono/node-server": "^1.19.11",
     "@hono/node-ws": "^1.3.1",
     "@hono/zod-validator": "^0.7.6",
-    "@lancedb/lancedb": "^0.27.2",
     "@libpdf/core": "^0.3.6",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@openrouter/ai-sdk-provider": "catalog:ai",
@@ -33,7 +31,6 @@
     "@stitch/scheduler": "workspace:*",
     "@stitch/shared": "workspace:*",
     "ai": "catalog:ai",
-    "apache-arrow": "^21.1.0",
     "drizzle-orm": "^0.45.1",
     "glob": "13.0.6",
     "hono": "^4.12.7",

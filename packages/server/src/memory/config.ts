@@ -1,40 +1,21 @@
+import { memoryFileStore } from '@/memory/file-store.js';
 import { getSettings } from '@/settings/service.js';
 
 type MemoryConfig = {
   enabled: boolean;
   autoExtract: boolean;
-  embeddingProviderId: string;
-  embeddingModelId: string;
   maxFactsPerTurn: number;
   minMessageLength: number;
-  confidenceFilter: 'stated' | 'all' | 'stated+confirmed';
-  importanceMinScore: number;
   maxFactsPerSession: number;
   minTurnsBetweenWrites: number;
-  maxMemories: number;
-  staleDays: number;
-  autoprune: boolean;
-  dedupThreshold: number;
-  retrievalMaxResults: number;
-  retrievalMinScore: number;
-  retrievalRecencyBoost: boolean;
-  retrievalContextAwareQuery: boolean;
-  retrievalSkipLowSignal: boolean;
   extractFromAutomations: boolean;
+  memoryCharLimit: number;
+  userCharLimit: number;
+  consolidationEnabled: boolean;
+  maxCandidatesPerRun: number;
 };
 
-export function hasConfiguredEmbeddingModel(
-  config: Pick<MemoryConfig, 'embeddingProviderId' | 'embeddingModelId'>,
-): boolean {
-  return config.embeddingProviderId.trim().length > 0 && config.embeddingModelId.trim().length > 0;
-}
-
-export function isMemoryActive(config: MemoryConfig): boolean {
-  return config.enabled && hasConfiguredEmbeddingModel(config);
-}
-
 const CACHE_TTL_MS = 10_000;
-
 let cachedConfig: MemoryConfig | null = null;
 let cacheExpiresAt = 0;
 
@@ -46,53 +27,34 @@ export function invalidateMemoryConfig(): void {
 export async function getMemoryConfig(): Promise<MemoryConfig> {
   const now = Date.now();
   if (cachedConfig && now < cacheExpiresAt) return cachedConfig;
-
-  const s = await getSettings([
+  const settings = await getSettings([
     'memory.enabled',
     'memory.autoExtract',
-    'memory.embedding.providerId',
-    'memory.embedding.modelId',
     'memory.extraction.maxFactsPerTurn',
     'memory.extraction.minMessageLength',
-    'memory.extraction.confidenceFilter',
-    'memory.extraction.importanceMinScore',
     'memory.extraction.maxFactsPerSession',
     'memory.extraction.minTurnsBetweenWrites',
     'memory.extraction.fromAutomations',
-    'memory.retention.maxMemories',
-    'memory.retention.staleDays',
-    'memory.retention.autoprune',
-    'memory.retention.dedupThreshold',
-    'memory.retrieval.maxResults',
-    'memory.retrieval.minScore',
-    'memory.retrieval.recencyBoost',
-    'memory.retrieval.contextAwareQuery',
-    'memory.retrieval.skipLowSignal',
+    'memory.curated.memoryCharLimit',
+    'memory.curated.userCharLimit',
+    'memory.consolidation.enabled',
+    'memory.consolidation.maxCandidatesPerRun',
   ] as const);
 
   cachedConfig = {
-    enabled: s['memory.enabled'],
-    autoExtract: s['memory.autoExtract'],
-    embeddingProviderId: s['memory.embedding.providerId'],
-    embeddingModelId: s['memory.embedding.modelId'],
-    maxFactsPerTurn: s['memory.extraction.maxFactsPerTurn'],
-    minMessageLength: s['memory.extraction.minMessageLength'],
-    confidenceFilter: s['memory.extraction.confidenceFilter'],
-    importanceMinScore: s['memory.extraction.importanceMinScore'],
-    maxFactsPerSession: s['memory.extraction.maxFactsPerSession'],
-    minTurnsBetweenWrites: s['memory.extraction.minTurnsBetweenWrites'],
-    extractFromAutomations: s['memory.extraction.fromAutomations'],
-    maxMemories: s['memory.retention.maxMemories'],
-    staleDays: s['memory.retention.staleDays'],
-    autoprune: s['memory.retention.autoprune'],
-    dedupThreshold: s['memory.retention.dedupThreshold'],
-    retrievalMaxResults: s['memory.retrieval.maxResults'],
-    retrievalMinScore: s['memory.retrieval.minScore'],
-    retrievalRecencyBoost: s['memory.retrieval.recencyBoost'],
-    retrievalContextAwareQuery: s['memory.retrieval.contextAwareQuery'],
-    retrievalSkipLowSignal: s['memory.retrieval.skipLowSignal'],
+    enabled: settings['memory.enabled'],
+    autoExtract: settings['memory.autoExtract'],
+    maxFactsPerTurn: settings['memory.extraction.maxFactsPerTurn'],
+    minMessageLength: settings['memory.extraction.minMessageLength'],
+    maxFactsPerSession: settings['memory.extraction.maxFactsPerSession'],
+    minTurnsBetweenWrites: settings['memory.extraction.minTurnsBetweenWrites'],
+    extractFromAutomations: settings['memory.extraction.fromAutomations'],
+    memoryCharLimit: settings['memory.curated.memoryCharLimit'],
+    userCharLimit: settings['memory.curated.userCharLimit'],
+    consolidationEnabled: settings['memory.consolidation.enabled'],
+    maxCandidatesPerRun: settings['memory.consolidation.maxCandidatesPerRun'],
   };
+  memoryFileStore.setLimits(cachedConfig.memoryCharLimit, cachedConfig.userCharLimit);
   cacheExpiresAt = now + CACHE_TTL_MS;
-
   return cachedConfig;
 }

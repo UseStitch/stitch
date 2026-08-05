@@ -1,370 +1,132 @@
-import * as React from 'react';
-
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
-import type { EmbeddingProviderModels } from '@stitch/shared/embedding/types';
-
-import { ModelCombobox, type ModelSelection } from '@/components/model-selectors/model-combobox';
-import { Text } from '@/components/primitives/text';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import {
   NumberSettingRow,
   SettingPage,
   SettingRow,
-  SettingRowControl,
   SettingRows,
   SettingSection,
-  SliderSettingRow,
   SwitchSettingRow,
 } from '@/components/settings/settings-ui';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { resetMemoriesMutationOptions } from '@/lib/queries/memories';
-import { embeddingProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
-
-const CONFIDENCE_FILTER_OPTIONS = [
-  { value: 'stated', label: 'Stated only (Strict)' },
-  { value: 'stated+confirmed', label: 'Stated + Confirmed' },
-  { value: 'all', label: 'All (Includes Inferred)' },
-] as const;
-
-function EmbeddingModelSelect({
-  currentProviderId,
-  currentModelId,
-  providerModels,
-}: {
-  currentProviderId: string | undefined;
-  currentModelId: string | undefined;
-  providerModels: EmbeddingProviderModels[];
-}) {
-  const queryClient = useQueryClient();
-  const [pendingValue, setPendingValue] = React.useState<ModelSelection | null | undefined>(undefined);
-
-  const saveProviderMutation = useMutation(
-    saveSettingMutationOptions('memory.embedding.providerId', queryClient, { silent: true }),
-  );
-  const saveModelMutation = useMutation(
-    saveSettingMutationOptions('memory.embedding.modelId', queryClient, { silent: true }),
-  );
-  const resetMutation = useMutation(resetMemoriesMutationOptions(queryClient));
-
-  const value: ModelSelection | null =
-    currentProviderId && currentModelId ? { providerId: currentProviderId, modelId: currentModelId } : null;
-
-  function handleValueChange(selection: ModelSelection | null) {
-    if (!selection) return;
-    const isActualChange = selection.providerId !== currentProviderId || selection.modelId !== currentModelId;
-    if (!isActualChange) return;
-
-    if (!currentProviderId && !currentModelId) {
-      saveProviderMutation.mutate(selection.providerId);
-      saveModelMutation.mutate(selection.modelId);
-      return;
-    }
-
-    setPendingValue(selection);
-  }
-
-  async function handleConfirm() {
-    const selection = pendingValue;
-    setPendingValue(undefined);
-    if (!selection) return;
-
-    try {
-      await resetMutation.mutateAsync();
-    } catch {
-      return;
-    }
-    saveProviderMutation.mutate(selection.providerId);
-    saveModelMutation.mutate(selection.modelId);
-  }
-
-  function handleCancel() {
-    setPendingValue(undefined);
-  }
-
-  const isConfirming = resetMutation.isPending;
-
-  return (
-    <>
-      <ModelCombobox
-        providerModels={providerModels}
-        value={value}
-        onValueChange={handleValueChange}
-        placeholder="Select embedding model"
-        showClear={false}
-      />
-
-      <ConfirmDialog
-        open={pendingValue !== undefined}
-        onOpenChange={(open) => !open && handleCancel()}
-        title="Change embedding model?"
-        description="Switching the embedding model will permanently delete all stored memories. This action cannot be undone."
-        onConfirm={() => void handleConfirm()}
-        confirmLabel="Delete memories & switch"
-        isPending={isConfirming}
-        contentClassName="max-w-sm"
-      />
-    </>
-  );
-}
 
 function MemoryToggles() {
   const queryClient = useQueryClient();
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-  const { data: providerModels } = useSuspenseQuery(embeddingProviderModelsQueryOptions);
-
-  const memoryEnabled = settings['memory.enabled'] !== 'false';
-  const autoExtract = settings['memory.autoExtract'] !== 'false';
-  const hasEmbeddingSelection =
-    settings['memory.embedding.providerId']?.trim().length > 0 &&
-    settings['memory.embedding.modelId']?.trim().length > 0;
-  const selectedModelAvailable = providerModels.some(
-    (provider) =>
-      provider.providerId === settings['memory.embedding.providerId'] &&
-      provider.models.some((model) => model.id === settings['memory.embedding.modelId']),
-  );
-  const canEnableMemory = hasEmbeddingSelection && selectedModelAvailable;
-
-  const saveEnabledMutation = useMutation(saveSettingMutationOptions('memory.enabled', queryClient, { silent: true }));
-  const saveAutoExtractMutation = useMutation(
-    saveSettingMutationOptions('memory.autoExtract', queryClient, { silent: true }),
-  );
+  const saveEnabled = useMutation(saveSettingMutationOptions('memory.enabled', queryClient, { silent: true }));
+  const saveAutoExtract = useMutation(saveSettingMutationOptions('memory.autoExtract', queryClient, { silent: true }));
+  const enabled = settings['memory.enabled'] !== 'false';
 
   return (
-    <>
-      <SettingRows>
-        <SettingRow
-          label="Enable Memory"
-          description="Learn and remember preferences, facts, and workflows across sessions"
-          htmlFor="memory-enabled-toggle">
-          <Switch
-            id="memory-enabled-toggle"
-            checked={memoryEnabled}
-            disabled={!memoryEnabled && !canEnableMemory}
-            onCheckedChange={(checked) => saveEnabledMutation.mutate(checked ? 'true' : 'false')}
-          />
-        </SettingRow>
-        <SettingRow
-          label="Auto-extract memories"
-          description="Automatically extract facts from conversations after each response"
-          htmlFor="auto-extract-toggle">
-          <Switch
-            id="auto-extract-toggle"
-            checked={autoExtract}
-            disabled={!memoryEnabled}
-            onCheckedChange={(checked) => saveAutoExtractMutation.mutate(checked ? 'true' : 'false')}
-          />
-        </SettingRow>
-      </SettingRows>
-      {!memoryEnabled && !canEnableMemory ? (
-        <Text variant="caption" tone="muted">
-          Select an embedding model to enable memory.
-        </Text>
-      ) : null}
-    </>
+    <SettingRows>
+      <SettingRow
+        label="Enable Memory"
+        description="Load curated local Markdown into conversations and make memory tools available"
+        htmlFor="memory-enabled-toggle">
+        <Switch
+          id="memory-enabled-toggle"
+          checked={enabled}
+          onCheckedChange={(checked) => saveEnabled.mutate(checked ? 'true' : 'false')}
+        />
+      </SettingRow>
+      <SettingRow
+        label="Auto-capture candidates"
+        description="Extract explicit durable user claims into dated daily notes after responses"
+        htmlFor="memory-auto-extract-toggle">
+        <Switch
+          id="memory-auto-extract-toggle"
+          checked={settings['memory.autoExtract'] !== 'false'}
+          disabled={!enabled}
+          onCheckedChange={(checked) => saveAutoExtract.mutate(checked ? 'true' : 'false')}
+        />
+      </SettingRow>
+    </SettingRows>
   );
 }
 
-function ExtractionSettings() {
-  const queryClient = useQueryClient();
+function CaptureSettings() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-  const confidenceFilter = settings['memory.extraction.confidenceFilter'];
-  const selectedConfidenceLabel =
-    CONFIDENCE_FILTER_OPTIONS.find((option) => option.value === confidenceFilter)?.label ?? 'Select confidence filter';
-
-  const saveConfidenceFilter = useMutation(
-    saveSettingMutationOptions('memory.extraction.confidenceFilter', queryClient, { silent: true }),
-  );
-
-  const importanceScore = Math.max(
-    0,
-    Math.min(1, Number.parseFloat(settings['memory.extraction.importanceMinScore'] ?? '0.7')),
-  );
-
   return (
     <SettingRows>
       <NumberSettingRow
         settingKey="memory.extraction.maxFactsPerTurn"
-        label="Max Facts Per Turn"
-        description="Maximum number of memories extracted in a single response."
+        label="Candidates per turn"
+        description="Maximum durable candidates captured from one response."
         currentValue={settings['memory.extraction.maxFactsPerTurn']}
         min={1}
         max={10}
       />
       <NumberSettingRow
         settingKey="memory.extraction.minMessageLength"
-        label="Min Message Length"
-        description="Skip extraction if user message is shorter than this (characters)."
+        label="Minimum message length"
+        description="Skip automatic capture for shorter user messages."
         currentValue={settings['memory.extraction.minMessageLength']}
         min={0}
         max={500}
       />
-      <SettingRow label="Confidence Filter" description="Which types of extracted facts to store.">
-        <SettingRowControl>
-          <Select
-            value={confidenceFilter}
-            onValueChange={(val) => {
-              if (val) saveConfidenceFilter.mutate(val);
-            }}>
-            <SelectTrigger className="w-full">
-              <SelectValue>{selectedConfidenceLabel}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {CONFIDENCE_FILTER_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </SettingRowControl>
-      </SettingRow>
-      <SliderSettingRow
-        settingKey="memory.extraction.importanceMinScore"
-        label="Min Importance Score"
-        description="Facts below this threshold (0-1) are discarded. Higher = stricter capture."
-        currentValue={importanceScore}
-        min={0}
-        max={1}
-        step={0.05}
-      />
       <NumberSettingRow
         settingKey="memory.extraction.maxFactsPerSession"
-        label="Max Facts Per Session"
-        description="Hard cap on total auto-extracted memories written per session."
+        label="Candidates per session"
+        description="Maximum automatic candidates captured in one session."
         currentValue={settings['memory.extraction.maxFactsPerSession']}
         min={1}
         max={200}
       />
       <NumberSettingRow
         settingKey="memory.extraction.minTurnsBetweenWrites"
-        label="Min Turns Between Writes"
-        description="Cooldown: minimum user turns between consecutive auto-memory writes."
+        label="Turns between writes"
+        description="Minimum user turns between automatic daily-note writes."
         currentValue={settings['memory.extraction.minTurnsBetweenWrites']}
         min={0}
         max={20}
       />
       <SwitchSettingRow
         settingKey="memory.extraction.fromAutomations"
-        label="Extract From Automations"
-        description="Allow automation sessions to extract and store new memories. When off, only chat sessions write memories."
+        label="Capture from automations"
+        description="Allow automation sessions to write daily candidates. Automation candidates are not automatically promoted."
         checked={settings['memory.extraction.fromAutomations'] === 'true'}
       />
     </SettingRows>
   );
 }
 
-function RetentionSettings() {
+function CurationSettings() {
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-
   return (
     <SettingRows>
       <NumberSettingRow
-        settingKey="memory.retention.maxMemories"
-        label="Max Memories"
-        description="Hard cap on total stored memories. Oldest low-value memories are pruned first."
-        currentValue={settings['memory.retention.maxMemories']}
-        min={10}
-        max={5000}
+        settingKey="memory.curated.memoryCharLimit"
+        label="Long-term character limit"
+        description="Maximum model-visible characters in MEMORY.md."
+        currentValue={settings['memory.curated.memoryCharLimit']}
+        min={1000}
+        max={50000}
       />
       <NumberSettingRow
-        settingKey="memory.retention.staleDays"
-        label="Stale Days"
-        description="Memories not accessed in this many days are candidates for pruning."
-        currentValue={settings['memory.retention.staleDays']}
+        settingKey="memory.curated.userCharLimit"
+        label="Profile character limit"
+        description="Maximum model-visible characters in USER.md."
+        currentValue={settings['memory.curated.userCharLimit']}
+        min={500}
+        max={25000}
+      />
+      <SwitchSettingRow
+        settingKey="memory.consolidation.enabled"
+        label="Scheduled consolidation"
+        description="Review changed daily notes every six hours and curate eligible candidates."
+        checked={settings['memory.consolidation.enabled'] !== 'false'}
+      />
+      <NumberSettingRow
+        settingKey="memory.consolidation.maxCandidatesPerRun"
+        label="Candidates per consolidation"
+        description="Maximum candidates reviewed in one bounded curation pass."
+        currentValue={settings['memory.consolidation.maxCandidatesPerRun']}
         min={1}
-        max={365}
+        max={200}
       />
-      <SwitchSettingRow
-        settingKey="memory.retention.autoprune"
-        label="Auto-prune"
-        description="Run automatic pruning after extraction to stay within limits."
-        checked={settings['memory.retention.autoprune'] === 'true'}
-      />
-      <SliderSettingRow
-        settingKey="memory.retention.dedupThreshold"
-        label="Dedup Similarity Threshold"
-        description="How similar two memories must be to count as duplicates. Lower = more aggressive dedup."
-        currentValue={Number(settings['memory.retention.dedupThreshold'])}
-        min={0.5}
-        max={1}
-        step={0.01}
-      />
-    </SettingRows>
-  );
-}
-
-function RetrievalSettings() {
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-
-  const minScore = Math.max(0, Math.min(1, Number.parseFloat(settings['memory.retrieval.minScore'] ?? '0')));
-
-  return (
-    <SettingRows>
-      <NumberSettingRow
-        settingKey="memory.retrieval.maxResults"
-        label="Max Context Results"
-        description="Maximum memories injected into context per turn."
-        currentValue={settings['memory.retrieval.maxResults']}
-        min={1}
-        max={20}
-      />
-      <SliderSettingRow
-        settingKey="memory.retrieval.minScore"
-        label="Min Relevance Score"
-        description="Minimum score (0.0 to 1.0) to include a memory."
-        currentValue={minScore}
-        min={0}
-        max={1}
-        step={0.05}
-      />
-      <SwitchSettingRow
-        settingKey="memory.retrieval.recencyBoost"
-        label="Recency Boost"
-        description="Boost recently-accessed memories in ranking."
-        checked={settings['memory.retrieval.recencyBoost'] === 'true'}
-      />
-      <SwitchSettingRow
-        settingKey="memory.retrieval.contextAwareQuery"
-        label="Context-Aware Query"
-        description="Include the preceding assistant message when building the memory search query, so vague follow-ups resolve to the conversation topic."
-        checked={settings['memory.retrieval.contextAwareQuery'] === 'true'}
-      />
-      <SwitchSettingRow
-        settingKey="memory.retrieval.skipLowSignal"
-        label="Skip Low-Signal Messages"
-        description={`Skip memory retrieval for short, low-content messages (e.g. "continue", "ok do that") and reuse the previous turn's memories instead.`}
-        checked={settings['memory.retrieval.skipLowSignal'] === 'true'}
-      />
-    </SettingRows>
-  );
-}
-
-function EmbeddingModelContent() {
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-  const { data: providerModels } = useSuspenseQuery(embeddingProviderModelsQueryOptions);
-
-  if (providerModels.length === 0) {
-    return (
-      <Text tone="muted">No embedding models in providers configured. Please add another provider that has one</Text>
-    );
-  }
-
-  return (
-    <SettingRows>
-      <SettingRow label="Embedding Model" description="Model used for memory search. Required to enable memory.">
-        <SettingRowControl>
-          <EmbeddingModelSelect
-            currentProviderId={settings['memory.embedding.providerId']}
-            currentModelId={settings['memory.embedding.modelId']}
-            providerModels={providerModels}
-          />
-        </SettingRowControl>
-      </SettingRow>
     </SettingRows>
   );
 }
@@ -372,41 +134,27 @@ function EmbeddingModelContent() {
 export function MemorySettings() {
   const page = SETTINGS_PAGE_BY_ID.memory;
   const Icon = page.icon;
-
   return (
     <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
       <Tabs defaultValue="general" className="space-y-space-xl">
         <TabsList variant="line">
           <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="embedding">Embedding</TabsTrigger>
-          <TabsTrigger value="extraction">Extraction</TabsTrigger>
-          <TabsTrigger value="retention">Retention</TabsTrigger>
-          <TabsTrigger value="retrieval">Retrieval</TabsTrigger>
+          <TabsTrigger value="capture">Capture</TabsTrigger>
+          <TabsTrigger value="curation">Curation</TabsTrigger>
         </TabsList>
-
         <TabsContent value="general">
           <SettingSection className="mt-space-none">
             <MemoryToggles />
           </SettingSection>
         </TabsContent>
-        <TabsContent value="embedding">
+        <TabsContent value="capture">
           <SettingSection className="mt-space-none">
-            <EmbeddingModelContent />
+            <CaptureSettings />
           </SettingSection>
         </TabsContent>
-        <TabsContent value="extraction">
+        <TabsContent value="curation">
           <SettingSection className="mt-space-none">
-            <ExtractionSettings />
-          </SettingSection>
-        </TabsContent>
-        <TabsContent value="retention">
-          <SettingSection className="mt-space-none">
-            <RetentionSettings />
-          </SettingSection>
-        </TabsContent>
-        <TabsContent value="retrieval">
-          <SettingSection className="mt-space-none">
-            <RetrievalSettings />
+            <CurationSettings />
           </SettingSection>
         </TabsContent>
       </Tabs>

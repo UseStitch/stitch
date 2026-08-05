@@ -18,7 +18,17 @@ export async function runMemoryMaintenance(): Promise<ServiceResult<Consolidatio
       rejectedCount: 0,
     });
   }
-  const result = await consolidateMemories();
+  if (!config.consolidationEnabled) {
+    return ok({
+      status: 'noop',
+      lastRunAt: new Date().toISOString(),
+      summary: 'Memory consolidation is disabled.',
+      candidateCount: 0,
+      promotedCount: 0,
+      rejectedCount: 0,
+    });
+  }
+  const result = await consolidateMemories({ maxCandidates: config.maxCandidatesPerRun });
   log.info(result, 'memory consolidation complete');
   return ok(result);
 }
