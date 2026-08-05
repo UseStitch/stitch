@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { AWS_BEDROCK_REGIONS, isLlmProviderId } from '@stitch/shared/providers/types';
+import { AWS_BEDROCK_REGIONS, isEmbeddingProviderId, isLlmProviderId } from '@stitch/shared/providers/types';
 import type { EmbeddingProviderId, LlmProviderId, ProviderId } from '@stitch/shared/providers/types';
 
 const AWS_REGION_VALUES = AWS_BEDROCK_REGIONS.map((r) => r.value) as [string, ...string[]];
@@ -112,6 +112,8 @@ export const ProviderCredentialsSchema = z.discriminatedUnion('providerId', [
 
 export type ProviderCredentials = z.infer<typeof ProviderCredentialsSchema>;
 export type LlmProviderCredentials = Extract<ProviderCredentials, { providerId: LlmProviderId }>;
+/** @knipignore Reserved for embedding consumers. */
+export type EmbeddingProviderCredentials = Extract<ProviderCredentials, { providerId: EmbeddingProviderId }>;
 export type ModelProviderCredentials = Extract<
   ProviderCredentials,
   { providerId: LlmProviderId | EmbeddingProviderId }
@@ -119,6 +121,13 @@ export type ModelProviderCredentials = Extract<
 
 export function isLlmProviderCredentials(credentials: ProviderCredentials): credentials is LlmProviderCredentials {
   return isLlmProviderId(credentials.providerId);
+}
+
+/** @knipignore Reserved for embedding consumers. */
+export function isEmbeddingProviderCredentials(
+  credentials: ProviderCredentials,
+): credentials is EmbeddingProviderCredentials {
+  return isEmbeddingProviderId(credentials.providerId);
 }
 
 // Compile-time guard: every ProviderId must have a credentials schema entry and vice versa.

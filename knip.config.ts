@@ -2,6 +2,7 @@ import type { KnipConfig } from 'knip';
 
 const config: KnipConfig = {
   includeEntryExports: true,
+  tags: ['-knipignore'],
   workspaces: {
     '.': { entry: [], project: [] },
     'apps/web': {
@@ -20,6 +21,7 @@ const config: KnipConfig = {
     'packages/server': {
       entry: ['src/index.{ts,tsx}', 'src/code-mode/sandbox-process.ts', 'src/**/*.test.{ts,tsx}'],
       project: ['src/**/*.{ts,tsx}'],
+      ignore: ['src/models/embedding/embedder.ts', 'src/models/embedding/provider-embedder.ts', 'src/models/errors.ts'],
     },
     'packages/audio-capture': { entry: ['src/index.{ts,tsx}'], project: ['src/**/*.{ts,tsx}'] },
     'packages/mail': {
