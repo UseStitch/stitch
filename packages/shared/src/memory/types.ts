@@ -79,3 +79,12 @@ export type MemoryMutation =
   | { type: 'add'; content: string; origin?: MemoryOrigin; source?: string }
   | { type: 'replace'; oldText: string; content: string }
   | { type: 'remove'; oldText: string };
+
+export type MemorySearchResult = {
+  filePath: string;
+  entryId: string | null;
+  observed: string | null;
+  excerpt: string;
+  lineStart: number;
+  lineEnd: number;
+};

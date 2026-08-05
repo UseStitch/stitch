@@ -1,12 +1,15 @@
 import { isDbInitialized } from '@/db/client.js';
-import { listEnabledProviderEmbeddingModels } from '@/llm/provider/service.js';
-import { getMemoryConfig, hasConfiguredEmbeddingModel } from '@/memory/config.js';
+import { getMemoryConfig } from '@/memory/config.js';
 import { definition as bash } from '@/tools/core/bash.js';
 import { definition as createSkill } from '@/tools/core/create-skill.js';
 import { definition as edit } from '@/tools/core/edit.js';
 import { definition as glob } from '@/tools/core/glob.js';
 import { definition as grep } from '@/tools/core/grep.js';
-import { createDefinition as createMemoryDefinition } from '@/tools/core/memory.js';
+import {
+  createMemoryDefinition,
+  createMemoryGetDefinition,
+  createMemorySearchDefinition,
+} from '@/tools/core/memory.js';
 import { createDefinition as createQuestionDefinition } from '@/tools/core/question.js';
 import { definition as read } from '@/tools/core/read.js';
 import { definition as renderUi } from '@/tools/core/render-ui.js';
@@ -53,17 +56,20 @@ export const CORE_TOOL_CATALOG: CatalogEntry[] = [
     name: 'memory',
     displayName: 'Memory',
     create: createMemoryDefinition,
-    enabled: async () => {
-      if (!isDbInitialized()) return false;
-      const memoryConfig = await getMemoryConfig();
-      if (!hasConfiguredEmbeddingModel(memoryConfig)) return false;
-      const result = await listEnabledProviderEmbeddingModels();
-      const providers = result.error ? [] : result.data;
-      return providers.some(
-        (provider) =>
-          provider.providerId === memoryConfig.embeddingProviderId &&
-          provider.models.some((model) => model.id === memoryConfig.embeddingModelId),
-      );
-    },
+    enabled: async () => isDbInitialized() && (await getMemoryConfig()).enabled,
+  },
+  {
+    kind: 'contextual',
+    name: 'memory_search',
+    displayName: 'Memory Search',
+    create: createMemorySearchDefinition,
+    enabled: async () => isDbInitialized() && (await getMemoryConfig()).enabled,
+  },
+  {
+    kind: 'contextual',
+    name: 'memory_get',
+    displayName: 'Memory Get',
+    create: createMemoryGetDefinition,
+    enabled: async () => isDbInitialized() && (await getMemoryConfig()).enabled,
   },
 ];

@@ -1,15 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import {
-  copyFile,
-  mkdir,
-  open,
-  readFile,
-  readdir,
-  realpath,
-  rename,
-  stat,
-  unlink,
-} from 'node:fs/promises';
+import { copyFile, mkdir, open, readFile, readdir, realpath, rename, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
 
 import { PATHS } from '@/lib/paths.js';
@@ -20,6 +10,7 @@ import type {
   MemoryFileSnapshot,
   MemoryMutation,
   MemoryOrigin,
+  MemorySearchResult,
   MemoryTarget,
 } from '@/memory/types.js';
 
@@ -54,17 +45,9 @@ export class MemoryCapacityError extends MemoryStoreError {
 
 export class MemoryPathError extends MemoryStoreError {}
 
-type ParsedDocument = {
-  entries: ManagedMemoryEntry[];
-  modelContent: string;
-};
+type ParsedDocument = { entries: ManagedMemoryEntry[]; modelContent: string };
 
-type FileStoreOptions = {
-  rootDir?: string;
-  memoryCharLimit?: number;
-  userCharLimit?: number;
-  now?: () => Date;
-};
+type FileStoreOptions = { rootDir?: string; memoryCharLimit?: number; userCharLimit?: number; now?: () => Date };
 
 type AddEntry = {
   content: string;
@@ -194,7 +177,8 @@ export class MemoryFileStore {
     const [rawContent, fileStat] = await Promise.all([readFile(absolutePath, 'utf8'), stat(absolutePath)]);
     const defaultTarget = relativePath === 'USER.md' ? 'user' : 'memory';
     const parsed = parseDocument(rawContent, relativePath.replaceAll('\\', '/'), defaultTarget);
-    const limit = relativePath === 'MEMORY.md' ? this.memoryCharLimit : relativePath === 'USER.md' ? this.userCharLimit : null;
+    const limit =
+      relativePath === 'MEMORY.md' ? this.memoryCharLimit : relativePath === 'USER.md' ? this.userCharLimit : null;
 
     return {
       name: relativePath as MemoryFileSnapshot['name'],
@@ -239,7 +223,9 @@ export class MemoryFileStore {
         const matches = parsed.entries.filter((entry) => entry.content.includes(operation.oldText));
         if (matches.length !== 1) {
           throw new MemoryConflictError(
-            matches.length === 0 ? 'No memory entry uniquely matches oldText' : 'oldText matches multiple memory entries',
+            matches.length === 0
+              ? 'No memory entry uniquely matches oldText'
+              : 'oldText matches multiple memory entries',
           );
         }
         const match = matches[0];
@@ -306,7 +292,85 @@ export class MemoryFileStore {
   async listDailyFiles(): Promise<string[]> {
     await this.ensureInitialized();
     const names = await readdir(path.join(this.rootDir, 'daily'));
-    return names.filter((name) => /^\d{4}-\d{2}-\d{2}\.md$/.test(name)).toSorted().reverse().map((name) => `daily/${name}`);
+    return names
+      .filter((name) => /^\d{4}-\d{2}-\d{2}\.md$/.test(name))
+      .toSorted()
+      .reverse()
+      .map((name) => `daily/${name}`);
+  }
+
+  async search(query: string, limit = 20): Promise<MemorySearchResult[]> {
+    const terms = [...new Set(query.toLocaleLowerCase().match(/[\p{L}\p{N}_-]+/gu) ?? [])];
+    if (terms.length === 0) return [];
+    const paths = ['USER.md', 'MEMORY.md', ...(await this.listDailyFiles())];
+    const snapshots = await Promise.all(paths.map((filePath) => this.readFile(filePath)));
+    const results: Array<MemorySearchResult & { score: number }> = [];
+
+    for (const snapshot of snapshots) {
+      for (const entry of snapshot.entries) {
+        const haystack = entry.content.toLocaleLowerCase();
+        const score = terms.filter((term) => haystack.includes(term)).length;
+        if (score === 0) continue;
+        results.push({
+          filePath: entry.filePath,
+          entryId: entry.id,
+          observed: entry.observed,
+          excerpt: entry.content.slice(0, 500),
+          lineStart: entry.lineStart,
+          lineEnd: entry.lineEnd,
+          score,
+        });
+      }
+
+      const managedLines = new Set(
+        snapshot.entries.flatMap((entry) => {
+          const lines: number[] = [];
+          for (let line = entry.lineStart; line <= entry.lineEnd; line += 1) lines.push(line);
+          return lines;
+        }),
+      );
+      snapshot.rawContent.split('\n').forEach((line, index) => {
+        const lineNumber = index + 1;
+        const haystack = line.toLocaleLowerCase();
+        const score = terms.filter((term) => haystack.includes(term)).length;
+        if (score === 0 || managedLines.has(lineNumber)) return;
+        results.push({
+          filePath: snapshot.name,
+          entryId: null,
+          observed: DAILY_PATH_PATTERN.exec(snapshot.name)?.[1] ?? null,
+          excerpt: line.slice(0, 500),
+          lineStart: lineNumber,
+          lineEnd: lineNumber,
+          score,
+        });
+      });
+    }
+
+    return results
+      .toSorted(
+        (left, right) =>
+          right.score - left.score || left.filePath.localeCompare(right.filePath) || left.lineStart - right.lineStart,
+      )
+      .slice(0, limit)
+      .map(({ score: _score, ...result }) => result);
+  }
+
+  async readLines(
+    relativePath: string,
+    offset = 1,
+    limit = 200,
+  ): Promise<{ content: string; offset: number; nextOffset: number | null; truncated: boolean }> {
+    const snapshot = await this.readFile(relativePath);
+    const lines = snapshot.rawContent.split('\n');
+    const start = Math.max(0, offset - 1);
+    const selected = lines.slice(start, start + limit);
+    const nextOffset = start + selected.length < lines.length ? start + selected.length + 1 : null;
+    return {
+      content: selected.map((line, index) => `${start + index + 1}: ${line}`).join('\n'),
+      offset: start + 1,
+      nextOffset,
+      truncated: nextOffset !== null,
+    };
   }
 
   private assertCapacity(content: string, target: MemoryTarget): void {
@@ -321,7 +385,8 @@ export class MemoryFileStore {
     }
     const absolutePath = path.resolve(this.rootDir, normalized);
     const relative = path.relative(this.rootDir, absolutePath);
-    if (relative.startsWith('..') || path.isAbsolute(relative)) throw new MemoryPathError('Memory path escapes the memory root');
+    if (relative.startsWith('..') || path.isAbsolute(relative))
+      throw new MemoryPathError('Memory path escapes the memory root');
 
     try {
       const [rootRealPath, fileRealPath] = await Promise.all([realpath(this.rootDir), realpath(absolutePath)]);
@@ -393,3 +458,5 @@ export class MemoryFileStore {
     }
   }
 }
+
+export const memoryFileStore = new MemoryFileStore();

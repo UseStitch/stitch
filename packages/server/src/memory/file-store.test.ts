@@ -3,12 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import {
-  MemoryCapacityError,
-  MemoryConflictError,
-  MemoryFileStore,
-  MemoryPathError,
-} from '@/memory/file-store.js';
+import { MemoryCapacityError, MemoryConflictError, MemoryFileStore, MemoryPathError } from '@/memory/file-store.js';
 
 const roots: string[] = [];
 const NOW = new Date('2026-08-04T12:00:00.000Z');
@@ -61,7 +56,9 @@ describe('MemoryFileStore', () => {
     const manual = '# Long-term memory\n\nThis paragraph is managed by the user.\n';
     await writeFile(path.join(store.rootDir, 'MEMORY.md'), manual);
 
-    const added = await store.mutate('memory', [{ type: 'add', content: 'The calendar uses Google.', source: 'ses_1' }]);
+    const added = await store.mutate('memory', [
+      { type: 'add', content: 'The calendar uses Google.', source: 'ses_1' },
+    ]);
     const replaced = await store.mutate(
       'memory',
       [{ type: 'replace', oldText: 'Google', content: 'Google Calendar' }],
@@ -119,9 +116,9 @@ describe('MemoryFileStore', () => {
     const before = await store.readCurated('memory');
     await writeFile(path.join(store.rootDir, 'MEMORY.md'), '# Long-term memory\n\nExternal edit.\n');
 
-    expect(
-      store.mutate('memory', [{ type: 'add', content: 'Would overwrite.' }], before.contentHash),
-    ).rejects.toThrow('changed outside Stitch');
+    expect(store.mutate('memory', [{ type: 'add', content: 'Would overwrite.' }], before.contentHash)).rejects.toThrow(
+      'changed outside Stitch',
+    );
     expect(await readFile(path.join(store.rootDir, 'MEMORY.md'), 'utf8')).toContain('External edit.');
   });
 
@@ -159,5 +156,33 @@ describe('MemoryFileStore', () => {
     expect(store.readFile('../MEMORY.md')).rejects.toBeInstanceOf(MemoryPathError);
     expect(store.readFile('.state/consolidation.json')).rejects.toBeInstanceOf(MemoryPathError);
     expect(store.readFile('daily\\2026-08-04.md')).rejects.toThrow();
+  });
+
+  test('searches curated, daily, and unmanaged text without searching state', async () => {
+    const store = await createStore();
+    await store.mutate('memory', [{ type: 'add', content: 'The household calendar uses Google.' }]);
+    await store.appendDaily([
+      { content: 'The work calendar uses Outlook.', origin: 'user', source: 'ses_1', target: 'memory' },
+    ]);
+    const snapshot = await store.readCurated('user');
+    await store.writeRaw('USER.md', `${snapshot.rawContent}\nManual calendar preference.\n`, snapshot.contentHash);
+
+    const results = await store.search('calendar');
+
+    expect(results.map((result) => result.filePath)).toEqual(['daily/2026-08-04.md', 'MEMORY.md', 'USER.md']);
+    expect(results.some((result) => result.filePath.includes('.state'))).toBe(false);
+  });
+
+  test('returns bounded line excerpts with continuation metadata', async () => {
+    const store = await createStore();
+    await store.ensureInitialized();
+    await writeFile(path.join(store.rootDir, 'MEMORY.md'), '# Long-term memory\none\ntwo\nthree\n');
+
+    expect(await store.readLines('MEMORY.md', 2, 2)).toEqual({
+      content: '2: one\n3: two',
+      offset: 2,
+      nextOffset: 4,
+      truncated: true,
+    });
   });
 });
