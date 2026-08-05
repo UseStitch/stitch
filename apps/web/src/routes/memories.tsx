@@ -5,7 +5,7 @@ import { Link, createFileRoute } from '@tanstack/react-router';
 import { MemoriesPage } from '@/components/memories/memories-page';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Page, PageContent } from '@/components/ui/page';
-import { memoryStatsQueryOptions, semanticMemoriesQueryOptions } from '@/lib/queries/memories';
+import { dailyMemoryQueryOptions, memoryFilesQueryOptions } from '@/lib/queries/memories';
 
 function MemoriesErrorComponent({ error }: { error: Error }) {
   return (
@@ -31,8 +31,8 @@ function MemoriesErrorComponent({ error }: { error: Error }) {
 export const Route = createFileRoute('/memories')({
   loader: ({ context }) =>
     Promise.all([
-      context.queryClient.ensureQueryData(memoryStatsQueryOptions),
-      context.queryClient.ensureQueryData(semanticMemoriesQueryOptions({ page: 1, pageSize: 12 })),
+      context.queryClient.ensureQueryData(memoryFilesQueryOptions),
+      context.queryClient.ensureQueryData(dailyMemoryQueryOptions()),
     ]),
   component: MemoriesPage,
   errorComponent: MemoriesErrorComponent,

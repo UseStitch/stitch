@@ -88,3 +88,29 @@ export type MemorySearchResult = {
   lineStart: number;
   lineEnd: number;
 };
+
+export type MemoryConsolidationStatus = {
+  status: 'never' | 'accepted' | 'rejected' | 'failed' | 'noop';
+  lastRunAt: string | null;
+  summary: string | null;
+  candidateCount: number;
+  promotedCount: number;
+  rejectedCount: number;
+};
+
+export type MemoryFilesOverview = {
+  memory: MemoryFileSnapshot;
+  user: MemoryFileSnapshot;
+  dreams: MemoryFileSnapshot;
+  pendingCandidateCount: number;
+  processedCandidateIds: string[];
+  consolidation: MemoryConsolidationStatus;
+};
+
+export type DailyMemoryFilesResponse = {
+  files: MemoryFileSnapshot[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
