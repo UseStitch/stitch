@@ -1,78 +1,24 @@
 import * as Log from '@/lib/log.js';
 import { ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
-import { consolidateMemories } from '@/memory/consolidation.js';
-import type { ConsolidationResult } from '@/memory/consolidation.js';
-import { deduplicateMemories, getMemoryStats, pruneStaleMemories } from '@/memory/service.js';
-import type { MemoryStats } from '@/memory/service.js';
+import { getMemoryConfig } from '@/memory/config.js';
+import { consolidateMemories, type ConsolidationResult } from '@/memory/consolidation.js';
 
-const log = Log.create({ service: 'memory-maintenance' });
+const log = Log.create({ service: 'memory-consolidation' });
 
-// Manual "Maintainece" sweeps use a lower dedup threshold than the automatic
-const MANUAL_SWEEP_DEDUP_THRESHOLD = 0.8;
-
-type MaintenanceResult = {
-  pruned: number;
-  deduplicated: number;
-  consolidated: ConsolidationResult;
-  stats: MemoryStats | null;
-};
-
-export async function runMemoryMaintenance(
-  options: { manual?: boolean } = {},
-): Promise<ServiceResult<MaintenanceResult>> {
+export async function runMemoryMaintenance(): Promise<ServiceResult<ConsolidationResult>> {
   const config = await getMemoryConfig();
-
-  if (!isMemoryActive(config)) {
-    log.info('memory maintenance skipped — memory not active');
+  if (!config.enabled) {
     return ok({
-      pruned: 0,
-      deduplicated: 0,
-      consolidated: { groupsReviewed: 0, added: 0, updated: 0, deleted: 0, skipped: 0 },
-      stats: null,
+      status: 'noop',
+      lastRunAt: new Date().toISOString(),
+      summary: 'Memory is disabled.',
+      candidateCount: 0,
+      promotedCount: 0,
+      rejectedCount: 0,
     });
   }
-
-  log.info('starting memory maintenance');
-
-  // Phase 1: Autoprune stale/low-value memories if enabled
-  let pruned = 0;
-  if (config.autoprune) {
-    const beforeResult = await getMemoryStats();
-    await pruneStaleMemories({ maxMemories: config.maxMemories, staleDays: config.staleDays });
-    const afterResult = await getMemoryStats();
-    const beforeTotal = beforeResult.error ? 0 : beforeResult.data.total;
-    const afterTotal = afterResult.error ? 0 : afterResult.data.total;
-    pruned = Math.max(0, beforeTotal - afterTotal);
-    log.info({ pruned }, 'memory maintenance: pruning complete');
-  }
-
-  // Phase 2: Dedup sweep — remove near-duplicate memories
-  const dedupThreshold = options.manual ? MANUAL_SWEEP_DEDUP_THRESHOLD : config.dedupThreshold;
-  const deduplicated = await deduplicateMemories(dedupThreshold);
-  log.info({ deduplicated, dedupThreshold }, 'memory maintenance: dedup sweep complete');
-
-  // Phase 3: Reflective consolidation of related semantic memories
-  const consolidated = await consolidateMemories();
-  log.info(consolidated, 'memory maintenance: consolidation complete');
-
-  // Phase 4: Emit stats
-  const statsResult = await getMemoryStats();
-  const stats = statsResult.error ? null : statsResult.data;
-  if (stats) {
-    log.info(
-      {
-        total: stats.total,
-        pinned: stats.pinned,
-        stale: stats.stale,
-        byCategory: stats.byCategory,
-        byConfidence: stats.byConfidence,
-        avgAccessCount: stats.avgAccessCount,
-      },
-      'memory maintenance: stats',
-    );
-  }
-
-  return ok({ pruned, deduplicated, consolidated, stats });
+  const result = await consolidateMemories();
+  log.info(result, 'memory consolidation complete');
+  return ok(result);
 }
