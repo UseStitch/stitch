@@ -9,60 +9,59 @@ import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
-import { getMemoryConfig, isMemoryActive } from '@/memory/config.js';
-import {
-  buildExtractionPrompt,
-  buildDeduplicationPrompt,
-  extractionSchema,
-  deduplicationSchema,
-} from '@/memory/prompts.js';
-import {
-  addSemanticMemory,
-  updateSemanticMemory,
-  deleteSemanticMemory,
-  searchSemanticMemories,
-  pruneStaleMemories,
-} from '@/memory/service.js';
-import type { MemorySource } from '@/memory/types.js';
+import { getMemoryConfig } from '@/memory/config.js';
+import { memoryFileStore } from '@/memory/file-store.js';
+import { buildExtractionPrompt, extractionSchema } from '@/memory/prompts.js';
+import type { MemorySource, MemoryTarget } from '@/memory/types.js';
 
-const log = Log.create({ service: 'memory-processor' });
+const log = Log.create({ service: 'memory-capture' });
+const SECRET_PATTERN = /(?:api[_ -]?key|access[_ -]?token|password|secret|bearer\s+[a-z0-9._-]+)/i;
+const TASK_PATTERN = /\b(?:remind me|todo|to-do|deadline|due (?:today|tomorrow|on)|currently|right now)\b/i;
 
-// ---------------------------------------------------------------------------
-// Per-session write budget tracking (in-process, resets on server restart).
-// Tracks: total facts written this session, and last turn index a write occurred.
-// ---------------------------------------------------------------------------
-
+type Candidate = { content: string; target: MemoryTarget; durability: 'ephemeral' | 'session' | 'long_term' };
 type SessionWriteState = { factsWritten: number; lastWriteTurn: number; turnCount: number };
-
 const sessionWriteState = new Map<string, SessionWriteState>();
 
-function getSessionState(sessionId: string): SessionWriteState {
-  let state = sessionWriteState.get(sessionId);
-  if (!state) {
-    state = { factsWritten: 0, lastWriteTurn: -1, turnCount: 0 };
-    sessionWriteState.set(sessionId, state);
+export function filterCaptureCandidates(candidates: Candidate[], existing: Set<string>, limit: number): Candidate[] {
+  const accepted: Candidate[] = [];
+  const seen = new Set(existing);
+  for (const candidate of candidates) {
+    const content = candidate.content.trim();
+    const key = `${candidate.target}\0${content.toLocaleLowerCase()}`;
+    if (
+      candidate.durability !== 'long_term' ||
+      content.length < 10 ||
+      content.length > 500 ||
+      SECRET_PATTERN.test(content) ||
+      TASK_PATTERN.test(content) ||
+      seen.has(key)
+    ) {
+      continue;
+    }
+    seen.add(key);
+    accepted.push({ ...candidate, content });
+    if (accepted.length >= limit) break;
   }
-  return state;
+  return accepted;
+}
+
+async function existingCandidateKeys(): Promise<Set<string>> {
+  const paths = ['MEMORY.md', 'USER.md', ...(await memoryFileStore.listDailyFiles())];
+  const snapshots = await Promise.all(paths.map((filePath) => memoryFileStore.readFile(filePath)));
+  return new Set(
+    snapshots.flatMap((snapshot) =>
+      snapshot.entries.map((entry) => `${entry.target}\0${entry.content.trim().toLocaleLowerCase()}`),
+    ),
+  );
 }
 
 function incrementTurn(sessionId: string): SessionWriteState {
-  const state = getSessionState(sessionId);
-  state.turnCount++;
+  const state = sessionWriteState.get(sessionId) ?? { factsWritten: 0, lastWriteTurn: -1, turnCount: 0 };
+  state.turnCount += 1;
+  sessionWriteState.set(sessionId, state);
   return state;
 }
 
-function recordWrite(sessionId: string, count: number): void {
-  const state = getSessionState(sessionId);
-  state.factsWritten += count;
-  state.lastWriteTurn = state.turnCount;
-}
-
-/**
- * Asynchronously process a conversation turn to extract and persist memories.
- *
- * This is designed to be fire-and-forget after the response stream completes.
- * It never throws — all errors are caught and logged.
- */
 export async function processMemories(input: {
   sessionId: string;
   userMessage: string;
@@ -73,42 +72,15 @@ export async function processMemories(input: {
 }): Promise<void> {
   try {
     const config = await getMemoryConfig();
-    if (!isMemoryActive(config) || !config.autoExtract) {
-      return;
-    }
+    if (!config.enabled || !config.autoExtract || input.userMessage.trim().length < config.minMessageLength) return;
 
-    if (input.userMessage.trim().length < config.minMessageLength) {
-      log.debug({ sessionId: input.sessionId, len: input.userMessage.length }, 'skipping extraction for short message');
-      return;
-    }
-
-    // Increment turn count and check write cooldown
-    const sessionState = incrementTurn(input.sessionId);
-
-    // Check per-session facts cap
-    if (sessionState.factsWritten >= config.maxFactsPerSession) {
-      log.debug(
-        { sessionId: input.sessionId, factsWritten: sessionState.factsWritten, cap: config.maxFactsPerSession },
-        'skipping extraction: session facts cap reached',
-      );
-      return;
-    }
-
-    // Check cooldown: must be at least minTurnsBetweenWrites turns since last write
+    const state = incrementTurn(input.sessionId);
     if (
-      config.minTurnsBetweenWrites > 0 &&
-      sessionState.lastWriteTurn >= 0 &&
-      sessionState.turnCount - sessionState.lastWriteTurn < config.minTurnsBetweenWrites
+      state.factsWritten >= config.maxFactsPerSession ||
+      (config.minTurnsBetweenWrites > 0 &&
+        state.lastWriteTurn >= 0 &&
+        state.turnCount - state.lastWriteTurn < config.minTurnsBetweenWrites)
     ) {
-      log.debug(
-        {
-          sessionId: input.sessionId,
-          turnCount: sessionState.turnCount,
-          lastWriteTurn: sessionState.lastWriteTurn,
-          minTurns: config.minTurnsBetweenWrites,
-        },
-        'skipping extraction: write cooldown active',
-      );
       return;
     }
 
@@ -121,227 +93,55 @@ export async function processMemories(input: {
       }),
       resolveMemorySource(input.sessionId, input.memorySource),
     ]);
+    if (memorySource === 'automation' && !config.extractFromAutomations) return;
+    if (!resolved) return;
 
-    if (memorySource === 'automation' && !config.extractFromAutomations) {
-      log.debug({ sessionId: input.sessionId }, 'skipping extraction: automation session extraction disabled');
-      return;
-    }
-
-    if (!resolved) {
-      log.warn('no model available for memory extraction');
-      return;
-    }
-
-    const model = createProvider(resolved.credentials)(resolved.modelId);
-
-    const extractionPrompt = buildExtractionPrompt(input.userMessage, input.assistantMessage);
-    const extractionStart = Date.now();
-    const extractionResult = await generateText({
-      model,
+    const startedAt = Date.now();
+    const result = await generateText({
+      model: createProvider(resolved.credentials)(resolved.modelId),
       output: Output.object({ schema: extractionSchema }),
-      messages: [{ role: 'user', content: extractionPrompt }],
+      messages: [{ role: 'user', content: buildExtractionPrompt(input.userMessage, input.assistantMessage) }],
     });
-    const extractionEnd = Date.now();
-
-    if (extractionResult.usage) {
+    if (result.usage) {
       internalBus.emit('usage.memory.completed', {
         providerId: resolved.providerId,
         modelId: resolved.modelId,
-        usage: extractionResult.usage,
+        usage: result.usage,
         phase: 'extraction',
-        startedAt: extractionStart,
-        endedAt: extractionEnd,
+        startedAt,
+        endedAt: Date.now(),
       });
     }
 
-    let facts = extractionResult.output?.facts ?? [];
-    if (facts.length === 0) {
-      log.debug({ sessionId: input.sessionId }, 'no facts extracted from turn');
-      return;
-    }
-
-    // Filter by confidence
-    if (config.confidenceFilter !== 'all') {
-      facts = facts.filter((fact) => {
-        if (config.confidenceFilter === 'stated') return fact.confidence === 'stated';
-        if (config.confidenceFilter === 'stated+confirmed')
-          return fact.confidence === 'stated' || fact.confidence === 'confirmed';
-        return true;
-      });
-    }
-
-    // Gate 1: Importance score filter — discard low-value facts before any DB work
-    facts = facts.filter((fact) => {
-      if (fact.importanceScore < config.importanceMinScore) {
-        log.debug(
-          { factContent: fact.content, importanceScore: fact.importanceScore, threshold: config.importanceMinScore },
-          'discarding fact: below importance threshold',
-        );
-        return false;
-      }
-      return true;
-    });
-
-    // Gate 2: Durability filter — only persist long_term facts automatically
-    facts = facts.filter((fact) => {
-      if (fact.durability !== 'long_term') {
-        log.debug(
-          { factContent: fact.content, durability: fact.durability },
-          'discarding fact: not long_term durability',
-        );
-        return false;
-      }
-      return true;
-    });
-
-    // Apply per-turn cap
-    if (facts.length > config.maxFactsPerTurn) {
-      // Keep highest-importance facts when capping
-      facts = facts.toSorted((a, b) => b.importanceScore - a.importanceScore).slice(0, config.maxFactsPerTurn);
-    }
-
-    // Apply remaining session budget
-    const remainingBudget = config.maxFactsPerSession - sessionState.factsWritten;
-    if (facts.length > remainingBudget) {
-      facts = facts.slice(0, remainingBudget);
-    }
-
-    if (facts.length === 0) {
-      log.debug({ sessionId: input.sessionId }, 'all facts filtered out after gates');
-      return;
-    }
-
-    log.info({ sessionId: input.sessionId, factCount: facts.length }, 'extracted facts from conversation turn');
-
-    const existingMemoriesPerFact = await Promise.all(
-      facts.map((fact) =>
-        searchSemanticMemories({ query: fact.content, page: 1, pageSize: 5 }).then((result) =>
-          result.error ? [] : result.data.memories,
-        ),
-      ),
+    const remaining = Math.min(config.maxFactsPerTurn, config.maxFactsPerSession - state.factsWritten);
+    const candidates = filterCaptureCandidates(
+      result.output?.candidates ?? [],
+      await existingCandidateKeys(),
+      remaining,
     );
-
-    let addCount = 0;
-    let updateCount = 0;
-    let deleteCount = 0;
-    let noneCount = 0;
-    let skipCount = 0;
-
-    for (let i = 0; i < facts.length; i++) {
-      const fact = facts[i];
-      const existing = existingMemoriesPerFact[i];
-
-      // Similarity pre-check: skip dedup LLM call only when score is extremely high AND
-      // no meaningful contradiction is likely. We now use a tighter threshold (0.95) to
-      // ensure near-matches (0.85–0.95) still go through the dedup LLM which can catch
-      // contradictions like "uses Python 3.9" vs "uses Python 3.12".
-      const topMatch = existing[0];
-      if (topMatch && topMatch.score >= 0.95) {
-        log.info(
-          { factContent: fact.content, score: topMatch.score },
-          'skipping dedup: near-identical memory already exists',
-        );
-        skipCount++;
-        continue;
-      }
-
-      const dedupPrompt = buildDeduplicationPrompt(fact, existing);
-      const dedupStart = Date.now();
-      const dedupResult = await generateText({
-        model,
-        output: Output.object({ schema: deduplicationSchema }),
-        messages: [{ role: 'user', content: dedupPrompt }],
-      });
-      const dedupEnd = Date.now();
-
-      if (dedupResult.usage) {
-        internalBus.emit('usage.memory.completed', {
-          providerId: resolved.providerId,
-          modelId: resolved.modelId,
-          usage: dedupResult.usage,
-          phase: 'deduplication',
-          startedAt: dedupStart,
-          endedAt: dedupEnd,
-        });
-      }
-
-      const decision = dedupResult.output;
-      if (!decision || decision.action === 'NONE') {
-        noneCount++;
-        continue;
-      }
-
-      log.info(
-        { factContent: fact.content, action: decision.action, existingMemoryId: decision.existingMemoryId },
-        'dedup: applying decision',
-      );
-
-      switch (decision.action) {
-        case 'ADD': {
-          await addSemanticMemory(fact, memorySource, input.sessionId);
-          addCount++;
-          break;
-        }
-        case 'UPDATE': {
-          if (decision.existingMemoryId && decision.updatedContent) {
-            await updateSemanticMemory(decision.existingMemoryId, { content: decision.updatedContent });
-            updateCount++;
-          }
-          break;
-        }
-        case 'DELETE': {
-          if (decision.existingMemoryId) {
-            await deleteSemanticMemory(decision.existingMemoryId);
-            deleteCount++;
-          }
-          break;
-        }
-      }
-    }
-
-    const writtenThisTurn = addCount + updateCount;
-    if (writtenThisTurn > 0) {
-      recordWrite(input.sessionId, writtenThisTurn);
-    }
-
-    log.info(
-      {
-        sessionId: input.sessionId,
-        extracted: facts.length,
-        decisions: {
-          ADD: addCount,
-          UPDATE: updateCount,
-          DELETE: deleteCount,
-          NONE: noneCount,
-          SKIPPED_HIGH_SIMILARITY: skipCount,
-        },
-        sessionBudget: {
-          factsWritten: sessionWriteState.get(input.sessionId)?.factsWritten,
-          cap: config.maxFactsPerSession,
-        },
-      },
-      'memory processing complete',
+    if (candidates.length === 0) return;
+    await memoryFileStore.appendDaily(
+      candidates.map((candidate) => ({
+        content: candidate.content,
+        target: candidate.target,
+        origin: memorySource === 'automation' ? 'automation' : 'user',
+        source: input.sessionId,
+      })),
     );
-
-    if (config.autoprune && (addCount > 0 || updateCount > 0)) {
-      await pruneStaleMemories({ maxMemories: config.maxMemories, staleDays: config.staleDays }).catch((err) =>
-        log.warn({ error: err }, 'failed to auto-prune stale memories'),
-      );
-    }
+    state.factsWritten += candidates.length;
+    state.lastWriteTurn = state.turnCount;
+    log.info({ sessionId: input.sessionId, candidateCount: candidates.length }, 'captured daily memory candidates');
   } catch (error) {
-    log.error({ error, sessionId: input.sessionId }, 'memory processing failed');
+    log.error({ error, sessionId: input.sessionId }, 'memory capture failed');
   }
 }
 
 async function resolveMemorySource(sessionId: string, override: MemorySource | undefined): Promise<MemorySource> {
   if (override) return override;
-
-  const db = getDb();
-  const [session] = await db
+  const [session] = await getDb()
     .select({ type: sessions.type })
     .from(sessions)
     .where(eq(sessions.id, sessionId as PrefixedString<'ses'>))
     .limit(1);
-
   return session?.type === 'automation' ? 'automation' : 'chat';
 }

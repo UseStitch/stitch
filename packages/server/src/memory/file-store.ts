@@ -58,6 +58,8 @@ type AddEntry = {
   observed?: string;
 };
 
+export type CuratedEntryInput = Pick<ManagedMemoryEntry, 'id' | 'content' | 'origin' | 'observed' | 'source'>;
+
 function hashContent(content: string): string {
   return createHash('sha256').update(content).digest('hex');
 }
@@ -262,6 +264,67 @@ export class MemoryFileStore {
     });
   }
 
+  async rewriteCuratedPair(input: {
+    memory: CuratedEntryInput[];
+    user: CuratedEntryInput[];
+    memoryHash: string;
+    userHash: string;
+  }): Promise<{ memory: MemoryFileSnapshot; user: MemoryFileSnapshot }> {
+    return this.withFileLock('MEMORY.md', () =>
+      this.withFileLock('USER.md', async () => {
+        const [memoryBefore, userBefore] = await Promise.all([this.readCurated('memory'), this.readCurated('user')]);
+        if (memoryBefore.contentHash !== input.memoryHash || userBefore.contentHash !== input.userHash) {
+          throw new MemoryConflictError('Curated memory changed during consolidation');
+        }
+
+        const memoryRaw = this.rewriteManagedBlocks(memoryBefore, input.memory, 'memory');
+        const userRaw = this.rewriteManagedBlocks(userBefore, input.user, 'user');
+        this.assertCapacity(memoryRaw, 'memory');
+        this.assertCapacity(userRaw, 'user');
+        parseDocument(memoryRaw, 'MEMORY.md', 'memory');
+        parseDocument(userRaw, 'USER.md', 'user');
+
+        await Promise.all([
+          this.backupUnreadable('MEMORY.md', memoryBefore.path),
+          this.backupUnreadable('USER.md', userBefore.path),
+        ]);
+        await this.atomicWrite(memoryBefore.path, memoryRaw);
+        try {
+          await this.atomicWrite(userBefore.path, userRaw);
+        } catch (error) {
+          await this.atomicWrite(memoryBefore.path, memoryBefore.rawContent);
+          throw error;
+        }
+        return { memory: await this.readCurated('memory'), user: await this.readCurated('user') };
+      }),
+    );
+  }
+
+  async appendConsolidationLog(markdown: string): Promise<MemoryFileSnapshot> {
+    return this.withFileLock('DREAMS.md', async () => {
+      const before = await this.readFile('DREAMS.md');
+      await this.atomicWrite(before.path, `${before.rawContent.trimEnd()}\n\n${markdown.trim()}\n`);
+      return this.readFile('DREAMS.md');
+    });
+  }
+
+  async readConsolidationState<T>(): Promise<T | null> {
+    await this.ensureInitialized();
+    try {
+      return JSON.parse(await readFile(path.join(this.rootDir, '.state', 'consolidation.json'), 'utf8')) as T;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+      throw error;
+    }
+  }
+
+  async writeConsolidationState(state: unknown): Promise<void> {
+    await this.atomicWrite(
+      path.join(this.rootDir, '.state', 'consolidation.json'),
+      `${JSON.stringify(state, null, 2)}\n`,
+    );
+  }
+
   async appendDaily(entries: AddEntry[], date = this.now().toISOString().slice(0, 10)): Promise<MemoryFileSnapshot> {
     const relativePath = `daily/${date}.md`;
     return this.withFileLock(relativePath, async () => {
@@ -376,6 +439,22 @@ export class MemoryFileStore {
   private assertCapacity(content: string, target: MemoryTarget): void {
     const capacity = capacityFor(content, target === 'memory' ? this.memoryCharLimit : this.userCharLimit);
     if (capacity.used > capacity.limit) throw new MemoryCapacityError(capacity);
+  }
+
+  private rewriteManagedBlocks(
+    before: MemoryFileSnapshot,
+    proposed: CuratedEntryInput[],
+    target: MemoryTarget,
+  ): string {
+    const proposedById = new Map(proposed.map((entry) => [entry.id, entry]));
+    let raw = before.rawContent;
+    for (const current of before.entries.toReversed()) {
+      const replacement = proposedById.get(current.id);
+      raw = replaceEntryBlock(raw, current, replacement ? serializeEntry({ ...replacement, target }) : '');
+      proposedById.delete(current.id);
+    }
+    const additions = [...proposedById.values()].map((entry) => serializeEntry({ ...entry, target }));
+    return additions.length === 0 ? raw : `${raw.trimEnd()}\n\n${additions.join('\n\n')}\n`;
   }
 
   private async resolveAllowedPath(relativePath: string): Promise<string> {

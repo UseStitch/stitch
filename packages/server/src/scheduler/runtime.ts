@@ -19,7 +19,7 @@ const log = Log.create({ service: 'scheduler' });
 
 const HOUR_MS = 60 * 60 * 1000;
 const LOG_CLEANUP_INTERVAL_MS = 24 * HOUR_MS;
-const MEMORY_MAINTENANCE_INTERVAL_MS = 6 * HOUR_MS;
+const MEMORY_CONSOLIDATION_INTERVAL_MS = 6 * HOUR_MS;
 const MODELS_REFRESH_INTERVAL_MS = 1 * HOUR_MS;
 const STT_REGISTRY_REFRESH_INTERVAL_MS = 6 * HOUR_MS;
 const EMBEDDING_REGISTRY_REFRESH_INTERVAL_MS = 6 * HOUR_MS;
@@ -34,8 +34,8 @@ let scheduler: ReturnType<typeof createScheduler> | null = null;
 function getBuiltinJobs(): RegisteredJob[] {
   const jobs: RegisteredJob[] = [
     {
-      key: 'memory-maintenance',
-      schedule: { type: 'interval', everyMs: MEMORY_MAINTENANCE_INTERVAL_MS },
+      key: 'memory-consolidation',
+      schedule: { type: 'interval', everyMs: MEMORY_CONSOLIDATION_INTERVAL_MS },
       callback: async () => {
         await runMemoryMaintenance();
       },
