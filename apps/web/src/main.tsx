@@ -8,7 +8,7 @@ import { RouterProvider, createHashHistory, createRouter } from '@tanstack/react
 import { DesktopNotificationRoot } from '@/components/desktop-notifications/desktop-notification-root';
 import { SseProvider } from '@/hooks/sse/sse-context';
 import { initClientTelemetry, captureClientEvent } from '@/lib/telemetry/client';
-import { applyAppearanceMode, DEFAULT_MODE, DEFAULT_THEME, getTheme, injectThemeCss } from '@/lib/theme';
+import { applyAppearanceMode, applyTheme, DEFAULT_MODE, DEFAULT_THEME, getTheme } from '@/lib/theme';
 import { routeTree } from '@/routeTree.gen';
 import '@/styles/global.css';
 
@@ -36,7 +36,7 @@ if (!rootElement) throw new Error('Root element #root not found');
 const isDesktopNotificationWindow = window.location.hash.startsWith('#/desktop-notifications');
 
 if (isDesktopNotificationWindow) {
-  injectThemeCss(getTheme(DEFAULT_THEME));
+  applyTheme(getTheme(DEFAULT_THEME));
   applyAppearanceMode(DEFAULT_MODE);
   document.getElementById('stitch-splash')?.remove();
 }

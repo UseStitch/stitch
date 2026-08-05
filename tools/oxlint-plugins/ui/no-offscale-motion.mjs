@@ -1,5 +1,5 @@
 import { createClassTokenVisitor, nearestScaleToken, replaceTailwindUtility } from './class-token-rule.mjs';
-import { DURATION_SCALE, EASING_REPLACEMENTS } from './design-system.generated.mjs';
+import { DURATION_SCALE, EASING_REPLACEMENTS } from './design-system.mjs';
 import { getTailwindUtility, isUiComponentFile } from './jsx-style-utils.mjs';
 
 const OFFSCALE_MOTION = /^(?:duration-\d+|ease-(?!standard$|emphasized$).+)$/;

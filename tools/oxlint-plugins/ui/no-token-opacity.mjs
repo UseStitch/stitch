@@ -1,5 +1,5 @@
 import { createClassTokenVisitor, replaceTailwindUtility } from './class-token-rule.mjs';
-import { TOKEN_OPACITY_REPLACEMENTS } from './design-system.generated.mjs';
+import { TOKEN_OPACITY_REPLACEMENTS } from './design-system.mjs';
 import { getTailwindUtility, isUiComponentFile } from './jsx-style-utils.mjs';
 
 const TOKEN_OPACITY =

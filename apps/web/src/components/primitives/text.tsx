@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 
-import { textAlignClasses, textLineClampClasses, textToneClasses, textVariantClasses } from '@/styles/tokens.generated';
+import { textAlignClasses, textLineClampClasses, textToneClasses, textVariantClasses } from '@/styles/tokens';
 import type { ComponentPropsWithoutRef, ElementType } from 'react';
 
 const TEXT_ELEMENTS = ['code', 'div', 'h1', 'h2', 'h3', 'label', 'p', 'span'] as const;

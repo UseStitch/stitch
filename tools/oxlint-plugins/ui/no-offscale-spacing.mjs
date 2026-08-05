@@ -1,5 +1,5 @@
 import { createClassTokenVisitor, nearestScaleToken, replaceTailwindUtility } from './class-token-rule.mjs';
-import { SPACING_SCALE } from './design-system.generated.mjs';
+import { SPACING_SCALE } from './design-system.mjs';
 import { getTailwindUtility, isUiComponentFile } from './jsx-style-utils.mjs';
 
 const SPACING_UTILITY =

@@ -11,7 +11,7 @@ import {
   stackPaddingVariants,
   stackWidthVariants,
   stackWrapVariants,
-} from '@/styles/tokens.generated';
+} from '@/styles/tokens';
 import type { ComponentPropsWithRef, ElementType } from 'react';
 
 const stackVariants = cva('flex', {

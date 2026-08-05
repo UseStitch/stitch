@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 
-import { iconSizeClasses, textToneClasses } from '@/styles/tokens.generated';
+import { iconSizeClasses, textToneClasses } from '@/styles/tokens';
 import type { ComponentType, SVGProps } from 'react';
 
 const iconVariants = cva('shrink-0', {

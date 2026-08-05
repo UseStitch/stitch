@@ -5,7 +5,7 @@ import { useSuspenseQuery, useQueryClient, useMutation } from '@tanstack/react-q
 import type { AppearanceMode } from '@stitch/shared/appearance/types';
 
 import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
-import { getTheme, injectThemeCss, applyAppearanceMode, DEFAULT_THEME, DEFAULT_MODE } from '@/lib/theme';
+import { getTheme, applyTheme, applyAppearanceMode, DEFAULT_THEME, DEFAULT_MODE } from '@/lib/theme';
 
 export function useTheme() {
   const queryClient = useQueryClient();
@@ -15,7 +15,7 @@ export function useTheme() {
   const themeName = settings['appearance.theme'] ?? DEFAULT_THEME;
 
   React.useEffect(() => {
-    injectThemeCss(getTheme(themeName));
+    applyTheme(getTheme(themeName));
   }, [themeName]);
 
   React.useEffect(() => {
