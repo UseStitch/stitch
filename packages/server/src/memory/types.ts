@@ -1,22 +1,12 @@
 export type {
-  ListSemanticMemoriesResponse,
-  SearchSemanticMemoriesResponse,
-  MemoryCategory,
-  MemoryConfidence,
-  MemorySource,
-  SemanticMemory,
-  ExtractedFact,
   ManagedMemoryEntry,
   MemoryCapacity,
+  MemoryConsolidationStatus,
   MemoryFileName,
   MemoryFileSnapshot,
   MemoryMutation,
   MemoryOrigin,
   MemorySearchResult,
+  MemorySource,
   MemoryTarget,
-  MemoryConsolidationStatus,
-  MemoryFilesOverview,
-  DailyMemoryFilesResponse,
 } from '@stitch/shared/memory/types';
-
-export { MEMORY_CATEGORIES, MEMORY_CONFIDENCES, MEMORY_SOURCES } from '@stitch/shared/memory/types';

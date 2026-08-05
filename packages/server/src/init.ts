@@ -8,8 +8,7 @@ import { registerAdapters } from '@/adapters/index.js';
 import { syncAllAutomationSchedules } from '@/automations/scheduler.js';
 import { registerAllConnectors } from '@/connectors/definitions/index.js';
 import { initConnectorRuntime } from '@/connectors/runtime.js';
-import { getDb, initDb } from '@/db/client.js';
-import { runPendingMigrations } from '@/db/lance-migrations.js';
+import { initDb } from '@/db/client.js';
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
 import { registerMailProviders } from '@/mail/wiring.js';
@@ -41,7 +40,6 @@ export async function init() {
   initServerInstallationId();
   initServerTelemetry();
   await initMailDb(PATHS.filePaths.mailDb, resolveMailMigrationsDir());
-  await runPendingMigrations(getDb());
 
   const builtInSkills = await loadBuiltInSkills();
   await syncBuiltInSkills(builtInSkills);
