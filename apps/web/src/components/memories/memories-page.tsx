@@ -8,7 +8,7 @@ import { Icon } from '@/components/primitives/icon';
 import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Empty, EmptyDescription, EmptyTitle } from '@/components/ui/empty';
 import {
@@ -143,7 +143,7 @@ export function MemoriesPage() {
         </div>
 
         <Tabs value={tab} onValueChange={(value) => setTab(value as Tab)} className="mt-space-xl">
-          <TabsList variant="line" className="max-w-full overflow-x-auto">
+          <TabsList variant="line" className="max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto">
             <TabsTrigger value="memory">Long-term</TabsTrigger>
             <TabsTrigger value="user">User profile</TabsTrigger>
             <TabsTrigger value="daily">Daily notes</TabsTrigger>
@@ -226,6 +226,13 @@ function CuratedFile({
         <CardHeader>
           <CardTitle>Managed entries</CardTitle>
           <CardDescription>{file.entries.length} entries</CardDescription>
+          {!adding ? (
+            <CardAction>
+              <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
+                <PlusIcon /> Add entry
+              </Button>
+            </CardAction>
+          ) : null}
         </CardHeader>
         <CardContent className="space-y-space-s">
           {file.entries.map((entry) => (
@@ -283,11 +290,7 @@ function CuratedFile({
                 </Button>
               </Stack>
             </Stack>
-          ) : (
-            <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
-              <PlusIcon /> Add entry
-            </Button>
-          )}
+          ) : null}
         </CardContent>
       </Card>
       <RawEditor target={target} file={file} />
@@ -343,9 +346,11 @@ function RawEditor({ target, file }: { target: MemoryTarget; file: MemoryFileSna
             </Text>
           </div>
         ) : null}
-        <Button onClick={saveRaw} disabled={save.isPending || draft === file.rawContent}>
-          {save.isPending ? 'Saving...' : 'Save Markdown'}
-        </Button>
+        <Stack direction="row" justify="end">
+          <Button onClick={saveRaw} disabled={save.isPending || draft === file.rawContent}>
+            {save.isPending ? 'Saving...' : 'Save Markdown'}
+          </Button>
+        </Stack>
       </CardContent>
     </Card>
   );
