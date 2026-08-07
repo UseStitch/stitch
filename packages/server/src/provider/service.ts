@@ -66,7 +66,7 @@ export async function listProvidersWithCapabilities(): Promise<ServiceResult<Pro
     results.push({
       id,
       name: meta.displayName,
-      api: meta.api ?? llmProviders[id].api,
+      api: meta.api ?? llmProviders[id]?.api,
       enabled: enabledIds.has(id),
       capabilities: [...caps],
     });
