@@ -21,6 +21,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { createMessageId, createPartId } from '@stitch/shared/id';
 
 import { serverRequest } from '@/lib/api';
+import { captureClientEvent } from '@/lib/telemetry/client';
 
 const EMPTY_USAGE: LanguageModelUsage = {
   inputTokens: 0,
@@ -299,6 +300,8 @@ export function useSendMessage() {
         }),
       }),
     onMutate: async (input) => {
+      captureClientEvent('message_sent');
+
       const queryKey = sessionKeys.messages(input.sessionId);
       await queryClient.cancelQueries({ queryKey });
 

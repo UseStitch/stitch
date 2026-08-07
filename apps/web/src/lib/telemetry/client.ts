@@ -33,6 +33,7 @@ async function loadState(): Promise<TelemetryState> {
           clientInstallationId: parsed.clientInstallationId,
           enabled: parsed.enabled,
           lastActiveDate: typeof parsed.lastActiveDate === 'string' ? parsed.lastActiveDate : null,
+          lastMessageDate: typeof parsed.lastMessageDate === 'string' ? parsed.lastMessageDate : null,
         };
       }
     }
@@ -45,6 +46,7 @@ async function loadState(): Promise<TelemetryState> {
     clientInstallationId: createTelemetryClientId(),
     enabled: true,
     lastActiveDate: null,
+    lastMessageDate: null,
   };
   persistLocalState(newState);
   return newState;
@@ -123,6 +125,19 @@ export function captureClientEvent<T extends TelemetryEventName>(
     const today = getUtcDateString();
     if (state.lastActiveDate === today) return;
     state = { ...state, lastActiveDate: today };
+
+    if (window.api?.telemetry) {
+      void window.api.telemetry.setEnabled(state.enabled);
+    } else {
+      persistLocalState(state);
+    }
+  }
+
+  // Rate limit message_sent to once per UTC day
+  if (eventName === 'message_sent') {
+    const today = getUtcDateString();
+    if (state.lastMessageDate === today) return;
+    state = { ...state, lastMessageDate: today };
 
     if (window.api?.telemetry) {
       void window.api.telemetry.setEnabled(state.enabled);

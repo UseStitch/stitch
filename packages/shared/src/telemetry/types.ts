@@ -1,7 +1,12 @@
 /**
  * Client telemetry state persisted locally (Electron userData or localStorage).
  */
-export type TelemetryState = { clientInstallationId: string; enabled: boolean; lastActiveDate: string | null };
+export type TelemetryState = {
+  clientInstallationId: string;
+  enabled: boolean;
+  lastActiveDate: string | null;
+  lastMessageDate: string | null;
+};
 
 /**
  * HTTP headers used for client-to-server telemetry attribution.

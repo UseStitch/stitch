@@ -26,6 +26,7 @@ function readStateFromDisk(): TelemetryState | null {
         clientInstallationId: parsed.clientInstallationId,
         enabled: parsed.enabled,
         lastActiveDate: typeof parsed.lastActiveDate === 'string' ? parsed.lastActiveDate : null,
+        lastMessageDate: typeof parsed.lastMessageDate === 'string' ? parsed.lastMessageDate : null,
       };
     }
   } catch {
@@ -60,6 +61,7 @@ export function initTelemetryState(): Promise<TelemetryState> {
       clientInstallationId: createTelemetryClientId(),
       enabled: true,
       lastActiveDate: null,
+      lastMessageDate: null,
     };
     writeStateToDisk(newState);
     state = newState;
