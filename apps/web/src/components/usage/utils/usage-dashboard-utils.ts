@@ -1,6 +1,6 @@
 import { USAGE_SOURCES, type UsageDateRange } from '@stitch/shared/usage/types';
 
-import { formatUsdCost } from '@/lib/format-cost';
+import { formatUsdCost } from '@/lib/format';
 
 export const ALL_FILTER = 'all';
 
