@@ -31,7 +31,7 @@ export function ChatInput({ className, hasDockAbove, embedded, ...props }: ChatI
         fallback={
           <div
             className={cn(
-              'relative flex flex-col rounded-2xl border border-border-subtle bg-card shadow-sm',
+              'relative flex flex-col overflow-hidden rounded-2xl border border-border-subtle bg-card shadow-sm',
               embedded && 'rounded-none border-0 bg-transparent shadow-none',
               hasDockAbove && !embedded && 'rounded-t-none border-t-0',
             )}>
