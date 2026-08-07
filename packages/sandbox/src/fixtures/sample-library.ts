@@ -5,7 +5,7 @@ export function double(value: number): number {
 }
 
 export function canReadFunctionPrototype(): boolean {
-  return typeof globalThis.Function?.prototype === 'function';
+  return typeof globalThis.Function.prototype === 'function';
 }
 
 export function hasGlobalSampleWorker(): boolean {

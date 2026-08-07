@@ -83,7 +83,7 @@ async function dispatchToolCall(
 
     assertMessageSize(message, ctx.maxMessageBytes);
 
-    const binding = ctx.bindings[message.name];
+    const binding = ctx.bindings[message.name] as ToolBinding | undefined;
     if (!binding) {
       ctx.proc.send({ type: 'tool_error', id: message.id, error: new SandboxUnknownToolError(message.name).message });
       return;

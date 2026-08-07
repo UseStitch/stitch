@@ -56,9 +56,9 @@ function assertSafeDynamicImports(code: string): void {
   const dynamicImports = code.matchAll(/\bimport\s*\(([^)]*)\)/g);
 
   for (const match of dynamicImports) {
-    const specifier = match[1]?.trim();
+    const specifier = match.at(1)?.trim();
     const literal = specifier?.match(/^['"]([^'"]+)['"]$/);
-    if (!literal || !ALLOWED_DYNAMIC_IMPORTS.has(literal[1])) {
+    if (!literal || !ALLOWED_DYNAMIC_IMPORTS.has(literal.at(1) ?? '')) {
       throw new SandboxSecurityError('dynamic import is only available for node:fs and node:fs/promises');
     }
   }

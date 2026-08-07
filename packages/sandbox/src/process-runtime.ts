@@ -91,7 +91,7 @@ export function startProcessRuntime(preloadedModules: Record<string, Record<stri
     const entries: Array<readonly [string, unknown]> = [];
     await Promise.all(
       Object.entries(libraries).map(async ([name, library]) => {
-        const preloaded = preloadedModules[library.specifier];
+        const preloaded = preloadedModules[library.specifier] as Record<string, unknown> | undefined;
         const moduleNamespace = preloaded ?? (await importLibrary(library.specifier));
         const exposedLibrary = Object.freeze({ ...moduleNamespace });
         if (library.globalName !== undefined) {
@@ -177,7 +177,7 @@ export function startProcessRuntime(preloadedModules: Record<string, Record<stri
   }
 
   function handleToolError(msg: Extract<HostMessage, { type: 'tool_error' }>): void {
-    pendingCalls.get(msg.id)?.reject(new SandboxToolError(msg.error ?? 'Tool call failed'));
+    pendingCalls.get(msg.id)?.reject(new SandboxToolError(msg.error));
     pendingCalls.delete(msg.id);
   }
 

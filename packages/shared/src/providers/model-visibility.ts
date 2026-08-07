@@ -49,7 +49,7 @@ export function buildDefaultVisibleSet(providers: ProviderModelGroup[]): Set<str
           if (!m.release_date) return best;
           const t = Date.parse(m.release_date);
           if (isNaN(t)) return best;
-          const bestT = best.release_date ? (Date.parse(best.release_date) ?? 0) : 0;
+          const bestT = best.release_date ? Date.parse(best.release_date) : 0;
           return t > bestT ? m : best;
         });
 
