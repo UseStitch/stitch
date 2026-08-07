@@ -1,7 +1,7 @@
 import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from 'cnfast';
 import { Loader2Icon } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
 import { textToneClasses } from '@/styles/tokens';
 
 const spinnerVariants = cva('animate-spin', {

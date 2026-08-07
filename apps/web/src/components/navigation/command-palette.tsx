@@ -4,8 +4,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Kbd } from '@/components/ui/kbd';
 import { useDialogContext } from '@/context/dialog-context';
-import type { Action } from '@/lib/actions';
-import { useShortcuts } from '@/lib/shortcuts';
+import type { Action } from '@/hooks/use-actions';
+import { useShortcuts } from '@/hooks/use-shortcuts';
 import type { ReactNode } from 'react';
 
 type CommandPaletteProps = { actions: Action[] };

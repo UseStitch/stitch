@@ -10,7 +10,7 @@ import { CopyButton } from '@/components/ui/copy-button';
 import { PageDescription, PageHeader, PageHeaderContent, PageIcon, PageTitle } from '@/components/ui/page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
-import { formatUsdCost } from '@/lib/format-cost';
+import { formatUsdCost } from '@/lib/format';
 
 function formatCost(costUsd: number | null | undefined): string | null {
   if (costUsd === null || costUsd === undefined) return null;

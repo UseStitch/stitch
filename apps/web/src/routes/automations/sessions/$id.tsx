@@ -1,11 +1,11 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
 
 import { SessionPage } from '@/components/session/session-page';
-import { useActions } from '@/lib/actions';
+import { useSessionHotkeys } from '@/hooks/hotkeys/use-session-hotkeys';
+import { useActions } from '@/hooks/use-actions';
 import { loadSessionRoute, sessionMessagesInfiniteQueryOptions } from '@/lib/queries/chat';
 import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { sessionTodosQueryOptions } from '@/lib/queries/todos';
-import { useSessionHotkeys } from '@/lib/use-session-hotkeys';
 
 export const Route = createFileRoute('/automations/sessions/$id')({
   beforeLoad: async ({ context, params }) => {

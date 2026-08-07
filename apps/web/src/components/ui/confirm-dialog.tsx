@@ -1,3 +1,5 @@
+import { cn } from 'cnfast';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,7 +11,6 @@ import {
   AlertDialogMedia,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { cn } from '@/lib/utils';
 import type * as React from 'react';
 
 interface ConfirmDialogProps {

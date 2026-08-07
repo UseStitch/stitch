@@ -1,6 +1,7 @@
 import { mergeProps } from '@base-ui/react/merge-props';
 import { useRender } from '@base-ui/react/use-render';
 import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from 'cnfast';
 import { PanelLeftIcon } from 'lucide-react';
 import * as React from 'react';
 
@@ -14,8 +15,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsMobile } from '@/hooks/ui/use-mobile';
-import { useShortcuts } from '@/lib/shortcuts';
-import { cn } from '@/lib/utils';
+import { useShortcuts } from '@/hooks/use-shortcuts';
 
 const SIDEBAR_COOKIE_NAME = 'sidebar_state';
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;

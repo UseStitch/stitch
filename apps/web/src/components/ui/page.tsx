@@ -1,6 +1,5 @@
+import { cn } from 'cnfast';
 import * as React from 'react';
-
-import { cn } from '@/lib/utils';
 
 function Page({ className, ...props }: React.ComponentProps<'div'>) {
   return (

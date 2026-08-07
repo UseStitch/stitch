@@ -1,3 +1,4 @@
+import { cn } from 'cnfast';
 import { ChevronDownIcon, ClockIcon, ExternalLinkIcon, SquareIcon } from 'lucide-react';
 import * as React from 'react';
 
@@ -23,7 +24,6 @@ import { Button } from '@/components/ui/button';
 import { CopyButton } from '@/components/ui/copy-button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
-import { cn } from '@/lib/utils';
 
 const VISIBLE_TOOL_COUNT = 4;
 

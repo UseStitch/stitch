@@ -1,3 +1,4 @@
+import { cn } from 'cnfast';
 import { FileIcon, FileTextIcon, GitForkIcon, ChevronsDownUpIcon, ChevronsUpDownIcon, PencilIcon } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 
@@ -10,7 +11,6 @@ import { Icon } from '@/components/primitives/icon.js';
 import { Stack } from '@/components/primitives/stack.js';
 import { Text } from '@/components/primitives/text.js';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 const COLLAPSED_MAX_HEIGHT = 150;
 

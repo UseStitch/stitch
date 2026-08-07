@@ -50,7 +50,11 @@ const noInlineDesignStyle = {
           }
           const propertyName = getPropertyName(property);
           if (!propertyName || !RUNTIME_STYLE_PROPERTIES.has(propertyName)) {
-            context.report({ data: { property: propertyName ?? 'computed' }, messageId: 'useSupportedApi', node: property });
+            context.report({
+              data: { property: propertyName ?? 'computed' },
+              messageId: 'useSupportedApi',
+              node: property,
+            });
           }
         }
       },

@@ -1,3 +1,4 @@
+import { cn } from 'cnfast';
 import { ArrowLeftIcon, ArrowRightIcon, PlusIcon, RotateCwIcon, XIcon } from 'lucide-react';
 import * as React from 'react';
 
@@ -9,7 +10,6 @@ import { Text } from '@/components/primitives/text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 
 type BrowserPanelProps = { sessionId: string; onClose: () => void };
 

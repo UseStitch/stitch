@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { SimpleIcon } from '@/components/ui/simple-icon';
 import { getErrorMessage } from '@/lib/errors';
-import { useEnrollMailAccount } from '@/lib/mutations/mail';
+import { useEnrollMailAccount } from '@/lib/queries/mail';
 import { eligibleMailAccountsQueryOptions } from '@/lib/queries/mail';
 
 export function EligibleAccountsSection() {

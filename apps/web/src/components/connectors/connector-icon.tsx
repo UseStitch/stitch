@@ -1,10 +1,10 @@
+import { cn } from 'cnfast';
 import { BoxIcon } from 'lucide-react';
 
 import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
 
 import { MaskedIcon } from '@/components/icons/masked-icon';
 import { SimpleIcon } from '@/components/ui/simple-icon';
-import { cn } from '@/lib/utils';
 
 type ConnectorIconProps = { icon: ConnectorIconSource; className?: string };
 

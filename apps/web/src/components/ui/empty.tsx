@@ -1,6 +1,5 @@
 import { cva, type VariantProps } from 'class-variance-authority';
-
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
 
 const emptyVariants = cva(
   'flex w-full min-w-0 flex-1 flex-col items-center justify-center rounded-xl border-dashed text-center text-balance',

@@ -1,8 +1,8 @@
 import { cva, type VariantProps } from 'class-variance-authority';
-import type * as React from 'react';
+import { cn } from 'cnfast';
 
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import type * as React from 'react';
 
 const metricCardVariants = cva('relative overflow-hidden', {
   variants: { size: { default: 'shadow-sm', compact: 'min-h-16' } },

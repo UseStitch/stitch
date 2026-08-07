@@ -1,3 +1,4 @@
+import { cn } from 'cnfast';
 import { format } from 'date-fns';
 import { Calendar, Info } from 'lucide-react';
 import * as React from 'react';
@@ -11,7 +12,6 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
 
 interface CronExpressionBuilderProps {
   value: string;

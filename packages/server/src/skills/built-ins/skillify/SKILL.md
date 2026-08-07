@@ -110,6 +110,7 @@ Success criteria: You know exactly which additional files (if any) to write and 
 ### 4. Confirm And Save
 
 Show the user:
+
 - The proposed skill name and description.
 - The full `SKILL.md` content.
 - A list of any reference files to be created alongside it.

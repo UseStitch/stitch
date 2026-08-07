@@ -1,5 +1,6 @@
+import { cn } from 'cnfast';
+
 import { Text } from '@/components/primitives/text.js';
-import { cn } from '@/lib/utils';
 
 type MicLevelMeterProps = {
   /** Normalized audio level in the 0–1 range. */
@@ -30,7 +31,7 @@ export function MicLevelMeter({ level, className }: MicLevelMeterProps) {
           return (
             <span
               key={id}
-              className="duration-fast w-0.5 rounded-full bg-destructive transition-[height] ease-standard"
+              className="w-0.5 rounded-full bg-destructive transition-[height] duration-fast ease-standard"
               style={{ height: `${height}px` }}
             />
           );

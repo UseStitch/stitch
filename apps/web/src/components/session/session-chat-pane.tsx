@@ -1,3 +1,4 @@
+import { cn } from 'cnfast';
 import * as React from 'react';
 import { StickToBottom } from 'use-stick-to-bottom';
 
@@ -31,7 +32,6 @@ import {
   useSplitSession,
 } from '@/lib/queries/chat';
 import { sessionTodosQueryOptions } from '@/lib/queries/todos';
-import { cn } from '@/lib/utils';
 import { useStreamStore } from '@/stores/stream-store';
 
 type SessionChatPaneProps = { sessionId: string; onGenerateAutomation?: () => Promise<void> };

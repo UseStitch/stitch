@@ -1,3 +1,4 @@
+import { cn } from 'cnfast';
 import { PaperclipIcon } from 'lucide-react';
 import * as React from 'react';
 
@@ -11,7 +12,6 @@ import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { mailThreadsInfiniteQueryOptions } from '@/lib/queries/mail';
-import { cn } from '@/lib/utils';
 
 type ThreadListProps = {
   accountId: MailAccountId;

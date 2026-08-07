@@ -1,3 +1,4 @@
+import { cn } from 'cnfast';
 import { CheckIcon, ChevronDownIcon, SearchIcon } from 'lucide-react';
 import * as React from 'react';
 
@@ -7,7 +8,6 @@ import { Icon } from '@/components/primitives/icon';
 import { Text } from '@/components/primitives/text';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
 
 export type SttModelSelection = { providerId: string; modelId: string };
 

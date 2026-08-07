@@ -1,3 +1,4 @@
+import { cn } from 'cnfast';
 import { ArrowRightIcon, FolderIcon, ListTodoIcon, MergeIcon, PlusIcon } from 'lucide-react';
 import * as React from 'react';
 
@@ -24,7 +25,6 @@ import {
   useReorderAgendaLists,
   useUpdateAgendaItem,
 } from '@/lib/queries/agenda';
-import { cn } from '@/lib/utils';
 
 function getDragType(e: React.DragEvent): 'agenda-list' | 'agenda-item' | null {
   if (e.dataTransfer.types.includes('application/x-agenda-list')) return 'agenda-list';

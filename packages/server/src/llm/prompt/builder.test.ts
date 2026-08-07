@@ -9,7 +9,11 @@ describe('buildSystemPromptLayers memory context', () => {
       systemPrompt: null,
       userName: '',
       userTimezone: 'UTC',
-      memoryContext: { userProfile: '# User profile\n- Concise', longTerm: '# Long-term memory\n- Fact', truncated: false },
+      memoryContext: {
+        userProfile: '# User profile\n- Concise',
+        longTerm: '# Long-term memory\n- Fact',
+        truncated: false,
+      },
       todoContext: null,
     });
 

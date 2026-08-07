@@ -1,12 +1,12 @@
-import { fileURLToPath } from 'node:url';
-
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { Database } from 'bun:sqlite';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
+import { fileURLToPath } from 'node:url';
 
 import { getAccount, getThread, listAccounts, listDrafts, listLabels, listThreads } from './queries.js';
 import * as schema from './schema.js';
+
 import type { MailDb } from './client.js';
 
 let sqlite: Database;
@@ -32,32 +32,13 @@ describe('listThreads', () => {
     const threadB = schema.createMailThreadId();
     const threadC = schema.createMailThreadId();
 
-    await db.insert(schema.mailAccounts).values({ id: accountId, connectorInstanceId: 'conn_1', provider: 'gmail', email: 'a@example.com' });
+    await db
+      .insert(schema.mailAccounts)
+      .values({ id: accountId, connectorInstanceId: 'conn_1', provider: 'gmail', email: 'a@example.com' });
     await db.insert(schema.mailThreads).values([
-      {
-        id: threadA,
-        accountId,
-        providerThreadId: 'provider-a',
-        subject: 'A',
-        snippet: 'A',
-        lastMessageAt: 300,
-      },
-      {
-        id: threadB,
-        accountId,
-        providerThreadId: 'provider-b',
-        subject: 'B',
-        snippet: 'B',
-        lastMessageAt: 200,
-      },
-      {
-        id: threadC,
-        accountId,
-        providerThreadId: 'provider-c',
-        subject: 'C',
-        snippet: 'C',
-        lastMessageAt: 100,
-      },
+      { id: threadA, accountId, providerThreadId: 'provider-a', subject: 'A', snippet: 'A', lastMessageAt: 300 },
+      { id: threadB, accountId, providerThreadId: 'provider-b', subject: 'B', snippet: 'B', lastMessageAt: 200 },
+      { id: threadC, accountId, providerThreadId: 'provider-c', subject: 'C', snippet: 'C', lastMessageAt: 100 },
     ]);
 
     const firstPage = await listThreads({ accountId, limit: 2, db });
@@ -76,25 +57,38 @@ describe('listThreads', () => {
     const trashThreadId = schema.createMailThreadId();
     const inboxMessageId = schema.createMailMessageId();
 
-    await db.insert(schema.mailAccounts).values({ id: accountId, connectorInstanceId: 'conn_1', provider: 'gmail', email: 'a@example.com' });
-    await db.insert(schema.mailLabels).values({ id: inboxLabelId, accountId, providerLabelId: 'INBOX', name: 'Inbox', kind: 'system' });
+    await db
+      .insert(schema.mailAccounts)
+      .values({ id: accountId, connectorInstanceId: 'conn_1', provider: 'gmail', email: 'a@example.com' });
+    await db
+      .insert(schema.mailLabels)
+      .values({ id: inboxLabelId, accountId, providerLabelId: 'INBOX', name: 'Inbox', kind: 'system' });
     await db.insert(schema.mailThreads).values([
       { id: inboxThreadId, accountId, providerThreadId: 'provider-inbox', snippet: 'Inbox', lastMessageAt: 200 },
-      { id: trashThreadId, accountId, providerThreadId: 'provider-trash', snippet: 'Trash', lastMessageAt: 100, isTrashed: true },
+      {
+        id: trashThreadId,
+        accountId,
+        providerThreadId: 'provider-trash',
+        snippet: 'Trash',
+        lastMessageAt: 100,
+        isTrashed: true,
+      },
     ]);
-    await db.insert(schema.mailMessages).values({
-      id: inboxMessageId,
-      accountId,
-      threadId: inboxThreadId,
-      providerMessageId: 'provider-message',
-      fromJson: 'null',
-      toJson: '[]',
-      ccJson: '[]',
-      bccJson: '[]',
-      snippet: 'Inbox',
-      internalDate: 200,
-      hydration: 'metadata',
-    });
+    await db
+      .insert(schema.mailMessages)
+      .values({
+        id: inboxMessageId,
+        accountId,
+        threadId: inboxThreadId,
+        providerMessageId: 'provider-message',
+        fromJson: 'null',
+        toJson: '[]',
+        ccJson: '[]',
+        bccJson: '[]',
+        snippet: 'Inbox',
+        internalDate: 200,
+        hydration: 'metadata',
+      });
     await db.insert(schema.mailMessageLabels).values({ messageId: inboxMessageId, labelId: inboxLabelId });
 
     const inboxThreads = await listThreads({ accountId, labelId: inboxLabelId, db });
@@ -113,33 +107,53 @@ describe('listThreads', () => {
     const attachmentId = schema.createMailAttachmentId();
     const draftId = schema.createMailDraftId();
 
-    await db.insert(schema.mailAccounts).values({ id: accountId, connectorInstanceId: 'conn_1', provider: 'gmail', email: 'a@example.com' });
-    await db.insert(schema.mailLabels).values({ id: labelId, accountId, providerLabelId: 'INBOX', name: 'Inbox', kind: 'system' });
-    await db.insert(schema.mailThreads).values({ id: threadId, accountId, providerThreadId: 'provider-thread', snippet: 'Hello', lastMessageAt: 100 });
-    await db.insert(schema.mailMessages).values({
-      id: messageId,
-      accountId,
-      threadId,
-      providerMessageId: 'provider-message',
-      fromJson: JSON.stringify({ name: 'A', email: 'a@example.com' }),
-      toJson: '[]',
-      ccJson: '[]',
-      bccJson: '[]',
-      snippet: 'Hello',
-      internalDate: 100,
-      hydration: 'full',
-      bodyText: 'Hello',
-    });
+    await db
+      .insert(schema.mailAccounts)
+      .values({ id: accountId, connectorInstanceId: 'conn_1', provider: 'gmail', email: 'a@example.com' });
+    await db
+      .insert(schema.mailLabels)
+      .values({ id: labelId, accountId, providerLabelId: 'INBOX', name: 'Inbox', kind: 'system' });
+    await db
+      .insert(schema.mailThreads)
+      .values({ id: threadId, accountId, providerThreadId: 'provider-thread', snippet: 'Hello', lastMessageAt: 100 });
+    await db
+      .insert(schema.mailMessages)
+      .values({
+        id: messageId,
+        accountId,
+        threadId,
+        providerMessageId: 'provider-message',
+        fromJson: JSON.stringify({ name: 'A', email: 'a@example.com' }),
+        toJson: '[]',
+        ccJson: '[]',
+        bccJson: '[]',
+        snippet: 'Hello',
+        internalDate: 100,
+        hydration: 'full',
+        bodyText: 'Hello',
+      });
     await db.insert(schema.mailMessageLabels).values({ messageId, labelId });
-    await db.insert(schema.mailAttachments).values({
-      id: attachmentId,
-      messageId,
-      providerAttachmentId: 'attachment',
-      filename: 'a.txt',
-      mimeType: 'text/plain',
-      sizeBytes: 1,
-    });
-    await db.insert(schema.mailDrafts).values({ id: draftId, accountId, toJson: '[]', ccJson: '[]', bccJson: '[]', subject: 'Draft', bodyText: 'Body' });
+    await db
+      .insert(schema.mailAttachments)
+      .values({
+        id: attachmentId,
+        messageId,
+        providerAttachmentId: 'attachment',
+        filename: 'a.txt',
+        mimeType: 'text/plain',
+        sizeBytes: 1,
+      });
+    await db
+      .insert(schema.mailDrafts)
+      .values({
+        id: draftId,
+        accountId,
+        toJson: '[]',
+        ccJson: '[]',
+        bccJson: '[]',
+        subject: 'Draft',
+        bodyText: 'Body',
+      });
 
     const [account, accounts, labels, drafts, threadList, thread] = await Promise.all([
       getAccount(accountId, db),

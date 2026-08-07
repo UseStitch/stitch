@@ -1,8 +1,8 @@
+import { cn } from 'cnfast';
 import { CheckIcon, CopyIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 type CopyButtonProps = Omit<React.ComponentProps<typeof Button>, 'children' | 'onClick'> & {
   value: string;

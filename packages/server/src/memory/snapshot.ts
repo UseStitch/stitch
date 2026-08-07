@@ -7,11 +7,7 @@ import { memoryFileStore, type MemoryFileStore } from '@/memory/file-store.js';
 
 const log = Log.create({ service: 'memory-snapshot' });
 
-export type MemoryPromptContext = {
-  userProfile: string | null;
-  longTerm: string | null;
-  truncated: boolean;
-};
+export type MemoryPromptContext = { userProfile: string | null; longTerm: string | null; truncated: boolean };
 
 type CacheEntry = { mtimeMs: number; contentHash: string; content: string | null; truncated: boolean };
 const cache = new Map<string, CacheEntry>();

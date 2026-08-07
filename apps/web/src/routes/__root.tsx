@@ -16,15 +16,15 @@ import { RenameSessionDialog } from '@/components/rename-session-dialog';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import { DialogProvider } from '@/context/dialog-context';
+import { useGlobalHotkeys } from '@/hooks/hotkeys/use-global-hotkeys';
 import { ServerEventSync } from '@/hooks/sse/server-event-sync';
 import { useTheme } from '@/hooks/ui/use-theme';
 import { UpdaterSync } from '@/hooks/ui/use-updater-sync';
-import { useActions } from '@/lib/actions';
+import { useActions } from '@/hooks/use-actions';
 import { resetServerUrlCache } from '@/lib/api';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { shortcutsQueryOptions } from '@/lib/queries/shortcuts';
 import { applyAppearanceMode, applyTheme, DEFAULT_MODE, DEFAULT_THEME, getTheme, removeSplash } from '@/lib/theme';
-import { useGlobalHotkeys } from '@/lib/use-global-hotkeys';
 
 interface RouterContext {
   queryClient: QueryClient;

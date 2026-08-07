@@ -1,3 +1,4 @@
+import { cn } from 'cnfast';
 import { ArrowLeftIcon } from 'lucide-react';
 import * as React from 'react';
 
@@ -12,7 +13,6 @@ import { PageDescription, PageHeader, PageHeaderContent, PageIcon, PageTitle } f
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { saveSettingMutationOptions } from '@/lib/queries/settings';
-import { cn } from '@/lib/utils';
 
 // ---------------------------------------------------------------------------
 // SettingSubPage — child/detail view with back-button header

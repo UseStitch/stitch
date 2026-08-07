@@ -1,3 +1,4 @@
+import { cn } from 'cnfast';
 import { AlertCircleIcon, RefreshCwIcon, TrashIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
@@ -15,9 +16,8 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { getErrorMessage } from '@/lib/errors';
 import { formatDateTime } from '@/lib/format';
-import { useRemoveMailAccount, useResyncMailAccount, useUpdateMailAccount } from '@/lib/mutations/mail';
+import { useRemoveMailAccount, useResyncMailAccount, useUpdateMailAccount } from '@/lib/queries/mail';
 import type { MailSyncStatusView } from '@/lib/queries/mail';
-import { cn } from '@/lib/utils';
 
 const SYNC_PHASE_LABELS: Record<MailSyncPhase, string> = {
   idle: 'Idle',
