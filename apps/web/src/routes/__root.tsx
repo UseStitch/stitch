@@ -24,7 +24,7 @@ import { resetServerUrlCache } from '@/lib/api';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { shortcutsQueryOptions } from '@/lib/queries/shortcuts';
 import { applyAppearanceMode, applyTheme, DEFAULT_MODE, DEFAULT_THEME, getTheme, removeSplash } from '@/lib/theme';
-import { useGlobalHotkeys } from '@/lib/use-global-hotkeys';
+import { useGlobalHotkeys } from '@/hooks/hotkeys/use-global-hotkeys';
 
 interface RouterContext {
   queryClient: QueryClient;
