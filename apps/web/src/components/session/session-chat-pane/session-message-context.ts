@@ -15,7 +15,7 @@ function shouldSkipMessage(message: SessionMessageContext): boolean {
 export function findLastUsedModel(messages: SessionMessageContext[]): ModelSpec | null {
   for (let index = messages.length - 1; index >= 0; index--) {
     const message = messages[index];
-    if (!message || shouldSkipMessage(message)) continue;
+    if (shouldSkipMessage(message)) continue;
     return { providerId: message.providerId, modelId: message.modelId };
   }
 

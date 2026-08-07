@@ -141,7 +141,7 @@ function passesOncePerDay(field: 'lastActiveDate' | 'lastMessageDate'): boolean 
 }
 
 function getPlatform(): string {
-  return window.electron?.platform ?? navigator.platform ?? 'unknown';
+  return window.electron?.platform ?? navigator.platform;
 }
 
 function getReleaseChannel(): string {

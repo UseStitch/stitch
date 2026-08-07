@@ -51,11 +51,11 @@ export function InstallRegistryMcpServer({
     label: index === 0 ? `Default (${describeAuthConfig(config)})` : describeAuthConfig(config),
   }));
 
-  const [selectedAuthId, setSelectedAuthId] = React.useState(authOptions[0]?.id ?? '0');
+  const [selectedAuthId, setSelectedAuthId] = React.useState(authOptions.at(0)?.id ?? '0');
   const form = useForm({
     defaultValues: applyAuthConfigToForm(
       { ...EMPTY_ADD_FORM, name: server.install.name, url: server.install.url, transport: server.install.transport },
-      authOptions[0]?.config ?? server.install.authConfig,
+      authOptions.at(0)?.config ?? server.install.authConfig,
     ),
     validators: { onMount: addMcpServerSchema, onChange: addMcpServerSchema },
     onSubmit: async ({ value }) => {
@@ -152,7 +152,7 @@ export function InstallRegistryMcpServer({
               <Label className="text-xs font-medium text-muted-foreground">Auth preset</Label>
               <Select value={selectedAuthId} onValueChange={handleAuthPresetChange}>
                 <SelectTrigger className="w-full">
-                  <SelectValue>{selectedAuthOption?.label ?? 'Select auth preset'}</SelectValue>
+                  <SelectValue>{selectedAuthOption.label}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {authOptions.map((option) => (

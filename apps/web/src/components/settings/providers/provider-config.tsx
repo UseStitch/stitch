@@ -247,7 +247,7 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
                     ) : null}
                   </Label>
                   {fieldDef.type === 'select' ? (
-                    <Select value={field.state.value ?? ''} onValueChange={(value) => field.handleChange(value || '')}>
+                    <Select value={field.state.value} onValueChange={(value) => field.handleChange(value || '')}>
                       <SelectTrigger
                         id={`${providerId}-${fieldDef.key}`}
                         className="w-full"
@@ -270,7 +270,7 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
                       id={`${providerId}-${fieldDef.key}`}
                       type={fieldDef.secret ? 'password' : fieldDef.format === 'url' ? 'url' : 'text'}
                       placeholder={fieldDef.placeholder}
-                      value={field.state.value ?? ''}
+                      value={field.state.value}
                       aria-invalid={!!fieldErrorMessage(field.state.meta)}
                       onBlur={field.handleBlur}
                       onChange={(event) => field.handleChange(event.target.value)}

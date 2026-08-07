@@ -49,7 +49,7 @@ export function useOnboardingState(): OnboardingState {
 
   const isOnboardingComplete =
     settings?.['onboarding.status'] === 'completed' &&
-    settings?.['onboarding.version'] === CURRENT_ONBOARDING_VERSION &&
+    settings['onboarding.version'] === CURRENT_ONBOARDING_VERSION &&
     profileName.length > 0 &&
     profileTimezone.length > 0 &&
     hasEnabledProvider;

@@ -77,7 +77,7 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
 
   const isAnswered = (idx: number): boolean => {
     const hasOption = (answers[idx]?.length ?? 0) > 0;
-    const hasCustom = (customAnswers[idx]?.trim()?.length ?? 0) > 0;
+    const hasCustom = customAnswers[idx].trim().length > 0;
     return hasOption || hasCustom;
   };
 

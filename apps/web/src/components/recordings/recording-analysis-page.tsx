@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 
+import type { MeetingNoteTemplate } from '@stitch/shared/recordings/types';
+
 import { AnalysisHeader } from './analysis/analysis-header';
 import { TranscriptSidebar } from './analysis/transcript-sidebar';
 import { DeleteRecordingDialog } from './shared/delete-recording-dialog';
@@ -40,7 +42,8 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
   const isActiveRecording = recording.id === data.activeRecordingId;
   const defaultTemplateId = settings['recordings.analysis.defaultTemplateId'];
   const defaultTemplate =
-    templateData.templates.find((template) => template.id === defaultTemplateId) ?? templateData.templates[0];
+    templateData.templates.find((template) => template.id === defaultTemplateId) ??
+    (templateData.templates[0] as MeetingNoteTemplate | undefined);
   const [selectedTemplateId, setSelectedTemplateId] = React.useState<string>(defaultTemplate?.id ?? '');
   const selectedTemplate =
     templateData.templates.find((template) => template.id === selectedTemplateId) ?? defaultTemplate;
@@ -106,7 +109,6 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
             );
           }}
           onDelete={() => {
-            if (!recording) return;
             setShowDeleteConfirm(true);
           }}
         />
@@ -144,7 +146,7 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
               analysis={analysis}
               isRunning={isRunning}
               recordingId={recordingId}
-              isRecording={recording?.status === 'recording'}
+              isRecording={recording.status === 'recording'}
             />
           </div>
         </div>

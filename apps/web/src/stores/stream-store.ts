@@ -148,7 +148,7 @@ function applyPartUpdateToSession(session: SessionStreamState, partId: string, p
 
     case 'text-end': {
       const existing = session.parts[partId];
-      if (!existing || existing.type !== 'text') return session;
+      if (existing.type !== 'text') return session;
       return updatePart(session, partId, { ...existing, status: 'complete', endedAt: Date.now() });
     }
 
@@ -157,13 +157,13 @@ function applyPartUpdateToSession(session: SessionStreamState, partId: string, p
 
     case 'reasoning-end': {
       const existing = session.parts[partId];
-      if (!existing || existing.type !== 'reasoning') return session;
+      if (existing.type !== 'reasoning') return session;
       return updatePart(session, partId, { ...existing, status: 'complete', endedAt: Date.now() });
     }
 
     case 'tool-call': {
       const existing = session.parts[partId];
-      if (existing && existing.type === 'tool-call') {
+      if (existing.type === 'tool-call') {
         return updatePart(session, partId, { ...existing, input: part.input });
       }
       return addPart(session, partId, {
@@ -211,7 +211,6 @@ function applyPartUpdateToSession(session: SessionStreamState, partId: string, p
 
 function applyPartDeltaToSession(session: SessionStreamState, partId: string, delta: PartDelta): SessionStreamState {
   const existing = session.parts[partId];
-  if (!existing) return session;
 
   if (delta.type === 'text-delta' && existing.type === 'text') {
     return updatePart(session, partId, { ...existing, text: existing.text + delta.text, hasContent: true });
@@ -277,7 +276,7 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
 
       const existing = session.parts[toolCallId];
 
-      if (existing && existing.type === 'tool-call') {
+      if (existing.type === 'tool-call') {
         return {
           sessions: {
             ...state.sessions,

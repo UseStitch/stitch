@@ -84,7 +84,7 @@ function MarkdownCodeBlock({ code, children }: { code: string; children: React.R
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleCopy = () => {
-    if (typeof navigator === 'undefined' || navigator.clipboard === null) {
+    if (typeof navigator === 'undefined') {
       return;
     }
     void navigator.clipboard
@@ -193,9 +193,8 @@ function splitLatexCommandSpans(node: MarkdownTextNode): MarkdownNode[] {
 
   for (const match of node.value.matchAll(LATEX_COMMAND_SPAN_REGEX)) {
     const index = match.index;
-    if (index === undefined) continue;
 
-    const streamingText = STREAMING_LATEX_TEXT[match[1] ?? ''];
+    const streamingText = STREAMING_LATEX_TEXT[match[1] ?? ''] as string | undefined;
     if (streamingText === undefined) continue;
 
     if (index > lastIndex) {

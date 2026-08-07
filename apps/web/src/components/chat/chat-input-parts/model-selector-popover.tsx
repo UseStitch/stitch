@@ -76,7 +76,7 @@ export function ModelSelectorPopover({ selectedValue, onSelect, providerModels }
                 </div>
                 {provider.models.map((model) => {
                   const isSelected =
-                    selectedValue?.providerId === provider.providerId && selectedValue?.modelId === model.id;
+                    selectedValue?.providerId === provider.providerId && selectedValue.modelId === model.id;
                   return (
                     <PopoverClose
                       key={model.id}

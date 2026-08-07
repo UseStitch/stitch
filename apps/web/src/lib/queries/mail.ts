@@ -69,7 +69,7 @@ export const mailDataKeys = {
 };
 
 export function getDefaultMailLabel(labels: MailLabelView[]): MailLabelView | undefined {
-  return labels.find((label) => label.providerLabelId.toUpperCase() === 'INBOX') ?? labels[0];
+  return labels.find((label) => label.providerLabelId.toUpperCase() === 'INBOX') ?? labels.at(0);
 }
 
 export function mailLabelsQueryOptions(accountId: MailAccountId) {

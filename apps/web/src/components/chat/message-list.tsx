@@ -5,12 +5,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import type { Message } from '@stitch/shared/chat/messages';
 
 import { RowContent } from '@/components/chat/message-list/row-content';
-import {
-  ALWAYS_UNVIRTUALIZED_TAIL_ROWS,
-  BASE_MESSAGE_HEIGHT_ESTIMATE,
-  buildRows,
-  estimateRowHeight,
-} from '@/components/chat/message-list/rows';
+import { ALWAYS_UNVIRTUALIZED_TAIL_ROWS, buildRows, estimateRowHeight } from '@/components/chat/message-list/rows';
 import { Stack } from '@/components/primitives/stack.js';
 import { Text } from '@/components/primitives/text.js';
 import type { SessionStreamState } from '@/stores/stream-store';
@@ -54,7 +49,7 @@ export function MessageList({
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
-        if (entry?.isIntersecting) {
+        if (entry.isIntersecting) {
           onLoadMore();
         }
       },
@@ -80,7 +75,6 @@ export function MessageList({
     getItemKey: useCallback(
       (index: number) => {
         const row = rows[index];
-        if (!row) return index;
         if (row.kind === 'streaming') return 'streaming';
         if (row.kind === 'error') return 'error';
         if (row.kind === 'load-more') return 'load-more';
@@ -91,7 +85,7 @@ export function MessageList({
     estimateSize: useCallback(
       (index: number) => {
         const row = rows[index];
-        return row ? estimateRowHeight(row) : BASE_MESSAGE_HEIGHT_ESTIMATE;
+        return estimateRowHeight(row);
       },
       [rows],
     ),
@@ -107,7 +101,6 @@ export function MessageList({
         <div className="relative" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
           {virtualRows.map((virtualRow) => {
             const row = rows[virtualRow.index];
-            if (!row) return null;
 
             const rowKey =
               row.kind === 'streaming' || row.kind === 'error' || row.kind === 'load-more'

@@ -96,7 +96,7 @@ export function TranscriptSidebar({ analysis, isRunning, recordingId, isRecordin
               {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                 const entry = entries[virtualRow.index];
 
-                return entry ? (
+                return (
                   <div
                     key={virtualRow.key}
                     data-index={virtualRow.index}
@@ -123,7 +123,7 @@ export function TranscriptSidebar({ analysis, isRunning, recordingId, isRecordin
                       )}
                     </div>
                   </div>
-                ) : null;
+                );
               })}
             </div>
           ) : (

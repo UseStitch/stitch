@@ -4,7 +4,7 @@ import type { Message } from '@stitch/shared/chat/messages';
 import type { SessionStreamState } from '@/stores/stream-store';
 
 export const ALWAYS_UNVIRTUALIZED_TAIL_ROWS = 8;
-export const BASE_MESSAGE_HEIGHT_ESTIMATE = 200;
+const BASE_MESSAGE_HEIGHT_ESTIMATE = 200;
 const MESSAGE_HEIGHT_PER_CHAR = 20;
 
 export type RowData =
@@ -44,7 +44,7 @@ export function buildRows(
     if (message.role === 'user' && message.parts.some((part) => part.type === 'compaction')) {
       const next = messages[i + 1];
       let summaryParts: Message['parts'] | undefined;
-      if (next?.isSummary) {
+      if (next.isSummary) {
         summaryParts = next.parts;
         pairedSummaryIds.add(next.id);
       }
@@ -99,24 +99,20 @@ export function estimateRowHeight(row: RowData): number {
   if (row.kind === 'streaming') return 60;
   if (row.kind === 'error') return 80;
 
-  if (row.kind === 'message') {
-    const textContent = row.parts.reduce((acc, part) => {
-      if (part.type !== 'text-delta') return acc;
-      return acc + (part as { type: 'text-delta'; text: string }).text;
-    }, '');
+  const textContent = row.parts.reduce((acc, part) => {
+    if (part.type !== 'text-delta') return acc;
+    return acc + (part as { type: 'text-delta'; text: string }).text;
+  }, '');
 
-    const charCount = textContent.length;
-    const hasCodeBlocks = textContent.includes('```');
-    const hasReasoning = row.parts.some((part) => part.type === 'reasoning-delta');
-    const hasToolCalls = row.parts.some((part) => part.type === 'tool-call');
+  const charCount = textContent.length;
+  const hasCodeBlocks = textContent.includes('```');
+  const hasReasoning = row.parts.some((part) => part.type === 'reasoning-delta');
+  const hasToolCalls = row.parts.some((part) => part.type === 'tool-call');
 
-    let estimate = BASE_MESSAGE_HEIGHT_ESTIMATE + charCount * MESSAGE_HEIGHT_PER_CHAR;
-    if (hasCodeBlocks) estimate += 200;
-    if (hasReasoning) estimate += 100;
-    if (hasToolCalls) estimate += 50;
+  let estimate = BASE_MESSAGE_HEIGHT_ESTIMATE + charCount * MESSAGE_HEIGHT_PER_CHAR;
+  if (hasCodeBlocks) estimate += 200;
+  if (hasReasoning) estimate += 100;
+  if (hasToolCalls) estimate += 50;
 
-    return Math.min(Math.max(estimate, 80), 1500);
-  }
-
-  return BASE_MESSAGE_HEIGHT_ESTIMATE;
+  return Math.min(Math.max(estimate, 80), 1500);
 }

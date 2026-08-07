@@ -161,9 +161,9 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
         </TooltipProvider>
       </Stack>
       <ToggleGroup
-        value={[minutes[0]?.toString() ?? '0']}
+        value={[minutes.at(0)?.toString() ?? '0']}
         onValueChange={(vals) => {
-          const val = vals[0];
+          const val = vals.at(0);
           if (val) emit({ minutes: [Number.parseInt(val)] });
         }}
         className="flex flex-wrap justify-start gap-space-xs">
@@ -277,7 +277,7 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
           <ToggleGroup
             value={[frequency]}
             onValueChange={(vals) => {
-              const val = vals[0];
+              const val = vals.at(0);
               if (val) {
                 const newFreq = val as Frequency;
                 setFrequency(newFreq);

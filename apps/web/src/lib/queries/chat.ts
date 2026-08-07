@@ -116,7 +116,6 @@ export const sessionMessagesInfiniteQueryOptions = (id: string) =>
       // The cursor is the createdAt of the oldest message in this page
       // (messages are returned chronologically, so oldest is first)
       const oldest = lastPage.messages[0];
-      if (!oldest) return undefined;
       // Guard against infinite loops: if cursor hasn't changed, stop
       if (lastPageParam !== undefined && oldest.createdAt === lastPageParam) return undefined;
       return oldest.createdAt;
@@ -367,7 +366,7 @@ export function useSendMessage() {
 
         // Append the optimistic message to the first page (most recent)
         const updatedPages = [...previous.pages];
-        const firstPage = updatedPages[0];
+        const firstPage = updatedPages[0] as MessagesPage | undefined;
         if (firstPage) {
           updatedPages[0] = { ...firstPage, messages: [...firstPage.messages, optimisticMessage] };
         }

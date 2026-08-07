@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { useForm, useStore } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
+import type { MeetingNoteTemplate } from '@stitch/shared/recordings/types';
+
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
@@ -227,7 +229,8 @@ function RecordingsContent() {
   const autoAnalyzeEnabled = settings['recordings.autoAnalyze'] === 'true';
   const defaultTemplateId = settings['recordings.analysis.defaultTemplateId'];
   const defaultTemplate =
-    templateData.templates.find((template) => template.id === defaultTemplateId) ?? templateData.templates[0];
+    templateData.templates.find((template) => template.id === defaultTemplateId) ??
+    (templateData.templates[0] as MeetingNoteTemplate | undefined);
   const hasTranscriptionModel =
     !!settings['recordings.transcription.providerId'] && !!settings['recordings.transcription.modelId'];
   const hasAnalysisModel = !!settings['recordings.analysis.providerId'] && !!settings['recordings.analysis.modelId'];
@@ -371,7 +374,7 @@ function MeetingNoteTemplatesSettings() {
   const createMutation = useCreateMeetingNoteTemplate();
   const updateMutation = useUpdateMeetingNoteTemplate();
   const deleteMutation = useDeleteMeetingNoteTemplate();
-  const [selectedId, setSelectedId] = React.useState<string | null>(data.templates[0]?.id ?? null);
+  const [selectedId, setSelectedId] = React.useState<string | null>(data.templates.at(0)?.id ?? null);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
 
   const selectedTemplate = data.templates.find((template) => template.id === selectedId) ?? null;

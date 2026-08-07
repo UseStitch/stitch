@@ -90,7 +90,7 @@ export function SetupWizard({ definition, connectors, onClose }: Props) {
   const [label, setLabel] = useState('');
   const [setupError, setSetupError] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<CredentialValues>({
-    selectedConnectorRefId: connectors[0]?.id ?? 'new',
+    selectedConnectorRefId: connectors.at(0)?.id ?? 'new',
     clientId: '',
     clientSecret: '',
     apiKey: '',

@@ -3,7 +3,7 @@ import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
-import type { MailAccountId, MailLabelId, MailThreadId } from '@stitch/shared/mail/types';
+import type { MailAccountId, MailAccountView, MailLabelId, MailThreadId } from '@stitch/shared/mail/types';
 
 import { Composer } from '@/components/mail/composer';
 import { useMailStore } from '@/components/mail/mail-store';
@@ -17,7 +17,7 @@ import { getDefaultMailLabel, mailAccountsQueryOptions, mailLabelsQueryOptions }
 export function MailPage() {
   const { selectedAccountId, selectedLabelId } = useMailStore();
   const { data: accounts } = useSuspenseQuery(mailAccountsQueryOptions);
-  const accountId = selectedAccountId ?? accounts[0]?.id ?? null;
+  const accountId = selectedAccountId ?? (accounts[0] as MailAccountView | undefined)?.id ?? null;
 
   if (!accountId) return <NoMailAccounts />;
 

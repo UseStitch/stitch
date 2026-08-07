@@ -89,7 +89,7 @@ export function ThreadList({ accountId, labelId, selectedThreadId, onSelectThrea
     if (!el || !hasNextPage || isFetchingNextPage) return;
 
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0]?.isIntersecting) void fetchNextPage();
+      if (entries.at(0)?.isIntersecting) void fetchNextPage();
     });
     observer.observe(el);
     return () => observer.disconnect();
@@ -108,7 +108,6 @@ export function ThreadList({ accountId, labelId, selectedThreadId, onSelectThrea
       <div className="relative" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
         {rowVirtualizer.getVirtualItems().map((virtualRow) => {
           const thread = threads[virtualRow.index];
-          if (!thread) return null;
 
           return (
             <div
