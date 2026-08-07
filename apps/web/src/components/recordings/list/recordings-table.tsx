@@ -1,18 +1,7 @@
 import { Trash2Icon, MicIcon } from 'lucide-react';
 import * as React from 'react';
 
-import {
-  type CellContext,
-  createColumnHelper,
-  createSortedRowModel,
-  metaHelper,
-  rowSortingFeature,
-  sortFn_alphanumeric,
-  sortFn_text,
-  type SortingState,
-  tableFeatures,
-  useTable,
-} from '@tanstack/react-table';
+import { type SortingState } from '@tanstack/react-table';
 
 import type { Recording } from '@stitch/shared/recordings/types';
 
@@ -24,85 +13,69 @@ import { Icon } from '@/components/primitives/icon';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Table } from '@/components/ui/table';
+import { createAppColumnHelper, useAppTable } from '@/hooks/table-hook';
 
 type RecordingsTableMeta = { activeRecordingId: string | null; onDelete: (recording: Recording) => void };
 
-const features = tableFeatures({
-  rowSortingFeature,
-  sortedRowModel: createSortedRowModel(),
-  sortFns: { alphanumeric: sortFn_alphanumeric, text: sortFn_text },
-  tableMeta: metaHelper<RecordingsTableMeta>(),
-});
-
-const columnHelper = createColumnHelper<typeof features, Recording>();
-
-function TitleCell({ row }: CellContext<typeof features, Recording, string>) {
-  return (
-    <div className="flex min-w-0 flex-col">
-      <Table.Title>{getRecordingDisplayTitle(row.original)}</Table.Title>
-    </div>
-  );
-}
-
-function PlatformCell({ getValue }: CellContext<typeof features, Recording, Recording['platform']>) {
-  return <PlatformBadge platform={getValue()} />;
-}
-
-function StatusCell({ getValue }: CellContext<typeof features, Recording, Recording['status']>) {
-  return <Table.Badge variant={STATUS_VARIANTS[getValue()]}>{STATUS_LABELS[getValue()]}</Table.Badge>;
-}
-
-function StartedAtCell({ getValue }: CellContext<typeof features, Recording, Recording['startedAt']>) {
-  return <Table.Time value={getValue()} />;
-}
-
-function DurationCell({ row, table }: CellContext<typeof features, Recording, unknown>) {
-  const { activeRecordingId } = table.options.meta as RecordingsTableMeta;
-  const recording = row.original;
-  if (recording.id === activeRecordingId) {
-    return <LiveDuration startedAt={recording.startedAt} />;
-  }
-  return <Table.Duration>{formatClockDuration(recording.durationMs)}</Table.Duration>;
-}
-
-function CostCell({ getValue }: CellContext<typeof features, Recording, Recording['costUsd']>) {
-  return <Table.Money value={getValue()} />;
-}
-
-function ActionsHeader() {
-  return <div className="pr-space-xs text-right">Actions</div>;
-}
-
-function ActionsCell({ row, table }: CellContext<typeof features, Recording, unknown>) {
-  const { activeRecordingId, onDelete } = table.options.meta as RecordingsTableMeta;
-
-  return (
-    <Table.Actions className="-mr-space-s">
-      <Button
-        type="button"
-        variant="destructive-quiet"
-        size="icon-sm"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete(row.original);
-        }}
-        title="Delete recording"
-        aria-label="Delete recording"
-        disabled={row.original.id === activeRecordingId}>
-        <Icon as={Trash2Icon} size="m" />
-      </Button>
-    </Table.Actions>
-  );
-}
+const columnHelper = createAppColumnHelper<Recording>();
 
 const columns = columnHelper.columns([
-  columnHelper.accessor('title', { header: 'Title', cell: TitleCell }),
-  columnHelper.accessor('platform', { header: 'Platform', cell: PlatformCell }),
-  columnHelper.accessor('status', { header: 'Capturing', cell: StatusCell }),
-  columnHelper.accessor('startedAt', { header: 'Date', cell: StartedAtCell }),
-  columnHelper.display({ id: 'duration', header: 'Duration', cell: DurationCell }),
-  columnHelper.accessor('costUsd', { header: 'Cost', cell: CostCell }),
-  columnHelper.display({ id: 'actions', header: ActionsHeader, cell: ActionsCell }),
+  columnHelper.accessor('title', {
+    header: 'Title',
+    cell: ({ row }) => (
+      <div className="flex min-w-0 flex-col">
+        <Table.Title>{getRecordingDisplayTitle(row.original)}</Table.Title>
+      </div>
+    ),
+  }),
+  columnHelper.accessor('platform', {
+    header: 'Platform',
+    cell: ({ cell }) => <PlatformBadge platform={cell.getValue()} />,
+  }),
+  columnHelper.accessor('status', {
+    header: 'Capturing',
+    cell: ({ cell }) => (
+      <Table.Badge variant={STATUS_VARIANTS[cell.getValue()]}>{STATUS_LABELS[cell.getValue()]}</Table.Badge>
+    ),
+  }),
+  columnHelper.accessor('startedAt', { header: 'Date', cell: ({ cell }) => <cell.TimeCell /> }),
+  columnHelper.display({
+    id: 'duration',
+    header: 'Duration',
+    cell: ({ row, table }) => {
+      const { activeRecordingId } = table.options.meta as RecordingsTableMeta;
+      const recording = row.original;
+      if (recording.id === activeRecordingId) {
+        return <LiveDuration startedAt={recording.startedAt} />;
+      }
+      return <Table.Duration>{formatClockDuration(recording.durationMs)}</Table.Duration>;
+    },
+  }),
+  columnHelper.accessor('costUsd', { header: 'Cost', cell: ({ cell }) => <cell.MoneyCell /> }),
+  columnHelper.display({
+    id: 'actions',
+    header: () => <div className="pr-space-xs text-right">Actions</div>,
+    cell: ({ row, table }) => {
+      const { activeRecordingId, onDelete } = table.options.meta as RecordingsTableMeta;
+      return (
+        <Table.Actions className="-mr-space-s">
+          <Button
+            type="button"
+            variant="destructive-quiet"
+            size="icon-sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(row.original);
+            }}
+            title="Delete recording"
+            aria-label="Delete recording"
+            disabled={row.original.id === activeRecordingId}>
+            <Icon as={Trash2Icon} size="m" />
+          </Button>
+        </Table.Actions>
+      );
+    },
+  }),
 ]);
 
 interface RecordingsTableProps {
@@ -122,8 +95,7 @@ export function RecordingsTable({
   onDelete,
   onNavigate,
 }: RecordingsTableProps) {
-  const table = useTable({
-    features,
+  const table = useAppTable({
     data: recordings,
     columns,
     getRowId: (row) => row.id,
@@ -166,16 +138,19 @@ export function RecordingsTable({
           ) : (
             table.getRowModel().rows.map((row) => (
               <Table.Row key={row.id} className="cursor-pointer" onClick={() => onNavigate(row.original.id)}>
-                {row.getAllCells().map((cell) => (
-                  <Table.Cell
-                    key={cell.id}
-                    className={
-                      cell.column.id === 'title'
-                        ? 'w-full max-w-xs min-w-48 px-space-xl py-space-l'
-                        : 'px-space-xl py-space-l whitespace-nowrap'
-                    }>
-                    <table.FlexRender cell={cell} />
-                  </Table.Cell>
+                {row.getAllCells().map((c) => (
+                  <table.AppCell cell={c} key={c.id}>
+                    {(cell) => (
+                      <Table.Cell
+                        className={
+                          cell.column.id === 'title'
+                            ? 'w-full max-w-xs min-w-48 px-space-xl py-space-l'
+                            : 'px-space-xl py-space-l whitespace-nowrap'
+                        }>
+                        <cell.FlexRender />
+                      </Table.Cell>
+                    )}
+                  </table.AppCell>
                 ))}
               </Table.Row>
             ))
