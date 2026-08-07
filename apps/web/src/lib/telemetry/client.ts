@@ -103,6 +103,7 @@ async function loadPostHog(key: string): Promise<void> {
       disable_session_recording: true,
       person_profiles: 'never',
       persistence: 'memory',
+      property_denylist: ['$current_url', '$pathname', '$session_entry_current_url', '$session_entry_pathname'],
       loaded: (ph) => {
         if (state) {
           ph.identify(state.clientInstallationId);
