@@ -67,11 +67,7 @@ type StreamFailedEvent = {
   details: StreamErrorDetails | undefined;
 };
 
-type StreamAbortedEvent = {
-  sessionId: PrefixedString<'ses'>;
-  messageId: PrefixedString<'msg'>;
-  streamRunId: string;
-};
+type StreamAbortedEvent = { sessionId: PrefixedString<'ses'>; messageId: PrefixedString<'msg'>; streamRunId: string };
 
 // ─── Tool Lifecycle ──────────────────────────────────────────────────────────
 

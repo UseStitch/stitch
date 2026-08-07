@@ -1,3 +1,4 @@
+import { cn } from 'cnfast';
 import * as React from 'react';
 
 import { Stack } from '@/components/primitives/stack';
@@ -14,8 +15,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { cn } from 'cnfast';
-
 
 function Root({ children }: { children: React.ReactNode }) {
   return <>{children}</>;

@@ -1,3 +1,4 @@
+import { cn } from 'cnfast';
 import { CheckIcon, ChevronDownIcon } from 'lucide-react';
 import * as React from 'react';
 
@@ -6,8 +7,6 @@ import { Stack } from '@/components/primitives/stack.js';
 import { Text } from '@/components/primitives/text.js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn } from 'cnfast';
-
 
 type DockVariant = 'default' | 'primary' | 'warning' | 'destructive';
 

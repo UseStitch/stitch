@@ -1,9 +1,8 @@
+import { cn } from 'cnfast';
 import * as React from 'react';
 
 import { MaskedIcon } from '@/components/icons/masked-icon';
 import { useServerAssetUrl } from '@/components/icons/use-server-asset-url';
-import { cn } from 'cnfast';
-
 
 const resolvedImageCache = new Map<string, boolean>();
 const resolvedImageListeners = new Set<() => void>();

@@ -1,9 +1,8 @@
+import { cn } from 'cnfast';
 import { BoxIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { RemoteMaskedIcon } from '@/components/icons/remote-icon';
-import { cn } from 'cnfast';
-
 
 type SimpleIconProps = { slug: string; className?: string; fallback?: React.ReactNode };
 

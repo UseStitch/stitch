@@ -16,8 +16,7 @@ const noRawTypographyElement = {
     type: 'suggestion',
     docs: { description: 'Use Text for semantic elements carrying raw typography classes' },
     messages: {
-      useText:
-        'Migrate styled <{{element}}> to <Text> with a variant, tone, align, and optional truncation props.',
+      useText: 'Migrate styled <{{element}}> to <Text> with a variant, tone, align, and optional truncation props.',
     },
     schema: [],
   },

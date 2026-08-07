@@ -1,3 +1,4 @@
+import { cn } from 'cnfast';
 import { CalendarIcon, Trash2Icon, XIcon } from 'lucide-react';
 import * as React from 'react';
 import { z } from 'zod';
@@ -22,8 +23,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/u
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { useDeleteAgendaItem, useUpdateAgendaItem } from '@/lib/queries/agenda';
-import { cn } from 'cnfast';
-
 
 const DEBOUNCE_MS = 600;
 

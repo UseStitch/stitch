@@ -12,8 +12,6 @@ export const EVENT_SCHEMA_VERSION = 1;
 // Event registry: event name → allowed extra properties
 // ---------------------------------------------------------------------------
 
-export type TelemetryEvents = {
-  app_active: { connection_mode?: 'local' | 'remote' };
-};
+export type TelemetryEvents = { app_active: { connection_mode?: 'local' | 'remote' } };
 
 export type TelemetryEventName = keyof TelemetryEvents;

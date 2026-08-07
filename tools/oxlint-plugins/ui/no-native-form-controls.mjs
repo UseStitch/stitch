@@ -17,9 +17,7 @@ const noNativeFormControls = {
   meta: {
     type: 'suggestion',
     docs: { description: 'Require shared form controls instead of native JSX elements' },
-    messages: {
-      useSharedControl: 'Use the shared {{component}} component instead of a native <{{element}}> element.',
-    },
+    messages: { useSharedControl: 'Use the shared {{component}} component instead of a native <{{element}}> element.' },
     schema: [],
   },
   create(context) {

@@ -1,3 +1,4 @@
+import { cn } from 'cnfast';
 import { ArrowUpIcon, ChevronDownIcon, MicIcon, PaperclipIcon, SquareIcon } from 'lucide-react';
 import * as React from 'react';
 
@@ -21,12 +22,10 @@ import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
 import { Textarea } from '@/components/ui/textarea';
 import { TextareaCompletions, type TextareaCompletionGroup } from '@/components/ui/textarea-completions';
+import { useShortcuts } from '@/hooks/use-shortcuts';
 import { supportsAnyAttachment } from '@/lib/model-capabilities';
 import { sttProviderModelsQueryOptions, visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
-import { useShortcuts } from '@/hooks/use-shortcuts';
-import { cn } from 'cnfast';
-
 
 type ChatInputInnerProps = {
   value: string;

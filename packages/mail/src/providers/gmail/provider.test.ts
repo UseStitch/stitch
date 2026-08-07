@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { MailProviderContext, OutgoingDraft } from '../../contracts.js';
 import { createGmailRawMessageForTests, gmailOpsProvider, gmailProviderModule, gmailSyncProvider } from './provider.js';
+
+import type { MailProviderContext, OutgoingDraft } from '../../contracts.js';
 
 function createContext(response: Response): MailProviderContext {
   return {
@@ -23,7 +24,7 @@ describe('gmail provider', () => {
   test('snapshotCursor returns profile history id', async () => {
     const ctx = createContext(Response.json({ historyId: '123' }));
 
-     expect(gmailSyncProvider.snapshotCursor(ctx)).resolves.toBe('123');
+    expect(gmailSyncProvider.snapshotCursor(ctx)).resolves.toBe('123');
   });
 
   test('builds multipart alternative RFC 2822 drafts', () => {

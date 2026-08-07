@@ -1,3 +1,4 @@
+import { cn } from 'cnfast';
 import { Copy, Minus, PanelLeftClose, PanelLeftOpen, Square, X } from 'lucide-react';
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 
@@ -6,8 +7,6 @@ import { Icon } from '@/components/primitives/icon';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useFullScreen } from '@/hooks/ui/use-fullscreen';
-import { cn } from 'cnfast';
-
 
 export function TitleBar() {
   const isMac = window.electron?.platform === 'darwin';

@@ -1,7 +1,6 @@
 import { cva, type VariantProps } from 'class-variance-authority';
-import { Loader2Icon } from 'lucide-react';
-
 import { cn } from 'cnfast';
+import { Loader2Icon } from 'lucide-react';
 
 import { textToneClasses } from '@/styles/tokens';
 

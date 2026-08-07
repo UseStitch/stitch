@@ -7,9 +7,7 @@ const noDirectUiPrimitives = {
   meta: {
     type: 'suggestion',
     docs: { description: 'Keep third-party UI primitives behind shared UI components' },
-    messages: {
-      useSharedUi: 'Import from @/components/ui instead of using {{source}} directly.',
-    },
+    messages: { useSharedUi: 'Import from @/components/ui instead of using {{source}} directly.' },
     schema: [],
   },
   create(context) {

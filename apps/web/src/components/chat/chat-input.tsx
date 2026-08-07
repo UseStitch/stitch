@@ -1,11 +1,10 @@
+import { cn } from 'cnfast';
 import * as React from 'react';
 
 import { ChatInputInner } from '@/components/chat/chat-input-parts/chat-input-inner';
 import type { Attachment, ModelSpec } from '@/components/chat/chat-input-parts/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { TextareaCompletionGroup } from '@/components/ui/textarea-completions';
-import { cn } from 'cnfast';
-
 
 type ChatInputProps = {
   value: string;

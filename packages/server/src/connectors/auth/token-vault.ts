@@ -66,13 +66,7 @@ async function markRefreshFailure(row: ConnectorInstanceRow, error: unknown): Pr
   const message = Error.isError(error) ? error.message : String(error);
   const requiresReauth = requiresOAuthReauth(error);
   log.error(
-    {
-      event: 'token-refresh.failed',
-      instanceId: row.id,
-      label: row.label,
-      requiresReauth,
-      error: message,
-    },
+    { event: 'token-refresh.failed', instanceId: row.id, label: row.label, requiresReauth, error: message },
     requiresReauth
       ? `Token refresh failed for ${row.label} and requires reauthorization`
       : `Token refresh failed for ${row.label}`,
@@ -94,10 +88,7 @@ async function markRefreshFailure(row: ConnectorInstanceRow, error: unknown): Pr
  * failure the error is logged (and, if permanent, the connector marked) before
  * being rethrown so callers can react.
  */
-async function refreshConnectorToken(
-  row: ConnectorInstanceRow,
-  deps: TokenRefreshDeps = {},
-): Promise<string | null> {
+async function refreshConnectorToken(row: ConnectorInstanceRow, deps: TokenRefreshDeps = {}): Promise<string | null> {
   const definition = getConnectorDefinition(row.connectorId);
   if (!definition || definition.authType !== 'oauth2' || !row.refreshToken) return null;
 
@@ -151,7 +142,10 @@ export async function ensureFreshAccessToken(
   deps: TokenRefreshDeps = {},
 ): Promise<string | null> {
   const db = getDb();
-  const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId as never));
+  const [row] = await db
+    .select()
+    .from(connectorInstances)
+    .where(eq(connectorInstances.id, instanceId as never));
   if (!row) return null;
 
   const now = Date.now();

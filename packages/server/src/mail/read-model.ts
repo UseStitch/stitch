@@ -41,7 +41,11 @@ function toDraftView(draft: typeof mailDrafts.$inferSelect): MailDraftView {
 
 export async function getDraftView(draftId: string): Promise<MailDraftView | null> {
   const db = getMailDb();
-  const [draft] = await db.select().from(mailDrafts).where(eq(mailDrafts.id, draftId as MailDraftId)).limit(1);
+  const [draft] = await db
+    .select()
+    .from(mailDrafts)
+    .where(eq(mailDrafts.id, draftId as MailDraftId))
+    .limit(1);
   return draft ? toDraftView(draft) : null;
 }
 
@@ -57,7 +61,11 @@ export async function getAttachmentRecord(attachmentId: string): Promise<typeof 
 
 export async function getMessageView(messageId: string): Promise<MailMessageView | null> {
   const db = getMailDb();
-  const [message] = await db.select().from(mailMessages).where(eq(mailMessages.id, messageId as MailMessageId)).limit(1);
+  const [message] = await db
+    .select()
+    .from(mailMessages)
+    .where(eq(mailMessages.id, messageId as MailMessageId))
+    .limit(1);
   if (!message) return null;
 
   const [labelRows, attachments] = await Promise.all([
@@ -66,7 +74,10 @@ export async function getMessageView(messageId: string): Promise<MailMessageView
       .from(mailMessageLabels)
       .innerJoin(mailLabels, eq(mailLabels.id, mailMessageLabels.labelId))
       .where(eq(mailMessageLabels.messageId, message.id)),
-    db.select().from(mailAttachments).where(inArray(mailAttachments.messageId, [message.id])),
+    db
+      .select()
+      .from(mailAttachments)
+      .where(inArray(mailAttachments.messageId, [message.id])),
   ]);
 
   return {

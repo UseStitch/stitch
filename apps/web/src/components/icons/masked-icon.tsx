@@ -1,6 +1,5 @@
 import { cn } from 'cnfast';
 
-
 type MaskedIconProps = { src: string; label: string; className?: string };
 
 export function MaskedIcon({ src, label, className }: MaskedIconProps) {

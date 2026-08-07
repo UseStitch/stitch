@@ -7,13 +7,7 @@
     "mail_accounts": {
       "name": "mail_accounts",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "connector_instance_id": {
           "name": "connector_instance_id",
           "type": "text",
@@ -28,13 +22,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "email": { "name": "email", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "enabled": {
           "name": "enabled",
           "type": "integer",
@@ -113,9 +101,7 @@
       "indexes": {
         "mail_accounts_connector_instance_id_uidx": {
           "name": "mail_accounts_connector_instance_id_uidx",
-          "columns": [
-            "connector_instance_id"
-          ],
+          "columns": ["connector_instance_id"],
           "isUnique": true
         }
       },
@@ -136,13 +122,7 @@
     "mail_attachments": {
       "name": "mail_attachments",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "message_id": {
           "name": "message_id",
           "type": "text",
@@ -196,9 +176,7 @@
       "indexes": {
         "mail_attachments_message_id_idx": {
           "name": "mail_attachments_message_id_idx",
-          "columns": [
-            "message_id"
-          ],
+          "columns": ["message_id"],
           "isUnique": false
         }
       },
@@ -207,12 +185,8 @@
           "name": "mail_attachments_message_id_mail_messages_id_fk",
           "tableFrom": "mail_attachments",
           "tableTo": "mail_messages",
-          "columnsFrom": [
-            "message_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["message_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -224,13 +198,7 @@
     "mail_drafts": {
       "name": "mail_drafts",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "account_id": {
           "name": "account_id",
           "type": "text",
@@ -245,20 +213,8 @@
           "notNull": false,
           "autoincrement": false
         },
-        "to_json": {
-          "name": "to_json",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "cc_json": {
-          "name": "cc_json",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "to_json": { "name": "to_json", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "cc_json": { "name": "cc_json", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "bcc_json": {
           "name": "bcc_json",
           "type": "text",
@@ -266,13 +222,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "subject": {
-          "name": "subject",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "subject": { "name": "subject", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "body_text": {
           "name": "body_text",
           "type": "text",
@@ -320,9 +270,7 @@
       "indexes": {
         "mail_drafts_account_id_idx": {
           "name": "mail_drafts_account_id_idx",
-          "columns": [
-            "account_id"
-          ],
+          "columns": ["account_id"],
           "isUnique": false
         }
       },
@@ -331,12 +279,8 @@
           "name": "mail_drafts_account_id_mail_accounts_id_fk",
           "tableFrom": "mail_drafts",
           "tableTo": "mail_accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -348,13 +292,7 @@
     "mail_labels": {
       "name": "mail_labels",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "account_id": {
           "name": "account_id",
           "type": "text",
@@ -369,27 +307,9 @@
           "notNull": true,
           "autoincrement": false
         },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "color": {
-          "name": "color",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "name": { "name": "name", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "kind": { "name": "kind", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "color": { "name": "color", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
         "unread_count": {
           "name": "unread_count",
           "type": "integer",
@@ -410,17 +330,12 @@
       "indexes": {
         "mail_labels_account_provider_label_uidx": {
           "name": "mail_labels_account_provider_label_uidx",
-          "columns": [
-            "account_id",
-            "provider_label_id"
-          ],
+          "columns": ["account_id", "provider_label_id"],
           "isUnique": true
         },
         "mail_labels_account_id_idx": {
           "name": "mail_labels_account_id_idx",
-          "columns": [
-            "account_id"
-          ],
+          "columns": ["account_id"],
           "isUnique": false
         }
       },
@@ -429,12 +344,8 @@
           "name": "mail_labels_account_id_mail_accounts_id_fk",
           "tableFrom": "mail_labels",
           "tableTo": "mail_accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -458,20 +369,12 @@
           "notNull": true,
           "autoincrement": false
         },
-        "label_id": {
-          "name": "label_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
+        "label_id": { "name": "label_id", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false }
       },
       "indexes": {
         "mail_message_labels_label_id_idx": {
           "name": "mail_message_labels_label_id_idx",
-          "columns": [
-            "label_id"
-          ],
+          "columns": ["label_id"],
           "isUnique": false
         }
       },
@@ -480,12 +383,8 @@
           "name": "mail_message_labels_message_id_mail_messages_id_fk",
           "tableFrom": "mail_message_labels",
           "tableTo": "mail_messages",
-          "columnsFrom": [
-            "message_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["message_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -493,22 +392,15 @@
           "name": "mail_message_labels_label_id_mail_labels_id_fk",
           "tableFrom": "mail_message_labels",
           "tableTo": "mail_labels",
-          "columnsFrom": [
-            "label_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["label_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "mail_message_labels_message_id_label_id_pk": {
-          "columns": [
-            "message_id",
-            "label_id"
-          ],
+          "columns": ["message_id", "label_id"],
           "name": "mail_message_labels_message_id_label_id_pk"
         }
       },
@@ -518,13 +410,7 @@
     "mail_messages": {
       "name": "mail_messages",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "account_id": {
           "name": "account_id",
           "type": "text",
@@ -553,20 +439,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "to_json": {
-          "name": "to_json",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "cc_json": {
-          "name": "cc_json",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "to_json": { "name": "to_json", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "cc_json": { "name": "cc_json", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "bcc_json": {
           "name": "bcc_json",
           "type": "text",
@@ -574,13 +448,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "subject": {
-          "name": "subject",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "subject": { "name": "subject", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
         "snippet": {
           "name": "snippet",
           "type": "text",
@@ -666,18 +534,12 @@
       "indexes": {
         "mail_messages_account_provider_message_uidx": {
           "name": "mail_messages_account_provider_message_uidx",
-          "columns": [
-            "account_id",
-            "provider_message_id"
-          ],
+          "columns": ["account_id", "provider_message_id"],
           "isUnique": true
         },
         "mail_messages_thread_internal_date_idx": {
           "name": "mail_messages_thread_internal_date_idx",
-          "columns": [
-            "thread_id",
-            "internal_date"
-          ],
+          "columns": ["thread_id", "internal_date"],
           "isUnique": false
         }
       },
@@ -686,12 +548,8 @@
           "name": "mail_messages_account_id_mail_accounts_id_fk",
           "tableFrom": "mail_messages",
           "tableTo": "mail_accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -699,12 +557,8 @@
           "name": "mail_messages_thread_id_mail_threads_id_fk",
           "tableFrom": "mail_messages",
           "tableTo": "mail_threads",
-          "columnsFrom": [
-            "thread_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["thread_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -721,13 +575,7 @@
     "mail_outbox": {
       "name": "mail_outbox",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "account_id": {
           "name": "account_id",
           "type": "text",
@@ -735,13 +583,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "op_type": {
-          "name": "op_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "op_type": { "name": "op_type", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "payload_json": {
           "name": "payload_json",
           "type": "text",
@@ -749,13 +591,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "status": { "name": "status", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "attempts": {
           "name": "attempts",
           "type": "integer",
@@ -789,11 +625,7 @@
       "indexes": {
         "mail_outbox_account_status_next_attempt_idx": {
           "name": "mail_outbox_account_status_next_attempt_idx",
-          "columns": [
-            "account_id",
-            "status",
-            "next_attempt_at"
-          ],
+          "columns": ["account_id", "status", "next_attempt_at"],
           "isUnique": false
         }
       },
@@ -802,12 +634,8 @@
           "name": "mail_outbox_account_id_mail_accounts_id_fk",
           "tableFrom": "mail_outbox",
           "tableTo": "mail_accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -828,13 +656,7 @@
     "mail_threads": {
       "name": "mail_threads",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "account_id": {
           "name": "account_id",
           "type": "text",
@@ -849,13 +671,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "subject": {
-          "name": "subject",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "subject": { "name": "subject", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
         "snippet": {
           "name": "snippet",
           "type": "text",
@@ -914,19 +730,12 @@
       "indexes": {
         "mail_threads_account_provider_thread_uidx": {
           "name": "mail_threads_account_provider_thread_uidx",
-          "columns": [
-            "account_id",
-            "provider_thread_id"
-          ],
+          "columns": ["account_id", "provider_thread_id"],
           "isUnique": true
         },
         "mail_threads_account_trashed_last_message_idx": {
           "name": "mail_threads_account_trashed_last_message_idx",
-          "columns": [
-            "account_id",
-            "is_trashed",
-            "last_message_at"
-          ],
+          "columns": ["account_id", "is_trashed", "last_message_at"],
           "isUnique": false
         }
       },
@@ -935,12 +744,8 @@
           "name": "mail_threads_account_id_mail_accounts_id_fk",
           "tableFrom": "mail_threads",
           "tableTo": "mail_accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -952,12 +757,6 @@
   },
   "views": {},
   "enums": {},
-  "_meta": {
-    "schemas": {},
-    "tables": {},
-    "columns": {}
-  },
-  "internal": {
-    "indexes": {}
-  }
+  "_meta": { "schemas": {}, "tables": {}, "columns": {} },
+  "internal": { "indexes": {} }
 }

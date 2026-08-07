@@ -1,8 +1,7 @@
+import { cn } from 'cnfast';
 import { WrenchIcon } from 'lucide-react';
 
 import { RemoteImageIcon } from '@/components/icons/remote-icon';
-import { cn } from 'cnfast';
-
 
 type Props = { name: string; className?: string } & (
   | { registryId: string; serverId?: never }

@@ -1,3 +1,4 @@
+import { cn } from 'cnfast';
 import { BookPlus, Scissors, Copy, ClipboardPaste, Terminal, ChevronRight, SpellCheck } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useState, useRef, forwardRef } from 'react';
 import { createPortal } from 'react-dom';
@@ -6,8 +7,6 @@ import { Icon } from '@/components/primitives/icon';
 import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import type { ContextMenuParams } from '@/lib/api';
-import { cn } from 'cnfast';
-
 
 interface RightClickMenuProps {
   children: React.ReactNode;

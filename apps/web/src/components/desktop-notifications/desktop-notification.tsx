@@ -1,10 +1,9 @@
+import { cn } from 'cnfast';
 import { XIcon } from 'lucide-react';
 
 import { Icon } from '@/components/primitives/icon';
 import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
-import { cn } from 'cnfast';
-
 import type { ReactNode } from 'react';
 
 type DesktopNotificationProps = { children: ReactNode; exiting?: boolean; onDismiss: () => void };

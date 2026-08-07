@@ -1,11 +1,10 @@
 import { Combobox as ComboboxPrimitive } from '@base-ui/react';
+import { cn } from 'cnfast';
 import { ChevronDownIcon, XIcon, CheckIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
-import { cn } from 'cnfast';
-
 
 const Combobox = ComboboxPrimitive.Root;
 

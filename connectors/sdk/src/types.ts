@@ -10,8 +10,6 @@ import type {
 } from '@stitch/shared/connectors/types';
 import type { StitchLogger } from '@stitch/shared/logger';
 
-;
-
 export type ConnectorDefinitionInput = {
   id: string;
   name: string;

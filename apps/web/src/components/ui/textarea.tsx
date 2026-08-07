@@ -1,7 +1,5 @@
-import * as React from 'react';
-
 import { cn } from 'cnfast';
-
+import * as React from 'react';
 
 function Textarea({ className, ...props }: React.ComponentProps<'textarea'>) {
   return (

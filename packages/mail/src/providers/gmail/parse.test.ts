@@ -31,7 +31,10 @@ function message(payload: GmailMessagePart): GmailMessage {
 
 describe('parseGmailMessage', () => {
   test('normalizes plain text messages', () => {
-    const parsed = parseGmailMessage(message({ mimeType: 'text/plain', body: { data: b64('hello'), size: 5 } }), 'full');
+    const parsed = parseGmailMessage(
+      message({ mimeType: 'text/plain', body: { data: b64('hello'), size: 5 } }),
+      'full',
+    );
 
     expect(parsed).toMatchObject({
       providerMessageId: 'msg-1',

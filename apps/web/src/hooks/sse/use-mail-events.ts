@@ -22,7 +22,9 @@ export function useMailEvents(): void {
     'mail.sync.progress': ({ accountId, phase, processed, estimatedTotal }) => {
       queryClient.setQueryData<MailSyncStatusView[]>(mailKeys.syncStatus(), (statuses) =>
         statuses?.map((status) =>
-          status.accountId === accountId ? { ...status, syncPhase: phase, progress: { processed, estimatedTotal } } : status,
+          status.accountId === accountId
+            ? { ...status, syncPhase: phase, progress: { processed, estimatedTotal } }
+            : status,
         ),
       );
       void queryClient.invalidateQueries({ queryKey: mailKeys.syncStatus() });

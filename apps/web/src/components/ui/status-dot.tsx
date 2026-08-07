@@ -1,7 +1,5 @@
 import { cva, type VariantProps } from 'class-variance-authority';
-
 import { cn } from 'cnfast';
-
 
 const statusDotVariants = cva('inline-block shrink-0 rounded-full', {
   variants: {

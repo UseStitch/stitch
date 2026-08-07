@@ -1,8 +1,7 @@
+import { cn } from 'cnfast';
 import * as React from 'react';
 
 import { Popover, PopoverContent } from '@/components/ui/popover';
-import { cn } from 'cnfast';
-
 
 export type TextareaCompletionOption = { value: string; label: string; description?: string };
 

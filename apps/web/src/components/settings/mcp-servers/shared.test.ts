@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { AddFormState } from './shared.js';
 import { EMPTY_ADD_FORM, addMcpServerSchema, applyAuthConfigToForm } from './shared.js';
+
+import type { AddFormState } from './shared.js';
 
 function form(overrides: Partial<AddFormState> = {}): AddFormState {
   return { ...EMPTY_ADD_FORM, name: 'Example', url: 'https://mcp.example.com', ...overrides };

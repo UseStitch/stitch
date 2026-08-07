@@ -1,3 +1,4 @@
+import { cn } from 'cnfast';
 import { ServerIcon, Settings2Icon, WrenchIcon } from 'lucide-react';
 import * as React from 'react';
 
@@ -8,8 +9,6 @@ import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyMedia } from '@/components/ui/empty';
 import { Switch } from '@/components/ui/switch';
-import { cn } from 'cnfast';
-
 
 type ToolRowProps = {
   name: string;

@@ -37,7 +37,7 @@ function decodeBase64Url(data: string): string {
 function decodeQuotedPrintable(value: string): Uint8Array {
   const bytes: number[] = [];
   for (let i = 0; i < value.length; i++) {
-    if (value[i] === '_' ) {
+    if (value[i] === '_') {
       bytes.push(32);
       continue;
     }
