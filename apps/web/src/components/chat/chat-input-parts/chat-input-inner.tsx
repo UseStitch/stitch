@@ -155,7 +155,7 @@ export function ChatInputInner({
   return (
     <div
       className={cn(
-        'relative flex flex-col rounded-2xl border border-border-subtle bg-card',
+        'relative flex flex-col overflow-hidden rounded-2xl border border-border-subtle bg-card',
         'transition-all focus-within:border-border focus-within:shadow-md',
         'shadow-sm',
         embedded && 'rounded-none border-0 bg-transparent shadow-none',
