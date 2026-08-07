@@ -28,11 +28,11 @@ export class ProviderEmbedder implements Embedder {
 
   async embed(text: string): Promise<EmbedResult> {
     const result = await embed({ model: this.model, value: text });
-    return { embedding: result.embedding, tokens: result.usage?.tokens ?? 0 };
+    return { embedding: result.embedding, tokens: result.usage.tokens };
   }
 
   async embedMany(texts: string[]): Promise<EmbedManyResult> {
     const result = await embedMany({ model: this.model, values: texts });
-    return { embeddings: result.embeddings, tokens: result.usage?.tokens ?? 0 };
+    return { embeddings: result.embeddings, tokens: result.usage.tokens };
   }
 }

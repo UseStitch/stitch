@@ -29,7 +29,7 @@ export async function paginatedQuery<TRow, TOut = TRow>(input: {
 
   const [rows, countRows] = await Promise.all([input.dataQuery.limit(input.pageSize).offset(offset), input.countQuery]);
 
-  const total = Number(countRows[0]?.total ?? 0);
+  const total = Number(countRows.at(0)?.total ?? 0);
   const transform = input.transform ?? ((row: TRow) => row as unknown as TOut);
 
   return {

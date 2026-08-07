@@ -84,7 +84,7 @@ async function processSentMessage(
 
 async function processOutboxRow(deps: OutboxDeps, row: typeof mailOutbox.$inferSelect): Promise<void> {
   const db = getMailDb();
-  const [account] = await db.select().from(mailAccounts).where(eq(mailAccounts.id, row.accountId)).limit(1);
+  const account = (await db.select().from(mailAccounts).where(eq(mailAccounts.id, row.accountId)).limit(1)).at(0);
   if (!account) return;
   const ctx = deps.createContext(account);
   const provider = getMailProvider(account.provider);
@@ -165,7 +165,7 @@ export function createOutbox(deps: OutboxDeps): OutboxController {
     if (flushPromise) return flushPromise;
     flushPromise = (async () => {
       const db = getMailDb();
-      while (true) {
+      for (;;) {
         const now = Date.now();
         const rows = await db
           .select()

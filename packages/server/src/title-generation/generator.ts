@@ -37,7 +37,7 @@ export async function generateTitleFromContent(
     const title = result.text.trim().replace(/^["']|["']$/g, '');
     if (!title) return null;
 
-    return { title, usage: result.usage ?? null, providerId: resolved.providerId, modelId: resolved.modelId };
+    return { title, usage: result.usage, providerId: resolved.providerId, modelId: resolved.modelId };
   } catch (error) {
     const mappedError = mapAIError(error, resolved.providerId);
     log.error(

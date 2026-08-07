@@ -103,7 +103,7 @@ describe('title generation adapter', () => {
 
     await waitFor(async () => {
       const [session] = await getDb().select().from(sessions).where(eq(sessions.id, sessionId));
-      return session?.title === 'Title: Chat Content';
+      return session.title === 'Title: Chat Content';
     });
 
     const titleMessages = await getDb().select().from(messages).where(eq(messages.sessionId, sessionId));
@@ -140,7 +140,7 @@ describe('title generation adapter', () => {
 
     await waitFor(async () => {
       const [analysis] = await getDb().select().from(recordingAnalyses).where(eq(recordingAnalyses.id, analysisId));
-      return analysis?.title === 'Generated Recording Title';
+      return analysis.title === 'Generated Recording Title';
     });
 
     const [analysis] = await getDb().select().from(recordingAnalyses).where(eq(recordingAnalyses.id, analysisId));
@@ -174,7 +174,7 @@ describe('title generation adapter', () => {
 
     await waitFor(async () => {
       const [analysis] = await getDb().select().from(recordingAnalyses).where(eq(recordingAnalyses.id, analysisId));
-      return analysis?.costUsd === 1.25;
+      return analysis.costUsd === 1.25;
     });
 
     const [analysis] = await getDb().select().from(recordingAnalyses).where(eq(recordingAnalyses.id, analysisId));

@@ -104,18 +104,20 @@ export async function askQuestion(opts: {
     'asking question',
   );
 
-  const [row] = await db
-    .insert(questions)
-    .values({
-      id,
-      sessionId: opts.sessionId,
-      questions: opts.questions,
-      status: 'pending',
-      toolCallId: opts.toolCallId,
-      messageId: opts.messageId,
-      createdAt: now,
-    })
-    .returning();
+  const row = (
+    await db
+      .insert(questions)
+      .values({
+        id,
+        sessionId: opts.sessionId,
+        questions: opts.questions,
+        status: 'pending',
+        toolCallId: opts.toolCallId,
+        messageId: opts.messageId,
+        createdAt: now,
+      })
+      .returning()
+  ).at(0);
 
   if (!row) {
     throw new QuestionNotFoundAfterCreateError(id);
@@ -140,7 +142,7 @@ export async function replyQuestion(
   const db = getDb();
   const now = Date.now();
 
-  const [existingQuestion] = await db.select().from(questions).where(eq(questions.id, questionId));
+  const existingQuestion = (await db.select().from(questions).where(eq(questions.id, questionId))).at(0);
   if (!existingQuestion) {
     return err(`Question not found: ${questionId}`, 404);
   }
@@ -178,7 +180,7 @@ export async function rejectQuestion(questionId: PrefixedString<'quest'>): Promi
   const db = getDb();
   const now = Date.now();
 
-  const [question] = await db.select().from(questions).where(eq(questions.id, questionId));
+  const question = (await db.select().from(questions).where(eq(questions.id, questionId))).at(0);
   if (!question) {
     return err(`Question not found: ${questionId}`, 404);
   }

@@ -44,7 +44,7 @@ export async function transformAttachmentsForModel(
   modelId: string,
 ): Promise<ModelMessage[]> {
   const providers = await Models.get();
-  const model = providers[providerId]?.models[modelId];
+  const model = providers[providerId]?.models[modelId] as Models.RawModel | undefined;
   const supportedInputModalities: string[] = model?.modalities?.input ?? [];
 
   return messages.map((msg): ModelMessage => {

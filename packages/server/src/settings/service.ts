@@ -55,7 +55,7 @@ export async function listSettings(): Promise<ServiceResult<Record<string, strin
 }
 
 export async function saveSetting(key: string, value: string): Promise<ServiceResult<null>> {
-  const schema = SETTINGS_SCHEMAS[key as SettingsKey];
+  const schema = SETTINGS_SCHEMAS[key as SettingsKey] as (typeof SETTINGS_SCHEMAS)[SettingsKey] | undefined;
   if (!schema) {
     return err('Invalid setting key', 400);
   }

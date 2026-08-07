@@ -51,6 +51,6 @@ describe('mcp auth service', () => {
     expect(sessions).toHaveLength(0);
 
     const [server] = await db.select().from(mcpServers).where(eq(mcpServers.id, id));
-    expect(server?.authStatus).toBe('none');
+    expect(server.authStatus).toBe('none');
   });
 });

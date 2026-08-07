@@ -54,7 +54,7 @@ function toSafeTimeoutMs(timeoutSeconds: number | undefined): number {
 
 function parseContentType(contentType: string | null): { mime: string; full: string } {
   const full = contentType ?? '';
-  const mime = full.split(';')[0]?.trim().toLowerCase() ?? '';
+  const mime = full.split(';').at(0)?.trim().toLowerCase() ?? '';
   return { mime, full };
 }
 
@@ -96,9 +96,9 @@ function normalizeHostForSuggestion(hostname: string): string {
   if (labels.length < 2) return host;
 
   const secondLevelTlds = new Set(['co.uk', 'org.uk', 'ac.uk', 'gov.uk', 'com.au', 'co.jp']);
-  const lastTwo = `${labels[labels.length - 2]}.${labels[labels.length - 1]}`;
+  const lastTwo = `${labels.at(-2)}.${labels.at(-1)}`;
   if (secondLevelTlds.has(lastTwo) && labels.length >= 3) {
-    return `${labels[labels.length - 3]}.${lastTwo}`;
+    return `${labels.at(-3)}.${lastTwo}`;
   }
 
   return lastTwo;
@@ -215,14 +215,14 @@ Parameter sourcing:
 }
 
 function getPatternTargets(input: unknown): string[] {
-  const url = (input as { url?: unknown })?.url;
+  const url = (input as { url?: unknown }).url;
   if (typeof url !== 'string' || url.length === 0) return [];
   const domain = extractDomainForPermission(url);
   return domain ? [domain] : [];
 }
 
 function getSuggestion(input: unknown) {
-  const url = (input as { url?: unknown })?.url;
+  const url = (input as { url?: unknown }).url;
   if (typeof url !== 'string' || url.length === 0) return null;
   const domain = extractDomainForPermission(url);
   if (!domain) return null;

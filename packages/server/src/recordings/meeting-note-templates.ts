@@ -67,7 +67,7 @@ export async function getMeetingNoteTemplate(
   id: MeetingNoteTemplate['id'],
 ): Promise<ServiceResult<MeetingNoteTemplateResponse>> {
   const db = getDb();
-  const [row] = await db.select().from(meetingNoteTemplates).where(eq(meetingNoteTemplates.id, id));
+  const row = (await db.select().from(meetingNoteTemplates).where(eq(meetingNoteTemplates.id, id))).at(0);
 
   if (!row) return err('Meeting note template not found', 404);
 
@@ -80,10 +80,12 @@ export async function createMeetingNoteTemplate(
   const db = getDb();
   const now = Date.now();
   const id = createMeetingNoteTemplateId();
-  const [row] = await db
-    .insert(meetingNoteTemplates)
-    .values({ id, name: input.name.trim(), content: input.content, createdAt: now, updatedAt: now })
-    .returning();
+  const row = (
+    await db
+      .insert(meetingNoteTemplates)
+      .values({ id, name: input.name.trim(), content: input.content, createdAt: now, updatedAt: now })
+      .returning()
+  ).at(0);
 
   if (!row) return err('Failed to create meeting note template', 500);
 
@@ -95,11 +97,13 @@ export async function updateMeetingNoteTemplate(
   input: MeetingNoteTemplateInput,
 ): Promise<ServiceResult<MeetingNoteTemplateResponse>> {
   const db = getDb();
-  const [row] = await db
-    .update(meetingNoteTemplates)
-    .set({ name: input.name.trim(), content: input.content, updatedAt: Date.now() })
-    .where(eq(meetingNoteTemplates.id, id))
-    .returning();
+  const row = (
+    await db
+      .update(meetingNoteTemplates)
+      .set({ name: input.name.trim(), content: input.content, updatedAt: Date.now() })
+      .where(eq(meetingNoteTemplates.id, id))
+      .returning()
+  ).at(0);
 
   if (!row) return err('Meeting note template not found', 404);
 

@@ -105,8 +105,8 @@ describe('createWsTransport', () => {
 
     await sleep(20);
 
-    expect(errors[0]?.message).toBe('Test WebSocket missing pong');
-    expect((errors[0] as Error & { code?: string })?.code).toBe('missing-pong');
+    expect(errors.at(0)?.message).toBe('Test WebSocket missing pong');
+    expect((errors.at(0) as Error & { code?: string }).code).toBe('missing-pong');
     expect(FakeWebSocket.last?.closeCode).toBe(4000);
   });
 

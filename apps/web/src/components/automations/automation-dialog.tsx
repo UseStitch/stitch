@@ -65,7 +65,7 @@ const automationSchema = z
 type AutomationFormValues = z.infer<typeof automationSchema>;
 
 function getInitialSelection(providerModels: ProviderModels[]): { providerId: string; modelId: string } | null {
-  const provider = providerModels[0];
+  const provider = providerModels[0] as ProviderModels | undefined;
   const model = provider?.models[0];
   if (!provider || !model) return null;
   return { providerId: provider.providerId, modelId: model.id };

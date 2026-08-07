@@ -3,7 +3,7 @@ import type { ToolTypeInfo } from '@/code-mode/bindings/tool-binding.js';
 type JsonSchema = Record<string, unknown>;
 
 function jsonSchemaToTypeScript(schema: JsonSchema, indent = 0): string {
-  if (!schema || typeof schema !== 'object') return 'unknown';
+  if (typeof schema !== 'object') return 'unknown';
 
   const pad = '  '.repeat(indent);
 

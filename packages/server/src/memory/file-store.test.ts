@@ -40,7 +40,7 @@ describe('MemoryFileStore', () => {
 
     const snapshot = await store.readCurated('memory');
 
-    expect(snapshot.entries[0]).toMatchObject({
+    expect(snapshot.entries.at(0)).toMatchObject({
       id: 'mem_one',
       content: 'Uses TypeScript.\nAvoids JavaScript.',
       lineStart: 3,
@@ -66,8 +66,8 @@ describe('MemoryFileStore', () => {
     );
 
     expect(replaced.rawContent).toStartWith(manual.trimEnd());
-    expect(replaced.entries[0]?.content).toBe('The calendar uses Google Calendar.');
-    expect(replaced.entries[0]?.id).toBe(added.entries[0]?.id);
+    expect(replaced.entries.at(0)?.content).toBe('The calendar uses Google Calendar.');
+    expect(replaced.entries.at(0)?.id).toBe(added.entries.at(0)?.id);
   });
 
   test('rejects duplicate ids and malformed managed blocks', async () => {
@@ -146,7 +146,7 @@ describe('MemoryFileStore', () => {
 
     expect(snapshot.name).toBe('daily/2026-08-04.md');
     expect(snapshot.entries).toHaveLength(1);
-    expect(snapshot.entries[0]?.target).toBe('user');
+    expect(snapshot.entries.at(0)?.target).toBe('user');
     expect(await store.listDailyFiles()).toEqual(['daily/2026-08-04.md']);
   });
 
@@ -189,11 +189,11 @@ describe('MemoryFileStore', () => {
   test('updates and deletes managed entries by stable id with hash guards', async () => {
     const store = await createStore();
     const added = await store.mutate('memory', [{ type: 'add', content: 'Original fact.' }]);
-    const id = added.entries[0]?.id;
+    const id = added.entries.at(0)?.id;
     if (!id) throw new Error('Missing test entry');
 
     const updated = await store.updateEntry(id, 'Updated fact.', added.contentHash);
-    expect(updated.entries[0]?.content).toBe('Updated fact.');
+    expect(updated.entries.at(0)?.content).toBe('Updated fact.');
     expect(store.deleteEntry(id, added.contentHash)).rejects.toThrow('changed outside Stitch');
     expect((await store.deleteEntry(id, updated.contentHash)).entries).toEqual([]);
   });

@@ -86,7 +86,7 @@ function parseDocument(content: string, filePath: string, defaultTarget: MemoryT
     if (!line.startsWith('<!-- stitch-memory ')) continue;
 
     const metadata = METADATA_PATTERN.exec(line);
-    const item = lines[index + 1];
+    const item = lines[index + 1] as string | undefined;
     if (!metadata || !item?.startsWith('- ')) {
       throw new MemoryParseError(`Managed memory block is malformed at ${filePath}:${index + 1}`);
     }
@@ -235,7 +235,7 @@ export class MemoryFileStore {
               : 'oldText matches multiple memory entries',
           );
         }
-        const match = matches[0];
+        const match = matches.at(0);
         if (!match) throw new MemoryConflictError('No memory entry uniquely matches oldText');
         if (operation.type === 'remove') {
           raw = replaceEntryBlock(raw, match, '').replace(/\n{3,}/g, '\n\n');
@@ -474,7 +474,7 @@ export class MemoryFileStore {
     if (matches.length !== 1) {
       throw new MemoryConflictError(`Memory entry id is ${matches.length === 0 ? 'missing' : 'not unique'}: ${id}`);
     }
-    const match = matches[0];
+    const match = matches.at(0);
     if (!match) throw new MemoryConflictError(`Memory entry id is missing: ${id}`);
 
     return this.withFileLock(match.snapshot.name, async () => {

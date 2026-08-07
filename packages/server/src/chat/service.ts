@@ -156,12 +156,12 @@ async function loadTurnContext(
 ): Promise<ServiceResult<{ session: TurnSession; config: LlmTurnConfig }>> {
   const db = getDb();
 
-  const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
+  const session = (await db.select().from(sessions).where(eq(sessions.id, sessionId))).at(0);
   if (!session) {
     return err('Session not found', 404);
   }
 
-  const [config] = await db.select().from(providerConfig).where(eq(providerConfig.providerId, providerId));
+  const config = (await db.select().from(providerConfig).where(eq(providerConfig.providerId, providerId))).at(0);
   if (!config) {
     return err(`Provider "${providerId}" is not configured`, 400);
   }
@@ -264,12 +264,18 @@ export async function redoMessage(
   const context = await loadTurnContext(input.sessionId, input.providerId);
   if (context.error) return context;
 
-  const [editedMessage] = await db
-    .select()
-    .from(messages)
-    .where(
-      and(eq(messages.id, input.editedMessageId), eq(messages.sessionId, input.sessionId), isNull(messages.archivedAt)),
-    );
+  const editedMessage = (
+    await db
+      .select()
+      .from(messages)
+      .where(
+        and(
+          eq(messages.id, input.editedMessageId),
+          eq(messages.sessionId, input.sessionId),
+          isNull(messages.archivedAt),
+        ),
+      )
+  ).at(0);
   if (!editedMessage) return err('Message not found', 404);
   if (editedMessage.role !== 'user') return err('Can only redo from user messages', 400);
 
@@ -377,13 +383,15 @@ export async function splitSession(
 ): Promise<ServiceResult<{ session: typeof sessions.$inferSelect; prefillText: string }>> {
   const db = getDb();
 
-  const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
+  const session = (await db.select().from(sessions).where(eq(sessions.id, sessionId))).at(0);
   if (!session) return err('Session not found', 404);
 
-  const [splitMsg] = await db
-    .select()
-    .from(messages)
-    .where(and(eq(messages.id, msgId), eq(messages.sessionId, sessionId), isNull(messages.archivedAt)));
+  const splitMsg = (
+    await db
+      .select()
+      .from(messages)
+      .where(and(eq(messages.id, msgId), eq(messages.sessionId, sessionId), isNull(messages.archivedAt)))
+  ).at(0);
   if (!splitMsg) return err('Message not found', 404);
   if (splitMsg.role !== 'user') return err('Can only split from user messages', 400);
 
@@ -447,7 +455,7 @@ export async function splitSession(
 export async function requestCompaction(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<{ ok: true }>> {
   const db = getDb();
 
-  const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
+  const session = (await db.select().from(sessions).where(eq(sessions.id, sessionId))).at(0);
   if (!session) {
     return err('Session not found', 404);
   }
@@ -458,7 +466,7 @@ export async function requestCompaction(sessionId: PrefixedString<'ses'>): Promi
     .where(eq(messages.sessionId, sessionId))
     .orderBy(desc(messages.createdAt))
     .limit(1)
-    .then((rows) => rows[0]);
+    .then((rows) => rows.at(0));
 
   if (!lastMessage) {
     return err('Session has no messages to compact', 400);
@@ -475,7 +483,7 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
   const getMessageTokens = (usage: (typeof messages.$inferSelect)['usage']): number =>
     normalizeUsage(usage).totalTokens;
 
-  const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
+  const session = (await db.select().from(sessions).where(eq(sessions.id, sessionId))).at(0);
   if (!session) {
     return err('Session not found', 404);
   }
@@ -496,7 +504,7 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
     db.select({ id: sessions.id }).from(sessions).where(eq(sessions.parentSessionId, sessionId)),
   ]);
 
-  const currentSessionCostUsd = sessionMessages.reduce((acc, m) => acc + (m.costUsd ?? 0), 0);
+  const currentSessionCostUsd = sessionMessages.reduce((acc, m) => acc + m.costUsd, 0);
   const currentSessionTokens = sessionMessages.reduce((acc, m) => acc + getMessageTokens(m.usage), 0);
   const userMessageCount = sessionMessages.filter((m) => m.role === 'user').length;
   const assistantMessageCount = sessionMessages.filter((m) => m.role === 'assistant').length;
@@ -510,7 +518,7 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
       .from(messages)
       .where(and(inArray(messages.sessionId, childIds), isNull(messages.archivedAt)));
 
-    childSessionsCostUsd = childMsgs.reduce((acc, m) => acc + (m.costUsd ?? 0), 0);
+    childSessionsCostUsd = childMsgs.reduce((acc, m) => acc + m.costUsd, 0);
     childSessionsTokens = childMsgs.reduce((acc, m) => acc + getMessageTokens(m.usage), 0);
   }
 
@@ -518,8 +526,8 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
   let latestAssistantWithTokens: (typeof sessionMessages)[number] | null = null;
   for (let i = sessionMessages.length - 1; i >= 0; i--) {
     const msg = sessionMessages[i];
-    if (!msg || msg.role !== 'assistant') continue;
-    if (msg.parts?.some((p) => p.type === 'session-title')) continue;
+    if (msg.role !== 'assistant') continue;
+    if (msg.parts.some((p) => p.type === 'session-title')) continue;
     const tokenSum = normalizeUsage(msg.usage).totalTokens;
     if (tokenSum > 0) {
       latestAssistantWithTokens = msg;
@@ -540,8 +548,8 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
   let latestRealMessage: (typeof sessionMessages)[number] | null = null;
   for (let i = sessionMessages.length - 1; i >= 0; i--) {
     const msg = sessionMessages[i];
-    if (!msg || msg.role !== 'assistant') continue;
-    if (msg.parts?.some((p) => BACKGROUND_PART_TYPES.has(p.type))) continue;
+    if (msg.role !== 'assistant') continue;
+    if (msg.parts.some((p) => BACKGROUND_PART_TYPES.has(p.type))) continue;
     latestRealMessage = msg;
     break;
   }
@@ -562,8 +570,8 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
       modelLabel = localModel.error ? latestRealMessage.modelId : localModel.data.name;
     } else {
       const providerModels = modelCatalog[latestRealMessage.providerId];
-      const model = providerModels?.models[latestRealMessage.modelId];
-      modelLabel = model?.name ?? latestRealMessage.modelId;
+      const model = providerModels.models[latestRealMessage.modelId];
+      modelLabel = model.name;
     }
   }
 
@@ -576,8 +584,8 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
       contextLimit = localModel.error ? null : localModel.data.contextWindow;
     } else {
       const providerModels = modelCatalog[latestAssistantWithTokens.providerId];
-      const model = providerModels?.models[latestAssistantWithTokens.modelId];
-      contextLimit = model?.limit?.context ?? null;
+      const model = providerModels.models[latestAssistantWithTokens.modelId];
+      contextLimit = model.limit.context;
     }
   }
 

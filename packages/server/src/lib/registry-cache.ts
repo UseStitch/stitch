@@ -42,7 +42,7 @@ function userAgentToken(value: string | undefined, fallback: string): string {
 }
 
 function runtimeToken(): string {
-  const bunVersion = (globalThis as BunGlobal).Bun?.version;
+  const bunVersion = (globalThis as BunGlobal).Bun.version;
   if (bunVersion) return `Bun/${userAgentToken(bunVersion, 'unknown')}`;
   return `Node/${userAgentToken(process.versions.node, 'unknown')}`;
 }

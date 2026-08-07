@@ -14,7 +14,7 @@ function getDetectedTimezone(): string {
 
 function getTimezoneOptions(initialTimezone: string): string[] {
   const intlWithSupportedValues = Intl as typeof Intl & { supportedValuesOf?: (key: string) => string[] };
-  const listed = intlWithSupportedValues.supportedValuesOf?.('timeZone') ?? [];
+  const listed = intlWithSupportedValues.supportedValuesOf('timeZone');
   const preferred = [initialTimezone].filter((value) => value.length > 0);
 
   if (listed.length === 0) {

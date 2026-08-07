@@ -79,8 +79,13 @@ function extractAttachments(payload: GmailMessagePart | undefined): GmailAttachm
   const attachments: GmailAttachment[] = [];
   for (const part of payload.parts) {
     const filename =
-      extractHeader(part.headers, 'Content-Disposition')?.match(/filename="?([^";]+)"?/i)?.[1] ??
-      part.headers?.find((h) => h.name.toLowerCase() === 'content-type')?.value.match(/name="?([^";]+)"?/i)?.[1];
+      extractHeader(part.headers, 'Content-Disposition')
+        ?.match(/filename="?([^";]+)"?/i)
+        ?.at(1) ??
+      part.headers
+        ?.find((h) => h.name.toLowerCase() === 'content-type')
+        ?.value.match(/name="?([^";]+)"?/i)
+        ?.at(1);
 
     if (filename && part.body?.size) {
       attachments.push({
@@ -552,7 +557,7 @@ export async function getFilter(client: GoogleClient, filterId: string): Promise
 export async function createFilter(client: GoogleClient, input: GmailFilterInput): Promise<GmailFilter> {
   const criteria = input.criteria ?? {};
 
-  const hasCriteria = Object.values(criteria).some((v) => v !== undefined);
+  const hasCriteria = Object.values(criteria).length > 0;
   if (!hasCriteria) {
     throw new GmailFilterNoCriteriaError();
   }

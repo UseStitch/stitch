@@ -123,7 +123,7 @@ export function createMeetingDetectionEngine(options: MeetingEngineOptions = {})
       return null;
     }
     eligible.sort((a, b) => compareObservations(a.observation, b.observation));
-    return eligible[0] ?? null;
+    return eligible.at(0) ?? null;
   }
 
   function endActiveMeeting(now: number): void {

@@ -51,10 +51,11 @@ export async function deleteMcpServer(serverId: string): Promise<ServiceResult<n
   const toolsetId = `mcp:${serverId}`;
   const mcpToolPrefix = `${serverId}_%`;
 
-  const [existing] = await db
+  const existingRows = await db
     .select()
     .from(mcpServers)
     .where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
+  const existing = existingRows.at(0);
   if (!existing) {
     return err('MCP server not found', 404);
   }
@@ -75,10 +76,11 @@ export async function deleteMcpServer(serverId: string): Promise<ServiceResult<n
 
 export async function fetchMcpTools(serverId: string): Promise<ServiceResult<McpTool[]>> {
   const db = getDb();
-  const [server] = await db
+  const serverRows = await db
     .select()
     .from(mcpServers)
     .where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
+  const server = serverRows.at(0);
   if (!server) {
     return err('MCP server not found', 404);
   }
@@ -153,10 +155,11 @@ async function loadOAuthServer(
   serverId: string,
 ): Promise<ServiceResult<{ id: PrefixedString<'mcp'>; url: string; authConfig: OAuthAuth }>> {
   const db = getDb();
-  const [server] = await db
+  const serverRows = await db
     .select()
     .from(mcpServers)
     .where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
+  const server = serverRows.at(0);
   if (!server) {
     return err('MCP server not found', 404);
   }
@@ -259,10 +262,11 @@ export async function getMcpAuthStatus(
   serverId: string,
 ): Promise<ServiceResult<{ authStatus: McpServerRow['authStatus'] }>> {
   const db = getDb();
-  const [server] = await db
+  const serverRows = await db
     .select({ authStatus: mcpServers.authStatus })
     .from(mcpServers)
     .where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
+  const server = serverRows.at(0);
   if (!server) {
     return err('MCP server not found', 404);
   }
@@ -292,7 +296,7 @@ export async function refreshExpiringMcpTokens(): Promise<void> {
       .select({ updatedAt: mcpServers.updatedAt })
       .from(mcpServers)
       .where(eq(mcpServers.id, server.id));
-    const issuedAt = session[0]?.updatedAt ?? now;
+    const issuedAt = session.at(0)?.updatedAt ?? now;
     const expiresAt = issuedAt + tokens.expires_in * 1000;
     if (expiresAt - now > TOKEN_REFRESH_BUFFER_MS) continue;
 

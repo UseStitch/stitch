@@ -29,7 +29,6 @@ export function StreamingMessageBubble({ partIds, parts, onAbortTool }: Streamin
 
   const hasAnyContent = visibleIds.some((partId) => {
     const part = parts[partId];
-    if (!part) return false;
     if (part.type === 'text' || part.type === 'reasoning') {
       return part.hasContent;
     }
@@ -59,7 +58,6 @@ export function StreamingMessageBubble({ partIds, parts, onAbortTool }: Streamin
 
   for (const partId of visibleIds) {
     const part = parts[partId];
-    if (!part) continue;
 
     if (part.type === 'tool-call') {
       if (part.toolName === LIQUID_UI_TOOL_NAME) {

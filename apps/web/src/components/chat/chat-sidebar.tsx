@@ -96,7 +96,7 @@ export function ChatSidebarContent() {
     if (!node || !hasNextPage) return;
 
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0]?.isIntersecting && !isFetchingNextPage) {
+      if (entries.at(0)?.isIntersecting && !isFetchingNextPage) {
         void fetchNextPage();
       }
     });

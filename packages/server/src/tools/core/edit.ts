@@ -26,7 +26,7 @@ function countOccurrences(content: string, oldString: string): number {
   let count = 0;
   let startIndex = 0;
 
-  while (true) {
+  for (;;) {
     const index = content.indexOf(oldString, startIndex);
     if (index === -1) return count;
     count += 1;

@@ -15,7 +15,7 @@ export interface Action {
 export function useActions(): Action[] {
   const navigate = useNavigate();
   const params = useParams({ strict: false });
-  const sessionId = params?.id;
+  const sessionId = params.id;
   const { commandPaletteOpen, setCommandPaletteOpen, renameSessionOpen, setRenameSessionOpen } = useDialogContext();
   const abortStream = useStreamStore((s) => s.abortStream);
 

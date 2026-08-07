@@ -31,7 +31,7 @@ export function resolvePermissionFromRules(
     .filter((row) => wildcardPatternMatches(row.pattern, patternTargets))
     .toSorted((a, b) => b.pattern.length - a.pattern.length);
 
-  const firstMatch = patternMatchesBySpecificity[0];
+  const firstMatch = patternMatchesBySpecificity.at(0);
   if (!firstMatch) return 'ask';
   return firstMatch.permission;
 }

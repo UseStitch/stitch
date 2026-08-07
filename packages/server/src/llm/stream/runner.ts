@@ -259,7 +259,7 @@ class StreamRunner {
   private getLastUserText(maxLength?: number): string | null {
     for (let i = this.state.conversation.length - 1; i >= 0; i--) {
       const message = this.state.conversation[i];
-      if (message?.role !== 'user') {
+      if (message.role !== 'user') {
         continue;
       }
 
@@ -269,7 +269,7 @@ class StreamRunner {
       }
 
       if (Array.isArray(content)) {
-        const textPart = content.find((part) => typeof part === 'object' && part !== null && part.type === 'text');
+        const textPart = content.find((part) => typeof part === 'object' && part.type === 'text');
         if (textPart && typeof textPart === 'object' && 'text' in textPart && typeof textPart.text === 'string') {
           return maxLength ? textPart.text.slice(0, maxLength) : textPart.text;
         }
@@ -629,7 +629,7 @@ class StreamRunner {
 
     for (let i = this.state.accumulatedParts.length - 1; i >= 0; i--) {
       const type = this.state.accumulatedParts[i]?.type;
-      if (type && TRANSIENT_PART_TYPES.has(type)) {
+      if (TRANSIENT_PART_TYPES.has(type)) {
         this.state.accumulatedParts.splice(i, 1);
       }
     }
@@ -945,7 +945,7 @@ class StreamRunner {
 
     for (let i = lastToolResultIndex + 1; i < this.state.accumulatedParts.length; i++) {
       const part = this.state.accumulatedParts[i];
-      if (part?.type === 'text-delta' && typeof part.text === 'string' && part.text.trim().length > 0) {
+      if (part.type === 'text-delta' && typeof part.text === 'string' && part.text.trim().length > 0) {
         return true;
       }
     }

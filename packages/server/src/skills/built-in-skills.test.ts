@@ -10,7 +10,7 @@ describe('loadBuiltInSkills', () => {
     const skills = await loadBuiltInSkills(TEST_BUILT_INS_DIR);
 
     expect(skills).toHaveLength(1);
-    expect(skills[0]).toMatchObject({
+    expect(skills.at(0)).toMatchObject({
       name: 'test-skill',
       description: 'Use this test skill in loader tests.',
       content: 'These are test skill instructions.',

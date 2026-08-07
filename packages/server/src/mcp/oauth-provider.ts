@@ -73,7 +73,8 @@ export class McpOAuthProvider implements OAuthClientProvider {
 
   private async getSession() {
     const db = getDb();
-    const [row] = await db.select().from(mcpOAuthSessions).where(eq(mcpOAuthSessions.serverId, this.serverId));
+    const rows = await db.select().from(mcpOAuthSessions).where(eq(mcpOAuthSessions.serverId, this.serverId));
+    const row = rows.at(0);
     return row ?? null;
   }
 

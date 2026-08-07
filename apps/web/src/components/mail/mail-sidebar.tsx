@@ -14,7 +14,7 @@ import * as React from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 
-import type { MailAccountId, MailLabelView } from '@stitch/shared/mail/types';
+import type { MailAccountId, MailAccountView, MailLabelView } from '@stitch/shared/mail/types';
 
 import {
   getLabelDisplayName,
@@ -390,7 +390,8 @@ function MailLabelList({ accountId }: { accountId: MailAccountId }) {
 export function MailSidebarContent() {
   const { selectedAccountId, setSelectedAccountId } = useMailStore();
   const { data: accounts = [] } = useQuery(mailAccountsQueryOptions);
-  const selectedAccount = accounts.find((account) => account.id === selectedAccountId) ?? accounts[0];
+  const selectedAccount =
+    accounts.find((account) => account.id === selectedAccountId) ?? (accounts[0] as MailAccountView | undefined);
 
   React.useEffect(() => {
     if (!selectedAccountId && accounts[0]) setSelectedAccountId(accounts[0].id);

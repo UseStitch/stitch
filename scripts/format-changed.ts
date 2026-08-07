@@ -18,4 +18,4 @@ const cmd = checkOnly
   : ['oxfmt', 'write', '--no-error-on-unmatched-pattern', ...files];
 
 const fmt = spawnSync(cmd, { stdout: 'inherit', stderr: 'inherit' });
-process.exit(fmt.exitCode ?? 0);
+process.exit(fmt.exitCode);

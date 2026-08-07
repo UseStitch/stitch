@@ -123,7 +123,7 @@ async function handleStart(
   }
 
   state.inputEncoding = message.audioChunkConfig.encoding;
-  state.recordingId = message.recordingId ?? null;
+  state.recordingId = message.recordingId;
 
   try {
     const session = await createSTTSession({

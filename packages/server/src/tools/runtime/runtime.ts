@@ -74,7 +74,7 @@ export function createToolRuntime(context: ToolRuntimeContext): ToolRuntime {
       return {
         ...tool,
         execute: async (...args: Parameters<typeof originalExecute>) =>
-          executor({ toolName: name, args: args[0], executeOptions: args[1], tool, context, metadata }),
+          executor({ toolName: name, args: args.at(0), executeOptions: args.at(1), tool, context, metadata }),
       } as T;
     },
 

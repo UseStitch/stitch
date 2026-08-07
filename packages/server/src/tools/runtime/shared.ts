@@ -69,8 +69,8 @@ function detectTextEncoding(buffer: Buffer): TextEncoding | null {
   if (buffer.length === 0) return 'utf-8';
 
   if (buffer.length >= 2) {
-    if (buffer[0] === 0xff && buffer[1] === 0xfe) return 'utf-16le';
-    if (buffer[0] === 0xfe && buffer[1] === 0xff) return 'utf-16be';
+    if (buffer.at(0) === 0xff && buffer.at(1) === 0xfe) return 'utf-16le';
+    if (buffer.at(0) === 0xfe && buffer.at(1) === 0xff) return 'utf-16be';
   }
 
   let evenNulCount = 0;

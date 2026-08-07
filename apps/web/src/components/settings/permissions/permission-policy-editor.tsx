@@ -112,8 +112,8 @@ function ToolPermissionEditor({
 
   const handleBrowse = () => {
     void window.api.files.openPath().then((paths) => {
-      if (!paths || paths.length === 0) return;
-      const picked = paths[0];
+      if (paths.length === 0) return;
+      const picked = paths.at(0);
       if (!picked) return;
       const lastSegment = picked.split(/[/\\]/).at(-1) ?? '';
       const isLikelyDir = !lastSegment.includes('.');

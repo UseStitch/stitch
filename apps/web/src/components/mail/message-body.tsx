@@ -75,7 +75,7 @@ function hasMeaningfulMailContent(node: Node): boolean {
 
 function hasMeaningfulContentBeside(node: Element, direction: 'previous' | 'next'): boolean {
   let current: Node | null = node;
-  while (current?.parentNode) {
+  while (current.parentNode) {
     let sibling = direction === 'previous' ? current.previousSibling : current.nextSibling;
     while (sibling) {
       if (hasMeaningfulMailContent(sibling)) return true;
@@ -92,7 +92,7 @@ function hasMeaningfulContentBeside(node: Element, direction: 'previous' | 'next
 function getTextBeside(node: Element, direction: 'previous' | 'next'): string {
   const text: string[] = [];
   let current: Node | null = node;
-  while (current?.parentNode) {
+  while (current.parentNode) {
     let sibling = direction === 'previous' ? current.previousSibling : current.nextSibling;
     while (sibling) {
       text.push(sibling.textContent ?? '');
@@ -151,7 +151,7 @@ function supportsDarkMode(doc: Document): boolean {
   if (content.includes('dark')) return true;
 
   return Array.from(doc.querySelectorAll('style')).some((style) =>
-    style.textContent?.toLowerCase().includes('prefers-color-scheme: dark'),
+    style.textContent.toLowerCase().includes('prefers-color-scheme: dark'),
   );
 }
 
@@ -201,7 +201,7 @@ function buildSandboxedMailHtml(input: {
 
   const emailStyles = Array.from(doc.querySelectorAll('head style, body style'))
     .flatMap((style) => {
-      const text = style.textContent ?? '';
+      const text = style.textContent;
       style.remove();
       return text ? [text] : [];
     })
@@ -218,7 +218,7 @@ function parseRgb(value: string): [number, number, number, number] | null {
 
   const parts = match[1].split(',').map((part) => Number(part.trim()));
   const [red, green, blue, alpha = 1] = parts;
-  if (red === undefined || green === undefined || blue === undefined || parts.some((part) => Number.isNaN(part))) {
+  if (parts.some((part) => Number.isNaN(part))) {
     return null;
   }
 
@@ -373,7 +373,7 @@ export function MessageBody({
 
   function handleFrameLoad() {
     const doc = iframeRef.current?.contentDocument;
-    if (!doc?.body?.innerHTML) return;
+    if (!doc?.body.innerHTML) return;
 
     resizeObserverRef.current?.disconnect();
     mutationObserverRef.current?.disconnect();

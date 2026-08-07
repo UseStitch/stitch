@@ -223,7 +223,7 @@ async function getEarliestUsageTimestamp(): Promise<number | null> {
     .orderBy(asc(recordingAnalyses.startedAt))
     .limit(1);
 
-  const timestamps = [firstEvent[0]?.createdAt, firstRecordingAnalysis[0]?.createdAt].filter(
+  const timestamps = [firstEvent.at(0)?.createdAt, firstRecordingAnalysis.at(0)?.createdAt].filter(
     (value): value is number => typeof value === 'number',
   );
 
@@ -353,7 +353,6 @@ export async function getUsageDashboard(input: GetUsageDashboardInput): Promise<
     if (bucketIndex === undefined) return;
 
     const bucket = buckets[bucketIndex];
-    if (!bucket) return;
 
     bucket.costUsdBySource[args.source] = (bucket.costUsdBySource[args.source] ?? 0) + costUsd;
   };
@@ -448,7 +447,7 @@ export async function getSttUsageDashboard(
     usedModelKeys.add(`${row.providerId}::${row.modelId}`);
 
     const service = row.service;
-    const costUsd = row.costUsd ?? 0;
+    const costUsd = row.costUsd;
     const durationMs = row.rawData?.durationMs ?? 0;
 
     serviceSet.add(service);
@@ -460,7 +459,6 @@ export async function getSttUsageDashboard(
     if (bucketIndex === undefined) continue;
 
     const bucket = buckets[bucketIndex];
-    if (!bucket) continue;
 
     bucket.costUsdByService[service] = (bucket.costUsdByService[service] ?? 0) + costUsd;
     bucket.durationMsByService[service] = (bucket.durationMsByService[service] ?? 0) + durationMs;

@@ -16,9 +16,12 @@ export const markdownSanitizeSchema: SanitizeSchema = {
   tagNames: [...(defaultSchema.tagNames ?? []), 'abbr', 'mark', 'small', 'u'],
   attributes: {
     ...defaultAttributes,
-    blockquote: [...(defaultAttributes.blockquote ?? []), ['className', /^markdown-callout(?:-|$)/]],
+    blockquote: [...defaultAttributes.blockquote, ['className', /^markdown-callout(?:-|$)/]],
     // `math-inline`/`math-display` are how rehype-katex finds math to render.
     code: [['className', /^language-./, 'math-inline', 'math-display']],
-    p: [...(defaultAttributes.p ?? []), ['className', 'markdown-callout-title']],
+    p: [
+      ...((defaultAttributes.p as typeof defaultAttributes.blockquote | undefined) ?? []),
+      ['className', 'markdown-callout-title'],
+    ],
   },
 };

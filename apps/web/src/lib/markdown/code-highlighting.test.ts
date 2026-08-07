@@ -9,7 +9,7 @@ const DRACULA = getTheme('dracula').code;
 
 function rootPre(hast: ReturnType<typeof highlightToHast>) {
   const pre = hast.children[0];
-  if (pre === undefined || pre.type !== 'element') throw new Error('expected a root pre element');
+  if (pre.type !== 'element') throw new Error('expected a root pre element');
   return pre;
 }
 

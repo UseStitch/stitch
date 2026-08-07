@@ -280,25 +280,20 @@ function ToolCallRowStopButton({ onAbort }: { onAbort: () => void }) {
 }
 
 function ToolCallRowActions({ actions }: { actions: ToolCallAction[] }) {
-  return actions.map((action) => {
-    switch (action.type) {
-      case 'open-child-session':
-        return (
-          <Button
-            key={`${action.type}-${action.sessionId}`}
-            variant="quiet"
-            size="xs"
-            title="Open child session"
-            nativeButton={false}
-            render={<Link to="/session/$id" params={{ id: action.sessionId }} />}>
-            <Icon as={ExternalLinkIcon} size="xs" />
-            <Text as="span" variant="micro" tone="muted">
-              Open
-            </Text>
-          </Button>
-        );
-    }
-  });
+  return actions.map((action) => (
+    <Button
+      key={`${action.type}-${action.sessionId}`}
+      variant="quiet"
+      size="xs"
+      title="Open child session"
+      nativeButton={false}
+      render={<Link to="/session/$id" params={{ id: action.sessionId }} />}>
+      <Icon as={ExternalLinkIcon} size="xs" />
+      <Text as="span" variant="micro" tone="muted">
+        Open
+      </Text>
+    </Button>
+  ));
 }
 
 function useToolCallRow() {

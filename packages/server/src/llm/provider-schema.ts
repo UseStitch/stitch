@@ -54,7 +54,7 @@ function sanitizeGemini(node: unknown): unknown {
     if (nonNull.length === 0) {
       result.type = 'null';
     } else if (nonNull.length === 1) {
-      result.type = nonNull[0];
+      result.type = nonNull.at(0);
       if (types.includes('null')) result.nullable = true;
     } else {
       delete result.type;
@@ -161,7 +161,7 @@ function sanitizeOpenAI(value: unknown): unknown {
   const inferredTypes = inferType();
   if (inferredTypes.length === 0) return {};
 
-  result.type = inferredTypes.length === 1 ? inferredTypes[0] : inferredTypes;
+  result.type = inferredTypes.length === 1 ? inferredTypes.at(0) : inferredTypes;
   if (inferredTypes.includes('object') && !('properties' in result)) result.properties = {};
   if (inferredTypes.includes('array') && !('items' in result)) result.items = { type: 'string' };
   return result;

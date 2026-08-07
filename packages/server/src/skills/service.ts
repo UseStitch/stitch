@@ -89,7 +89,7 @@ export async function getSkillByName(name: string): Promise<ServiceResult<Skill>
 
 export async function createSkill(input: SkillCreateInput): Promise<ServiceResult<Skill>> {
   const parsed = createSkillSchema.safeParse(input);
-  if (!parsed.success) return err(parsed.error.issues[0]?.message ?? 'Invalid skill', 400);
+  if (!parsed.success) return err(parsed.error.issues.at(0)?.message ?? 'Invalid skill', 400);
 
   const value = parsed.data;
   await ensureSkillsDir();
@@ -129,7 +129,7 @@ export async function syncBuiltInSkills(builtInSkills: BuiltInSkill[]): Promise<
 
 export async function updateSkill(name: string, input: SkillUpdateInput): Promise<ServiceResult<Skill>> {
   const parsed = updateSkillSchema.safeParse(input);
-  if (!parsed.success) return err(parsed.error.issues[0]?.message ?? 'Invalid skill', 400);
+  if (!parsed.success) return err(parsed.error.issues.at(0)?.message ?? 'Invalid skill', 400);
 
   const value = parsed.data;
   await ensureSkillsDir();
@@ -219,7 +219,7 @@ export async function searchSkillsDirectory(query: string): Promise<ServiceResul
 
 export async function importSkillFromDirectory(input: SkillImportInput): Promise<ServiceResult<Skill>> {
   const parsed = importSkillSchema.safeParse(input);
-  if (!parsed.success) return err(parsed.error.issues[0]?.message ?? 'Invalid skill import', 400);
+  if (!parsed.success) return err(parsed.error.issues.at(0)?.message ?? 'Invalid skill import', 400);
 
   const { source, slug } = parsed.data;
   if (!source.includes('/')) return err('Skill source must be an owner/repo value', 400);
@@ -258,7 +258,7 @@ export async function importSkillFromDirectory(input: SkillImportInput): Promise
     if (!createParsed.success) {
       log.error({ source, slug, issues: createParsed.error.issues }, 'downloaded skill failed schema validation');
       return err(
-        new SkillInvalidError(createParsed.error.issues[0]?.message ?? 'Downloaded skill is invalid').message,
+        new SkillInvalidError(createParsed.error.issues.at(0)?.message ?? 'Downloaded skill is invalid').message,
         422,
       );
     }

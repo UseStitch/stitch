@@ -101,7 +101,7 @@ function attachCaptureEvents(ws: WebSocket, sttSessionId: string, getWindow: () 
     if (event.type === 'warning') {
       const payload: RecordingWarningPayload = { code: event.code, message: event.message };
       webContents.send('recording:warning', payload);
-    } else if (event.type === 'deviceChanged') {
+    } else {
       const payload: RecordingDeviceChangedPayload = { kind: event.kind, deviceName: event.deviceName };
       webContents.send('recording:device-changed', payload);
     }

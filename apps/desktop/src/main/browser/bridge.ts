@@ -27,7 +27,6 @@ export class BrowserBridge {
 
   private async handleSocketMessage(socket: WebSocket, raw: string): Promise<void> {
     const message = JSON.parse(raw) as ElectronBrowserCommandMessage;
-    if (message.type !== 'browser:command') return;
     try {
       const result = await this.handleCommand(message.sessionId, message.command);
       socket.send(JSON.stringify({ id: message.id, type: 'browser:result', ok: true, result }));

@@ -87,8 +87,8 @@ describe('refreshExpiringTokens', () => {
       .select()
       .from(connectorInstances)
       .where(eq(connectorInstances.id, 'conn_refresh_1' as never));
-    expect(row?.status).toBe('connected');
-    expect(row?.authIssue).toBeNull();
+    expect(row.status).toBe('connected');
+    expect(row.authIssue).toBeNull();
   });
 
   test('marks connector errored when refresh token is revoked', async () => {
@@ -107,8 +107,8 @@ describe('refreshExpiringTokens', () => {
       .select()
       .from(connectorInstances)
       .where(eq(connectorInstances.id, 'conn_refresh_2' as never));
-    expect(row?.status).toBe('error');
-    expect(row?.authIssue).toBe('reauthorization_required');
+    expect(row.status).toBe('error');
+    expect(row.authIssue).toBe('reauthorization_required');
   });
 
   test('recovers after a transient refresh failure by retrying', async () => {
@@ -129,9 +129,9 @@ describe('refreshExpiringTokens', () => {
       .select()
       .from(connectorInstances)
       .where(eq(connectorInstances.id, 'conn_refresh_retry' as never));
-    expect(row?.status).toBe('connected');
-    expect(row?.accessToken).toBe('refreshed-access');
-    expect(row?.refreshToken).toBe('rotated-refresh');
+    expect(row.status).toBe('connected');
+    expect(row.accessToken).toBe('refreshed-access');
+    expect(row.refreshToken).toBe('rotated-refresh');
   });
 
   test('does not retry permanent invalid_grant failures', async () => {
@@ -151,7 +151,7 @@ describe('refreshExpiringTokens', () => {
       .select()
       .from(connectorInstances)
       .where(eq(connectorInstances.id, 'conn_refresh_no_retry' as never));
-    expect(row?.status).toBe('error');
-    expect(row?.authIssue).toBe('reauthorization_required');
+    expect(row.status).toBe('error');
+    expect(row.authIssue).toBe('reauthorization_required');
   });
 });

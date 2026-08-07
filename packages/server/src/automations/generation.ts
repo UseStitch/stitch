@@ -36,7 +36,7 @@ function isHiddenFromHistory(message: GenerationMessageContext): boolean {
 function findLastUsedModel(messageList: GenerationMessageContext[]): { providerId: string; modelId: string } | null {
   for (let index = messageList.length - 1; index >= 0; index--) {
     const message = messageList[index];
-    if (!message || message.isSummary || isHiddenFromHistory(message)) continue;
+    if (message.isSummary || isHiddenFromHistory(message)) continue;
     if (!message.providerId || !message.modelId) continue;
     return { providerId: message.providerId, modelId: message.modelId };
   }
@@ -153,9 +153,6 @@ export async function generateAutomationDraft(sessionId: string): Promise<Servic
     .select()
     .from(sessions)
     .where(eq(sessions.id, sessionId as PrefixedString<'ses'>));
-  if (!session) {
-    return err('Session not found', 404);
-  }
 
   const messageList = await db
     .select()
@@ -212,7 +209,7 @@ export async function generateAutomationDraft(sessionId: string): Promise<Servic
     toolsetContext.inferredToolsets,
   );
 
-  const usage = result.usage ?? null;
+  const usage = result.usage;
 
   const { costUsd } = await recordLlmUsage({
     source: 'automation_generation',
@@ -248,7 +245,7 @@ export async function generateAutomationDraft(sessionId: string): Promise<Servic
       parts: [generationPart],
       modelId: resolved.modelId,
       providerId: resolved.providerId,
-      usage: usage ?? undefined,
+      usage,
       costUsd,
       finishReason: 'stop',
       isSummary: false,

@@ -312,7 +312,7 @@ function ShortcutsContent() {
         </SettingRows>
       </SettingSection>
 
-      <Tabs defaultValue={SHORTCUT_CATEGORIES[0]} className="gap-space-xl">
+      <Tabs defaultValue={SHORTCUT_CATEGORIES.at(0)} className="gap-space-xl">
         <TabsList variant="line">
           {SHORTCUT_CATEGORIES.map((category) => (
             <TabsTrigger key={category} value={category}>

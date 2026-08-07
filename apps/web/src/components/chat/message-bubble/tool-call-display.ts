@@ -80,7 +80,7 @@ export function buildStreamingToolCallDisplayItems(
 ): ToolCallDisplayItem[] {
   return partIds.flatMap((partId) => {
     const part = parts[partId];
-    if (!part || part.type !== 'tool-call' || isHiddenToolCall(part.toolName)) return [];
+    if (part.type !== 'tool-call' || isHiddenToolCall(part.toolName)) return [];
 
     return [
       {
@@ -154,7 +154,7 @@ function getToolLabel(toolName: string, displayName: string, kind: ToolSummaryKi
 }
 
 function getConnectorIconSlug(toolName: string): string | null {
-  const service = toolName.split('_', 1)[0];
+  const service = toolName.split('_', 1).at(0);
   if (!service) return null;
   return GOOGLE_SERVICE_ICON_SLUGS[service as keyof typeof GOOGLE_SERVICE_ICON_SLUGS] ?? null;
 }

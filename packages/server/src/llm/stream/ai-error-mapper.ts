@@ -98,7 +98,7 @@ function normalizeHeaders(input: unknown): Record<string, string> | undefined {
     return headers;
   }
 
-  if (typeof input === 'object' && input !== null) {
+  if (typeof input === 'object') {
     const headers: Record<string, string> = {};
     for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
       headers[key.toLowerCase()] = String(value);

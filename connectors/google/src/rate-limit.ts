@@ -239,7 +239,7 @@ class SlidingWindowLimiter {
   private async acquireInternal(weight: number, options: AcquireOptions): Promise<number> {
     let waitedMs = 0;
 
-    while (true) {
+    for (;;) {
       const now = Date.now();
       this.pruneExpired(now);
 
@@ -249,7 +249,7 @@ class SlidingWindowLimiter {
         return waitedMs;
       }
 
-      const oldest = this.events[0];
+      const oldest = this.events.at(0);
       if (!oldest) {
         this.events.push({ timestamp: now, weight });
         return waitedMs;

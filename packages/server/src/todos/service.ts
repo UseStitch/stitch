@@ -26,11 +26,9 @@ export async function replaceSessionTodos(input: {
   broadcastUpdate?: boolean;
 }): Promise<ServiceResult<SessionTodo[]>> {
   const db = getDb();
-  const [session] = await db
-    .select({ id: sessions.id })
-    .from(sessions)
-    .where(eq(sessions.id, input.sessionId))
-    .limit(1);
+  const session = (
+    await db.select({ id: sessions.id }).from(sessions).where(eq(sessions.id, input.sessionId)).limit(1)
+  ).at(0);
   if (!session) return err(`Session not found: ${input.sessionId}`, 404);
 
   const now = Date.now();

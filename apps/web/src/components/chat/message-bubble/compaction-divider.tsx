@@ -12,7 +12,7 @@ type CompactionDividerProps = { summaryParts?: StoredPart[] };
 function stripOuterCodeFence(text: string): string {
   const trimmed = text.trim();
   const match = trimmed.match(/^```(?:\w*\n)?([\s\S]*?)```$/);
-  return match ? (match[1]?.trim() ?? trimmed) : trimmed;
+  return match ? (match.at(1)?.trim() ?? trimmed) : trimmed;
 }
 
 export function CompactionDivider({ summaryParts }: CompactionDividerProps) {

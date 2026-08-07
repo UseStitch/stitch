@@ -132,7 +132,7 @@ export function create(tags?: Record<string, unknown>, { skipCache = false } = {
     const diff = next.getTime() - last;
     last = next.getTime();
 
-    return [next.toISOString().split('.')[0], `+${diff}ms`, prefix, message].filter(Boolean).join(' ');
+    return [next.toISOString().split('.').at(0), `+${diff}ms`, prefix, message].filter(Boolean).join(' ');
   }
 
   function emit(lvl: Level, extraOrMessage: Record<string, unknown> | string, message?: string) {

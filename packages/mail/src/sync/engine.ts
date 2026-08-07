@@ -104,7 +104,7 @@ function isAbortError(error: unknown): boolean {
 
 async function readAccount(accountId: MailAccountId): Promise<MailAccountRecord | null> {
   const [account] = await getMailDb().select().from(mailAccounts).where(eq(mailAccounts.id, accountId)).limit(1);
-  return account ?? null;
+  return account;
 }
 
 export function createMailEngine(deps: MailEngineDeps): MailEngine {

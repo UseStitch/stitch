@@ -46,7 +46,7 @@ export function DesktopNotificationRoot() {
     if (!element) return;
 
     const observer = new ResizeObserver(([entry]) => {
-      const height = entry?.contentRect.height ?? 0;
+      const height = entry.contentRect.height;
       void window.api.notifications.setHeight(height);
     });
 

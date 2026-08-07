@@ -95,7 +95,7 @@ describe('listThreads', () => {
     const trashedThreads = await listThreads({ accountId, isTrashed: true, db });
 
     expect(inboxThreads.threads.map((thread) => thread.id)).toEqual([inboxThreadId]);
-    expect(inboxThreads.threads[0]?.labels.map((label) => label.id)).toEqual([inboxLabelId]);
+    expect(inboxThreads.threads.at(0)?.labels.map((label) => label.id)).toEqual([inboxLabelId]);
     expect(trashedThreads.threads.map((thread) => thread.id)).toEqual([trashThreadId]);
   });
 
@@ -168,8 +168,8 @@ describe('listThreads', () => {
     expect(accounts.map((item) => item.id)).toEqual([accountId]);
     expect(labels.map((label) => label.id)).toEqual([labelId]);
     expect(drafts.map((draft) => draft.id)).toEqual([draftId]);
-    expect(threadList.threads[0]?.from).toEqual({ name: 'A', email: 'a@example.com' });
+    expect(threadList.threads.at(0)?.from).toEqual({ name: 'A', email: 'a@example.com' });
     expect(thread?.from).toEqual({ name: 'A', email: 'a@example.com' });
-    expect(thread?.messages[0]?.attachments[0]?.id).toBe(attachmentId);
+    expect(thread?.messages.at(0)?.attachments[0]?.id).toBe(attachmentId);
   });
 });

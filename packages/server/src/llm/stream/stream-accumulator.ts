@@ -151,7 +151,7 @@ export class StreamAccumulator {
         sessionId: this.sessionId,
         messageId: this.messageId,
         step: this.step,
-        partType: String(part?.type ?? 'unknown'),
+        partType: String(part.type),
       },
       'stream.part.received',
     );
@@ -321,7 +321,7 @@ export class StreamAccumulator {
         } as StoredPart);
 
         if (isPermissionRejectedError(part.error)) {
-          this.permissionRejected = new PermissionRejectedError(part.toolName ?? 'unknown');
+          this.permissionRejected = new PermissionRejectedError(part.toolName);
         }
         break;
       }

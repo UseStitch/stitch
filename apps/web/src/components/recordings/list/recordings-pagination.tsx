@@ -61,7 +61,7 @@ export function RecordingsPagination({
 
           {pageNumbers.map((pageNumber, index) => {
             const previousPage = pageNumbers[index - 1];
-            const showGap = previousPage !== undefined && pageNumber - previousPage > 1;
+            const showGap = pageNumber - previousPage > 1;
             return (
               <React.Fragment key={`page-${pageNumber}`}>
                 {showGap ? (

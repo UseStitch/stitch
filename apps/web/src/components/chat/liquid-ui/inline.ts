@@ -14,14 +14,14 @@ export function parseInlineLiquidUiText(text: string): InlineLiquidUiSegment[] |
   for (const match of text.matchAll(INLINE_LIQUID_UI_PATTERN)) {
     found = true;
     const [fullMatch, jsonText] = match;
-    const index = match.index ?? 0;
+    const index = match.index;
 
     if (index > lastIndex) {
       segments.push({ type: 'text', text: text.slice(lastIndex, index) });
     }
 
     try {
-      const spec = repairLiquidUiSpec(JSON.parse(jsonText ?? ''));
+      const spec = repairLiquidUiSpec(JSON.parse(jsonText));
       if (!spec) return null;
       segments.push({ type: 'liquid-ui', spec });
     } catch {

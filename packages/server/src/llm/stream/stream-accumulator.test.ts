@@ -69,7 +69,7 @@ describe('StreamAccumulator', () => {
       acc.handlePart(part({ type: 'text-end', id: 'id1' }));
 
       expect(parts).toHaveLength(1);
-      expect(parts[0]).toMatchObject({ type: 'text-delta', text: 'Hello, world!' });
+      expect(parts.at(0)).toMatchObject({ type: 'text-delta', text: 'Hello, world!' });
 
       expect(getEmittedCalls('part.update')).toHaveLength(2);
       expect(getEmittedCalls('part.delta')).toHaveLength(2);
@@ -84,12 +84,12 @@ describe('StreamAccumulator', () => {
       acc.flush();
 
       expect(parts).toHaveLength(1);
-      expect(parts[0]).toMatchObject({ type: 'text-delta', text: 'Incomplete' });
+      expect(parts.at(0)).toMatchObject({ type: 'text-delta', text: 'Incomplete' });
 
       const updateCalls = getEmittedCalls('part.update');
       // text-start + text-end (from flush)
       expect(updateCalls).toHaveLength(2);
-      expect(updateCalls[1]).toMatchObject({ part: { type: 'text-end' } });
+      expect(updateCalls.at(1)).toMatchObject({ part: { type: 'text-end' } });
     });
 
     test('flush() does nothing when text buffer is empty', () => {
@@ -124,7 +124,7 @@ describe('StreamAccumulator', () => {
       acc.handlePart(part({ type: 'reasoning-end', id: 'id1' }));
 
       expect(parts).toHaveLength(1);
-      expect(parts[0]).toMatchObject({ type: 'reasoning-delta', text: 'Thinking step 1. Thinking step 2' });
+      expect(parts.at(0)).toMatchObject({ type: 'reasoning-delta', text: 'Thinking step 1. Thinking step 2' });
     });
 
     test('reasoning-delta without reasoning-start increments protocol violation', () => {
@@ -144,12 +144,12 @@ describe('StreamAccumulator', () => {
       acc.flush();
 
       expect(parts).toHaveLength(1);
-      expect(parts[0]).toMatchObject({ type: 'reasoning-delta', text: 'Partial reasoning' });
+      expect(parts.at(0)).toMatchObject({ type: 'reasoning-delta', text: 'Partial reasoning' });
 
       const updateCalls = getEmittedCalls('part.update');
       // reasoning-start + reasoning-end (from flush)
       expect(updateCalls).toHaveLength(2);
-      expect(updateCalls[1]).toMatchObject({ part: { type: 'reasoning-end' } });
+      expect(updateCalls.at(1)).toMatchObject({ part: { type: 'reasoning-end' } });
     });
   });
 
@@ -174,8 +174,8 @@ describe('StreamAccumulator', () => {
 
       expect(toolCalls).toEqual([expect.objectContaining({ toolName: 'bash' })]);
       expect(parts).toHaveLength(2);
-      expect(parts[0]).toMatchObject({ type: 'tool-call', toolCallId: 'call_1', toolName: 'bash' });
-      expect(parts[1]).toMatchObject({
+      expect(parts.at(0)).toMatchObject({ type: 'tool-call', toolCallId: 'call_1', toolName: 'bash' });
+      expect(parts.at(1)).toMatchObject({
         type: 'tool-result',
         toolCallId: 'call_1',
         toolName: 'bash',
@@ -187,8 +187,8 @@ describe('StreamAccumulator', () => {
       const completedCalls = getEmittedCalls('tool.completed');
       expect(startedCalls).toHaveLength(1);
       expect(completedCalls).toHaveLength(1);
-      expect(startedCalls[0]).toMatchObject({ toolName: 'bash' });
-      expect(completedCalls[0]).toMatchObject({ toolName: 'bash' });
+      expect(startedCalls.at(0)).toMatchObject({ toolName: 'bash' });
+      expect(completedCalls.at(0)).toMatchObject({ toolName: 'bash' });
     });
 
     test('broadcasts tool.failed when a tool-result contains an error payload', () => {
@@ -206,7 +206,7 @@ describe('StreamAccumulator', () => {
 
       const failedCalls = getEmittedCalls('tool.failed');
       expect(failedCalls).toHaveLength(1);
-      expect(failedCalls[0]).toMatchObject({ toolName: 'browser', error: 'Navigation failed' });
+      expect(failedCalls.at(0)).toMatchObject({ toolName: 'browser', error: 'Navigation failed' });
     });
 
     test('broadcasts tool.pending for tool-input-start', () => {
@@ -216,7 +216,7 @@ describe('StreamAccumulator', () => {
 
       const pendingCalls = getEmittedCalls('tool.pending');
       expect(pendingCalls).toHaveLength(1);
-      expect(pendingCalls[0]).toMatchObject({ toolName: 'bash' });
+      expect(pendingCalls.at(0)).toMatchObject({ toolName: 'bash' });
     });
   });
 
@@ -238,7 +238,7 @@ describe('StreamAccumulator', () => {
       );
 
       expect(parts).toHaveLength(1);
-      expect(parts[0]).toMatchObject({
+      expect(parts.at(0)).toMatchObject({
         type: 'tool-result',
         toolCallId: 'call_1',
         toolName: 'webfetch',
@@ -247,7 +247,7 @@ describe('StreamAccumulator', () => {
 
       const failedCalls = getEmittedCalls('tool.failed');
       expect(failedCalls).toHaveLength(1);
-      expect(failedCalls[0]).toMatchObject({ toolName: 'webfetch', error: 'connection refused' });
+      expect(failedCalls.at(0)).toMatchObject({ toolName: 'webfetch', error: 'connection refused' });
     });
 
     test('captures PermissionRejectedError from tool-error', () => {
@@ -288,7 +288,7 @@ describe('StreamAccumulator', () => {
 
       const errorCalls = getEmittedCalls('stream.failed');
       expect(errorCalls).toHaveLength(1);
-      expect(errorCalls[0]).toMatchObject({ sessionId: 'ses_1', messageId: 'msg_1' });
+      expect(errorCalls.at(0)).toMatchObject({ sessionId: 'ses_1', messageId: 'msg_1' });
     });
 
     test('throws StreamPartError for non-Error error parts', () => {
@@ -320,7 +320,7 @@ describe('StreamAccumulator', () => {
       );
 
       expect(parts).toHaveLength(1);
-      expect(parts[0]).toMatchObject({ type: 'source', url: 'https://example.com' });
+      expect(parts.at(0)).toMatchObject({ type: 'source', url: 'https://example.com' });
     });
 
     test('stores file parts', () => {
@@ -332,7 +332,7 @@ describe('StreamAccumulator', () => {
       );
 
       expect(parts).toHaveLength(1);
-      expect(parts[0]).toMatchObject({ type: 'file' });
+      expect(parts.at(0)).toMatchObject({ type: 'file' });
     });
   });
 
@@ -404,10 +404,10 @@ describe('StreamAccumulator', () => {
       );
 
       expect(parts).toHaveLength(4);
-      expect(parts[0]).toMatchObject({ type: 'reasoning-delta', text: 'Analyzing...' });
-      expect(parts[1]).toMatchObject({ type: 'text-delta', text: 'Let me check.' });
-      expect(parts[2]).toMatchObject({ type: 'tool-call', toolName: 'bash' });
-      expect(parts[3]).toMatchObject({ type: 'tool-result', toolName: 'bash' });
+      expect(parts.at(0)).toMatchObject({ type: 'reasoning-delta', text: 'Analyzing...' });
+      expect(parts.at(1)).toMatchObject({ type: 'text-delta', text: 'Let me check.' });
+      expect(parts.at(2)).toMatchObject({ type: 'tool-call', toolName: 'bash' });
+      expect(parts.at(3)).toMatchObject({ type: 'tool-result', toolName: 'bash' });
       expect(toolCalls).toHaveLength(1);
     });
   });

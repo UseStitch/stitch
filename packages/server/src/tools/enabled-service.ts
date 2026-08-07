@@ -41,10 +41,11 @@ export async function isToolEnabled(opts: { scope: ToolEnabledScope; identifier:
   }
 
   const db = getDb();
-  const [row] = await db
+  const rows = await db
     .select({ enabled: toolEnabled.enabled })
     .from(toolEnabled)
     .where(and(eq(toolEnabled.scope, opts.scope), eq(toolEnabled.identifier, opts.identifier)));
+  const row = rows.at(0);
 
   return row?.enabled ?? true;
 }

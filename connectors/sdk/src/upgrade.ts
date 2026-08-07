@@ -58,15 +58,16 @@ export function buildUpgradeState(input: {
   const currentCapabilities = new Set(input.capabilities);
   const newCapabilities = targetCapabilities.filter((capability) => !currentCapabilities.has(capability));
 
-  const latestVersion = pendingVersions[pendingVersions.length - 1];
+  const latestVersion = pendingVersions.at(-1);
+  if (!latestVersion) return null;
 
   return {
     available: true,
     fromVersion,
     toVersion,
     actions: [...actionSet],
-    title: latestVersion?.title ?? `Upgrade ${input.definition.name}`,
-    description: latestVersion?.description ?? 'A connector upgrade is available.',
+    title: latestVersion.title,
+    description: latestVersion.description,
     missingScopes,
     newCapabilities,
   };

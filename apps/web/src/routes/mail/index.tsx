@@ -2,6 +2,8 @@ import * as React from 'react';
 
 import { createFileRoute } from '@tanstack/react-router';
 
+import type { MailAccountView } from '@stitch/shared/mail/types';
+
 import { MailPage } from '@/components/mail/mail-page';
 import { Text } from '@/components/primitives/text';
 import {
@@ -14,7 +16,7 @@ import {
 export const Route = createFileRoute('/mail/')({
   loader: async ({ context }) => {
     const accounts = await context.queryClient.ensureQueryData(mailAccountsQueryOptions);
-    const account = accounts[0];
+    const account = accounts[0] as MailAccountView | undefined;
     if (!account) return;
 
     const labels = await context.queryClient.ensureQueryData(mailLabelsQueryOptions(account.id));

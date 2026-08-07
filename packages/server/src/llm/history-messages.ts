@@ -208,7 +208,7 @@ export function buildHistoryMessages(
     }
   }
 
-  if (llmMessages[0]?.role !== 'system') {
+  if (llmMessages.at(0)?.role !== 'system') {
     const layers = buildSystemPromptLayers(promptConfig);
     const parts = [layers.static, layers.semiStatic];
     if (layers.dynamic) {

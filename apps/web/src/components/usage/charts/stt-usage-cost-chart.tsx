@@ -1,7 +1,7 @@
 import type { SttUsageDashboardResponse } from '@stitch/shared/usage/types';
 
 import { StackedBarChart } from '@/components/usage/charts/stacked-bar-chart';
-import { getChartColor, getChartColorForKey } from '@/lib/chart-colors';
+import { getChartColor } from '@/lib/chart-colors';
 
 const SERVICE_COLOR_INDEX: Record<string, number> = { 'chat-input': 0, 'meeting-recording': 1 };
 
@@ -9,8 +9,7 @@ const SERVICE_LABELS: Record<string, string> = { 'chat-input': 'Chat Input', 'me
 
 function getServiceColor(service: string): string {
   const index = SERVICE_COLOR_INDEX[service];
-  if (index !== undefined) return getChartColor(index);
-  return getChartColorForKey(service);
+  return getChartColor(index);
 }
 
 function getServiceLabel(service: string): string {

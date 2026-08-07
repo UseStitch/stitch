@@ -146,7 +146,6 @@ export async function ensureFreshAccessToken(
     .select()
     .from(connectorInstances)
     .where(eq(connectorInstances.id, instanceId as never));
-  if (!row) return null;
 
   const now = Date.now();
   const shouldRefresh =

@@ -36,7 +36,8 @@ export function createSchedulerStore(): SchedulerStore {
             })
             .where(eq(scheduledJobs.key, input.key))
             .returning()
-            .get();
+            .all()
+            .at(0);
 
           if (!updated) throw new SchedulerJobUpsertError(input.key);
           return updated;
@@ -61,7 +62,8 @@ export function createSchedulerStore(): SchedulerStore {
           updatedAt: input.now,
         })
         .returning()
-        .get();
+        .all()
+        .at(0);
 
       if (!inserted) throw new SchedulerJobUpsertError(input.key);
       return inserted;
@@ -106,7 +108,8 @@ export function createSchedulerStore(): SchedulerStore {
             createdAt: input.now,
           })
           .returning()
-          .get();
+          .all()
+          .at(0);
 
         if (!inserted) return null;
 

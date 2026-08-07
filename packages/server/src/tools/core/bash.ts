@@ -128,7 +128,7 @@ Parameter sourcing:
       proc.stdout?.on('data', append);
       proc.stderr?.on('data', append);
 
-      let timedOut = false;
+      const timedOutState = { value: false };
       let aborted = false;
       let exited = false;
 
@@ -147,7 +147,7 @@ Parameter sourcing:
       abortSignal?.addEventListener('abort', abortHandler, { once: true });
 
       const timeoutId = setTimeout(() => {
-        timedOut = true;
+        timedOutState.value = true;
         void kill();
       }, timeout + 100);
 
@@ -174,7 +174,7 @@ Parameter sourcing:
       });
 
       const runtimeNotes: string[] = [];
-      if (timedOut) runtimeNotes.push(`Command timed out after ${timeout} ms`);
+      if (timedOutState.value) runtimeNotes.push(`Command timed out after ${timeout} ms`);
       if (aborted) runtimeNotes.push('Command was aborted');
 
       if (runtimeNotes.length > 0) {
@@ -183,7 +183,7 @@ Parameter sourcing:
 
       const cleanedOutput = stripAnsi(output);
       const exitCode = proc.exitCode ?? 0;
-      const failed = exitCode !== 0 && !timedOut && !aborted;
+      const failed = exitCode !== 0 && !timedOutState.value && !aborted;
 
       return {
         title: input.description,
@@ -203,13 +203,13 @@ Parameter sourcing:
 }
 
 function getPatternTargets(input: unknown): string[] {
-  const command = (input as { command?: unknown })?.command;
+  const command = (input as { command?: unknown }).command;
   if (typeof command !== 'string' || command.trim().length === 0) return [];
   return deriveCommandFamilies(command).map((family) => family.pattern);
 }
 
 function getSuggestion(input: unknown): PermissionSuggestion | null {
-  const command = (input as { command?: unknown })?.command;
+  const command = (input as { command?: unknown }).command;
   if (typeof command !== 'string' || command.trim().length === 0) return null;
   return getCommandFamilySuggestion(command);
 }

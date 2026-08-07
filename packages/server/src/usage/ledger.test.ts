@@ -85,9 +85,9 @@ describe('recordLlmUsage', () => {
     const events = await db.select().from(llmUsageEvents).where(eq(llmUsageEvents.source, 'compaction'));
 
     expect(events.length).toBe(1);
-    expect(events[0]?.source).toBe('compaction');
-    expect(events[0]?.inputTokens).toBe(100);
-    expect(events[0]?.outputTokens).toBe(50);
+    expect(events.at(0)?.source).toBe('compaction');
+    expect(events.at(0)?.inputTokens).toBe(100);
+    expect(events.at(0)?.outputTokens).toBe(50);
   });
 
   test('writes correct status and metadata fields', async () => {
@@ -116,8 +116,8 @@ describe('recordLlmUsage', () => {
     const events = await db.select().from(llmUsageEvents).where(eq(llmUsageEvents.source, 'title_generation'));
 
     expect(events.length).toBe(1);
-    expect(events[0]?.status).toBe('failed');
-    expect(events[0]?.errorCode).toBe('rate_limit');
-    expect(events[0]?.durationMs).toBe(100);
+    expect(events.at(0)?.status).toBe('failed');
+    expect(events.at(0)?.errorCode).toBe('rate_limit');
+    expect(events.at(0)?.durationMs).toBe(100);
   });
 });

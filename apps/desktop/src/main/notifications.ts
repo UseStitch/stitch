@@ -12,7 +12,6 @@ const NOTIFICATION_DEFAULT_HEIGHT = 92;
 const NOTIFICATION_MARGIN = 16;
 const NOTIFICATION_GAP = 8;
 const EXIT_ANIMATION_MS = 220;
-const FOLLOW_CURSOR_ENABLED = true;
 const FOLLOW_CURSOR_DWELL_MS = 1500;
 const FOLLOW_CURSOR_POLL_INTERVAL_MS = 250;
 
@@ -121,7 +120,7 @@ function pollCursorDisplay(): void {
 }
 
 function startFollowCursorPolling(): void {
-  if (!FOLLOW_CURSOR_ENABLED || followCursorInterval) return;
+  if (followCursorInterval) return;
 
   followCursorInterval = setInterval(pollCursorDisplay, FOLLOW_CURSOR_POLL_INTERVAL_MS);
 }
@@ -295,7 +294,7 @@ export function dismissDesktopNotification(id: string): void {
 
 export function destroyNotificationWindow(): void {
   while (orderedIds.length > 0) {
-    const id = orderedIds[0];
+    const id = orderedIds.at(0);
     if (!id) return;
     destroyNotification(id);
   }

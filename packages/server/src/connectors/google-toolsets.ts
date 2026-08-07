@@ -80,13 +80,13 @@ function toServerToolset(def: GoogleToolsetDefinition): Toolset {
               const id = row.id.toLowerCase();
               return email === normalized || label === normalized || id === normalized;
             })
-          : connected[0];
+          : connected.at(0);
 
         if (!chosen) {
           throw new GoogleAccountNotFoundError('google', account ?? undefined);
         }
 
-        if (!canActivateToolset(def.id, (chosen.scopes as string[]) ?? [], chosen.capabilities ?? [])) {
+        if (!canActivateToolset(def.id, chosen.scopes ?? [], chosen.capabilities)) {
           throw new GoogleAccountInsufficientScopesError('google', chosen.accountEmail ?? chosen.label, def.name);
         }
 
@@ -139,7 +139,7 @@ export async function registerGoogleToolsets(): Promise<void> {
     return;
   }
 
-  const scopes = [...new Set(connected.flatMap((instance) => (instance.scopes as string[]) ?? []))];
+  const scopes = [...new Set(connected.flatMap((instance) => instance.scopes ?? []))];
   const capabilities = [...new Set(connected.flatMap((instance) => (instance.capabilities as string[] | null) ?? []))];
   const appliedVersion = Math.max(
     ...connected.map((instance) => (Number.isFinite(instance.appliedVersion) ? instance.appliedVersion : 1)),

@@ -15,7 +15,7 @@ export async function getProviderCredentials(providerId: string): Promise<Servic
   }
 
   const db = getDb();
-  const [config] = await db.select().from(providerConfig).where(eq(providerConfig.providerId, providerId));
+  const config = (await db.select().from(providerConfig).where(eq(providerConfig.providerId, providerId))).at(0);
   if (!config) {
     return err('Provider not configured', 404);
   }

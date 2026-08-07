@@ -2,7 +2,7 @@ import type { UsageDashboardResponse } from '@stitch/shared/usage/types';
 
 import { StackedBarChart } from '@/components/usage/charts/stacked-bar-chart';
 import { getSourceLabel, useSourceOrder } from '@/components/usage/utils/usage-dashboard-utils';
-import { getChartColor, getChartColorForKey } from '@/lib/chart-colors';
+import { getChartColor } from '@/lib/chart-colors';
 
 const SOURCE_COLOR_INDEX: Record<string, number> = {
   chat: 0,
@@ -15,8 +15,7 @@ const SOURCE_COLOR_INDEX: Record<string, number> = {
 
 function getSourceColor(source: string): string {
   const index = SOURCE_COLOR_INDEX[source];
-  if (index !== undefined) return getChartColor(index);
-  return getChartColorForKey(source);
+  return getChartColor(index);
 }
 
 type UsageDashboardCostChartProps = { usageData: UsageDashboardResponse | undefined };

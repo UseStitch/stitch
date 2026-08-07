@@ -30,11 +30,11 @@ describe('createMeetingDetectionEngine', () => {
 
     engine.ingest([observation], now + 400);
     expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({ type: 'detected' });
+    expect(events.at(0)).toMatchObject({ type: 'detected' });
 
     engine.ingest([], now + 700);
     expect(events).toHaveLength(2);
-    expect(events[1]).toMatchObject({ type: 'ended', key: 'desktop:zoom' });
+    expect(events.at(1)).toMatchObject({ type: 'ended', key: 'desktop:zoom' });
   });
 
   test('does not re-emit detected while in cooldown', () => {
@@ -94,7 +94,7 @@ describe('createMeetingDetectionEngine', () => {
     engine.ingest([observation], now);
     engine.ingest([observation], now + 400);
     expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({ type: 'detected' });
+    expect(events.at(0)).toMatchObject({ type: 'detected' });
   });
 
   test('throws when staleCandidateThresholdMs < activationThresholdMs', () => {

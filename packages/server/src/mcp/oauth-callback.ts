@@ -106,7 +106,7 @@ export function registerPendingAuth(input: { state: string; serverId: string }):
       pending.delete(input.state);
       reject(new Error('MCP OAuth flow timed out after 5 minutes'));
     }, AUTH_TIMEOUT_MS);
-    timeout.unref?.();
+    timeout.unref();
 
     pending.set(input.state, { serverId: input.serverId, resolve, reject, timeout });
   });

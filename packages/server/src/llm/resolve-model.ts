@@ -52,8 +52,8 @@ export async function resolveModel(input: ResolveModelInput): Promise<ServiceRes
     Models.get(),
   ]);
 
-  const configuredProviderId = (settingsMap[input.providerIdKey] as string)?.trim();
-  const configuredModelId = (settingsMap[input.modelIdKey] as string)?.trim();
+  const configuredProviderId = (settingsMap[input.providerIdKey] as string).trim();
+  const configuredModelId = (settingsMap[input.modelIdKey] as string).trim();
 
   let targetProviderId: string | undefined;
   let targetModelId: string | undefined;
@@ -68,7 +68,8 @@ export async function resolveModel(input: ResolveModelInput): Promise<ServiceRes
     const enabledProviderIds = new Set(configs.map((c) => c.providerId));
     for (const modelId of input.priorityModelIds) {
       for (const providerId of enabledProviderIds) {
-        if (providers[providerId]?.models[modelId]) {
+        const provider = providers[providerId] as Models.RawProvider | undefined;
+        if (provider?.models[modelId]) {
           targetProviderId = providerId;
           targetModelId = modelId;
           break;
@@ -92,10 +93,10 @@ export async function resolveModel(input: ResolveModelInput): Promise<ServiceRes
     return err('Provider not found', 404);
   }
 
-  const provider = providers[targetProviderId];
+  const provider = providers[targetProviderId] as Models.RawProvider | undefined;
   if (!provider) return err('Provider not found', 404);
 
-  const model = provider.models[targetModelId];
+  const model = provider.models[targetModelId] as Models.RawModel | undefined;
   if (!model) return err('Model not found for provider', 400);
 
   if (input.modelFilter && !input.modelFilter(model)) {
@@ -131,10 +132,10 @@ export async function validateProviderModel(providerId: string, modelId: string)
       .get(),
   ]);
 
-  const provider = providers[providerId];
+  const provider = providers[providerId] as Models.RawProvider | undefined;
   if (!provider) return err('Provider not found', 404);
 
-  const model = provider.models[modelId];
+  const model = provider.models[modelId] as Models.RawModel | undefined;
   if (!model) return err('Model not found for provider', 400);
 
   if (!config) return err('Provider is not configured', 400);

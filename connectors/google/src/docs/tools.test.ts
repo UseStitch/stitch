@@ -56,7 +56,7 @@ describe('createDocsTools docs_edit', () => {
     const result = await docsEdit.execute({ documentId: 'doc-1', oldString: 'beta', newString: 'gamma' });
 
     expect(batchUpdates).toHaveLength(1);
-    expect(batchUpdates[0]).toEqual(
+    expect(batchUpdates.at(0)).toEqual(
       expect.objectContaining({
         requests: expect.arrayContaining([
           expect.objectContaining({ insertText: { location: { index: 1 }, text: 'alpha gamma alpha' } }),
@@ -101,7 +101,7 @@ describe('createDocsTools docs_edit', () => {
     await docsEdit.execute({ documentId: 'doc-4', oldString: 'task', newString: 'item', replaceAll: true });
 
     expect(batchUpdates).toHaveLength(1);
-    expect(batchUpdates[0]).toEqual(
+    expect(batchUpdates.at(0)).toEqual(
       expect.objectContaining({
         requests: expect.arrayContaining([
           expect.objectContaining({ insertText: { location: { index: 1 }, text: 'item item done' } }),

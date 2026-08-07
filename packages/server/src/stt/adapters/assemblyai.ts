@@ -47,7 +47,7 @@ export function createAssemblyAIMessageParser(sessionStartMs: number) {
         if (!('transcript' in msg)) return null;
 
         const words =
-          'words' in msg && msg.words
+          'words' in msg
             ? msg.words.map((w) => ({ text: w.text, startMs: Math.round(w.start), endMs: Math.round(w.end) }))
             : undefined;
 

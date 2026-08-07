@@ -246,7 +246,7 @@ export const gmailSyncProvider: MailSyncProvider = {
   },
 
   async getThread(ctx, providerThreadId, hydration) {
-    return (await batchGetParsedThreads(ctx, [providerThreadId], hydration))[0] ?? null;
+    return (await batchGetParsedThreads(ctx, [providerThreadId], hydration)).at(0) ?? null;
   },
 
   async fetchAttachment(ctx, providerMessageId, providerAttachmentId) {

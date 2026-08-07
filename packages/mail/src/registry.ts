@@ -6,7 +6,6 @@ import type { MailProviderId } from './db/schema.js';
 const providers = new Map<MailProviderId, MailProviderModule>();
 
 export function registerMailProvider(module: MailProviderModule): void {
-  if (module.sync.id !== module.ops.id) throw new MailConfigurationError('Mail provider sync and ops ids must match');
   providers.set(module.sync.id, module);
 }
 

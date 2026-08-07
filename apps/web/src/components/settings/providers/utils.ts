@@ -15,7 +15,7 @@ export function resolveDefaultAuthMethod(
     return existingMethod;
   }
 
-  return enabledAuthMethods[0]?.method ?? '';
+  return enabledAuthMethods.at(0)?.method ?? '';
 }
 
 export function hydrateProviderConfigState(

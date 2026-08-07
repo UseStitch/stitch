@@ -92,7 +92,7 @@ export function SttModelSelectorPopover({
                 </div>
                 {provider.models.map((model) => {
                   const isDefault =
-                    defaultValue?.providerId === provider.providerId && defaultValue?.modelId === model.id;
+                    defaultValue?.providerId === provider.providerId && defaultValue.modelId === model.id;
                   return (
                     <PopoverClose
                       key={model.id}

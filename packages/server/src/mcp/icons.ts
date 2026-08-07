@@ -30,7 +30,7 @@ function parseDataUri(uri: string): { mimeType: string; data: Uint8Array } | nul
   const header = uri.slice(5, commaIndex);
   const dataPart = uri.slice(commaIndex + 1);
   const parts = header.split(';').map((part) => part.trim().toLowerCase());
-  const mimeType = parts[0] || 'text/plain';
+  const mimeType = parts.at(0) || 'text/plain';
   const isBase64 = parts.includes('base64');
   if (!ALLOWED_MIME_TYPES.has(mimeType)) return null;
 
@@ -46,7 +46,7 @@ function parseDataUri(uri: string): { mimeType: string; data: Uint8Array } | nul
 
 function normalizeMimeType(raw?: string): string | undefined {
   if (!raw) return undefined;
-  const normalized = raw.split(';')[0]?.trim().toLowerCase();
+  const normalized = raw.split(';').at(0)?.trim().toLowerCase();
   if (!normalized) return undefined;
   if (normalized === 'image/jpg') return 'image/jpeg';
   return normalized;
@@ -91,7 +91,7 @@ export async function cacheMcpIcon(input: {
 }): Promise<{ key: string } | null> {
   const { serverUrl, scope, icon } = input;
   const cacheDir = input.cacheDir ?? PATHS.dirPaths.mcpIcons;
-  if (!icon?.src) return null;
+  if (!icon.src) return null;
 
   const key = buildKey(scope, icon.src);
   const existing = await readCachedIcon(key, cacheDir);
