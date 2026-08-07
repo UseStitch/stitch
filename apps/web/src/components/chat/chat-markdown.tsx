@@ -1,3 +1,4 @@
+import { cn } from 'cnfast';
 import { toJsxRuntime } from 'hast-util-to-jsx-runtime';
 import { CheckIcon, CopyIcon } from 'lucide-react';
 import * as React from 'react';
@@ -23,13 +24,11 @@ import {
   createHighlightCacheKey,
   estimateHighlightedSize,
 } from '@/lib/code-highlighting';
-import { remarkGithubCallouts } from '@/lib/markdown-callouts';
-import { rehypeNormalizeUrlProtocols } from '@/lib/markdown-normalize-urls';
-import { markdownSanitizeSchema } from '@/lib/markdown-sanitize-schema';
-import { remarkTextMarks } from '@/lib/markdown-text-marks';
+import { remarkGithubCallouts } from '@/lib/markdown/markdown-callouts';
+import { rehypeNormalizeUrlProtocols } from '@/lib/markdown/markdown-normalize-urls';
+import { markdownSanitizeSchema } from '@/lib/markdown/markdown-sanitize-schema';
+import { remarkTextMarks } from '@/lib/markdown/markdown-text-marks';
 import { normalizeInlineMath } from '@/lib/normalize-inline-math';
-import { cn } from 'cnfast';
-
 import type { Components, ExtraProps, Options } from 'react-markdown';
 
 const JSX_RUNTIME = { Fragment, jsx, jsxs };
