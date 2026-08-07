@@ -66,10 +66,7 @@ export function hasWriteAccess(grantedScopes: string[], service: GoogleService):
   if (service === 'calendar') {
     return grantedScopes.some((s) => s === GOOGLE_SCOPE_CALENDAR_EVENTS || s === GOOGLE_SCOPE_CALENDAR);
   }
-  if (service === 'docs') {
-    return grantedScopes.some((s) => s === GOOGLE_SCOPE_DOCS);
-  }
-  return false;
+  return grantedScopes.some((s) => s === GOOGLE_SCOPE_DOCS);
 }
 
 /** Check if granted scopes can send Gmail messages. */

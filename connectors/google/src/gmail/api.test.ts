@@ -56,13 +56,13 @@ describe('gmail api', () => {
     const result = await downloadAttachments(client, 'msg-1', root);
 
     expect(result.attachments).toHaveLength(1);
-    expect(result.attachments[0]).toMatchObject({
+    expect(result.attachments.at(0)).toMatchObject({
       attachmentId: 'att-1',
       filename: 'report.pdf',
       mimeType: 'application/pdf',
       size: 11,
     });
-    expect(result.attachments[0]?.path).toBe(path.join(root, 'gmail-attachments', 'msg-1', 'report.pdf'));
-    expect(fs.readFile(result.attachments[0]?.path ?? '', 'utf8')).resolves.toBe('hello world');
+    expect(result.attachments.at(0)?.path).toBe(path.join(root, 'gmail-attachments', 'msg-1', 'report.pdf'));
+    expect(fs.readFile(result.attachments.at(0)?.path ?? '', 'utf8')).resolves.toBe('hello world');
   });
 });

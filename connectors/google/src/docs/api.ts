@@ -74,7 +74,7 @@ function getBodyEndIndex(document: DocsDocumentRaw): number {
     return 1;
   }
 
-  const last = content[content.length - 1];
+  const last = content.at(-1);
   if (!last?.endIndex || last.endIndex <= 1) {
     return 1;
   }

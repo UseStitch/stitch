@@ -219,12 +219,10 @@ function mergeRateLimitConfig(overrides: Partial<GoogleRateLimitConfig> | undefi
   const services = { ...DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services };
   if (overrides.services) {
     for (const key of Object.keys(services) as (keyof typeof services)[]) {
-      if (overrides.services[key]) {
-        services[key] = {
-          project: overrides.services[key]?.project ?? services[key].project,
-          account: overrides.services[key]?.account ?? services[key].account,
-        };
-      }
+      services[key] = {
+        project: overrides.services[key]?.project ?? services[key].project,
+        account: overrides.services[key]?.account ?? services[key].account,
+      };
     }
   }
 
@@ -255,7 +253,7 @@ async function parseGoogleApiError(response: Response): Promise<ParsedApiError> 
       ...(parsed.error?.errors?.flatMap((item) => (item.reason ? [item.reason] : [])) ?? []),
       ...(parsed.error?.details?.flatMap((item) => (item.reason ? [item.reason] : [])) ?? []),
     ];
-    const reason = reasons[0];
+    const reason = reasons.at(0);
     return { message, code, reason, reasons, authChallenge, retryAfterMs };
   } catch {
     return { message: fallbackMessage, code: undefined, reason: undefined, reasons: [], authChallenge, retryAfterMs };
