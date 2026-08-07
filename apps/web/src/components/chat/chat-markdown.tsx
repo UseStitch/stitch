@@ -28,7 +28,7 @@ import { remarkGithubCallouts } from '@/lib/markdown/markdown-callouts';
 import { rehypeNormalizeUrlProtocols } from '@/lib/markdown/markdown-normalize-urls';
 import { markdownSanitizeSchema } from '@/lib/markdown/markdown-sanitize-schema';
 import { remarkTextMarks } from '@/lib/markdown/markdown-text-marks';
-import { normalizeInlineMath } from '@/lib/normalize-inline-math';
+import { normalizeInlineMath } from '@/lib/markdown/normalize-inline-math';
 import type { Components, ExtraProps, Options } from 'react-markdown';
 
 const JSX_RUNTIME = { Fragment, jsx, jsxs };

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { createHighlightCacheKey, getHighlighterPromise, highlightToHast } from '../code-highlighting';
+import { createHighlightCacheKey, getHighlighterPromise, highlightToHast } from './code-highlighting';
 
 import { getTheme } from '@/lib/theme';
 
