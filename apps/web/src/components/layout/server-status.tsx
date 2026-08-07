@@ -1,4 +1,4 @@
-import { Check, HardDrive } from 'lucide-react';
+import { HardDrive } from 'lucide-react';
 import * as React from 'react';
 import { useState } from 'react';
 
@@ -136,7 +136,6 @@ function StatusItem({ state, label, subtitle }: StatusItemProps) {
             )}
           </Stack>
         </Stack>
-        {isOk && <Icon as={Check} size="s" tone="muted" />}
       </Stack>
     </div>
   );
