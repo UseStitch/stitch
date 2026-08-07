@@ -39,7 +39,7 @@ export function UpdaterSync() {
             label: 'Restart to update',
             onClick: () => {
               setInstalling();
-              void window.api?.updater?.install();
+              void window.api.updater.install();
             },
           },
         });
@@ -52,7 +52,7 @@ export function UpdaterSync() {
       previousStatus.current = payload.status;
     });
 
-    void window.api?.updater?.getState?.().then((state) => {
+    void window.api.updater.getState().then((state) => {
       if (!isDesktopUpdaterState(state)) return;
       setUpdaterState(state);
       previousStatus.current = state.status;

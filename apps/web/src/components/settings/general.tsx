@@ -185,7 +185,7 @@ function AutoUpdatesContent() {
   function handleCheckUpdates() {
     setCheckPending(true);
     const startedAt = Date.now();
-    void window.api?.updater?.check().finally(() => {
+    void window.api.updater.check().finally(() => {
       const elapsedMs = Date.now() - startedAt;
       const remainingMs = Math.max(0, 700 - elapsedMs);
       window.setTimeout(() => setCheckPending(false), remainingMs);
@@ -195,7 +195,7 @@ function AutoUpdatesContent() {
   function handleInstallUpdate() {
     setInstallPending(true);
     setInstalling();
-    void window.api?.updater?.install().finally(() => {
+    void window.api.updater.install().finally(() => {
       setInstallPending(false);
     });
   }

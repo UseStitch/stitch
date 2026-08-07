@@ -44,7 +44,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
   const timezone = settings?.['profile.timezone']?.trim() || LOCAL_TIMEZONE;
 
   const browserAppEnabled = appEnabledStates?.find((state) => state.appId === 'browser')?.enabled ?? true;
-  const hasBrowser = typeof window !== 'undefined' && Boolean(window.api?.browser) && browserAppEnabled;
+  const hasBrowser = browserAppEnabled;
 
   const rightPanel = requestedRightPanel === 'browser' && !hasBrowser ? 'closed' : requestedRightPanel;
   const rightPanelOpen = rightPanel !== 'closed';
@@ -58,7 +58,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
   };
 
   React.useEffect(() => {
-    return window.api?.browser.onShowRequested(() => {
+    return window.api.browser.onShowRequested(() => {
       if (browserAppEnabled) setRequestedRightPanel('browser');
     });
   }, [browserAppEnabled]);

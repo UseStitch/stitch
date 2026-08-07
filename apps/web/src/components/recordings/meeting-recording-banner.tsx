@@ -45,7 +45,7 @@ export function RecordingEventListener() {
   }, [stopRecording]);
 
   React.useEffect(() => {
-    const unsubscribeWarning = window.api?.recording?.onWarning((payload) => {
+    const unsubscribeWarning = window.api.recording.onWarning((payload) => {
       if (payload.code === UNRECOVERABLE_WARNING_CODE) {
         toast.error('Audio capture could not be recovered — stopping the recording.', {
           id: 'recording.unrecoverable',
@@ -58,14 +58,14 @@ export function RecordingEventListener() {
       const label = WARNING_LABELS[payload.code] ?? payload.message;
       toast.warning(label, { id: `recording-warning-${payload.code}` });
     });
-    const unsubscribeDeviceChanged = window.api?.recording?.onDeviceChanged((payload) => {
+    const unsubscribeDeviceChanged = window.api.recording.onDeviceChanged((payload) => {
       const deviceLabel = payload.deviceName ?? 'unknown device';
       toast.info(`Audio ${payload.kind} device changed to: ${deviceLabel}`, { id: 'recording-device-change' });
     });
 
     return () => {
-      unsubscribeWarning?.();
-      unsubscribeDeviceChanged?.();
+      unsubscribeWarning();
+      unsubscribeDeviceChanged();
     };
   }, []);
 
@@ -122,16 +122,12 @@ export function MeetingRecordingBanner() {
   }
 
   function requestDismissMeeting(key: string): void {
-    if (window.api?.meeting?.dismissCall) {
-      void window.api.meeting.dismissCall(key);
-      return;
-    }
-
+    void window.api.meeting.dismissCall(key);
     dismissMeeting(key);
   }
 
   React.useEffect(() => {
-    const unsubscribeDetected = window.api?.meeting?.onCallDetected((payload) => {
+    const unsubscribeDetected = window.api.meeting.onCallDetected((payload) => {
       if (activeRecordingIdRef.current) {
         return;
       }
@@ -144,7 +140,7 @@ export function MeetingRecordingBanner() {
         return payload;
       });
     });
-    const unsubscribeEnded = window.api?.meeting?.onCallEnded(({ key }) => {
+    const unsubscribeEnded = window.api.meeting.onCallEnded(({ key }) => {
       setDetection((current) => {
         if (!current || current.key !== key) {
           return current;
@@ -162,14 +158,14 @@ export function MeetingRecordingBanner() {
         return next;
       });
     });
-    const unsubscribeDismissed = window.api?.meeting?.onCallDismissed(({ key }) => {
+    const unsubscribeDismissed = window.api.meeting.onCallDismissed(({ key }) => {
       dismissMeeting(key);
     });
 
     return () => {
-      unsubscribeDetected?.();
-      unsubscribeEnded?.();
-      unsubscribeDismissed?.();
+      unsubscribeDetected();
+      unsubscribeEnded();
+      unsubscribeDismissed();
     };
   }, []);
 

@@ -81,7 +81,7 @@ export function useRefreshMcpRegistry() {
 
 function openAuthUrl(authUrl: string): void {
   if (!authUrl) return;
-  void (window.api?.shell?.openExternal(authUrl) ?? window.open(authUrl, '_blank'));
+  void window.api.shell.openExternal(authUrl);
 }
 
 export function useStartMcpAuth() {

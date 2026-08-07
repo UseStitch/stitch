@@ -63,29 +63,21 @@ function WindowsControls() {
   const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
-    const checkMaximized = async () => {
-      if (!window.api?.window?.isMaximized) {
-        return;
-      }
-
-      const maximized = await window.api.window.isMaximized();
-      setIsMaximized(maximized);
-    };
-    void checkMaximized();
+    void window.api.window.isMaximized().then(setIsMaximized);
   }, []);
 
   const handleMinimize = () => {
-    void window.api?.window?.minimize();
+    void window.api.window.minimize();
   };
 
   const handleMaximize = async () => {
-    await window.api?.window?.maximize();
-    const maximized = await window.api?.window?.isMaximized();
-    setIsMaximized(maximized ?? false);
+    await window.api.window.maximize();
+    const maximized = await window.api.window.isMaximized();
+    setIsMaximized(maximized);
   };
 
   const handleClose = () => {
-    void window.api?.window?.close();
+    void window.api.window.close();
   };
 
   return (
