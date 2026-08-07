@@ -118,7 +118,7 @@ async function fetchServerPrompts(server: McpServerWithTools): Promise<ToolsetPr
   try {
     const client = await getMcpClient(server);
     const result = await client.listPrompts();
-    return (result.prompts ?? []).map((prompt) => ({
+    return result.prompts.map((prompt) => ({
       name: prompt.name,
       description: prompt.description,
       arguments: prompt.arguments?.map((arg) => ({
@@ -193,7 +193,7 @@ function createMcpToolset(
 ): Toolset {
   const toolsetId = buildMcpToolsetId(server.id);
   const cachedTools = server.tools ?? [];
-  const displayName = registryServer?.name ?? server.name ?? liveInfo?.title ?? liveInfo?.name;
+  const displayName = registryServer?.name ?? server.name;
   const description = buildToolsetDescription(server, liveInfo, registryServer);
 
   return {

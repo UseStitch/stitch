@@ -1,3 +1,4 @@
+import { ResolvedEmbeddingProvider } from '@/models/embedding/schema';
 import * as EmbeddingModels from '@/models/embedding/service.js';
 import * as Models from '@/models/llm/registry.js';
 import { normalizeUsage } from '@/utils/usage.js';
@@ -22,7 +23,8 @@ export async function calculateMessageCostUsd(input: {
   providers?: Awaited<ReturnType<typeof Models.get>>;
 }): Promise<number> {
   const providers = input.providers ?? (await Models.get());
-  const model = providers[input.providerId]?.models[input.modelId];
+  const provider = providers[input.providerId] as Models.RawProvider | undefined;
+  const model = provider?.models[input.modelId];
   const modelCost = model?.cost;
   if (!modelCost) {
     return 0;
@@ -47,7 +49,8 @@ export async function calculateEmbeddingCostUsd(input: {
   tokens: number;
 }): Promise<number> {
   const providers = await EmbeddingModels.getEmbeddingModels();
-  const model = providers[input.providerId]?.models[input.modelId];
+  const provider = providers[input.providerId] as ResolvedEmbeddingProvider | undefined;
+  const model = provider?.models[input.modelId];
   if (!model) return 0;
 
   const costUsd = (input.tokens * model.cost.input) / TOKENS_PER_MILLION;

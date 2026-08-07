@@ -26,7 +26,7 @@ describe('session toolset state persistence', () => {
 
     const state = getSessionToolsetState(sessionId);
     state.active.push({ id: 'mutated', scope: 'until_deactivated' });
-    state.expired[0]?.toolNames.push('mutated_tool');
+    state.expired.at(0)?.toolNames.push('mutated_tool');
 
     expect(getSessionToolsetState(sessionId)).toEqual({
       turnCounter: 2,

@@ -113,7 +113,7 @@ describe('connector service', () => {
 
     // Row should be unchanged
     const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
-    expect(row?.appliedVersion).toBe(1);
+    expect(row.appliedVersion).toBe(1);
   });
 
   test('upgrade handles mixed rotate + reauthorize actions', async () => {
@@ -176,8 +176,8 @@ describe('connector service', () => {
       .from(connectors)
       .where(eq(connectors.id, connectorRefId as never));
     // After token exchange the instance should be connected with the new key and merged scopes
-    expect(connector?.apiKey).toBe('new-key');
-    expect((row?.scopes as string[])?.includes('scope:admin')).toBe(true);
+    expect(connector.apiKey).toBe('new-key');
+    expect((row.scopes as string[]).includes('scope:admin')).toBe(true);
     expect(requestedScopes).toEqual(['scope:read', 'scope:admin']);
   });
 
@@ -246,7 +246,7 @@ describe('connector service', () => {
     await new Promise((r) => setTimeout(r, 50));
 
     const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
-    expect(row?.scopes).toEqual(['scope:read', 'scope:admin']);
+    expect(row.scopes).toEqual(['scope:read', 'scope:admin']);
   });
 
   test('disabled connectors cannot be created', async () => {
@@ -340,7 +340,7 @@ describe('connector service', () => {
     expect(threw).toBe(true);
 
     const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
-    expect(row?.status).toBe('error');
+    expect(row.status).toBe('error');
   });
 
   test('authorizeOAuthInstance stores tokens and marks connector connected on success', async () => {
@@ -387,12 +387,12 @@ describe('connector service', () => {
     await result.data.waitForTokens();
 
     const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
-    expect(row?.status).toBe('connected');
-    expect(row?.accessToken).toBe('access-token-123');
-    expect(row?.refreshToken).toBe('refresh-token-123');
-    expect(row?.appliedVersion).toBe(definition.currentVersion);
-    expect(row?.capabilities).toEqual(['example.read', 'example.write', 'example.admin']);
-    expect(typeof row?.tokenExpiresAt).toBe('number');
+    expect(row.status).toBe('connected');
+    expect(row.accessToken).toBe('access-token-123');
+    expect(row.refreshToken).toBe('refresh-token-123');
+    expect(row.appliedVersion).toBe(definition.currentVersion);
+    expect(row.capabilities).toEqual(['example.read', 'example.write', 'example.admin']);
+    expect(typeof row.tokenExpiresAt).toBe('number');
   });
 
   test('authorizeOAuthInstance uses default scopes for connected incremental oauth reauth', async () => {
@@ -494,8 +494,8 @@ describe('connector service', () => {
     await result.data.waitForTokens();
 
     const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
-    expect(row?.status).toBe('connected');
-    expect(row?.accessToken).toBe('new-access-token');
-    expect(row?.refreshToken).toBe('existing-refresh-token');
+    expect(row.status).toBe('connected');
+    expect(row.accessToken).toBe('new-access-token');
+    expect(row.refreshToken).toBe('existing-refresh-token');
   });
 });

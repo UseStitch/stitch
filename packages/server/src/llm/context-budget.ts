@@ -2,7 +2,7 @@ import { estimate } from '@/utils/token.js';
 import type { ModelMessage } from 'ai';
 
 const DEFAULT_TOOL_RESULT_BUDGET_TOKENS = 1_000;
-const TOOL_RESULT_BUDGET_TOKENS: Record<string, number> = { browser: 600, webfetch: 700, bash: 900 };
+const TOOL_RESULT_BUDGET_TOKENS: Record<string, number | undefined> = { browser: 600, webfetch: 700, bash: 900 };
 
 const TOOL_RESULT_PREVIEW_CHARS = 1_600;
 const PRESERVE_RECENT_TOOL_RESULTS = 3;
@@ -25,13 +25,15 @@ export function isToolResultError(output: unknown): boolean {
 }
 
 export function getToolResultBudget(toolName: string): number {
-  if (TOOL_RESULT_BUDGET_TOKENS[toolName] !== undefined) {
-    return TOOL_RESULT_BUDGET_TOKENS[toolName];
+  const exactBudget = TOOL_RESULT_BUDGET_TOKENS[toolName];
+  if (exactBudget !== undefined) {
+    return exactBudget;
   }
 
-  const prefix = toolName.split('_')[0];
-  if (prefix && TOOL_RESULT_BUDGET_TOKENS[prefix] !== undefined) {
-    return TOOL_RESULT_BUDGET_TOKENS[prefix];
+  const prefix = toolName.split('_').at(0);
+  const prefixBudget = prefix ? TOOL_RESULT_BUDGET_TOKENS[prefix] : undefined;
+  if (prefixBudget !== undefined) {
+    return prefixBudget;
   }
 
   return DEFAULT_TOOL_RESULT_BUDGET_TOKENS;
@@ -153,22 +155,13 @@ export function compactConversationForStep(
   let remainingProtectedToolResults = preserveRecentToolResults;
   let remainingToolResults = countToolResults(conversation);
   let remainingBrowserToolResults = countBrowserToolResults(conversation);
-  let changed = false;
 
   const compacted = conversation.map((message, messageIndex): ModelMessage => {
     if (message.role === 'user' && Array.isArray(message.content) && messageIndex !== lastUserMessageIndex) {
-      let contentChanged = false;
-      const content = message.content.map((part) => {
-        if (!isMediaContentPart(part)) {
-          return part;
-        }
-
-        contentChanged = true;
-        return stripMediaPart(part);
-      });
+      const content = message.content.map((part) => (isMediaContentPart(part) ? stripMediaPart(part) : part));
+      const contentChanged = content.some((part, i) => part !== message.content[i]);
 
       if (contentChanged) {
-        changed = true;
         return { ...message, content } as ModelMessage;
       }
     }
@@ -177,7 +170,6 @@ export function compactConversationForStep(
       return message;
     }
 
-    let contentChanged = false;
     const content = message.content.map((part) => {
       if (!isToolResultContentPart(part)) {
         return part;
@@ -198,7 +190,6 @@ export function compactConversationForStep(
             RECENT_BROWSER_TOOL_RESULT_BUDGET_TOKENS,
           );
           if (compactedOutput !== part.output.value) {
-            contentChanged = true;
             return { ...part, output: toToolResultOutput(compactedOutput) };
           }
         }
@@ -210,17 +201,16 @@ export function compactConversationForStep(
         return part;
       }
 
-      contentChanged = true;
       return { ...part, output: toToolResultOutput(compactedOutput) };
     });
 
-    if (contentChanged) {
-      changed = true;
+    if (content.some((part, i) => part !== message.content[i])) {
       return { ...message, content } as ModelMessage;
     }
 
     return message;
   });
 
+  const changed = compacted.some((message, i) => message !== conversation[i]);
   return changed ? compacted : conversation;
 }

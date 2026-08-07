@@ -12,7 +12,7 @@ import type { ProviderAuth } from '@/stt/types.js';
  */
 export async function resolveSttAuth(providerId: string): Promise<ProviderAuth | null> {
   const db = getDb();
-  const [config] = await db.select().from(providerConfig).where(eq(providerConfig.providerId, providerId));
+  const config = (await db.select().from(providerConfig).where(eq(providerConfig.providerId, providerId))).at(0);
 
   if (!config) return null;
 

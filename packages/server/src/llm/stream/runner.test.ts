@@ -88,8 +88,8 @@ describe('runStream integration', () => {
     });
 
     expect(savedMessages).toHaveLength(1);
-    expect(savedMessages[0]?.finishReason).toBe('stop');
-    expect(savedMessages[0]?.parts).toEqual(
+    expect(savedMessages.at(0)?.finishReason).toBe('stop');
+    expect(savedMessages.at(0)?.parts).toEqual(
       expect.arrayContaining([expect.objectContaining({ type: 'text-delta', text: 'Hello from integration' })]),
     );
 
@@ -121,6 +121,6 @@ describe('runStream integration', () => {
     });
 
     expect(savedMessages).toHaveLength(1);
-    expect(savedMessages[0]?.finishReason).toBe('aborted');
+    expect(savedMessages.at(0)?.finishReason).toBe('aborted');
   });
 });

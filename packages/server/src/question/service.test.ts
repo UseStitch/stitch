@@ -83,8 +83,8 @@ describe('question service interactions', () => {
 
     const db = getDb();
     const [row] = await db.select().from(questions).where(eq(questions.id, questionId));
-    expect(row?.status).toBe('answered');
-    expect(row?.answers).toEqual([['A']]);
+    expect(row.status).toBe('answered');
+    expect(row.answers).toEqual([['A']]);
   });
 
   test('rejectQuestion rejects a pending askQuestion promise', async () => {
@@ -114,7 +114,7 @@ describe('question service interactions', () => {
 
     const db = getDb();
     const [row] = await db.select().from(questions).where(eq(questions.id, questionId));
-    expect(row?.status).toBe('rejected');
+    expect(row.status).toBe('rejected');
   });
 
   test('replyQuestion accepts custom answers by default', async () => {
@@ -137,8 +137,8 @@ describe('question service interactions', () => {
 
     const db = getDb();
     const [row] = await db.select().from(questions).where(eq(questions.id, question.id));
-    expect(row?.status).toBe('answered');
-    expect(row?.answers).toEqual([['Something else']]);
+    expect(row.status).toBe('answered');
+    expect(row.answers).toEqual([['Something else']]);
   });
 
   test('replyQuestion rejects invalid answers without resolving the question', async () => {
@@ -177,8 +177,8 @@ describe('question service interactions', () => {
 
     const db = getDb();
     const [row] = await db.select().from(questions).where(eq(questions.id, question.id));
-    expect(row?.status).toBe('pending');
-    expect(row?.answers).toBeNull();
+    expect(row.status).toBe('pending');
+    expect(row.answers).toBeNull();
   });
 
   test('abortQuestions rejects pending questions for the session', async () => {

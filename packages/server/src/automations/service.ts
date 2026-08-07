@@ -56,7 +56,6 @@ function serializeAutomationSchedule(schedule: AutomationSchedule | null): Autom
 
 function deserializeAutomationSchedule(blob: AutomationScheduleBlob | null): AutomationSchedule | null {
   if (blob === null) return null;
-  if (blob.version !== 1) return null;
   return blob.schedule;
 }
 
@@ -83,10 +82,12 @@ export async function listAutomations(input: {
 
 export async function getAutomation(automationId: string): Promise<ServiceResult<AutomationRow>> {
   const db = getDb();
-  const [automation] = await db
-    .select()
-    .from(automations)
-    .where(eq(automations.id, automationId as PrefixedString<'auto'>));
+  const automation = (
+    await db
+      .select()
+      .from(automations)
+      .where(eq(automations.id, automationId as PrefixedString<'auto'>))
+  ).at(0);
 
   if (!automation) {
     return err('Automation not found', 404);
@@ -154,10 +155,12 @@ async function updateAutomation(
   input: UpdateAutomationInput,
 ): Promise<ServiceResult<AutomationRow>> {
   const db = getDb();
-  const [existing] = await db
-    .select()
-    .from(automations)
-    .where(eq(automations.id, automationId as PrefixedString<'auto'>));
+  const existing = (
+    await db
+      .select()
+      .from(automations)
+      .where(eq(automations.id, automationId as PrefixedString<'auto'>))
+  ).at(0);
   if (!existing) {
     return err('Automation not found', 404);
   }
@@ -184,18 +187,20 @@ async function updateAutomation(
     return validation;
   }
 
-  const [updated] = await db
-    .update(automations)
-    .set({
-      providerId,
-      modelId,
-      title,
-      initialMessage,
-      schedule: serializeAutomationSchedule(scheduleResult.data),
-      updatedAt: Date.now(),
-    })
-    .where(eq(automations.id, automationId as PrefixedString<'auto'>))
-    .returning();
+  const updated = (
+    await db
+      .update(automations)
+      .set({
+        providerId,
+        modelId,
+        title,
+        initialMessage,
+        schedule: serializeAutomationSchedule(scheduleResult.data),
+        updatedAt: Date.now(),
+      })
+      .where(eq(automations.id, automationId as PrefixedString<'auto'>))
+      .returning()
+  ).at(0);
 
   if (!updated) {
     return err('Automation not found', 404);
@@ -277,10 +282,12 @@ export async function deleteAutomation(
 
 export async function listAutomationSessions(automationId: string): Promise<ServiceResult<Session[]>> {
   const db = getDb();
-  const [existing] = await db
-    .select({ id: automations.id })
-    .from(automations)
-    .where(eq(automations.id, automationId as PrefixedString<'auto'>));
+  const existing = (
+    await db
+      .select({ id: automations.id })
+      .from(automations)
+      .where(eq(automations.id, automationId as PrefixedString<'auto'>))
+  ).at(0);
   if (!existing) {
     return err('Automation not found', 404);
   }
@@ -303,10 +310,12 @@ export async function listAutomationSessions(automationId: string): Promise<Serv
 export async function runAutomation(automationId: string): Promise<ServiceResult<RunAutomationResponse>> {
   const db = getDb();
 
-  const [automation] = await db
-    .select()
-    .from(automations)
-    .where(eq(automations.id, automationId as PrefixedString<'auto'>));
+  const automation = (
+    await db
+      .select()
+      .from(automations)
+      .where(eq(automations.id, automationId as PrefixedString<'auto'>))
+  ).at(0);
   if (!automation) {
     return err('Automation not found', 404);
   }
@@ -336,11 +345,12 @@ export async function runAutomation(automationId: string): Promise<ServiceResult
   }
 
   const [updatedAutomation] = await db.transaction(async (tx) => {
-    const [updated] = await tx
+    const rows = await tx
       .update(automations)
       .set({ runCount: sql`${automations.runCount} + 1`, updatedAt: Date.now() })
       .where(eq(automations.id, automation.id))
       .returning({ runCount: automations.runCount });
+    const updated = rows[0] as { runCount: number } | undefined;
 
     if (!updated) return [];
 

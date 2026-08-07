@@ -102,23 +102,17 @@ export async function processMemories(input: {
       output: Output.object({ schema: extractionSchema }),
       messages: [{ role: 'user', content: buildExtractionPrompt(input.userMessage, input.assistantMessage) }],
     });
-    if (result.usage) {
-      internalBus.emit('usage.memory.completed', {
-        providerId: resolved.providerId,
-        modelId: resolved.modelId,
-        usage: result.usage,
-        phase: 'extraction',
-        startedAt,
-        endedAt: Date.now(),
-      });
-    }
+    internalBus.emit('usage.memory.completed', {
+      providerId: resolved.providerId,
+      modelId: resolved.modelId,
+      usage: result.usage,
+      phase: 'extraction',
+      startedAt,
+      endedAt: Date.now(),
+    });
 
     const remaining = Math.min(config.maxFactsPerTurn, config.maxFactsPerSession - state.factsWritten);
-    const candidates = filterCaptureCandidates(
-      result.output?.candidates ?? [],
-      await existingCandidateKeys(),
-      remaining,
-    );
+    const candidates = filterCaptureCandidates(result.output.candidates, await existingCandidateKeys(), remaining);
     if (candidates.length === 0) return;
     await memoryFileStore.appendDaily(
       candidates.map((candidate) => ({
@@ -138,10 +132,12 @@ export async function processMemories(input: {
 
 async function resolveMemorySource(sessionId: string, override: MemorySource | undefined): Promise<MemorySource> {
   if (override) return override;
-  const [session] = await getDb()
-    .select({ type: sessions.type })
-    .from(sessions)
-    .where(eq(sessions.id, sessionId as PrefixedString<'ses'>))
-    .limit(1);
+  const session = (
+    await getDb()
+      .select({ type: sessions.type })
+      .from(sessions)
+      .where(eq(sessions.id, sessionId as PrefixedString<'ses'>))
+      .limit(1)
+  ).at(0);
   return session?.type === 'automation' ? 'automation' : 'chat';
 }

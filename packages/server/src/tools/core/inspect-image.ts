@@ -182,7 +182,7 @@ export function createInspectImageTool(context: ToolContext, deps: InspectImageT
           .from(messages)
           .where(and(eq(messages.sessionId, childSessionId), eq(messages.id, assistantMessageId)));
 
-        const assistantMessage = childMessages[0];
+        const assistantMessage = childMessages.at(0);
         let summary = 'Image inspection completed.';
 
         if (assistantMessage?.parts) {

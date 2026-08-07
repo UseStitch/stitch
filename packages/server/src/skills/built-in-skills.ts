@@ -42,7 +42,7 @@ export async function loadBuiltInSkills(builtInsDir?: string): Promise<BuiltInSk
       const result = createSkillSchema.safeParse(parsed);
       if (!result.success) {
         throw new SkillInvalidError(
-          `Invalid built-in skill ${skillDirEntry.name}: ${result.error.issues[0]?.message ?? 'validation failed'}`,
+          `Invalid built-in skill ${skillDirEntry.name}: ${result.error.issues.at(0)?.message ?? 'validation failed'}`,
         );
       }
 

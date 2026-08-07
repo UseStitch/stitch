@@ -69,6 +69,7 @@ export async function createManagedConnection(config: ManagedConnectionConfig): 
 
   let transport: STTTransport | null = null;
   let closed = false;
+  const isClosed = () => closed;
   let rotating = false;
   let reconnecting = false;
   let recoveryQueued = false;
@@ -258,7 +259,7 @@ export async function createManagedConnection(config: ManagedConnectionConfig): 
     } finally {
       rotating = false;
       scheduleRotation();
-      if (recoveryQueued && !closed) {
+      if (recoveryQueued && !isClosed()) {
         recoveryQueued = false;
         void reactiveReconnect();
       }
@@ -310,7 +311,7 @@ export async function createManagedConnection(config: ManagedConnectionConfig): 
       );
 
       await new Promise((r) => setTimeout(r, delay));
-      if (closed) break;
+      if (isClosed()) break;
 
       try {
         const newTransport = await openConnection();

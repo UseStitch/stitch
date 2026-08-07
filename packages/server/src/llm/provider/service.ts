@@ -54,7 +54,7 @@ async function resolveProvider(providerId: string): Promise<ServiceResult<Models
   }
 
   const providers = await Models.get();
-  const provider = providers[providerId];
+  const provider = providers[providerId] as Models.RawProvider | undefined;
   if (!provider) {
     return err('Provider not found', 404);
   }
@@ -71,29 +71,31 @@ export async function getProvider(providerId: string): Promise<ServiceResult<Pro
   if (isLocalProviderId(providerId)) {
     const meta = LOCAL_PROVIDER_META[providerId];
     const db = getDb();
-    const [[config], modelCount] = await Promise.all([
+    const [configRows, modelCount] = await Promise.all([
       db
         .select({ providerId: providerConfig.providerId, credentials: providerConfig.credentials })
         .from(providerConfig)
         .where(eq(providerConfig.providerId, providerId)),
       db.select({ value: count() }).from(localModels).where(eq(localModels.provider, providerId)),
     ]);
+    const config = configRows.at(0);
     const storedBaseURL = (config?.credentials as { baseURL?: string } | undefined)?.baseURL;
     return ok({
       id: providerId,
       name: meta.name,
       api: storedBaseURL,
-      model_count: modelCount[0]?.value ?? 0,
+      model_count: modelCount.at(0)?.value ?? 0,
       enabled: config !== undefined,
     });
   }
 
   if (providerId === 'elevenlabs') {
     const db = getDb();
-    const [config] = await db
+    const configRows = await db
       .select({ providerId: providerConfig.providerId })
       .from(providerConfig)
       .where(eq(providerConfig.providerId, 'elevenlabs'));
+    const config = configRows.at(0);
     return ok({
       id: 'elevenlabs',
       name: 'ElevenLabs',
@@ -109,10 +111,11 @@ export async function getProvider(providerId: string): Promise<ServiceResult<Pro
   }
 
   const db = getDb();
-  const [config] = await db
+  const configRows = await db
     .select({ providerId: providerConfig.providerId })
     .from(providerConfig)
     .where(eq(providerConfig.providerId, providerId));
+  const config = configRows.at(0);
 
   return ok(toProviderSummary(providerResult.data, config !== undefined));
 }
@@ -174,7 +177,7 @@ export async function listEnabledProviderEmbeddingModels(): Promise<ServiceResul
 /** @knipignore Reserved for embedding consumers. */
 export async function getEmbeddingModelDimensions(providerId: string, modelId: string): Promise<number | undefined> {
   const providers = await EmbeddingModels.getEmbeddingModels();
-  const model = providers[providerId]?.models[modelId];
+  const model = providers[providerId]?.models[modelId] as ResolvedEmbeddingModel | undefined;
   if (!model) return undefined;
   return EmbeddingModels.getEmbeddingDimensions(model);
 }

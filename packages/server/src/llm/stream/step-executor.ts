@@ -83,7 +83,7 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     tools: cachedTools,
     providerOptions,
     experimental_repairToolCall: async (failed) => {
-      const toolName = String(failed.toolCall.toolName ?? '');
+      const toolName = String(failed.toolCall.toolName);
       const normalizedToolName = toolName.toLowerCase();
       if (normalizedToolName !== toolName && normalizedToolName in tools) {
         log.info(
@@ -143,7 +143,7 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
 
     for (let i = initialPartCount; i < accumulatedParts.length; i++) {
       const part = accumulatedParts[i];
-      if (part?.type === 'tool-call' || part?.type === 'tool-result') {
+      if (part.type === 'tool-call' || part.type === 'tool-result') {
         return true;
       }
     }
@@ -182,7 +182,7 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     if (hasStepSideEffects()) {
       const sideEffectPartTypes = accumulatedParts
         .slice(initialPartCount)
-        .filter((part) => part?.type === 'tool-call' || part?.type === 'tool-result')
+        .filter((part) => part.type === 'tool-call' || part.type === 'tool-result')
         .map((part) => part.type);
 
       log.warn(
@@ -242,7 +242,7 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
 export async function executeStepWithRetry(opts: StepOptions): Promise<StepResult> {
   let attempt = 0;
 
-  while (true) {
+  for (;;) {
     try {
       const result = await executeStep(opts);
       return { ...result, attemptCount: attempt + 1 };

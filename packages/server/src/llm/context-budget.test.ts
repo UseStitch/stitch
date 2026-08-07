@@ -36,8 +36,8 @@ describe('conversation compactor', () => {
     const compacted = compactConversationForStep(conversation, { preserveRecentToolResults: 1 });
     const toolMessage = compacted[1];
 
-    expect(toolMessage?.role).toBe('tool');
-    if (toolMessage?.role !== 'tool' || !Array.isArray(toolMessage.content)) {
+    expect(toolMessage.role).toBe('tool');
+    if (toolMessage.role !== 'tool' || !Array.isArray(toolMessage.content)) {
       throw new Error('expected tool message content');
     }
 
@@ -74,8 +74,8 @@ describe('conversation compactor', () => {
     const compacted = compactConversationForStep(conversation, { preserveRecentToolResults: 3 });
     const toolMessage = compacted[1];
 
-    expect(toolMessage?.role).toBe('tool');
-    if (toolMessage?.role !== 'tool' || !Array.isArray(toolMessage.content)) {
+    expect(toolMessage.role).toBe('tool');
+    if (toolMessage.role !== 'tool' || !Array.isArray(toolMessage.content)) {
       throw new Error('expected tool message content');
     }
 
@@ -108,8 +108,8 @@ describe('conversation compactor', () => {
     const compacted = compactConversationForStep(conversation, { preserveRecentToolResults: 0 });
     const toolMessage = compacted[1];
 
-    expect(toolMessage?.role).toBe('tool');
-    if (toolMessage?.role !== 'tool' || !Array.isArray(toolMessage.content)) {
+    expect(toolMessage.role).toBe('tool');
+    if (toolMessage.role !== 'tool' || !Array.isArray(toolMessage.content)) {
       throw new Error('expected tool message content');
     }
 

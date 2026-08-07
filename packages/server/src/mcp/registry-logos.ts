@@ -73,10 +73,11 @@ export async function getMcpRegistryLogo(
 
 export async function getMcpInstalledServerRegistryLogo(serverId: string): Promise<string | undefined> {
   const db = getDb();
-  const [server] = await db
+  const serverRows = await db
     .select()
     .from(mcpServers)
     .where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
+  const server = serverRows.at(0);
   if (!server) return undefined;
 
   const registryServer = await findMcpRegistryServerForInstall({ name: server.name, url: server.url });

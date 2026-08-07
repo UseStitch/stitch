@@ -121,7 +121,7 @@ async function prune(msgs: StoredMessage[]): Promise<number> {
           const updatedParts = [...msg.parts];
           for (const partIndex of partIndices) {
             const part = updatedParts[partIndex];
-            if (part?.type === 'tool-result') {
+            if (part.type === 'tool-result') {
               updatedParts[partIndex] = { ...part, output: '[Old tool result content cleared]' } as StoredPart;
             }
           }
@@ -209,7 +209,7 @@ async function resolveCompactionModel(
   }
 
   const providers = await Models.get();
-  const provider = providers[resolved.providerId];
+  const provider = providers[resolved.providerId] as Models.RawProvider | undefined;
   const model = provider?.models[resolved.modelId];
   const limits: ModelLimits = model?.limit ?? { context: 200_000, output: 8_192 };
 
@@ -468,7 +468,7 @@ export async function getModelLimits(providerId: string, modelId: string): Promi
   }
 
   const providers = await Models.get();
-  const provider = providers[providerId];
+  const provider = providers[providerId] as Models.RawProvider | undefined;
   const model = provider?.models[modelId];
   return model?.limit ?? { context: 200_000, output: 8_192 };
 }

@@ -144,7 +144,7 @@ export async function createOAuthConnector(input: {
 export async function deleteConnector(connectorRefId: string): Promise<ServiceResult<null>> {
   const db = getDb();
   const typedConnectorRefId = connectorRefId as PrefixedString<'cnr'>;
-  const [existing] = await db.select().from(connectors).where(eq(connectors.id, typedConnectorRefId));
+  const existing = (await db.select().from(connectors).where(eq(connectors.id, typedConnectorRefId))).at(0);
 
   if (!existing) return err('Connector not found', 404);
 
@@ -172,10 +172,12 @@ export async function listConnectorInstances(): Promise<ServiceResult<ConnectorI
 
 export async function getConnectorInstance(id: string): Promise<ServiceResult<ConnectorInstanceSafe>> {
   const db = getDb();
-  const [row] = await db
-    .select()
-    .from(connectorInstances)
-    .where(eq(connectorInstances.id, id as PrefixedString<'conn'>));
+  const row = (
+    await db
+      .select()
+      .from(connectorInstances)
+      .where(eq(connectorInstances.id, id as PrefixedString<'conn'>))
+  ).at(0);
 
   if (!row) return err('Connector instance not found', 404);
   const instance = row as ConnectorInstance;
@@ -188,10 +190,12 @@ export async function createOAuthConnectorInstance(input: {
   scopes: string[];
 }): Promise<ServiceResult<ConnectorInstanceSafe>> {
   const db = getDb();
-  const [connector] = await db
-    .select()
-    .from(connectors)
-    .where(eq(connectors.id, input.connectorRefId as PrefixedString<'cnr'>));
+  const connector = (
+    await db
+      .select()
+      .from(connectors)
+      .where(eq(connectors.id, input.connectorRefId as PrefixedString<'cnr'>))
+  ).at(0);
 
   if (!connector) return err('Connector not found', 404);
 
@@ -296,10 +300,12 @@ export async function authorizeOAuthInstance(
   options?: { scopes?: string[]; additionalParams?: Record<string, string> },
 ): Promise<ServiceResult<{ authUrl: string; waitForTokens: () => Promise<void> }>> {
   const db = getDb();
-  const [instance] = await db
-    .select()
-    .from(connectorInstances)
-    .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
+  const instance = (
+    await db
+      .select()
+      .from(connectorInstances)
+      .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>))
+  ).at(0);
 
   if (!instance) return err('Connector instance not found', 404);
 
@@ -316,9 +322,7 @@ export async function authorizeOAuthInstance(
   const config = definition.authConfig as OAuthConfig;
   const useIncrementalRefresh =
     options?.scopes === undefined && config.incrementalAuth?.enabled === true && instance.status === 'connected';
-  const scopes =
-    options?.scopes ??
-    (useIncrementalRefresh ? config.defaultScopes : (instance.scopes as string[]) || config.defaultScopes);
+  const scopes = options?.scopes ?? (useIncrementalRefresh ? config.defaultScopes : (instance.scopes as string[]));
   const additionalParams =
     options?.additionalParams ?? (useIncrementalRefresh ? config.incrementalAuth?.params : undefined);
 
@@ -382,10 +386,12 @@ export async function updateConnectorInstance(
   updates: { label?: string; scopes?: string[] },
 ): Promise<ServiceResult<ConnectorInstanceSafe>> {
   const db = getDb();
-  const [existing] = await db
-    .select()
-    .from(connectorInstances)
-    .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
+  const existing = (
+    await db
+      .select()
+      .from(connectorInstances)
+      .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>))
+  ).at(0);
 
   if (!existing) return err('Connector instance not found', 404);
 
@@ -414,7 +420,7 @@ export async function upgradeConnectorInstance(
 ): Promise<ServiceResult<{ type: 'reauthorize'; authUrl: string } | { type: 'updated' }>> {
   const db = getDb();
   const typedInstanceId = instanceId as PrefixedString<'conn'>;
-  const [instance] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, typedInstanceId));
+  const instance = (await db.select().from(connectorInstances).where(eq(connectorInstances.id, typedInstanceId))).at(0);
 
   if (!instance) return err('Connector instance not found', 404);
 
@@ -525,10 +531,12 @@ export async function upgradeConnectorInstance(
 
 export async function deleteConnectorInstance(instanceId: string): Promise<ServiceResult<null>> {
   const db = getDb();
-  const [existing] = await db
-    .select()
-    .from(connectorInstances)
-    .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
+  const existing = (
+    await db
+      .select()
+      .from(connectorInstances)
+      .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>))
+  ).at(0);
 
   if (!existing) return err('Connector instance not found', 404);
 
@@ -547,10 +555,12 @@ export async function deleteConnectorInstance(instanceId: string): Promise<Servi
 
 export async function testConnectorInstance(instanceId: string): Promise<ServiceResult<boolean>> {
   const db = getDb();
-  const [instance] = await db
-    .select()
-    .from(connectorInstances)
-    .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
+  const instance = (
+    await db
+      .select()
+      .from(connectorInstances)
+      .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>))
+  ).at(0);
 
   if (!instance) return err('Connector instance not found', 404);
 
@@ -605,7 +615,7 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
     if (definition.authType === 'oauth2' && testedInstance.accessToken) {
       return ok(true);
     } else if (definition.authType === 'api_key') {
-      const [connector] = await db.select().from(connectors).where(eq(connectors.id, instance.connectorRefId));
+      const connector = (await db.select().from(connectors).where(eq(connectors.id, instance.connectorRefId))).at(0);
       if (!connector?.apiKey) return err('Connector has no credentials to test', 400);
       return err('Connector test is not supported for this connector type', 400);
     }

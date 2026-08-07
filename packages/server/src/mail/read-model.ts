@@ -46,7 +46,7 @@ export async function getDraftView(draftId: string): Promise<MailDraftView | nul
     .from(mailDrafts)
     .where(eq(mailDrafts.id, draftId as MailDraftId))
     .limit(1);
-  return draft ? toDraftView(draft) : null;
+  return toDraftView(draft);
 }
 
 export async function getAttachmentRecord(attachmentId: string): Promise<typeof mailAttachments.$inferSelect | null> {
@@ -56,7 +56,7 @@ export async function getAttachmentRecord(attachmentId: string): Promise<typeof 
     .from(mailAttachments)
     .where(eq(mailAttachments.id, attachmentId as MailAttachmentId))
     .limit(1);
-  return attachment ?? null;
+  return attachment;
 }
 
 export async function getMessageView(messageId: string): Promise<MailMessageView | null> {
@@ -66,7 +66,6 @@ export async function getMessageView(messageId: string): Promise<MailMessageView
     .from(mailMessages)
     .where(eq(mailMessages.id, messageId as MailMessageId))
     .limit(1);
-  if (!message) return null;
 
   const [labelRows, attachments] = await Promise.all([
     db

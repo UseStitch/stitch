@@ -78,7 +78,7 @@ export async function syncAllAutomationSchedules(): Promise<void> {
   const timezone = await resolveUserTimezone();
   let page = 1;
 
-  while (true) {
+  for (;;) {
     const result = await listAutomations({ page, pageSize });
     if (result.error) throw new AutomationSyncError(result.error.message);
 

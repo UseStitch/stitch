@@ -149,7 +149,8 @@ export function deriveCommandFamilies(command: string): CommandFamily[] {
 }
 
 export function getCommandFamilySuggestion(command: string): PermissionSuggestion | null {
-  const firstFamily = deriveCommandFamilies(command)[0];
+  const families = deriveCommandFamilies(command);
+  const firstFamily = families.at(0);
   if (!firstFamily) return null;
 
   return { message: `Always allow: ${firstFamily.description}`, pattern: firstFamily.pattern };

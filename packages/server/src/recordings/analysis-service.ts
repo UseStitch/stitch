@@ -109,12 +109,16 @@ export async function getRecordingAnalysis(
 ): Promise<ServiceResult<RecordingAnalysisResponse>> {
   const db = getDb();
 
-  const [recording] = await db.select({ id: recordings.id }).from(recordings).where(eq(recordings.id, recordingId));
+  const recording = (await db.select({ id: recordings.id }).from(recordings).where(eq(recordings.id, recordingId))).at(
+    0,
+  );
   if (!recording) {
     return err('Recording not found', 404);
   }
 
-  const [analysis] = await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.recordingId, recordingId));
+  const analysis = (await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.recordingId, recordingId))).at(
+    0,
+  );
 
   return ok({ analysis: analysis ? await toRecordingAnalysis(analysis) : null });
 }
@@ -126,7 +130,7 @@ export async function startRecordingAnalysis(
 ): Promise<ServiceResult<StartRecordingAnalysisResponse>> {
   const db = getDb();
 
-  const [recording] = await db.select().from(recordings).where(eq(recordings.id, recordingId));
+  const recording = (await db.select().from(recordings).where(eq(recordings.id, recordingId))).at(0);
   if (!recording) {
     return err('Recording not found', 404);
   }
@@ -134,7 +138,9 @@ export async function startRecordingAnalysis(
     return err('Recording must be completed before analysis', 400);
   }
 
-  const [existing] = await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.recordingId, recordingId));
+  const existing = (await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.recordingId, recordingId))).at(
+    0,
+  );
 
   if (existing && existing.status !== 'failed' && existing.status !== 'pending' && !input.force) {
     return ok({ analysis: await toRecordingAnalysis(existing) });
@@ -225,7 +231,7 @@ export async function startRecordingAnalysis(
     deps,
   );
 
-  const [created] = await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.id, id));
+  const created = (await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.id, id))).at(0);
   if (!created) {
     return err('Failed to create recording analysis', 400);
   }
@@ -236,12 +242,16 @@ export async function startRecordingAnalysis(
 export async function cancelRecordingAnalysis(recordingId: PrefixedString<'rec'>): Promise<ServiceResult<null>> {
   const db = getDb();
 
-  const [recording] = await db.select({ id: recordings.id }).from(recordings).where(eq(recordings.id, recordingId));
+  const recording = (await db.select({ id: recordings.id }).from(recordings).where(eq(recordings.id, recordingId))).at(
+    0,
+  );
   if (!recording) {
     return err('Recording not found', 404);
   }
 
-  const [existing] = await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.recordingId, recordingId));
+  const existing = (await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.recordingId, recordingId))).at(
+    0,
+  );
   if (!existing) {
     return err('Recording analysis not found', 404);
   }
@@ -261,17 +271,19 @@ export async function cancelRecordingAnalysis(recordingId: PrefixedString<'rec'>
   }
 
   const endedAt = Date.now();
-  const [updated] = await db
-    .update(recordingAnalyses)
-    .set({
-      status: 'failed',
-      error: null,
-      endedAt,
-      durationMs: existing.startedAt ? endedAt - existing.startedAt : null,
-      updatedAt: endedAt,
-    })
-    .where(eq(recordingAnalyses.id, existing.id))
-    .returning();
+  const updated = (
+    await db
+      .update(recordingAnalyses)
+      .set({
+        status: 'failed',
+        error: null,
+        endedAt,
+        durationMs: existing.startedAt ? endedAt - existing.startedAt : null,
+        updatedAt: endedAt,
+      })
+      .where(eq(recordingAnalyses.id, existing.id))
+      .returning()
+  ).at(0);
 
   internalBus.emit('recording.analysis.failed', { recordingId });
 
@@ -330,7 +342,7 @@ async function runRecordingAnalysis(
       throw new RecordingAnalysisEmptyResponseError();
     }
 
-    const analysisUsage = analysisResult.usage ?? ZERO_USAGE;
+    const analysisUsage = analysisResult.usage;
 
     const { costUsd: analysisCost } = await recordLlmUsage({
       source: 'recording_analysis',
@@ -351,10 +363,12 @@ async function runRecordingAnalysis(
     }
 
     // Read existing transcription cost so we can add analysis cost on top
-    const [currentRow] = await db
-      .select({ costUsd: recordingAnalyses.costUsd })
-      .from(recordingAnalyses)
-      .where(eq(recordingAnalyses.id, analysisId));
+    const currentRow = (
+      await db
+        .select({ costUsd: recordingAnalyses.costUsd })
+        .from(recordingAnalyses)
+        .where(eq(recordingAnalyses.id, analysisId))
+    ).at(0);
     const transcriptionCost = currentRow?.costUsd ?? 0;
 
     await writeRecordingAnalysis(input.recordingId, summary);

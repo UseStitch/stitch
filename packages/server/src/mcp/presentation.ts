@@ -25,7 +25,7 @@ export type McpServerPresentation = {
 
 function pickDisplayIcon(icons?: McpIcon[]): McpIcon | undefined {
   if (!icons || icons.length === 0) return undefined;
-  return icons[0];
+  return icons.at(0);
 }
 
 async function resolveIconPath(input: {
@@ -59,7 +59,7 @@ export async function buildServerPresentation(
 
   return {
     serverId: server.id,
-    name: registryServer?.name ?? server.name ?? liveInfo?.name,
+    name: registryServer?.name ?? server.name,
     title: registryServer?.name ?? liveInfo?.title,
     description: liveInfo?.description ?? registryServer?.description,
     instructions: liveInfo?.instructions,

@@ -15,8 +15,8 @@ export function parseSkillMarkdown(markdown: string): SkillCreateInput | null {
   const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(markdown);
   if (!match) return null;
 
-  const frontmatter = match[1] ?? '';
-  const content = (match[2] ?? '').replace(/^\n/, '');
+  const frontmatter = match.at(1) ?? '';
+  const content = (match.at(2) ?? '').replace(/^\n/, '');
 
   const nameMatch =
     /^name:\s*"((?:[^"\\]|\\.)*)"\s*$/m.exec(frontmatter) ??

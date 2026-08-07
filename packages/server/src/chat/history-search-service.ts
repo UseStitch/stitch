@@ -192,7 +192,7 @@ export async function searchSessionHistory(
     }
 
     if (!query) {
-      const firstText = extractMessageText(sessionMessages[0]?.parts);
+      const firstText = extractMessageText(sessionMessages.at(0)?.parts);
       hits.push({
         sessionId: sessionRow.id,
         title: sessionRow.title,
@@ -262,10 +262,9 @@ export async function getSessionHistoryMessages(input: {
 }): Promise<{ title: string | null; messages: SessionMessageView[] } | null> {
   const db = getDb();
 
-  const [session] = await db
-    .select({ id: sessions.id, title: sessions.title })
-    .from(sessions)
-    .where(eq(sessions.id, input.sessionId));
+  const session = (
+    await db.select({ id: sessions.id, title: sessions.title }).from(sessions).where(eq(sessions.id, input.sessionId))
+  ).at(0);
 
   if (!session) {
     return null;

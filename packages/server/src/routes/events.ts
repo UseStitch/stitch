@@ -20,15 +20,17 @@ eventsRouter.get('/', (c) => {
         unregisterSseConnection(stream);
       });
 
+      const isAborted = () => stream.aborted;
+
       await stream.writeSSE({
         event: 'connected',
         data: JSON.stringify({ ts: Date.now() }),
         retry: RECONNECT_DELAY_MS,
       });
 
-      while (!stream.aborted) {
+      while (!isAborted()) {
         await stream.sleep(HEARTBEAT_INTERVAL_MS);
-        if (!stream.aborted) {
+        if (!isAborted()) {
           await stream.writeSSE({ event: 'heartbeat', data: JSON.stringify({ ts: Date.now() }) });
         }
       }

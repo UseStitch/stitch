@@ -21,11 +21,11 @@ function safe(value: number | null | undefined): number {
 export function normalizeUsage(usage: LanguageModelUsage | null | undefined): NormalizedUsage {
   const inputTokens = safe(usage?.inputTokens);
   const outputTokens = safe(usage?.outputTokens);
-  const reasoningTokens = safe(usage?.outputTokenDetails?.reasoningTokens);
-  const cacheReadTokens = safe(usage?.inputTokenDetails?.cacheReadTokens);
-  const cacheWriteTokens = safe(usage?.inputTokenDetails?.cacheWriteTokens);
+  const reasoningTokens = safe(usage?.outputTokenDetails.reasoningTokens);
+  const cacheReadTokens = safe(usage?.inputTokenDetails.cacheReadTokens);
+  const cacheWriteTokens = safe(usage?.inputTokenDetails.cacheWriteTokens);
   const noCacheTokens =
-    usage?.inputTokenDetails?.noCacheTokens !== undefined
+    usage?.inputTokenDetails.noCacheTokens !== undefined
       ? safe(usage.inputTokenDetails.noCacheTokens)
       : Math.max(0, inputTokens - cacheReadTokens - cacheWriteTokens);
   const providedTotalTokens = safe(usage?.totalTokens);
@@ -51,7 +51,7 @@ export function addUsage(a: LanguageModelUsage, b: LanguageModelUsage): Language
       cacheWriteTokens: usageA.cacheWriteTokens + usageB.cacheWriteTokens,
     },
     outputTokenDetails: {
-      textTokens: safe(a.outputTokenDetails?.textTokens) + safe(b.outputTokenDetails?.textTokens),
+      textTokens: safe(a.outputTokenDetails.textTokens) + safe(b.outputTokenDetails.textTokens),
       reasoningTokens: usageA.reasoningTokens + usageB.reasoningTokens,
     },
   };

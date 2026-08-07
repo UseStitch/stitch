@@ -76,7 +76,7 @@ export async function getSessionById(
   sessionId: PrefixedString<'ses'>,
 ): Promise<ServiceResult<typeof sessions.$inferSelect>> {
   const db = getDb();
-  const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
+  const session = (await db.select().from(sessions).where(eq(sessions.id, sessionId))).at(0);
   if (!session) return err('Session not found', 404);
   return ok(session);
 }
@@ -119,11 +119,13 @@ export async function archiveSession(
 ): Promise<ServiceResult<typeof sessions.$inferSelect>> {
   const db = getDb();
   const now = Date.now();
-  const [updated] = await db
-    .update(sessions)
-    .set({ archivedAt: now, archivedReason: ARCHIVE_REASONS.archiveSession, updatedAt: now })
-    .where(eq(sessions.id, sessionId))
-    .returning();
+  const updated = (
+    await db
+      .update(sessions)
+      .set({ archivedAt: now, archivedReason: ARCHIVE_REASONS.archiveSession, updatedAt: now })
+      .where(eq(sessions.id, sessionId))
+      .returning()
+  ).at(0);
   if (!updated) return err('Session not found', 404);
   return ok(updated);
 }
@@ -133,11 +135,9 @@ export async function renameSession(
   title: string,
 ): Promise<ServiceResult<typeof sessions.$inferSelect>> {
   const db = getDb();
-  const [updated] = await db
-    .update(sessions)
-    .set({ title, updatedAt: Date.now() })
-    .where(eq(sessions.id, sessionId))
-    .returning();
+  const updated = (
+    await db.update(sessions).set({ title, updatedAt: Date.now() }).where(eq(sessions.id, sessionId)).returning()
+  ).at(0);
   if (!updated) return err('Session not found', 404);
   return ok(updated);
 }
@@ -146,11 +146,13 @@ export async function markSessionRead(
   sessionId: PrefixedString<'ses'>,
 ): Promise<ServiceResult<typeof sessions.$inferSelect>> {
   const db = getDb();
-  const [updated] = await db
-    .update(sessions)
-    .set({ isUnread: false, updatedAt: Date.now() })
-    .where(eq(sessions.id, sessionId))
-    .returning();
+  const updated = (
+    await db
+      .update(sessions)
+      .set({ isUnread: false, updatedAt: Date.now() })
+      .where(eq(sessions.id, sessionId))
+      .returning()
+  ).at(0);
   if (!updated) return err('Session not found', 404);
   return ok(updated);
 }

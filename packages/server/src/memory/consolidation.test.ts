@@ -89,7 +89,7 @@ describe('consolidation validation', () => {
       },
     });
 
-    expect(result.user[0]).toMatchObject({ id: candidate.id, source: 'ses_new' });
+    expect(result.user.at(0)).toMatchObject({ id: candidate.id, source: 'ses_new' });
     expect(result.promotedCount).toBe(1);
   });
 
@@ -138,7 +138,7 @@ describe('file consolidation', () => {
     const daily = await store.appendDaily([
       { content: 'Uses Google Calendar.', origin: 'user', source: 'ses_1', target: 'memory' },
     ]);
-    const candidate = daily.entries[0];
+    const candidate = daily.entries[0] as ManagedMemoryEntry | undefined;
     if (!candidate) throw new Error('Missing test candidate');
 
     const first = await consolidateMemories({
@@ -188,7 +188,6 @@ describe('file consolidation', () => {
       { content: 'Uses Outlook for work.', origin: 'user', source: 'ses_1', target: 'memory' },
     ]);
     const [firstCandidate, secondCandidate] = daily.entries;
-    if (!firstCandidate || !secondCandidate) throw new Error('Missing test candidates');
 
     const propose = (candidate: ManagedMemoryEntry) => async () => ({
       memory: [{ ...candidate, candidateId: candidate.id }],

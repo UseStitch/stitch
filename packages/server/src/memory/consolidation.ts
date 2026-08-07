@@ -279,17 +279,14 @@ export async function consolidateMemories(
         output: Output.object({ schema: consolidationSchema }),
         messages: [{ role: 'user', content: prompt }],
       });
-      if (generated.usage) {
-        internalBus.emit('usage.memory.completed', {
-          providerId: resolved.providerId,
-          modelId: resolved.modelId,
-          usage: generated.usage,
-          phase: 'consolidation',
-          startedAt,
-          endedAt: Date.now(),
-        });
-      }
-      if (!generated.output) throw new Error('Consolidation model returned no proposal');
+      internalBus.emit('usage.memory.completed', {
+        providerId: resolved.providerId,
+        modelId: resolved.modelId,
+        usage: generated.usage,
+        phase: 'consolidation',
+        startedAt,
+        endedAt: Date.now(),
+      });
       proposal = generated.output;
     }
 

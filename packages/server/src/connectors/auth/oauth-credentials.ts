@@ -11,7 +11,7 @@ export async function resolveOAuthCredentials(
   instance: OAuthCredentialCarrier,
 ): Promise<{ clientId: string; clientSecret: string } | null> {
   const db = getDb();
-  const [connector] = await db.select().from(connectors).where(eq(connectors.id, instance.connectorRefId));
+  const connector = (await db.select().from(connectors).where(eq(connectors.id, instance.connectorRefId))).at(0);
   if (connector?.clientId && connector.clientSecret) {
     return { clientId: connector.clientId, clientSecret: connector.clientSecret };
   }

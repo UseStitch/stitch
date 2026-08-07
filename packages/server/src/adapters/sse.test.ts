@@ -49,11 +49,11 @@ describe('sse adapter', () => {
 
     const events = parseCaptured(captured, 'stream.started');
     expect(events).toHaveLength(1);
-    expect(events[0]).toEqual({ sessionId, messageId });
+    expect(events.at(0)).toEqual({ sessionId, messageId });
     // Internal-only fields must NOT leak
-    expect(events[0]).not.toHaveProperty('modelId');
-    expect(events[0]).not.toHaveProperty('providerId');
-    expect(events[0]).not.toHaveProperty('streamRunId');
+    expect(events.at(0)).not.toHaveProperty('modelId');
+    expect(events.at(0)).not.toHaveProperty('providerId');
+    expect(events.at(0)).not.toHaveProperty('streamRunId');
 
     unregisterSseConnection(stream);
   });
@@ -77,9 +77,9 @@ describe('sse adapter', () => {
 
     const events = parseCaptured(captured, 'stream.error');
     expect(events).toHaveLength(1);
-    expect(events[0]).toEqual({ sessionId, messageId, error: 'rate_limit', details });
-    expect(events[0]).not.toHaveProperty('streamRunId');
-    expect(events[0]).not.toHaveProperty('modelId');
+    expect(events.at(0)).toEqual({ sessionId, messageId, error: 'rate_limit', details });
+    expect(events.at(0)).not.toHaveProperty('streamRunId');
+    expect(events.at(0)).not.toHaveProperty('modelId');
 
     unregisterSseConnection(stream);
   });
@@ -104,7 +104,7 @@ describe('sse adapter', () => {
 
     const events = parseCaptured(captured, 'question.asked');
     expect(events).toHaveLength(1);
-    expect(events[0]).toEqual({ question });
+    expect(events.at(0)).toEqual({ question });
 
     unregisterSseConnection(stream);
   });
@@ -132,8 +132,8 @@ describe('sse adapter', () => {
     const events = parseCaptured(captured, 'tool.state');
     expect(events).toHaveLength(5);
 
-    expect(events[0]).toEqual({ sessionId, messageId, toolCallId, toolName, status: 'pending' });
-    expect(events[1]).toEqual({
+    expect(events.at(0)).toEqual({ sessionId, messageId, toolCallId, toolName, status: 'pending' });
+    expect(events.at(1)).toEqual({
       sessionId,
       messageId,
       toolCallId,
@@ -141,7 +141,7 @@ describe('sse adapter', () => {
       status: 'in-progress',
       input: { path: '/a' },
     });
-    expect(events[2]).toEqual({
+    expect(events.at(2)).toEqual({
       sessionId,
       messageId,
       toolCallId,
@@ -149,7 +149,7 @@ describe('sse adapter', () => {
       status: 'in-progress',
       output: 'partial...',
     });
-    expect(events[3]).toEqual({
+    expect(events.at(3)).toEqual({
       sessionId,
       messageId,
       toolCallId,
@@ -158,7 +158,7 @@ describe('sse adapter', () => {
       input: { path: '/a' },
       output: 'done',
     });
-    expect(events[4]).toEqual({ sessionId, messageId, toolCallId, toolName, status: 'error', error: 'ENOENT' });
+    expect(events.at(4)).toEqual({ sessionId, messageId, toolCallId, toolName, status: 'error', error: 'ENOENT' });
 
     unregisterSseConnection(stream);
   });
@@ -187,9 +187,9 @@ describe('sse adapter', () => {
 
     const events = parseCaptured(captured, 'stream.finish');
     expect(events).toHaveLength(1);
-    expect(events[0]).toEqual({ sessionId, messageId, finishReason: 'stop', usage });
-    expect(events[0]).not.toHaveProperty('modelId');
-    expect(events[0]).not.toHaveProperty('costUsd');
+    expect(events.at(0)).toEqual({ sessionId, messageId, finishReason: 'stop', usage });
+    expect(events.at(0)).not.toHaveProperty('modelId');
+    expect(events.at(0)).not.toHaveProperty('costUsd');
 
     unregisterSseConnection(stream);
   });
@@ -221,9 +221,9 @@ describe('sse adapter', () => {
     const started = parseCaptured(captured, 'recording.started');
     const stopped = parseCaptured(captured, 'recording.stopped');
     expect(started).toHaveLength(1);
-    expect(started[0]).toEqual({ recordingId });
+    expect(started.at(0)).toEqual({ recordingId });
     expect(stopped).toHaveLength(1);
-    expect(stopped[0]).toEqual({ recordingId });
+    expect(stopped.at(0)).toEqual({ recordingId });
 
     unregisterSseConnection(stream);
   });

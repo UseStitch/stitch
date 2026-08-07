@@ -144,7 +144,7 @@ describe('mcp registry service', () => {
     const result = await refreshMcpRegistryCache({ cacheFilePath, fetchImpl, force: true });
     expect(result.error).toBeNull();
     if (result.error) return;
-    expect(result.data.servers[0]?.install.authConfig).toEqual({ type: 'oauth', scopes: ['read'] });
+    expect(result.data.servers.at(0)?.install.authConfig).toEqual({ type: 'oauth', scopes: ['read'] });
   });
 
   test('rejects an oauth authConfig with a non-string scope', async () => {

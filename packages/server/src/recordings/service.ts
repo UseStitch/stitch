@@ -48,7 +48,7 @@ async function resolveSttConfig(override?: { providerId: string; modelId: string
   let providerId: string;
   let modelId: string;
 
-  if (override?.providerId && override?.modelId) {
+  if (override?.providerId && override.modelId) {
     providerId = override.providerId;
     modelId = override.modelId;
   } else {
@@ -63,7 +63,7 @@ async function resolveSttConfig(override?: { providerId: string; modelId: string
   }
 
   const db = getDb();
-  const [config] = await db.select().from(providerConfig).where(eq(providerConfig.providerId, providerId));
+  const config = (await db.select().from(providerConfig).where(eq(providerConfig.providerId, providerId))).at(0);
 
   if (!config) {
     log.warn({ providerId }, 'no provider config found for transcription provider');
@@ -130,7 +130,7 @@ export async function listRecordings(input: {
       .offset(offset),
     db.select({ total: sql<number>`count(*)` }).from(recordings),
   ]);
-  const total = Number(countRows[0]?.total ?? 0);
+  const total = Number(countRows.at(0)?.total ?? 0);
   const totalPages = computeTotalPages(total, input.pageSize);
 
   return ok({
@@ -147,16 +147,18 @@ export async function getRecordingDetails(
   recordingId: Recording['id'],
 ): Promise<ServiceResult<RecordingDetailsResponse>> {
   const db = getDb();
-  const [row] = await db
-    .select({
-      recording: recordings,
-      analysis: recordingAnalyses,
-      analysisTitle: recordingAnalyses.title,
-      analysisCostUsd: recordingAnalyses.costUsd,
-    })
-    .from(recordings)
-    .leftJoin(recordingAnalyses, eq(recordingAnalyses.recordingId, recordings.id))
-    .where(eq(recordings.id, recordingId));
+  const row = (
+    await db
+      .select({
+        recording: recordings,
+        analysis: recordingAnalyses,
+        analysisTitle: recordingAnalyses.title,
+        analysisCostUsd: recordingAnalyses.costUsd,
+      })
+      .from(recordings)
+      .leftJoin(recordingAnalyses, eq(recordingAnalyses.recordingId, recordings.id))
+      .where(eq(recordings.id, recordingId))
+  ).at(0);
 
   if (!row) {
     return err('Recording not found', 404);
@@ -251,7 +253,7 @@ export async function startRecording(input: StartRecordingInput): Promise<Servic
     return err(message, 400);
   }
 
-  const [row] = await db.select().from(recordings).where(eq(recordings.id, id));
+  const row = (await db.select().from(recordings).where(eq(recordings.id, id))).at(0);
   if (!row) {
     return err('Recording not found', 404);
   }
@@ -318,7 +320,7 @@ export async function stopRecording(input: StopRecordingInput): Promise<ServiceR
     return err(message, 400);
   }
 
-  const [row] = await db.select().from(recordings).where(eq(recordings.id, current.id));
+  const row = (await db.select().from(recordings).where(eq(recordings.id, current.id))).at(0);
   if (!row) {
     return err('Recording not found', 404);
   }
@@ -334,7 +336,7 @@ export async function deleteRecording(recordingId: Recording['id']): Promise<Ser
   }
 
   const db = getDb();
-  const [row] = await db.select().from(recordings).where(eq(recordings.id, recordingId));
+  const row = (await db.select().from(recordings).where(eq(recordings.id, recordingId))).at(0);
 
   if (!row) {
     return err('Recording not found', 404);

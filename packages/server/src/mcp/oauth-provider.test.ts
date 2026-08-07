@@ -89,7 +89,7 @@ describe('McpOAuthProvider', () => {
     expect(await provider.tokens()).toBeUndefined();
     expect(await provider.clientInformation()).toEqual({ client_id: 'dcr-id' });
     const [server] = await getDb().select().from(mcpServers).where(eq(mcpServers.id, serverId));
-    expect(server?.authStatus).toBe('reauthorization_required');
+    expect(server.authStatus).toBe('reauthorization_required');
   });
 
   test('invalidateCredentials("client") clears only client information', async () => {

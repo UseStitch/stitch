@@ -44,10 +44,12 @@ export type DiscoveredModel = {
 
 export async function getStoredBaseURL(provider: LocalProviderId): Promise<string | null> {
   const db = getDb();
-  const [config] = await db
-    .select({ credentials: providerConfig.credentials })
-    .from(providerConfig)
-    .where(eq(providerConfig.providerId, provider));
+  const config = (
+    await db
+      .select({ credentials: providerConfig.credentials })
+      .from(providerConfig)
+      .where(eq(providerConfig.providerId, provider))
+  ).at(0);
   return (config?.credentials as { baseURL?: string } | undefined)?.baseURL ?? null;
 }
 
@@ -58,10 +60,12 @@ export async function listLocalModels(provider: LocalProviderId): Promise<LocalM
 
 export async function getLocalModel(provider: LocalProviderId, id: string): Promise<ServiceResult<LocalModel>> {
   const db = getDb();
-  const [model] = await db
-    .select()
-    .from(localModels)
-    .where(and(eq(localModels.provider, provider), eq(localModels.id, id)));
+  const model = (
+    await db
+      .select()
+      .from(localModels)
+      .where(and(eq(localModels.provider, provider), eq(localModels.id, id)))
+  ).at(0);
   if (!model) {
     return err('Model not found', 404);
   }
@@ -79,29 +83,31 @@ export async function upsertLocalModel(
 
   const db = getDb();
   const now = Date.now();
-  const [model] = await db
-    .insert(localModels)
-    .values({ ...parsed.data, provider, createdAt: now, updatedAt: now })
-    .onConflictDoUpdate({
-      target: [localModels.provider, localModels.id],
-      set: {
-        name: parsed.data.name,
-        contextWindow: parsed.data.contextWindow,
-        inputLimit: parsed.data.inputLimit,
-        outputLimit: parsed.data.outputLimit,
-        inputCostPerMillion: parsed.data.inputCostPerMillion,
-        outputCostPerMillion: parsed.data.outputCostPerMillion,
-        cacheReadCostPerMillion: parsed.data.cacheReadCostPerMillion,
-        cacheWriteCostPerMillion: parsed.data.cacheWriteCostPerMillion,
-        supportsToolCalls: parsed.data.supportsToolCalls,
-        supportsVision: parsed.data.supportsVision,
-        supportsReasoning: parsed.data.supportsReasoning,
-        inputModalities: parsed.data.inputModalities,
-        outputModalities: parsed.data.outputModalities,
-        updatedAt: now,
-      },
-    })
-    .returning();
+  const model = (
+    await db
+      .insert(localModels)
+      .values({ ...parsed.data, provider, createdAt: now, updatedAt: now })
+      .onConflictDoUpdate({
+        target: [localModels.provider, localModels.id],
+        set: {
+          name: parsed.data.name,
+          contextWindow: parsed.data.contextWindow,
+          inputLimit: parsed.data.inputLimit,
+          outputLimit: parsed.data.outputLimit,
+          inputCostPerMillion: parsed.data.inputCostPerMillion,
+          outputCostPerMillion: parsed.data.outputCostPerMillion,
+          cacheReadCostPerMillion: parsed.data.cacheReadCostPerMillion,
+          cacheWriteCostPerMillion: parsed.data.cacheWriteCostPerMillion,
+          supportsToolCalls: parsed.data.supportsToolCalls,
+          supportsVision: parsed.data.supportsVision,
+          supportsReasoning: parsed.data.supportsReasoning,
+          inputModalities: parsed.data.inputModalities,
+          outputModalities: parsed.data.outputModalities,
+          updatedAt: now,
+        },
+      })
+      .returning()
+  ).at(0);
 
   if (!model) {
     return err('Failed to save model', 500);

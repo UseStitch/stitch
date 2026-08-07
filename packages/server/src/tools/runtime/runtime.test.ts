@@ -49,6 +49,6 @@ describe('tool runtime', () => {
     ]);
 
     expect(Object.keys(tools)).toEqual(['example']);
-    expect(tools.example?.execute?.({}, {} as never)).resolves.toBe('ok');
+    expect(tools.example.execute?.({}, {} as never)).resolves.toBe('ok');
   });
 });

@@ -19,7 +19,7 @@ type WsTransportConfig = {
   keepAliveMessage?: string;
 };
 
-type PingableWebSocket = WebSocket & { ping?: () => void };
+type PingableWebSocket = Omit<WebSocket, 'ping'> & { ping?: () => void };
 
 export type WsMessageResult = { transcript?: TranscriptEvent; usage?: STTUsage; error?: Error };
 
@@ -219,7 +219,7 @@ export function createWsTransport(
     }
 
     function handleError(event: Event): void {
-      const message = (event as ErrorEvent).message ?? 'unknown';
+      const message = (event as { message?: string }).message ?? 'unknown';
       const err = new Error(`${config.label} WebSocket error: ${message}`);
       if (!opened) {
         reject(err);

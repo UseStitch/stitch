@@ -1,6 +1,5 @@
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
 import type { ScrollDirection } from '@/lib/browser/types.js';
-import { ToolError } from '@/tools/errors.js';
 import { BrowserInvalidOpError, BrowserMissingFieldError } from '@/tools/toolsets/browser/errors.js';
 import {
   formatDropdownOptionsSummary,
@@ -207,52 +206,48 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
     throw new BrowserInvalidOpError('dialog', op);
   }
 
-  if (input.tool === 'content') {
-    const op = getRequiredOp(input);
-    switch (op) {
-      case 'extract': {
-        const content = await browser.extractPageContent(signal, {
-          selector: input.selector,
-          query: input.query,
-          includeLinks: input.includeLinks,
-          includeImages: input.includeImages,
-          outputSchema: input.outputSchema,
-        });
-        const selectorNote = input.selector ? `\n**Selector:** ${input.selector}` : '';
-        return { output: `${formatExtractContent(input.query, content)}${selectorNote}` };
-      }
-      case 'search_page': {
-        if (!input.pattern) throw new BrowserMissingFieldError('content', 'pattern');
-        const result = await browser.searchPage(
-          {
-            pattern: input.pattern,
-            regex: input.regex,
-            caseSensitive: input.caseSensitive,
-            contextChars: input.contextChars,
-            cssScope: input.cssScope,
-            maxResults: input.maxResults,
-          },
-          signal,
-        );
-        return { output: formatSearchPageSummary(input.pattern, result) };
-      }
-      case 'find_elements': {
-        if (!input.selector) throw new BrowserMissingFieldError('content', 'selector');
-        const result = await browser.findElements(
-          {
-            selector: input.selector,
-            attributes: input.attributes,
-            maxResults: input.maxResults,
-            includeText: input.includeText,
-          },
-          signal,
-        );
-        return { output: formatFindElementsSummary(input.selector, result) };
-      }
-      default:
-        throw new BrowserInvalidOpError('content', op);
+  const op = getRequiredOp(input);
+  switch (op) {
+    case 'extract': {
+      const content = await browser.extractPageContent(signal, {
+        selector: input.selector,
+        query: input.query,
+        includeLinks: input.includeLinks,
+        includeImages: input.includeImages,
+        outputSchema: input.outputSchema,
+      });
+      const selectorNote = input.selector ? `\n**Selector:** ${input.selector}` : '';
+      return { output: `${formatExtractContent(input.query, content)}${selectorNote}` };
     }
+    case 'search_page': {
+      if (!input.pattern) throw new BrowserMissingFieldError('content', 'pattern');
+      const result = await browser.searchPage(
+        {
+          pattern: input.pattern,
+          regex: input.regex,
+          caseSensitive: input.caseSensitive,
+          contextChars: input.contextChars,
+          cssScope: input.cssScope,
+          maxResults: input.maxResults,
+        },
+        signal,
+      );
+      return { output: formatSearchPageSummary(input.pattern, result) };
+    }
+    case 'find_elements': {
+      if (!input.selector) throw new BrowserMissingFieldError('content', 'selector');
+      const result = await browser.findElements(
+        {
+          selector: input.selector,
+          attributes: input.attributes,
+          maxResults: input.maxResults,
+          includeText: input.includeText,
+        },
+        signal,
+      );
+      return { output: formatFindElementsSummary(input.selector, result) };
+    }
+    default:
+      throw new BrowserInvalidOpError('content', op);
   }
-
-  throw new ToolError('Unsupported batch tool.');
 }

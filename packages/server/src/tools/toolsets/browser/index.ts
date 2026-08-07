@@ -246,7 +246,7 @@ function createBatchTool(context: ToolContext) {
           ? `Batch executed ${executed}/${total} action(s). ${stoppedReason}`
           : `Batch executed ${executed}/${total} action(s) successfully.`;
         const resultLines = results.map((result) => {
-          const action = input.actions[result.index - 1];
+          const action = input.actions[result.index - 1] as (typeof input.actions)[number] | undefined;
           const label = action
             ? `${result.index}. ${action.tool}${action.op ? `.${action.op}` : ''}`
             : `${result.index}. action`;

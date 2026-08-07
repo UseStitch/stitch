@@ -109,15 +109,17 @@ export function registerTitleGenerationAdapter(deps: TitleGenerationAdapterDeps 
       });
 
       const db = getDb();
-      const [updated] = await db
-        .update(recordingAnalyses)
-        .set({
-          title: generatedTitle.title,
-          costUsd: sql`${recordingAnalyses.costUsd} + ${costUsd}`,
-          updatedAt: Date.now(),
-        })
-        .where(and(eq(recordingAnalyses.id, event.analysisId), eq(recordingAnalyses.recordingId, event.recordingId)))
-        .returning({ id: recordingAnalyses.id });
+      const updated = (
+        await db
+          .update(recordingAnalyses)
+          .set({
+            title: generatedTitle.title,
+            costUsd: sql`${recordingAnalyses.costUsd} + ${costUsd}`,
+            updatedAt: Date.now(),
+          })
+          .where(and(eq(recordingAnalyses.id, event.analysisId), eq(recordingAnalyses.recordingId, event.recordingId)))
+          .returning({ id: recordingAnalyses.id })
+      ).at(0);
       if (!updated) return;
 
       internalBus.emit('recording.analysis.updated', {

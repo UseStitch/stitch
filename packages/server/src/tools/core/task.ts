@@ -149,7 +149,7 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
           .from(messages)
           .where(and(eq(messages.sessionId, childSessionId), eq(messages.id, assistantMessageId)));
 
-        const assistantMessage = childMessages[0];
+        const assistantMessage = childMessages.at(0);
         let summary = 'Task completed.';
 
         if (assistantMessage?.parts) {

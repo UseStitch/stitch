@@ -163,7 +163,7 @@ function createGrepTool() {
 }
 
 function getPatternTargets(input: unknown): string[] {
-  const target = (input as { path?: unknown })?.path;
+  const target = (input as { path?: unknown }).path;
   return typeof target === 'string' && target.length > 0 ? [target] : [];
 }
 

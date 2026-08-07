@@ -80,7 +80,7 @@ memoryRouter.get('/files', async (c) => {
 
 memoryRouter.get('/files/:name', async (c) => {
   const name = c.req.param('name') as keyof typeof fileNames;
-  const fileName = fileNames[name];
+  const fileName = fileNames[name] as (typeof fileNames)[keyof typeof fileNames] | undefined;
   if (!fileName) return c.json({ error: 'Unknown memory file.' }, 404);
   return c.json(await memoryFileStore.readFile(fileName));
 });

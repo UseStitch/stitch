@@ -65,8 +65,8 @@ export async function listProvidersWithCapabilities(): Promise<ServiceResult<Pro
     const meta = PROVIDER_META[id as keyof typeof PROVIDER_META];
     results.push({
       id,
-      name: meta?.displayName ?? llmProviders[id]?.name ?? id,
-      api: meta?.api ?? llmProviders[id]?.api,
+      name: meta.displayName,
+      api: meta.api ?? llmProviders[id].api,
       enabled: enabledIds.has(id),
       capabilities: [...caps],
     });
@@ -92,7 +92,7 @@ export async function listEnabledSttModels(): Promise<ServiceResult<SttProviderM
   for (const entry of sttCatalog) {
     if (!enabledIds.has(entry.providerId)) continue;
     const meta = PROVIDER_META[entry.providerId as keyof typeof PROVIDER_META];
-    const providerName = meta?.displayName ?? entry.providerName;
+    const providerName = meta.displayName;
     results.push({
       providerId: entry.providerId,
       providerName,
