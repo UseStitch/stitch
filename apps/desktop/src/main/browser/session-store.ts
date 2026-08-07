@@ -148,7 +148,7 @@ export class SessionStore {
     }
 
     const remaining = Array.from(this.tabs.values());
-    const next = remaining[remaining.length - 1];
+    const next = remaining.at(-1);
     if (next) {
       this.activeTabId = next.id;
       this.broadcast();

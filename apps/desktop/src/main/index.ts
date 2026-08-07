@@ -111,9 +111,7 @@ function registerAllIpcHandlers(): void {
   registerUpdaterHandlers(updater, getWindow);
   registerTelemetryHandlers();
   registerNotificationHandlers((event) => {
-    if (event.type === 'meeting-detected') {
-      dismissMeetingCall(event.payload.key);
-    }
+    dismissMeetingCall(event.payload.key);
   });
   registerIpcHandler('meeting:call-dismiss', (_event, key) => {
     dismissMeetingCall(key);

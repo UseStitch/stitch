@@ -41,6 +41,10 @@ export function createCaptureRestarter(options: CaptureRestarterOptions): Captur
   let attempts = 0;
   let cancelled = false;
 
+  function isCancelled(): boolean {
+    return cancelled;
+  }
+
   function schedule(delayMs: number): void {
     if (cancelled || timer) {
       return;
@@ -66,7 +70,7 @@ export function createCaptureRestarter(options: CaptureRestarterOptions): Captur
     } catch (error) {
       retrigger = false;
       attempts += 1;
-      if (cancelled) {
+      if (isCancelled()) {
         return;
       }
       if (attempts >= maxAttempts) {

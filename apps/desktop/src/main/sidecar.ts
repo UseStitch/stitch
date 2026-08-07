@@ -83,7 +83,7 @@ function findStalePids(): number[] {
       if (!output) return [];
       return output
         .split('\n')
-        .map((line) => parseInt(line.split(',')[1]?.replace(/"/g, '') ?? '', 10))
+        .map((line) => parseInt(line.split(',').at(1)?.replace(/"/g, '') ?? '', 10))
         .filter(Number.isFinite);
     }
 
