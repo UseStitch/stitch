@@ -120,31 +120,8 @@ export function captureClientEvent<T extends TelemetryEventName>(
 ): void {
   if (!state?.enabled || !posthog || !posthogLoaded) return;
 
-  // Rate limit app_active to once per UTC day
-  if (eventName === 'app_active') {
-    const today = getUtcDateString();
-    if (state.lastActiveDate === today) return;
-    state = { ...state, lastActiveDate: today };
-
-    if (window.api?.telemetry) {
-      void window.api.telemetry.setEnabled(state.enabled);
-    } else {
-      persistLocalState(state);
-    }
-  }
-
-  // Rate limit message_sent to once per UTC day
-  if (eventName === 'message_sent') {
-    const today = getUtcDateString();
-    if (state.lastMessageDate === today) return;
-    state = { ...state, lastMessageDate: today };
-
-    if (window.api?.telemetry) {
-      void window.api.telemetry.setEnabled(state.enabled);
-    } else {
-      persistLocalState(state);
-    }
-  }
+  if (eventName === 'app_active' && !passesOncePerDay('lastActiveDate')) return;
+  if (eventName === 'message_sent' && !passesOncePerDay('lastMessageDate')) return;
 
   posthog.capture(eventName, {
     event_schema_version: EVENT_SCHEMA_VERSION,
@@ -155,20 +132,6 @@ export function captureClientEvent<T extends TelemetryEventName>(
     actor_type: 'client',
     ...extraProperties,
   });
-}
-
-/**
- * Check if client telemetry is currently enabled.
- */
-export function isClientTelemetryEnabled(): boolean {
-  return state?.enabled ?? false;
-}
-
-/**
- * Get the client installation ID (for header attribution).
- */
-export function getClientInstallationId(): string | null {
-  return state?.clientInstallationId ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -215,6 +178,20 @@ function getPostHogKey(): string | null {
 
 function getUtcDateString(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+function passesOncePerDay(field: 'lastActiveDate' | 'lastMessageDate'): boolean {
+  if (!state) return false;
+  const today = getUtcDateString();
+  if (state[field] === today) return false;
+
+  state = { ...state, [field]: today };
+  if (window.api?.telemetry) {
+    void window.api.telemetry.setEnabled(state.enabled);
+  } else {
+    persistLocalState(state);
+  }
+  return true;
 }
 
 function getPlatform(): string {

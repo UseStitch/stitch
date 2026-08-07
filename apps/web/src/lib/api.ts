@@ -1,7 +1,4 @@
 import type { DesktopBridge, ElectronBridge } from '@stitch/shared/desktop/bridge';
-import { TELEMETRY_HEADER_ENABLED, TELEMETRY_HEADER_ID } from '@stitch/shared/telemetry/types';
-
-import { getClientInstallationId, isClientTelemetryEnabled } from '@/lib/telemetry/client';
 
 export type ContextMenuParams = {
   x: number;
@@ -56,14 +53,6 @@ export async function getServerUrl(): Promise<string> {
 export async function serverFetch(path: string, init?: RequestInit): Promise<Response> {
   const baseUrl = await getServerUrl();
   const headers = new Headers(init?.headers);
-
-  // Attach telemetry attribution headers
-  const telemetryEnabled = isClientTelemetryEnabled();
-  headers.set(TELEMETRY_HEADER_ENABLED, telemetryEnabled ? 'true' : 'false');
-  if (telemetryEnabled) {
-    const clientId = getClientInstallationId();
-    if (clientId) headers.set(TELEMETRY_HEADER_ID, clientId);
-  }
 
   return fetch(`${baseUrl}${path}`, { ...init, headers });
 }

@@ -149,8 +149,6 @@ async function spawnServerOnce(port: number, extraEnv: NodeJS.ProcessEnv): Promi
     STITCH_APP_VERSION: app.getVersion(),
     STITCH_CHANNEL: app.isPackaged ? 'production' : 'development',
     STITCH_CLIENT: 'desktop',
-    STITCH_POSTHOG_KEY: process.env['STITCH_POSTHOG_KEY'] ?? '',
-    STITCH_POSTHOG_HOST: process.env['STITCH_POSTHOG_HOST'] ?? '',
     STITCH_TELEMETRY_ENABLED: process.env['STITCH_TELEMETRY_ENABLED'] ?? '',
   };
 

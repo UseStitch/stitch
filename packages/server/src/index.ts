@@ -31,7 +31,6 @@ import { usageRouter } from '@/routes/usage.js';
 import { registerShutdownHandlers } from '@/shutdown.js';
 import { initSttAdapters } from '@/stt/init.js';
 import { createSttRouter } from '@/stt/route.js';
-import { telemetryMiddleware } from '@/telemetry/middleware.js';
 
 const SOCKET_KEEPALIVE_DELAY_MS = 15_000;
 
@@ -60,14 +59,7 @@ const log = Log.create({ service: 'server' });
 const app = new Hono();
 const nodeWebSocket = createNodeWebSocket({ app });
 
-app.use(
-  cors({
-    origin: '*',
-    allowHeaders: ['Content-Type', 'x-stitch-telemetry-enabled', 'x-stitch-telemetry-id'],
-    exposeHeaders: [],
-  }),
-);
-app.use(telemetryMiddleware());
+app.use(cors({ origin: '*', allowHeaders: ['Content-Type'], exposeHeaders: [] }));
 app.get('/health', (c) => c.json({ status: 'ok', paths: PATHS }));
 app.route('/automations', automationsRouter);
 app.route('/chat', chatRouter);
