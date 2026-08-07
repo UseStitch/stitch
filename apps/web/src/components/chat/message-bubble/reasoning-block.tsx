@@ -15,7 +15,7 @@ export function ReasoningBlock({ text, isStreaming }: ReasoningBlockProps) {
     <div className="my-space-m overflow-hidden rounded-lg border border-border-subtle bg-surface-sunken">
       <Button
         variant="quiet"
-        size="inline"
+        size="xs"
         width="full"
         align="start"
         onClick={() => setOpen((o) => !o)}
