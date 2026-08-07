@@ -2,18 +2,7 @@ import { PlayIcon, PencilIcon, Trash2Icon, BotIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { Link } from '@tanstack/react-router';
-import {
-  type CellContext,
-  createColumnHelper,
-  createSortedRowModel,
-  metaHelper,
-  rowSortingFeature,
-  sortFn_alphanumeric,
-  sortFn_text,
-  type SortingState,
-  tableFeatures,
-  useTable,
-} from '@tanstack/react-table';
+import { type SortingState } from '@tanstack/react-table';
 
 import type { Automation } from '@stitch/shared/automations/types';
 
@@ -30,6 +19,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { Table } from '@/components/ui/table';
+import { createAppColumnHelper, useAppTable } from '@/hooks/table-hook';
 import { getAutomationScheduleLabel } from '@/lib/automations/schedule-label';
 import type { ProviderModels } from '@/lib/queries/providers';
 
@@ -46,15 +36,6 @@ type AutomationsTableProps = {
   onDelete: (automation: Automation) => void;
 };
 
-const features = tableFeatures({
-  rowSortingFeature,
-  sortedRowModel: createSortedRowModel(),
-  sortFns: { alphanumeric: sortFn_alphanumeric, text: sortFn_text },
-  tableMeta: metaHelper<AutomationsTableMeta>(),
-});
-
-const columnHelper = createColumnHelper<typeof features, Automation>();
-
 type AutomationsTableMeta = {
   modelLabelByKey: Map<string, string>;
   runPending: boolean;
@@ -64,77 +45,73 @@ type AutomationsTableMeta = {
   onDelete: (automation: Automation) => void;
 };
 
-function TitleCell({ row }: CellContext<typeof features, Automation, Automation['title']>) {
-  return (
-    <Table.Title className="block">
-      <Link
-        to="/automations/$automationId"
-        params={{ automationId: row.original.id }}
-        className="text-foreground hover:underline">
-        {row.original.title}
-      </Link>
-    </Table.Title>
-  );
-}
-
-function ModelCell({ row, table }: CellContext<typeof features, Automation, unknown>) {
-  const { modelLabelByKey } = table.options.meta as AutomationsTableMeta;
-  const automation = row.original;
-  const label = modelLabelByKey.get(`${automation.providerId}:${automation.modelId}`) ?? automation.modelId;
-  return <Table.Badge>{label}</Table.Badge>;
-}
-
-function RunCountCell({ getValue }: CellContext<typeof features, Automation, Automation['runCount']>) {
-  return <Table.Number value={getValue()} />;
-}
-
-function ScheduleCell({ row }: CellContext<typeof features, Automation, unknown>) {
-  return <Table.Text>{getAutomationScheduleLabel(row.original.schedule)}</Table.Text>;
-}
-
-function UpdatedAtCell({ getValue }: CellContext<typeof features, Automation, Automation['updatedAt']>) {
-  return <Table.Time value={getValue()} />;
-}
-
-function ActionsCell({ row, table }: CellContext<typeof features, Automation, unknown>) {
-  const { runPending, deletePending, onRun, onEdit, onDelete } = table.options.meta as AutomationsTableMeta;
-
-  return (
-    <Table.Actions>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => onRun(row.original)}
-        disabled={runPending}
-        aria-label={`Run ${row.original.title}`}>
-        <Icon as={PlayIcon} size="s" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => onEdit(row.original.id)}
-        aria-label={`Edit ${row.original.title}`}>
-        <Icon as={PencilIcon} size="s" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => onDelete(row.original)}
-        disabled={deletePending}
-        aria-label={`Delete ${row.original.title}`}>
-        <Icon as={Trash2Icon} size="s" tone="destructive" />
-      </Button>
-    </Table.Actions>
-  );
-}
+const columnHelper = createAppColumnHelper<Automation>();
 
 const columns = columnHelper.columns([
-  columnHelper.accessor('title', { header: 'Title', cell: TitleCell }),
-  columnHelper.display({ id: 'model', header: 'Model', cell: ModelCell }),
-  columnHelper.accessor('runCount', { header: 'Runs', cell: RunCountCell }),
-  columnHelper.display({ id: 'schedule', header: 'Schedule', cell: ScheduleCell }),
-  columnHelper.accessor('updatedAt', { header: 'Updated', cell: UpdatedAtCell }),
-  columnHelper.display({ id: 'actions', header: '', cell: ActionsCell }),
+  columnHelper.accessor('title', {
+    header: 'Title',
+    cell: ({ row }) => (
+      <Table.Title className="block">
+        <Link
+          to="/automations/$automationId"
+          params={{ automationId: row.original.id }}
+          className="text-foreground hover:underline">
+          {row.original.title}
+        </Link>
+      </Table.Title>
+    ),
+  }),
+  columnHelper.display({
+    id: 'model',
+    header: 'Model',
+    cell: ({ row, table }) => {
+      const { modelLabelByKey } = table.options.meta as AutomationsTableMeta;
+      const automation = row.original;
+      const label = modelLabelByKey.get(`${automation.providerId}:${automation.modelId}`) ?? automation.modelId;
+      return <Table.Badge>{label}</Table.Badge>;
+    },
+  }),
+  columnHelper.accessor('runCount', { header: 'Runs', cell: ({ cell }) => <cell.NumberCell /> }),
+  columnHelper.display({
+    id: 'schedule',
+    header: 'Schedule',
+    cell: ({ row }) => <Table.Text>{getAutomationScheduleLabel(row.original.schedule)}</Table.Text>,
+  }),
+  columnHelper.accessor('updatedAt', { header: 'Updated', cell: ({ cell }) => <cell.TimeCell /> }),
+  columnHelper.display({
+    id: 'actions',
+    header: '',
+    cell: ({ row, table }) => {
+      const { runPending, deletePending, onRun, onEdit, onDelete } = table.options.meta as AutomationsTableMeta;
+      return (
+        <Table.Actions>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => onRun(row.original)}
+            disabled={runPending}
+            aria-label={`Run ${row.original.title}`}>
+            <Icon as={PlayIcon} size="s" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => onEdit(row.original.id)}
+            aria-label={`Edit ${row.original.title}`}>
+            <Icon as={PencilIcon} size="s" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => onDelete(row.original)}
+            disabled={deletePending}
+            aria-label={`Delete ${row.original.title}`}>
+            <Icon as={Trash2Icon} size="s" tone="destructive" />
+          </Button>
+        </Table.Actions>
+      );
+    },
+  }),
 ]);
 
 export function AutomationsTable({
@@ -161,8 +138,7 @@ export function AutomationsTable({
     return map;
   }, [providerModels]);
 
-  const table = useTable({
-    features,
+  const table = useAppTable({
     data: automations,
     columns,
     state: { sorting },
@@ -218,10 +194,14 @@ export function AutomationsTable({
             ) : (
               table.getRowModel().rows.map((row) => (
                 <Table.Row key={row.id}>
-                  {row.getAllCells().map((cell) => (
-                    <Table.Cell key={cell.id}>
-                      <table.FlexRender cell={cell} />
-                    </Table.Cell>
+                  {row.getAllCells().map((c) => (
+                    <table.AppCell cell={c} key={c.id}>
+                      {(cell) => (
+                        <Table.Cell>
+                          <cell.FlexRender />
+                        </Table.Cell>
+                      )}
+                    </table.AppCell>
                   ))}
                 </Table.Row>
               ))
