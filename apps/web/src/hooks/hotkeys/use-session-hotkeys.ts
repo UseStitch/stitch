@@ -1,6 +1,6 @@
 import { useHotkey, useHotkeySequence } from '@tanstack/react-hotkeys';
 
-import type { Action } from '@/lib/actions';
+import type { Action } from '@/hooks/use-actions';
 import { useShortcuts } from '@/hooks/use-shortcuts';
 
 export function useSessionHotkeys(actions: Action[]) {

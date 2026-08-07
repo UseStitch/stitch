@@ -6,9 +6,9 @@ import { SETTINGS_DEFAULTS } from '@stitch/shared/settings/types';
 import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 import type { ShortcutActionId } from '@stitch/shared/shortcuts/types';
 
-import type { Action } from '@/lib/actions';
-import { settingsQueryOptions } from '@/lib/queries/settings';
+import type { Action } from '@/hooks/use-actions';
 import { useShortcuts } from '@/hooks/use-shortcuts';
+import { settingsQueryOptions } from '@/lib/queries/settings';
 
 const LEADER_PREFIX = 'LEADER+';
 
