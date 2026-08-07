@@ -47,7 +47,7 @@ export function DesktopNotificationRoot() {
 
     const observer = new ResizeObserver(([entry]) => {
       const height = entry?.contentRect.height ?? 0;
-      void window.api?.notifications?.setHeight(height);
+      void window.api.notifications.setHeight(height);
     });
 
     observer.observe(element);
@@ -55,7 +55,7 @@ export function DesktopNotificationRoot() {
   }, []);
 
   React.useEffect(() => {
-    return window.api?.notifications?.onDismissed((id) => {
+    return window.api.notifications.onDismissed((id) => {
       setNotification((current) => {
         if (!current || current.id !== id) return current;
 
@@ -67,10 +67,7 @@ export function DesktopNotificationRoot() {
   }, []);
 
   function dismiss(id: string): void {
-    if (window.api?.notifications?.dismiss) {
-      void window.api.notifications.dismiss(id);
-      return;
-    }
+    void window.api.notifications.dismiss(id);
 
     setExiting(true);
     window.setTimeout(() => setNotification(null), EXIT_ANIMATION_MS);

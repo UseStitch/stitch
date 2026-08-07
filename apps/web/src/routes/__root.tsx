@@ -93,7 +93,7 @@ function ServerConnectionSync() {
   const router = useRouter();
 
   React.useEffect(() => {
-    return window.api?.server?.onConfigChanged((config) => {
+    return window.api.server.onConfigChanged((config) => {
       resetServerUrlCache(config.url);
 
       void router.navigate({ to: '/settings/connection' }).then(async () => {

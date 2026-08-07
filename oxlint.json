@@ -18,6 +18,7 @@
     "eqeqeq": "error",
     "no-else-return": "error",
     "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/no-unnecessary-condition": "error",
     "typescript/no-floating-promises": "error",
     "typescript/no-non-null-assertion": "error",
     "import/no-dynamic-require": ["error", { "esmodule": true }],

@@ -174,7 +174,7 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
   };
 
   const handleReplaceMisspelling = (suggestion: string) => {
-    void window.api?.spellcheck?.replaceMisspelling(suggestion);
+    void window.api.spellcheck.replaceMisspelling(suggestion);
     close();
   };
 
@@ -182,7 +182,7 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
 
   const handleAddToDictionary = () => {
     if (misspelledWord) {
-      void window.api?.spellcheck?.addToDictionary(misspelledWord);
+      void window.api.spellcheck.addToDictionary(misspelledWord);
     }
     close();
   };
@@ -200,7 +200,7 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
     close();
   };
   const handleOpenDevTools = () => {
-    void window.api?.devtools?.toggle();
+    void window.api.devtools.toggle();
     close();
   };
 

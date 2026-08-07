@@ -99,7 +99,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
   async function handleReauthorize(instanceId: string) {
     try {
       const { authUrl } = await authorizeMutation.mutateAsync(instanceId);
-      void (window.api?.shell?.openExternal(authUrl) ?? window.open(authUrl, '_blank'));
+      void window.api.shell.openExternal(authUrl);
       toast.info('Opening browser for authorization...', { id: 'connector-auth' });
     } catch (e) {
       toast.error(getErrorMessage(e, 'Failed to start authorization'), { id: 'connector-auth' });
@@ -124,7 +124,7 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
       const result = await upgradeMutation.mutateAsync({ instanceId: instance.id, apiKey });
 
       if (result.type === 'reauthorize') {
-        void (window.api?.shell?.openExternal(result.authUrl) ?? window.open(result.authUrl, '_blank'));
+        void window.api.shell.openExternal(result.authUrl);
         toast.info('Opening browser to complete connector upgrade...', { id: 'connector-upgrade' });
         return;
       }

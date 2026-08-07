@@ -8,22 +8,13 @@ const connectionKeys = { all: ['connection'] as const, config: () => [...connect
 
 export const serverConfigQueryOptions = queryOptions({
   queryKey: connectionKeys.config(),
-  queryFn: async (): Promise<ServerConnectionConfig> => {
-    if (!window.api?.getServerConfig) {
-      throw new Error('Server config is only available from the desktop app');
-    }
-    return window.api.getServerConfig();
-  },
+  queryFn: (): Promise<ServerConnectionConfig> => window.api.getServerConfig(),
 });
 
 export function useTestRemoteConnection() {
   return useMutation({
-    mutationFn: async (url: string): Promise<{ ok: boolean; url?: string; error?: string }> => {
-      if (!window.api?.server?.testRemote) {
-        throw new Error('Remote testing is only available from the desktop app');
-      }
-      return window.api.server.testRemote(url);
-    },
+    mutationFn: (url: string): Promise<{ ok: boolean; url?: string; error?: string }> =>
+      window.api.server.testRemote(url),
   });
 }
 
@@ -31,12 +22,8 @@ export function useSaveServerConfig() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: { mode: ServerMode; remoteUrl: string | null }): Promise<ServerConnectionConfig> => {
-      if (!window.api?.server?.setConfig) {
-        throw new Error('Server config is only available from the desktop app');
-      }
-      return window.api.server.setConfig(input);
-    },
+    mutationFn: (input: { mode: ServerMode; remoteUrl: string | null }): Promise<ServerConnectionConfig> =>
+      window.api.server.setConfig(input),
     onSuccess: (config) => {
       queryClient.setQueryData(connectionKeys.config(), config);
       toast.success('Server connection updated', { id: 'connection-update' });

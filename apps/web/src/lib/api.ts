@@ -21,11 +21,9 @@ export type ServerConnectionConfig = { url: string; mode: ServerMode; remoteUrl:
 declare global {
   interface Window {
     electron?: ElectronBridge;
-    api?: DesktopBridge;
+    api: DesktopBridge;
   }
 }
-
-const DEV_FALLBACK_URL = 'http://localhost:3000';
 
 let cachedUrl: string | null = null;
 
@@ -40,13 +38,8 @@ export function resetServerUrlCache(url?: string): void {
 export async function getServerUrl(): Promise<string> {
   if (cachedUrl) return cachedUrl;
 
-  if (window.api?.getServerConfig) {
-    const config = await window.api.getServerConfig();
-    cachedUrl = config.url;
-    return cachedUrl;
-  }
-
-  cachedUrl = DEV_FALLBACK_URL;
+  const config = await window.api.getServerConfig();
+  cachedUrl = config.url;
   return cachedUrl;
 }
 

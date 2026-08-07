@@ -33,8 +33,6 @@ async function fileToAttachment(file: File): Promise<Attachment | null> {
     };
   }
 
-  if (!window.api?.files?.writeTmp) return null;
-
   const arrayBuffer = await file.arrayBuffer();
   const ext = mimeToExt(file.type);
   const filePath = await window.api.files.writeTmp(arrayBuffer, ext);

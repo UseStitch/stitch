@@ -12,6 +12,8 @@ import { applyAppearanceMode, applyTheme, DEFAULT_MODE, DEFAULT_THEME, getTheme 
 import { routeTree } from '@/routeTree.gen';
 import '@/styles/global.css';
 
+if (!('api' in window)) throw new Error('Desktop bridge (window.api) is not available');
+
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
 const isFileProtocol = window.location.protocol === 'file:';
 

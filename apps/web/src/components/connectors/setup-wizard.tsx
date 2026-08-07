@@ -140,7 +140,7 @@ export function SetupWizard({ definition, connectors, onClose }: Props) {
         }
 
         const { authUrl } = await authorize.mutateAsync(progress.instanceId);
-        void (window.api?.shell?.openExternal(authUrl) ?? window.open(authUrl, '_blank'));
+        void window.api.shell.openExternal(authUrl);
         setStep('done');
       } catch (e) {
         const fallback = !progress.connectorRefId
@@ -344,7 +344,7 @@ function InstructionsStep({ instructions, onNext }: { instructions: ConnectorSet
                       variant="link"
                       size="inline"
                       onClick={() => {
-                        void (window.api?.shell?.openExternal(href) ?? window.open(href, '_blank'));
+                        void window.api.shell.openExternal(href);
                       }}>
                       {instruction.hrefLabel ?? 'Open'}
                       <Icon as={ExternalLinkIcon} size="xs" />
@@ -492,7 +492,7 @@ function ConnectorCredentialsStep({
                       }
                       onClick={(event) => {
                         event.preventDefault();
-                        void (window.api?.shell?.openExternal(helpUrl) ?? window.open(helpUrl, '_blank'));
+                        void window.api.shell.openExternal(helpUrl);
                       }}>
                       <Icon as={ExternalLinkIcon} size="xs" />
                       Get your API key
@@ -651,7 +651,7 @@ function ScopesStep({
                 variant="link"
                 size="inline"
                 onClick={() => {
-                  void (window.api?.shell?.openExternal(enableApisUrl) ?? window.open(enableApisUrl, '_blank'));
+                  void window.api.shell.openExternal(enableApisUrl);
                 }}>
                 <Icon as={ExternalLinkIcon} size="s" />
                 Enable required Google APIs in Cloud Console

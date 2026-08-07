@@ -29,8 +29,8 @@ function useServerConfig() {
   const [config, setConfig] = React.useState<ServerConnectionConfig | null>(null);
 
   React.useEffect(() => {
-    void window.api?.getServerConfig().then(setConfig);
-    return window.api?.server?.onConfigChanged(setConfig);
+    void window.api.getServerConfig().then(setConfig);
+    return window.api.server.onConfigChanged(setConfig);
   }, []);
 
   return config;
@@ -104,11 +104,7 @@ export function ServerStatus() {
           </div>
           <TabsContent value="servers" className="flex flex-col gap-space-xl bg-popover p-space-xl">
             <StatusItem state={serverState} label={serverLabel} subtitle={serverSubtitle} />
-            <StatusItem
-              state={eventBusState}
-              label="Event Bus"
-              subtitle={formatEventBusSubtitle(lastHeartbeat)}
-            />
+            <StatusItem state={eventBusState} label="Event Bus" subtitle={formatEventBusSubtitle(lastHeartbeat)} />
           </TabsContent>
           <TabsContent value="info" className="bg-popover p-space-xl">
             <InfoPanel />

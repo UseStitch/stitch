@@ -36,8 +36,8 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
   const [address, setAddress] = React.useState('about:blank');
 
   React.useEffect(() => {
-    void window.api?.browser.getState().then(setState);
-    return window.api?.browser.onStateChanged((next) => {
+    void window.api.browser.getState().then(setState);
+    return window.api.browser.onStateChanged((next) => {
       setState(next);
       const active = next.tabs.find((tab) => tab.active);
       if (active) setAddress(active.url || 'about:blank');
@@ -46,20 +46,20 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
 
   // When sessionId changes while panel is already open, switch sessions
   React.useEffect(() => {
-    if (!sessionId || !window.api?.browser) return;
+    if (!sessionId) return;
     void window.api.browser.switchSession(sessionId).then(setState);
   }, [sessionId]);
 
   const registerWebview = React.useCallback(() => {
     const webview = webviewRef.current;
-    if (!webview || !window.api?.browser) return;
+    if (!webview) return;
     void window.api.browser.registerWebview(webview.getWebContentsId(), sessionId).then(setState);
   }, [sessionId]);
 
   React.useEffect(() => {
     const webview = webviewRef.current;
     if (!webview) return;
-    const recordHumanInput = () => void window.api?.browser.recordHumanInput();
+    const recordHumanInput = () => void window.api.browser.recordHumanInput();
     const updateAddress = () => setAddress(webview.getURL());
 
     webview.addEventListener('dom-ready', registerWebview);
@@ -81,7 +81,7 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
 
   const submitAddress = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    void window.api?.browser.userNavigate(address);
+    void window.api.browser.userNavigate(address);
   };
 
   const controllerBadgeClass =
@@ -117,7 +117,7 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
                   size="inline"
                   align="start"
                   className="min-w-0 flex-1 truncate"
-                  onClick={() => void window.api?.browser.focusTab(tab.id)}
+                  onClick={() => void window.api.browser.focusTab(tab.id)}
                   type="button"
                   title={tab.url}>
                   <Text as="span" variant="caption" tone={tab.active ? 'default' : 'muted'} truncate>
@@ -128,7 +128,7 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
                   <Button
                     variant="ghost"
                     size="inline"
-                    onClick={() => void window.api?.browser.closeTab(tab.id)}
+                    onClick={() => void window.api.browser.closeTab(tab.id)}
                     type="button"
                     aria-label="Close tab">
                     <Icon as={XIcon} size="xs" />
@@ -141,7 +141,7 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
             variant="ghost"
             size="icon-sm"
             className="ml-space-2xs shrink-0"
-            onClick={() => void window.api?.browser.newTab()}
+            onClick={() => void window.api.browser.newTab()}
             aria-label="New tab">
             <Icon as={PlusIcon} size="s" />
           </Button>
@@ -149,17 +149,17 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
 
         {/* Nav bar */}
         <div className="flex h-9 shrink-0 items-center gap-space-xs border-b border-border px-space-m">
-          <Button variant="ghost" size="icon-sm" onClick={() => void window.api?.browser.goBack()} aria-label="Back">
+          <Button variant="ghost" size="icon-sm" onClick={() => void window.api.browser.goBack()} aria-label="Back">
             <Icon as={ArrowLeftIcon} size="m" />
           </Button>
           <Button
             variant="ghost"
             size="icon-sm"
-            onClick={() => void window.api?.browser.goForward()}
+            onClick={() => void window.api.browser.goForward()}
             aria-label="Forward">
             <Icon as={ArrowRightIcon} size="m" />
           </Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => void window.api?.browser.reload()} aria-label="Reload">
+          <Button variant="ghost" size="icon-sm" onClick={() => void window.api.browser.reload()} aria-label="Reload">
             <Icon as={RotateCwIcon} size="m" />
           </Button>
 

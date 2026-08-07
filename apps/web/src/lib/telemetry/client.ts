@@ -1,8 +1,6 @@
-import { createTelemetryClientId, ID_PREFIXES, isIdOfType } from '@stitch/shared/id';
 import { EVENT_SCHEMA_VERSION, type TelemetryEventName, type TelemetryEvents } from '@stitch/shared/telemetry/events';
 import { DEFAULT_POSTHOG_HOST, type TelemetryState } from '@stitch/shared/telemetry/types';
 
-const LOCALSTORAGE_KEY = 'stitch_telemetry_state';
 const APP_VERSION: string = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev';
 
 let state: TelemetryState | null = null;
@@ -10,54 +8,11 @@ let posthogLoaded = false;
 let posthog: typeof import('posthog-js').default | null = null;
 
 // ---------------------------------------------------------------------------
-// State management (Electron IPC with localStorage fallback)
+// State management
 // ---------------------------------------------------------------------------
 
 async function loadState(): Promise<TelemetryState> {
-  // Prefer Electron IPC
-  if (window.api?.telemetry) {
-    return window.api.telemetry.getState();
-  }
-
-  // localStorage fallback for browser/dev
-  try {
-    const raw = localStorage.getItem(LOCALSTORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<TelemetryState>;
-      if (
-        typeof parsed.clientInstallationId === 'string' &&
-        isIdOfType(parsed.clientInstallationId, ID_PREFIXES.telemetryClient) &&
-        typeof parsed.enabled === 'boolean'
-      ) {
-        return {
-          clientInstallationId: parsed.clientInstallationId,
-          enabled: parsed.enabled,
-          lastActiveDate: typeof parsed.lastActiveDate === 'string' ? parsed.lastActiveDate : null,
-          lastMessageDate: typeof parsed.lastMessageDate === 'string' ? parsed.lastMessageDate : null,
-        };
-      }
-    }
-  } catch {
-    // ignore
-  }
-
-  // Generate new state
-  const newState: TelemetryState = {
-    clientInstallationId: createTelemetryClientId(),
-    enabled: true,
-    lastActiveDate: null,
-    lastMessageDate: null,
-  };
-  persistLocalState(newState);
-  return newState;
-}
-
-function persistLocalState(s: TelemetryState): void {
-  try {
-    localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(s));
-  } catch {
-    // quota or private browsing
-  }
+  return window.api.telemetry.getState();
 }
 
 // ---------------------------------------------------------------------------
@@ -85,15 +40,10 @@ export function getClientTelemetryState(): TelemetryState | null {
 }
 
 /**
- * Set telemetry enabled/disabled. Persists via Electron IPC or localStorage.
+ * Set telemetry enabled/disabled. Persists via Electron IPC.
  */
 export async function setClientTelemetryEnabled(enabled: boolean): Promise<TelemetryState> {
-  if (window.api?.telemetry) {
-    state = await window.api.telemetry.setEnabled(enabled);
-  } else if (state) {
-    state = { ...state, enabled };
-    persistLocalState(state);
-  }
+  state = await window.api.telemetry.setEnabled(enabled);
 
   if (!enabled) {
     if (posthog) {
@@ -108,7 +58,7 @@ export async function setClientTelemetryEnabled(enabled: boolean): Promise<Telem
     }
   }
 
-  return state as TelemetryState;
+  return state;
 }
 
 /**
@@ -186,11 +136,7 @@ function passesOncePerDay(field: 'lastActiveDate' | 'lastMessageDate'): boolean 
   if (state[field] === today) return false;
 
   state = { ...state, [field]: today };
-  if (window.api?.telemetry) {
-    void window.api.telemetry.setEnabled(state.enabled);
-  } else {
-    persistLocalState(state);
-  }
+  void window.api.telemetry.setEnabled(state.enabled);
   return true;
 }
 
@@ -206,5 +152,5 @@ function getReleaseChannel(): string {
 }
 
 function getClientType(): string {
-  return window.api ? 'desktop' : 'web';
+  return 'desktop';
 }

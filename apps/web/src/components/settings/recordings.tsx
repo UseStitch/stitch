@@ -92,14 +92,14 @@ function PermissionStatus() {
   const handleGrantPermissions = async () => {
     setRequesting(true);
     try {
-      if (micDenied && window.api?.permissions?.requestMicrophone) {
+      if (micDenied) {
         await window.api.permissions.requestMicrophone();
       }
       if (screenDenied) {
         // Prime triggers the native prompt; fall back to System Settings if still denied.
-        const status = await window.api?.recording?.primeSystemAudio?.();
-        if (status?.screenCapture !== 'granted') {
-          await window.api?.permissions?.openScreenCaptureSettings?.();
+        const status = await window.api.recording.primeSystemAudio();
+        if (status.screenCapture !== 'granted') {
+          await window.api.permissions.openScreenCaptureSettings();
         }
       }
       setTimeout(() => void refetch(), 2000);

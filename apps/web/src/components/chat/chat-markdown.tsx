@@ -244,11 +244,7 @@ function MarkdownAnchor({ href, children, ...props }: React.AnchorHTMLAttributes
     const isExternal = /^https?:\/\//i.test(href);
     if (!isExternal) return;
     e.preventDefault();
-    if (window.api?.shell?.openExternal) {
-      void window.api.shell.openExternal(href);
-    } else {
-      window.open(href, '_blank', 'noopener,noreferrer');
-    }
+    void window.api.shell.openExternal(href);
   };
 
   return (
