@@ -23,7 +23,7 @@ import {
   highlightedCodeCache,
   createHighlightCacheKey,
   estimateHighlightedSize,
-} from '@/lib/code-highlighting';
+} from '@/lib/markdown/code-highlighting';
 import { remarkGithubCallouts } from '@/lib/markdown/markdown-callouts';
 import { rehypeNormalizeUrlProtocols } from '@/lib/markdown/markdown-normalize-urls';
 import { markdownSanitizeSchema } from '@/lib/markdown/markdown-sanitize-schema';
