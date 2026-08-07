@@ -27,7 +27,6 @@ export const ID_PREFIXES = {
   mailAttachment: 'matt',
   mailDraft: 'mdrf',
   telemetryClient: 'tcli',
-  telemetryServer: 'tsrv',
 } as const;
 
 export type IdPrefix = (typeof ID_PREFIXES)[keyof typeof ID_PREFIXES];
@@ -93,7 +92,6 @@ export const createAgendaListId = createIdFactory(ID_PREFIXES.agendaList);
 export const createAgendaItemId = createIdFactory(ID_PREFIXES.agendaItem);
 export const createTodoId = createIdFactory(ID_PREFIXES.todo);
 export const createTelemetryClientId = createIdFactory(ID_PREFIXES.telemetryClient);
-export const createTelemetryServerId = createIdFactory(ID_PREFIXES.telemetryServer);
 
 /**
  * Check whether an ID string belongs to a given prefix type.
