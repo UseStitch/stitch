@@ -36,7 +36,7 @@ async function fetchReleases(): Promise<Release[]> {
   let page = 1;
   const per = 100;
 
-  while (true) {
+  for (;;) {
     const url = `https://api.github.com/repos/UseStitch/stitch/releases?page=${page}&per_page=${per}`;
     const response = await fetch(url);
 
@@ -176,7 +176,7 @@ async function fetchCloudflareRegistryStats(): Promise<RegistryStats | null> {
     throw new Error(`Cloudflare GraphQL error: ${payload.errors.map((error) => error.message).join(', ')}`);
   }
 
-  const groups = payload.data?.viewer.zones[0]?.httpRequestsAdaptiveGroups ?? [];
+  const groups = payload.data?.viewer.zones.at(0)?.httpRequestsAdaptiveGroups ?? [];
   return aggregateRegistryStats(groups, since.toISOString(), until.toISOString());
 }
 

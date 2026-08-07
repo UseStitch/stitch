@@ -41,7 +41,7 @@ const normalizedSpacing = new Map(
 );
 
 function matches(source: string, pattern: RegExp) {
-  return new Set([...source.matchAll(pattern)].map((match) => match[1]));
+  return new Set([...source.matchAll(pattern)].map((match) => match.at(1)));
 }
 
 function collectDrift(files: string[]) {
@@ -71,7 +71,11 @@ function collectDrift(files: string[]) {
     for (const value of matches(source, new RegExp(String.raw`\b((?:duration|ease)-${UTILITY})`, 'g')))
       axes.motion.add(value);
     for (const element of source.matchAll(/<(?:p|span)\b[^>]*>/gs)) {
-      const tokens = element[0].match(/[^\s"'`{}]+/g)?.filter((token) => typographyTokens.test(token)) ?? [];
+      const tokens =
+        element
+          .at(0)
+          .match(/[^\s"'`{}]+/g)
+          ?.filter((token) => typographyTokens.test(token)) ?? [];
       if (tokens.length > 0) axes.typography.add([...new Set(tokens)].toSorted().join(' '));
     }
   }
