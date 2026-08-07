@@ -24,7 +24,7 @@ import { TextareaCompletions, type TextareaCompletionGroup } from '@/components/
 import { supportsAnyAttachment } from '@/lib/model-capabilities';
 import { sttProviderModelsQueryOptions, visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
-import { useShortcuts } from '@/lib/shortcuts';
+import { useShortcuts } from '@/hooks/use-shortcuts';
 import { cn } from '@/lib/utils';
 
 type ChatInputInnerProps = {

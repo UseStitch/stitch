@@ -8,7 +8,7 @@ import type { ShortcutActionId } from '@stitch/shared/shortcuts/types';
 
 import type { Action } from '@/lib/actions';
 import { settingsQueryOptions } from '@/lib/queries/settings';
-import { useShortcuts } from '@/lib/shortcuts';
+import { useShortcuts } from '@/hooks/use-shortcuts';
 
 const LEADER_PREFIX = 'LEADER+';
 
