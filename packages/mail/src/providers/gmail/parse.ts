@@ -101,8 +101,8 @@ function findFilename(part: GmailMessagePart): string | null {
   const disposition = extractHeader(part.headers, 'Content-Disposition');
   const contentType = extractHeader(part.headers, 'Content-Type');
   return (
-    disposition?.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i)?.[1] ??
-    contentType?.match(/name\*?=(?:UTF-8''|")?([^";]+)/i)?.[1] ??
+    disposition?.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i)?.at(1) ??
+    contentType?.match(/name\*?=(?:UTF-8''|")?([^";]+)/i)?.at(1) ??
     null
   );
 }

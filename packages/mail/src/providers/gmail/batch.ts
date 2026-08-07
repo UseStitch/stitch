@@ -31,10 +31,10 @@ function parsePart(part: string): GmailBatchResult | null {
   const httpStart = part.search(/HTTP\/\d(?:\.\d)?\s+\d{3}/);
   if (httpStart === -1) return null;
 
-  const contentId = part.match(/Content-ID:\s*<?([^>\r\n]+)>?/i)?.[1] ?? '';
+  const contentId = part.match(/Content-ID:\s*<?([^>\r\n]+)>?/i)?.at(1) ?? '';
   const httpResponse = part.slice(httpStart).trim();
   const [statusLine = '', ...rest] = httpResponse.split(/\r?\n/);
-  const status = Number(statusLine.match(/\s(\d{3})\s/)?.[1] ?? 0);
+  const status = Number(statusLine.match(/\s(\d{3})\s/)?.at(1) ?? 0);
   const separator = rest.findIndex((line) => line.trim() === '');
   const headerLines = separator === -1 ? rest : rest.slice(0, separator);
   const bodyLines = separator === -1 ? [] : rest.slice(separator + 1);
@@ -49,8 +49,8 @@ function parsePart(part: string): GmailBatchResult | null {
 
 export function parseGmailBatchResponse(contentType: string | null, body: string): GmailBatchResult[] {
   const boundary =
-    contentType?.match(/boundary=(?:"([^"]+)"|([^;]+))/i)?.[1] ??
-    contentType?.match(/boundary=(?:"([^"]+)"|([^;]+))/i)?.[2];
+    contentType?.match(/boundary=(?:"([^"]+)"|([^;]+))/i)?.at(1) ??
+    contentType?.match(/boundary=(?:"([^"]+)"|([^;]+))/i)?.at(2);
   if (!boundary) throw new GmailBatchError('Gmail batch response did not include a multipart boundary');
 
   return body

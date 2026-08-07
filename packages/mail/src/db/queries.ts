@@ -190,7 +190,7 @@ export async function listThreads(options: ListThreadsOptions): Promise<ListThre
 
 export async function getThread(threadId: MailThreadId, dbOption?: MailDb): Promise<MailThreadDetail | null> {
   const db = dbOrDefault(dbOption);
-  const [thread] = await db.select().from(mailThreads).where(eq(mailThreads.id, threadId)).limit(1);
+  const thread = (await db.select().from(mailThreads).where(eq(mailThreads.id, threadId)).limit(1)).at(0);
   if (!thread) return null;
 
   const messages = await db
@@ -278,7 +278,7 @@ export async function listAccounts(dbOption?: MailDb): Promise<MailAccountView[]
 
 export async function getAccount(accountId: MailAccountId, dbOption?: MailDb): Promise<MailAccountView | null> {
   const db = dbOrDefault(dbOption);
-  const [account] = await db.select().from(mailAccounts).where(eq(mailAccounts.id, accountId)).limit(1);
+  const account = (await db.select().from(mailAccounts).where(eq(mailAccounts.id, accountId)).limit(1)).at(0);
   return account ? getAccountView(db, account) : null;
 }
 
@@ -314,10 +314,10 @@ async function getAccountView(db: MailDb, account: typeof mailAccounts.$inferSel
   return {
     ...account,
     counts: {
-      threads: threadCount?.value ?? 0,
-      unreadThreads: unreadThreadCount?.value ?? 0,
-      drafts: draftCount?.value ?? 0,
-      outboxPending: outboxPendingCount?.value ?? 0,
+      threads: threadCount.value,
+      unreadThreads: unreadThreadCount.value,
+      drafts: draftCount.value,
+      outboxPending: outboxPendingCount.value,
     },
   };
 }

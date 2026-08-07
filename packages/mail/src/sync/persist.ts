@@ -85,11 +85,13 @@ async function ensureLabels(
 }
 
 async function getOrCreateThread(accountId: MailAccountId, thread: SyncThread, db: MailDb): Promise<MailThreadId> {
-  const [existing] = await db
-    .select()
-    .from(mailThreads)
-    .where(and(eq(mailThreads.accountId, accountId), eq(mailThreads.providerThreadId, thread.providerThreadId)))
-    .limit(1);
+  const existing = (
+    await db
+      .select()
+      .from(mailThreads)
+      .where(and(eq(mailThreads.accountId, accountId), eq(mailThreads.providerThreadId, thread.providerThreadId)))
+      .limit(1)
+  ).at(0);
   if (existing) return existing.id;
 
   const latest = latestMessage(thread.messages);
@@ -127,11 +129,13 @@ async function upsertMessage(
   message: SyncMessage,
   db: MailDb,
 ): Promise<void> {
-  const [existing] = await db
-    .select()
-    .from(mailMessages)
-    .where(and(eq(mailMessages.accountId, accountId), eq(mailMessages.providerMessageId, message.providerMessageId)))
-    .limit(1);
+  const existing = (
+    await db
+      .select()
+      .from(mailMessages)
+      .where(and(eq(mailMessages.accountId, accountId), eq(mailMessages.providerMessageId, message.providerMessageId)))
+      .limit(1)
+  ).at(0);
   const now = Date.now();
   const keepExistingBody = existing?.hydration === 'full' && message.hydration === 'metadata';
   const values = {
@@ -207,11 +211,13 @@ async function deleteThread(
   providerThreadId: string,
   db: MailDb,
 ): Promise<MailThreadId | null> {
-  const [thread] = await db
-    .select()
-    .from(mailThreads)
-    .where(and(eq(mailThreads.accountId, accountId), eq(mailThreads.providerThreadId, providerThreadId)))
-    .limit(1);
+  const thread = (
+    await db
+      .select()
+      .from(mailThreads)
+      .where(and(eq(mailThreads.accountId, accountId), eq(mailThreads.providerThreadId, providerThreadId)))
+      .limit(1)
+  ).at(0);
   if (!thread) return null;
   await db.delete(mailThreads).where(eq(mailThreads.id, thread.id));
   return thread.id;
@@ -244,7 +250,7 @@ export async function recomputeThreads(threadIds: MailThreadId[], dbOption?: Mai
         lastMessageAt: latest.internalDate,
         messageCount: messages.length,
         hasUnread: messages.some((message) => message.isUnread),
-        hasAttachments: (attachmentCount ?? 0) > 0,
+        hasAttachments: attachmentCount > 0,
         isTrashed: messages.some((message) => message.isTrashed),
         updatedAt: Date.now(),
       })
@@ -274,7 +280,7 @@ export async function refreshLabelCounts(accountId: MailAccountId, dbOption?: Ma
       );
     await db
       .update(mailLabels)
-      .set({ totalCount: total?.value ?? 0, unreadCount: unread?.value ?? 0 })
+      .set({ totalCount: total.value, unreadCount: unread.value })
       .where(eq(mailLabels.id, label.id));
   }
 }
