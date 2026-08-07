@@ -8,7 +8,8 @@ import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyMedia } from '@/components/ui/empty';
 import { Switch } from '@/components/ui/switch';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 type ToolRowProps = {
   name: string;

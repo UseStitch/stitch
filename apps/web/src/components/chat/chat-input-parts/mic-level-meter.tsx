@@ -1,5 +1,6 @@
 import { Text } from '@/components/primitives/text.js';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 type MicLevelMeterProps = {
   /** Normalized audio level in the 0–1 range. */

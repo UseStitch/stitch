@@ -14,7 +14,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 function Root({ children }: { children: React.ReactNode }) {
   return <>{children}</>;

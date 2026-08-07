@@ -4,7 +4,8 @@ import { type VariantProps } from 'class-variance-authority';
 import * as React from 'react';
 
 import { toggleVariants } from '@/components/ui/toggle';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 const ToggleGroupContext = React.createContext<
   VariantProps<typeof toggleVariants> & { spacing?: number; orientation?: 'horizontal' | 'vertical' }

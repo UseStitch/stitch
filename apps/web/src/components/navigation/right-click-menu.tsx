@@ -6,7 +6,8 @@ import { Icon } from '@/components/primitives/icon';
 import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import type { ContextMenuParams } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 interface RightClickMenuProps {
   children: React.ReactNode;

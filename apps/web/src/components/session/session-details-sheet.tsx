@@ -1,7 +1,8 @@
 import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 import type { ReactNode } from 'react';
 
 type SessionDetailsSheetProps = {

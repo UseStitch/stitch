@@ -21,7 +21,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useFullScreen } from '@/hooks/ui/use-fullscreen';
 import { appEnabledStatesQueryOptions } from '@/lib/queries/apps';
 import { connectorInstancesQueryOptions } from '@/lib/queries/connectors';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 import { hasUpdaterBadge, useUpdaterStore } from '@/stores/updater-store';
 
 type NavItemData = { id: string; icon: React.ReactNode; label: string; to: string; matchPrefix: string; appId?: AppId };

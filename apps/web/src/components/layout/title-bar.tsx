@@ -6,7 +6,8 @@ import { Icon } from '@/components/primitives/icon';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useFullScreen } from '@/hooks/ui/use-fullscreen';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 export function TitleBar() {
   const isMac = window.electron?.platform === 'darwin';

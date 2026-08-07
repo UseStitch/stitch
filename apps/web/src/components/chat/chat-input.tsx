@@ -4,7 +4,8 @@ import { ChatInputInner } from '@/components/chat/chat-input-parts/chat-input-in
 import type { Attachment, ModelSpec } from '@/components/chat/chat-input-parts/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { TextareaCompletionGroup } from '@/components/ui/textarea-completions';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 type ChatInputProps = {
   value: string;

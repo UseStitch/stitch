@@ -3,7 +3,8 @@ import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { overlayClassName } from '@/components/ui/overlay-styles';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 function AlertDialog({ ...props }: AlertDialogPrimitive.Root.Props) {
   return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />;

@@ -6,7 +6,8 @@ import { Stack } from '@/components/primitives/stack.js';
 import { Text } from '@/components/primitives/text.js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 type DockVariant = 'default' | 'primary' | 'warning' | 'destructive';
 

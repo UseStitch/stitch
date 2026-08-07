@@ -4,7 +4,8 @@ import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { overlayClassName } from '@/components/ui/overlay-styles';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 function Sheet({ ...props }: SheetPrimitive.Root.Props) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />;

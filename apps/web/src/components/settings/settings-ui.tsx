@@ -12,7 +12,8 @@ import { PageDescription, PageHeader, PageHeaderContent, PageIcon, PageTitle } f
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { saveSettingMutationOptions } from '@/lib/queries/settings';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 // ---------------------------------------------------------------------------
 // SettingSubPage — child/detail view with back-button header

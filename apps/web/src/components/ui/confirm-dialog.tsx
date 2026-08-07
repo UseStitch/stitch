@@ -9,7 +9,8 @@ import {
   AlertDialogMedia,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 import type * as React from 'react';
 
 interface ConfirmDialogProps {

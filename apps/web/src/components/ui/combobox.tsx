@@ -4,7 +4,8 @@ import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 const Combobox = ComboboxPrimitive.Root;
 

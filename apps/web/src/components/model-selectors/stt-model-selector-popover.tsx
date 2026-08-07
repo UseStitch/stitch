@@ -7,7 +7,8 @@ import { Icon } from '@/components/primitives/icon';
 import { Text } from '@/components/primitives/text';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 export type SttModelSelection = { providerId: string; modelId: string };
 

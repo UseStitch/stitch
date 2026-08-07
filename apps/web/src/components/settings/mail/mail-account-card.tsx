@@ -17,7 +17,8 @@ import { getErrorMessage } from '@/lib/errors';
 import { formatDateTime } from '@/lib/format';
 import { useRemoveMailAccount, useResyncMailAccount, useUpdateMailAccount } from '@/lib/mutations/mail';
 import type { MailSyncStatusView } from '@/lib/queries/mail';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 const SYNC_PHASE_LABELS: Record<MailSyncPhase, string> = {
   idle: 'Idle',

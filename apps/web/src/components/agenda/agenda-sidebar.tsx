@@ -24,7 +24,8 @@ import {
   useReorderAgendaLists,
   useUpdateAgendaItem,
 } from '@/lib/queries/agenda';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 function getDragType(e: React.DragEvent): 'agenda-list' | 'agenda-item' | null {
   if (e.dataTransfer.types.includes('application/x-agenda-list')) return 'agenda-list';

@@ -15,7 +15,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsMobile } from '@/hooks/ui/use-mobile';
 import { useShortcuts } from '@/hooks/use-shortcuts';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 const SIDEBAR_COOKIE_NAME = 'sidebar_state';
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;

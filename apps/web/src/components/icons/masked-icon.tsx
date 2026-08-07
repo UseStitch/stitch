@@ -1,4 +1,5 @@
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 type MaskedIconProps = { src: string; label: string; className?: string };
 

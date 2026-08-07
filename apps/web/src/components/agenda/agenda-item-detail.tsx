@@ -22,7 +22,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/u
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { useDeleteAgendaItem, useUpdateAgendaItem } from '@/lib/queries/agenda';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 const DEBOUNCE_MS = 600;
 

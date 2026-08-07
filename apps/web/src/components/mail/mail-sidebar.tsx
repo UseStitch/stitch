@@ -39,7 +39,8 @@ import {
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { SidebarMenuAction, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { getDefaultMailLabel, mailAccountsQueryOptions, mailLabelsQueryOptions } from '@/lib/queries/mail';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 type UserLabelNode = { key: string; name: string; label: MailLabelView | null; children: UserLabelNode[] };
 

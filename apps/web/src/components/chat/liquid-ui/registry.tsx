@@ -16,7 +16,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { CHART_CLASS_NAME, CHART_THEME, CHART_TOOLTIP_CLASS_NAME, getChartColor } from '@/lib/chart-colors';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 type RenderChildren = (children: string[]) => React.ReactNode;
 type LiquidUiRendererProps<TNode extends LiquidUiNode> = { node: TNode; renderChildren: RenderChildren };

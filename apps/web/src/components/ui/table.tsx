@@ -3,7 +3,8 @@ import * as React from 'react';
 import { Badge, type badgeVariants } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatUsdCost } from '@/lib/format-cost';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 import type { VariantProps } from 'class-variance-authority';
 
 type TableContainerProps = React.HTMLAttributes<HTMLDivElement> & { bordered?: boolean };

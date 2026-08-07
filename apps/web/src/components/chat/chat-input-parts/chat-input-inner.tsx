@@ -25,7 +25,8 @@ import { supportsAnyAttachment } from '@/lib/model-capabilities';
 import { sttProviderModelsQueryOptions, visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { useShortcuts } from '@/hooks/use-shortcuts';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 type ChatInputInnerProps = {
   value: string;

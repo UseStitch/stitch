@@ -12,7 +12,8 @@ import { Text } from '@/components/primitives/text.js';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { ProviderModels } from '@/lib/queries/providers';
-import { cn } from '@/lib/utils';
+import { cn } from 'cnfast';
+
 
 type ModelSelectorPopoverProps = {
   selectedValue: ModelSpec | null;
