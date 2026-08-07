@@ -1,8 +1,10 @@
-import { BrainIcon, FolderOpenIcon, PlusIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
+import { BrainIcon, FolderOpenIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { CuratedFile } from '@/components/memories/curated-file';
+import { DailyFile } from '@/components/memories/daily-file';
 import { MemoryDetailSheet } from '@/components/memories/memory-detail-sheet';
 import { Icon } from '@/components/primitives/icon';
 import { Stack } from '@/components/primitives/stack';
@@ -22,19 +24,14 @@ import {
 } from '@/components/ui/page';
 import { SearchInput } from '@/components/ui/search-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { ServerRequestError } from '@/lib/api';
-import type { ManagedMemoryEntry, MemoryFileSnapshot, MemoryTarget } from '@/lib/queries/memories';
+import type { ManagedMemoryEntry, MemoryFileSnapshot } from '@/lib/queries/memories';
 import {
-  addMemoryEntryMutationOptions,
   consolidateMemoryMutationOptions,
   dailyMemoryQueryOptions,
-  deleteMemoryEntryMutationOptions,
   memoryFilesQueryOptions,
   memorySearchQueryOptions,
   openMemoryFolderMutationOptions,
   resetMemoriesMutationOptions,
-  saveRawMemoryMutationOptions,
 } from '@/lib/queries/memories';
 
 type Tab = 'memory' | 'user' | 'daily' | 'dreams';
@@ -143,7 +140,7 @@ export function MemoriesPage() {
         </div>
 
         <Tabs value={tab} onValueChange={(value) => setTab(value as Tab)} className="mt-space-xl">
-          <TabsList variant="line" className="max-w-full overflow-x-auto">
+          <TabsList variant="line" className="max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto">
             <TabsTrigger value="memory">Long-term</TabsTrigger>
             <TabsTrigger value="user">User profile</TabsTrigger>
             <TabsTrigger value="daily">Daily notes</TabsTrigger>
@@ -203,186 +200,5 @@ export function MemoriesPage() {
         pendingLabel="Resetting..."
       />
     </Page>
-  );
-}
-
-function CuratedFile({
-  target,
-  file,
-  onEdit,
-}: {
-  target: MemoryTarget;
-  file: MemoryFileSnapshot;
-  onEdit: (entry: ManagedMemoryEntry) => void;
-}) {
-  const queryClient = useQueryClient();
-  const [adding, setAdding] = React.useState(false);
-  const [content, setContent] = React.useState('');
-  const add = useMutation(addMemoryEntryMutationOptions(queryClient));
-
-  return (
-    <div className="grid gap-space-xl xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.8fr)]">
-      <Card>
-        <CardHeader>
-          <CardTitle>Managed entries</CardTitle>
-          <CardDescription>{file.entries.length} entries</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-space-s">
-          {file.entries.map((entry) => (
-            <Button
-              key={entry.id}
-              type="button"
-              variant="outline"
-              size="inline"
-              width="full"
-              align="start"
-              onClick={() => onEdit(entry)}>
-              <span className="block w-full p-space-m">
-                <span className="block">{entry.content}</span>
-                <div className="mt-space-xs">
-                  <Text as="span" variant="caption" tone="muted">
-                    Observed {entry.observed}
-                  </Text>
-                </div>
-              </span>
-            </Button>
-          ))}
-          {file.entries.length === 0 ? (
-            <div className="py-space-xl text-center">
-              <Text as="p" variant="body" tone="muted">
-                No managed entries yet.
-              </Text>
-            </div>
-          ) : null}
-          {adding ? (
-            <Stack gap="s">
-              <Textarea
-                value={content}
-                onChange={(event) => setContent(event.target.value)}
-                placeholder="Durable memory..."
-              />
-              <Stack direction="row" gap="s">
-                <Button
-                  size="sm"
-                  onClick={() =>
-                    add.mutate(
-                      { target, content },
-                      {
-                        onSuccess: () => {
-                          setContent('');
-                          setAdding(false);
-                        },
-                      },
-                    )
-                  }
-                  disabled={!content.trim()}>
-                  Add
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setAdding(false)}>
-                  Cancel
-                </Button>
-              </Stack>
-            </Stack>
-          ) : (
-            <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
-              <PlusIcon /> Add entry
-            </Button>
-          )}
-        </CardContent>
-      </Card>
-      <RawEditor target={target} file={file} />
-    </div>
-  );
-}
-
-function RawEditor({ target, file }: { target: MemoryTarget; file: MemoryFileSnapshot }) {
-  const queryClient = useQueryClient();
-  const [editor, setEditor] = React.useState({ hash: file.contentHash, draft: file.rawContent });
-  const [conflict, setConflict] = React.useState(false);
-  const save = useMutation(saveRawMemoryMutationOptions(queryClient));
-  if (!conflict && editor.hash !== file.contentHash) {
-    setEditor({ hash: file.contentHash, draft: file.rawContent });
-  }
-  const draft = editor.draft;
-
-  function saveRaw() {
-    save.mutate(
-      { target, content: draft, expectedHash: file.contentHash },
-      {
-        onSuccess: () => setConflict(false),
-        onError: (error) => {
-          if (!(error instanceof ServerRequestError && error.status === 409)) {
-            return;
-          }
-
-          setConflict(true);
-          void queryClient.invalidateQueries({ queryKey: ['memories'] });
-        },
-      },
-    );
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Raw Markdown</CardTitle>
-        <CardDescription>Manual text is preserved during consolidation.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-space-s">
-        <Textarea
-          className="min-h-80 font-mono text-xs"
-          value={draft}
-          onChange={(event) => setEditor((current) => ({ ...current, draft: event.target.value }))}
-        />
-        {conflict ? (
-          <div className="rounded-md border border-warning bg-surface-sunken p-space-m">
-            <Text as="div" variant="body">
-              <strong>File changed externally.</strong> Your draft is preserved above. The latest disk version is shown
-              below for comparison.
-              <pre className="mt-space-s max-h-40 overflow-auto whitespace-pre-wrap">{file.rawContent}</pre>
-            </Text>
-          </div>
-        ) : null}
-        <Button onClick={saveRaw} disabled={save.isPending || draft === file.rawContent}>
-          {save.isPending ? 'Saving...' : 'Save Markdown'}
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-function DailyFile({ file, processedIds }: { file: MemoryFileSnapshot; processedIds: Set<string> }) {
-  const queryClient = useQueryClient();
-  const remove = useMutation(deleteMemoryEntryMutationOptions(queryClient));
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{file.name.replace('daily/', '').replace('.md', '')}</CardTitle>
-        <CardDescription>{file.entries.length} candidates</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-space-s">
-        {file.entries.map((entry) => (
-          <div
-            key={entry.id}
-            className="flex items-start justify-between gap-space-m rounded-lg border border-border p-space-m">
-            <div>
-              <p>{entry.content}</p>
-              <div className="mt-space-xs">
-                <Text as="p" variant="caption" tone="muted">
-                  {entry.target} from {entry.source} - {processedIds.has(entry.id) ? 'reviewed' : 'pending'}
-                </Text>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => remove.mutate({ id: entry.id, expectedHash: file.contentHash })}
-              aria-label="Delete candidate">
-              <Trash2Icon />
-            </Button>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
   );
 }

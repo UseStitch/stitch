@@ -1,7 +1,6 @@
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import { z } from 'zod';
 
 import { PATHS } from '@/lib/paths.js';
@@ -12,7 +11,6 @@ import { runMemoryMaintenance } from '@/memory/maintenance.js';
 import type { MemoryConsolidationStatus } from '@/memory/types.js';
 import type { Context } from 'hono';
 
-const runFile = promisify(execFile);
 const fileNames = { memory: 'MEMORY.md', user: 'USER.md', dreams: 'DREAMS.md' } as const;
 const targetSchema = z.enum(['memory', 'user']);
 const entrySchema = z.object({ target: targetSchema, content: z.string().trim().min(1).max(1_000) });
@@ -161,8 +159,11 @@ memoryRouter.post('/reset', zValidator('json', z.object({ confirm: z.literal(tru
 
 memoryRouter.post('/open-folder', async (c) => {
   await memoryFileStore.ensureInitialized();
-  if (process.platform === 'win32') await runFile('explorer.exe', [PATHS.dirPaths.memory]);
-  else if (process.platform === 'darwin') await runFile('open', [PATHS.dirPaths.memory]);
-  else await runFile('xdg-open', [PATHS.dirPaths.memory]);
+  const command = process.platform === 'win32' ? 'explorer.exe' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+  await new Promise<void>((resolve, reject) => {
+    const child = execFile(command, [PATHS.dirPaths.memory], () => {});
+    child.once('spawn', resolve);
+    child.once('error', reject);
+  });
   return c.body(null, 204);
 });
