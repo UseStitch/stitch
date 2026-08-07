@@ -37,17 +37,11 @@ describe('worstState', () => {
 
 describe('formatEventBusSubtitle', () => {
   it('reports connecting before any heartbeat has arrived', () => {
-    expect(formatEventBusSubtitle('connecting', null)).toBe('Connecting');
-    expect(formatEventBusSubtitle('reconnecting', null)).toBe('Connecting');
+    expect(formatEventBusSubtitle(null)).toBe('Connecting');
   });
 
-  it('distinguishes a healthy connection from a recovering one', () => {
+  it('reports reconnecting with the last heartbeat age', () => {
     const heartbeat = new Date(Date.now() - 30_000);
-    expect(formatEventBusSubtitle('connected', heartbeat)).toBe('Last heartbeat 30s ago');
-    expect(formatEventBusSubtitle('reconnecting', heartbeat)).toBe('Reconnecting; last heartbeat 30s ago');
-  });
-
-  it('flags a connected-but-silent stream', () => {
-    expect(formatEventBusSubtitle('connected', null)).toBe('Waiting for heartbeat');
+    expect(formatEventBusSubtitle(heartbeat)).toBe('Reconnecting; last heartbeat 30s ago');
   });
 });

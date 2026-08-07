@@ -107,7 +107,7 @@ export function ServerStatus() {
             <StatusItem
               state={eventBusState}
               label="Event Bus"
-              subtitle={formatEventBusSubtitle(sseStatus, lastHeartbeat)}
+              subtitle={formatEventBusSubtitle(lastHeartbeat)}
             />
           </TabsContent>
           <TabsContent value="info" className="bg-popover p-space-xl">
@@ -123,6 +123,7 @@ type StatusItemProps = { state: StatusState; label: string; subtitle?: string };
 
 function StatusItem({ state, label, subtitle }: StatusItemProps) {
   const isOk = state === 'ok';
+  const showSubtitle = state !== 'ok';
   return (
     <div className="cursor-default">
       <Stack direction="row" align="center" justify="between">
@@ -132,7 +133,7 @@ function StatusItem({ state, label, subtitle }: StatusItemProps) {
             <Text as="span" variant={isOk ? 'body-strong' : 'body'} tone={isOk ? 'default' : 'muted'}>
               {label}
             </Text>
-            {subtitle && (
+            {showSubtitle && subtitle && (
               <Text as="span" variant="micro" tone="muted">
                 {subtitle}
               </Text>

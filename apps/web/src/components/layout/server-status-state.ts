@@ -21,9 +21,9 @@ export function worstState(...states: StatusState[]): StatusState {
   return states.includes('pending') ? 'pending' : 'ok';
 }
 
-export function formatEventBusSubtitle(status: SseConnectionStatus, lastHeartbeat: Date | null): string {
-  if (!lastHeartbeat) return status === 'connected' ? 'Waiting for heartbeat' : 'Connecting';
+export function formatEventBusSubtitle(lastHeartbeat: Date | null): string {
+  if (!lastHeartbeat) return 'Connecting';
 
   const age = formatTimeAgo(lastHeartbeat);
-  return status === 'connected' ? `Last heartbeat ${age}` : `Reconnecting; last heartbeat ${age}`;
+  return `Reconnecting; last heartbeat ${age}`;
 }
