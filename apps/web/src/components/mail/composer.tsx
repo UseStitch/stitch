@@ -23,7 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { getErrorMessage } from '@/lib/errors';
-import { useCreateMailDraft, useSendMailDraft, useSendMailMessage, useUpdateMailDraft } from '@/lib/mutations/mail';
+import { useCreateMailDraft, useSendMailDraft, useSendMailMessage, useUpdateMailDraft } from '@/lib/queries/mail';
 
 type ComposerProps = {
   accountId: MailAccountId;
