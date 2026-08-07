@@ -7,7 +7,7 @@ import { useActions } from '@/lib/actions';
 import { loadSessionRoute, sessionMessagesInfiniteQueryOptions } from '@/lib/queries/chat';
 import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { sessionTodosQueryOptions } from '@/lib/queries/todos';
-import { useSessionHotkeys } from '@/lib/use-session-hotkeys';
+import { useSessionHotkeys } from '@/hooks/hotkeys/use-session-hotkeys';
 
 export const Route = createFileRoute('/session/$id')({
   beforeLoad: async ({ context, params }) => {
