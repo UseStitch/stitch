@@ -22,6 +22,7 @@ function isDesktopUpdaterState(value: unknown): value is DesktopUpdaterState {
 
 export function UpdaterSync() {
   const setUpdaterState = useUpdaterStore((state) => state.setUpdaterState);
+  const setInstalling = useUpdaterStore((state) => state.setInstalling);
   const previousStatus = useRef<string>('idle');
 
   useEffect(() => {
@@ -31,12 +32,17 @@ export function UpdaterSync() {
       setUpdaterState(payload);
       if (payload.status === previousStatus.current) return;
 
-      if (payload.status === 'available') {
-        toast.info(`Update available${payload.version ? `: v${payload.version}` : ''}`, { id: 'update-available' });
-      }
-
       if (payload.status === 'downloaded') {
-        toast.success('Update ready. Open Settings > General to restart and install.', { id: 'update-ready' });
+        toast.success(`Update ready${payload.version ? `: v${payload.version}` : ''}`, {
+          id: 'update-ready',
+          action: {
+            label: 'Restart to update',
+            onClick: () => {
+              setInstalling();
+              void window.api?.updater?.install();
+            },
+          },
+        });
       }
 
       if (payload.status === 'error') {
@@ -53,7 +59,7 @@ export function UpdaterSync() {
     });
 
     return () => unsub?.();
-  }, [setUpdaterState]);
+  }, [setUpdaterState, setInstalling]);
 
   return null;
 }
