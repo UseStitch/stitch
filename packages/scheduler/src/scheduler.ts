@@ -1,19 +1,14 @@
+import type { StitchLogger } from '@stitch/shared/logger';
+
 import { getNextCronRunMs } from './cron.js';
 
-import type {
-  CatchupPolicy,
-  JobSchedule,
-  PersistedJobRun,
-  RegisteredJob,
-  SchedulerLogger,
-  SchedulerStore,
-} from './types.js';
+import type { CatchupPolicy, JobSchedule, PersistedJobRun, RegisteredJob, SchedulerStore } from './types.js';
 
 const DEFAULT_POLL_INTERVAL_MS = 1_000;
 const DEFAULT_MAX_CONCURRENCY = 1;
 const DEFAULT_CATCHUP_MAX_RUNS = 100;
 
-type SchedulerOptions = { logger: SchedulerLogger; store: SchedulerStore; pollIntervalMs?: number };
+type SchedulerOptions = { logger: StitchLogger; store: SchedulerStore; pollIntervalMs?: number };
 
 type RegisteredJobInternal = Omit<Required<RegisteredJob>, 'callback' | 'schedule'> & {
   callback: RegisteredJob['callback'];

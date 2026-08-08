@@ -3,8 +3,6 @@ import { mergeObservations } from './observations.js';
 import type { NativeWatchRow } from '../native.js';
 import type { MeetingObservation } from './engine.js';
 
-type WatchRow = NativeWatchRow;
-
 const TEAMS_CALL_HINT_RE = /meeting|call|microsoft teams|teams/;
 const SLACK_CALL_HINT_RE = /huddle|call/;
 const DISCORD_CALL_HINT_RE = /call|voice|stage/;
@@ -31,7 +29,7 @@ function hasCallHint(platform: 'teams' | 'slack' | 'discord', title: string): bo
   return DISCORD_CALL_HINT_RE.test(normalized);
 }
 
-function classifyRow(row: WatchRow): MeetingObservation[] {
+function classifyRow(row: NativeWatchRow): MeetingObservation[] {
   const rawProcessName = row.processName.trim();
   if (!rawProcessName) {
     return [];
@@ -99,7 +97,7 @@ function classifyRow(row: WatchRow): MeetingObservation[] {
   return observations;
 }
 
-export function classifyWindowsRows(rows: WatchRow[]): MeetingObservation[] {
+export function classifyWindowsRows(rows: NativeWatchRow[]): MeetingObservation[] {
   const observations = rows.flatMap(classifyRow);
   return mergeObservations(observations);
 }

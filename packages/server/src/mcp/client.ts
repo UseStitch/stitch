@@ -18,8 +18,6 @@ import type { Tool } from 'ai';
 
 const log = Log.create({ service: 'mcp-client' });
 
-type McpClient = Client;
-
 type McpServerRef = { id: PrefixedString<'mcp'>; name: string; url: string; authConfig: McpAuthConfig };
 
 /**
@@ -27,7 +25,7 @@ type McpServerRef = { id: PrefixedString<'mcp'>; name: string; url: string; auth
  * Clients live for the process lifetime. If a client dies (transport error),
  * it is evicted so the next call reconnects.
  */
-const clientCache = new Map<string, Promise<McpClient>>();
+const clientCache = new Map<string, Promise<Client>>();
 
 /**
  * Transports for in-flight OAuth flows, keyed by server ID. `finishAuth` must
@@ -93,7 +91,7 @@ function clientCacheKey(serverId: string, sessionId?: string): string {
   return sessionId ? `${serverId}:${sessionId}` : serverId;
 }
 
-async function openClient(server: McpServerRef, sessionId?: PrefixedString<'ses'>): Promise<McpClient> {
+async function openClient(server: McpServerRef, sessionId?: PrefixedString<'ses'>): Promise<Client> {
   const transport = buildTransport(server);
   const cacheKey = clientCacheKey(server.id, sessionId);
   const client = new Client(
@@ -150,7 +148,7 @@ async function openClient(server: McpServerRef, sessionId?: PrefixedString<'ses'
 }
 
 /** Get (or create) a cached MCP client for a server. */
-export function getMcpClient(server: McpServerRef, sessionId?: PrefixedString<'ses'>): Promise<McpClient> {
+export function getMcpClient(server: McpServerRef, sessionId?: PrefixedString<'ses'>): Promise<Client> {
   const cacheKey = clientCacheKey(server.id, sessionId);
   const cached = clientCache.get(cacheKey);
   if (cached) return cached;
@@ -180,7 +178,7 @@ export function evictMcpClient(serverId: string): void {
  */
 export async function withMcpClient<T>(
   server: McpServerRef,
-  fn: (client: McpClient) => Promise<T>,
+  fn: (client: Client) => Promise<T>,
   sessionId?: PrefixedString<'ses'>,
 ): Promise<T> {
   const cacheKey = clientCacheKey(server.id, sessionId);

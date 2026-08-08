@@ -1,7 +1,3 @@
-import { type StitchLogger } from '@stitch/shared/logger';
-
-export type SchedulerLogger = StitchLogger;
-
 type IntervalSchedule = { type: 'interval'; everyMs: number };
 
 type CronSchedule = { type: 'cron'; expression: string; timezone?: string };

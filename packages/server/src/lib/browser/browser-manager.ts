@@ -2,8 +2,13 @@ import type {
   ElectronBrowserCommand,
   ElectronBrowserCommandResult,
   ElectronBrowserDialogState,
+  ElectronBrowserDropdownOptionsResult,
   ElectronBrowserErrorMessage,
+  ElectronBrowserExtractContentResult,
+  ElectronBrowserFindElementsResult,
   ElectronBrowserResultMessage,
+  ElectronBrowserScreenshotResult,
+  ElectronBrowserSearchPageResult,
 } from '@stitch/shared/browser/electron';
 
 import {
@@ -11,16 +16,7 @@ import {
   BrowserBridgeNotConnectedError,
   BrowserSessionNotSetError,
 } from '@/lib/browser/errors.js';
-import type {
-  BrowserTab,
-  DropdownOptionsResult,
-  ExtractContentResult,
-  FindElementsResult,
-  LaunchOptions,
-  ScreenshotResult,
-  ScrollDirection,
-  SearchPageResult,
-} from '@/lib/browser/types.js';
+import type { BrowserTab, LaunchOptions, ScrollDirection } from '@/lib/browser/types.js';
 
 const BRIDGE_HOST = '127.0.0.1';
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -250,7 +246,7 @@ class BrowserManager {
     return String(await this.send({ action: 'select', ref, values }, signal));
   }
 
-  async getDropdownOptions(ref: string, signal?: AbortSignal): Promise<DropdownOptionsResult> {
+  async getDropdownOptions(ref: string, signal?: AbortSignal): Promise<ElectronBrowserDropdownOptionsResult> {
     return this.send({ action: 'getDropdownOptions', ref }, signal);
   }
 
@@ -268,7 +264,7 @@ class BrowserManager {
 
   async screenshot(
     options: { signal?: AbortSignal; format?: 'png' | 'jpeg'; quality?: number; fullPage?: boolean; ref?: string } = {},
-  ): Promise<ScreenshotResult> {
+  ): Promise<ElectronBrowserScreenshotResult> {
     return this.send({ action: 'screenshot', ...options }, options.signal);
   }
 
@@ -286,14 +282,14 @@ class BrowserManager {
       maxResults?: number;
     },
     signal?: AbortSignal,
-  ): Promise<SearchPageResult> {
+  ): Promise<ElectronBrowserSearchPageResult> {
     return this.send({ action: 'searchPage', ...options }, signal);
   }
 
   async findElements(
     options: { selector: string; attributes?: string[]; maxResults?: number; includeText?: boolean },
     signal?: AbortSignal,
-  ): Promise<FindElementsResult> {
+  ): Promise<ElectronBrowserFindElementsResult> {
     return this.send({ action: 'findElements', ...options }, signal);
   }
 
@@ -314,7 +310,7 @@ class BrowserManager {
       includeImages?: boolean;
       outputSchema?: Record<string, unknown>;
     } = {},
-  ): Promise<string | ExtractContentResult> {
+  ): Promise<string | ElectronBrowserExtractContentResult> {
     return this.send({ action: 'extractPageContent', ...options }, signal);
   }
 }

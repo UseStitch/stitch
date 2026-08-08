@@ -1,11 +1,12 @@
-import { getBrowserManager } from '@/lib/browser/browser-manager.js';
 import type {
-  BrowserTab,
-  DropdownOptionsResult,
-  ExtractContentResult,
-  FindElementsResult,
-  SearchPageResult,
-} from '@/lib/browser/types.js';
+  ElectronBrowserDropdownOptionsResult,
+  ElectronBrowserExtractContentResult,
+  ElectronBrowserFindElementsResult,
+  ElectronBrowserSearchPageResult,
+} from '@stitch/shared/browser/electron';
+
+import { getBrowserManager } from '@/lib/browser/browser-manager.js';
+import type { BrowserTab } from '@/lib/browser/types.js';
 import { serializeBrowserSnapshot } from '@/tools/toolsets/browser/snapshot-serializer.js';
 
 export function formatTabsOutput(tabs: BrowserTab[]): string {
@@ -16,7 +17,7 @@ export function formatTabsOutput(tabs: BrowserTab[]): string {
   return `Open tabs:\n${tabList}`;
 }
 
-export function formatSearchPageSummary(pattern: string, result: SearchPageResult): string {
+export function formatSearchPageSummary(pattern: string, result: ElectronBrowserSearchPageResult): string {
   const matchLines = result.matches.map((m, i) => `  ${i + 1}. "${m.match}" - ...${m.context}...`);
   const showing = result.matches.length;
   const total = result.total;
@@ -26,7 +27,7 @@ export function formatSearchPageSummary(pattern: string, result: SearchPageResul
   return `Found ${total} match${total !== 1 ? 'es' : ''} for "${pattern}"${showing < total ? ` (showing ${showing})` : ''}:\n${matchLines.join('\n')}`;
 }
 
-export function formatFindElementsSummary(selector: string, result: FindElementsResult): string {
+export function formatFindElementsSummary(selector: string, result: ElectronBrowserFindElementsResult): string {
   const elemLines = result.elements.map((el, i) => {
     let line = `  ${i + 1}. <${el.tag}>`;
     if (el.text) line += ` "${el.text}"`;
@@ -46,7 +47,7 @@ export function formatFindElementsSummary(selector: string, result: FindElements
   return `Found ${total} element${total !== 1 ? 's' : ''} matching "${selector}"${showing < total ? ` (showing ${showing})` : ''}:\n${elemLines.join('\n')}`;
 }
 
-export function formatDropdownOptionsSummary(ref: string, result: DropdownOptionsResult): string {
+export function formatDropdownOptionsSummary(ref: string, result: ElectronBrowserDropdownOptionsResult): string {
   if (result.options.length === 0) {
     return `No dropdown options found for ${ref}.`;
   }
@@ -59,7 +60,10 @@ export function formatDropdownOptionsSummary(ref: string, result: DropdownOption
   return `Dropdown options for ${ref} (${result.type}):\n${lines.join('\n')}\nUse browser_interact action="select_dropdown" with text to choose one.`;
 }
 
-export function formatExtractContent(query: string | undefined, result: string | ExtractContentResult): string {
+export function formatExtractContent(
+  query: string | undefined,
+  result: string | ElectronBrowserExtractContentResult,
+): string {
   if (typeof result === 'string') {
     return `### Extracted Content\n**Query:** ${query ?? 'page content'}\n\n${result}`;
   }

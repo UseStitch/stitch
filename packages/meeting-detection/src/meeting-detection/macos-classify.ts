@@ -3,8 +3,6 @@ import { mergeObservations } from './observations.js';
 import type { NativeWatchRow } from '../native.js';
 import type { MeetingObservation } from './engine.js';
 
-type WatchRow = NativeWatchRow;
-
 const GOOGLE_MEET_TITLE_RE = /google meet|meet\.google\.com/i;
 
 type DesktopApp = {
@@ -25,7 +23,7 @@ function normalizeProcessName(input: string): string {
   return input.trim().toLowerCase();
 }
 
-function toDesktopObservation(row: WatchRow): MeetingObservation | null {
+function toDesktopObservation(row: NativeWatchRow): MeetingObservation | null {
   const rawProcessName = row.processName.trim();
   if (!rawProcessName) {
     return null;
@@ -47,7 +45,7 @@ function toDesktopObservation(row: WatchRow): MeetingObservation | null {
   };
 }
 
-function toBrowserObservation(row: WatchRow): MeetingObservation | null {
+function toBrowserObservation(row: NativeWatchRow): MeetingObservation | null {
   const rawProcessName = row.processName.trim();
   if (!rawProcessName) {
     return null;
@@ -84,13 +82,13 @@ function toBrowserObservation(row: WatchRow): MeetingObservation | null {
   return null;
 }
 
-function classifyRow(row: WatchRow): MeetingObservation[] {
+function classifyRow(row: NativeWatchRow): MeetingObservation[] {
   return [toDesktopObservation(row), toBrowserObservation(row)].filter((value): value is MeetingObservation =>
     Boolean(value),
   );
 }
 
-export function classifyMacosRows(rows: WatchRow[]): MeetingObservation[] {
+export function classifyMacosRows(rows: NativeWatchRow[]): MeetingObservation[] {
   const observations = rows.flatMap(classifyRow);
   return mergeObservations(observations);
 }
