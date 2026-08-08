@@ -43,7 +43,7 @@ const authConfigSchema = z.discriminatedUnion('type', [
 const createMcpServerSchema = z.object({
   name: z.string().trim().min(1),
   transport: z.enum(MCP_TRANSPORT_TYPES),
-  url: z.string().url(),
+  url: z.url(),
   authConfig: authConfigSchema,
 });
 

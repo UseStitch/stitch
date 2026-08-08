@@ -2,7 +2,7 @@ import { HelpCircleIcon, PlusIcon, SaveIcon, TrashIcon } from 'lucide-react';
 import * as React from 'react';
 import { z } from 'zod';
 
-import { useForm, useStore } from '@tanstack/react-form';
+import { useForm, useSelector } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
 import type { MeetingNoteTemplate } from '@stitch/shared/recordings/types';
@@ -386,7 +386,7 @@ function MeetingNoteTemplatesSettings() {
       updateMutation.mutate({ id: selectedTemplate.id, template: value });
     },
   });
-  const content = useStore(form.store, (state) => state.values.content);
+  const content = useSelector(form.store, (state) => state.values.content);
 
   if (!selectedId && data.templates[0]) {
     setSelectedId(data.templates[0].id);

@@ -188,15 +188,15 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
   };
 
   const handleCut = () => {
-    document.execCommand('cut');
+    void window.api.clipboard.cut();
     close();
   };
   const handleCopy = () => {
-    document.execCommand('copy');
+    void window.api.clipboard.copy();
     close();
   };
   const handlePaste = () => {
-    document.execCommand('paste');
+    void window.api.clipboard.paste();
     close();
   };
   const handleOpenDevTools = () => {

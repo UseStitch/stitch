@@ -47,7 +47,7 @@ const modifyMessageSchema = z.object({
   markRead: z.boolean().optional(),
 });
 
-const addressSchema = z.object({ name: z.string().nullable(), email: z.string().email() });
+const addressSchema = z.object({ name: z.string().nullable(), email: z.email() });
 
 const draftSchema = z.object({
   accountId: routeSchemas.mailAccountId,

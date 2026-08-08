@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { z } from 'zod';
 
-import { useForm, useStore } from '@tanstack/react-form';
+import { useForm, useSelector } from '@tanstack/react-form';
 
 import type { Automation, AutomationSchedule, GeneratedAutomationDraft } from '@stitch/shared/automations/types';
 
@@ -172,7 +172,7 @@ function AutomationForm({
     if (form.getFieldValue('modelId') !== modelId) form.setFieldValue('modelId', modelId);
   }, [form, providerModels]);
 
-  const values = useStore(form.store, (state) => state.values);
+  const values = useSelector(form.store, (state) => state.values);
 
   const selectedProvider = providerModels.find((provider) => provider.providerId === values.providerId) ?? null;
   const availableModels = selectedProvider?.models ?? [];

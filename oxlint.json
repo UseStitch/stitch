@@ -17,6 +17,7 @@
     "no-unused-vars": "error",
     "eqeqeq": "error",
     "no-else-return": "error",
+    "typescript/no-deprecated": "error",
     "typescript/no-unnecessary-type-assertion": "error",
     "typescript/no-unnecessary-condition": "error",
     "typescript/no-floating-promises": "error",

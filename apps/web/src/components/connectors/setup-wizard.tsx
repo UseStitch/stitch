@@ -3,7 +3,7 @@ import { useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
-import { useForm, useStore } from '@tanstack/react-form';
+import { useForm, useSelector } from '@tanstack/react-form';
 
 import type {
   ConnectorDefinition,
@@ -390,7 +390,7 @@ function ConnectorCredentialsStep({
     },
     onSubmit: ({ value }) => onNext(value),
   });
-  const values = useStore(form.store, (state) => state.values);
+  const values = useSelector(form.store, (state) => state.values);
   const isCreatingConnector = values.selectedConnectorRefId === 'new';
 
   return (
@@ -621,7 +621,7 @@ function ScopesStep({
     validators: { onMount: scopesSchema(config), onChange: scopesSchema(config) },
     onSubmit: ({ value }) => onNext({ ...value, selectedScopes: getComputedScopes(config, value) }),
   });
-  const values = useStore(form.store, (state) => state.values);
+  const values = useSelector(form.store, (state) => state.values);
   const { selectedScopes, serviceAccess } = values;
   const selectedScopeSet = useMemo(() => new Set(selectedScopes), [selectedScopes]);
   const computedScopes = getComputedScopes(config, values);

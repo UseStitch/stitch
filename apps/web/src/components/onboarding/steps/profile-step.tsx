@@ -43,7 +43,7 @@ export function ProfileStep({ initialName, initialTimezone, isSaving, onContinue
   const hasError = touched && trimmed.length === 0;
   const hasTimezoneError = touched && trimmedTimezone.length === 0;
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setTouched(true);
     if (trimmed.length === 0 || trimmedTimezone.length === 0) return;

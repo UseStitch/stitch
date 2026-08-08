@@ -78,7 +78,7 @@ export async function upsertLocalModel(
 ): Promise<ServiceResult<LocalModel>> {
   const parsed = LocalModelInputSchema.safeParse(input);
   if (!parsed.success) {
-    return err('Invalid model data', 400, parsed.error.flatten());
+    return err('Invalid model data', 400, z.treeifyError(parsed.error));
   }
 
   const db = getDb();

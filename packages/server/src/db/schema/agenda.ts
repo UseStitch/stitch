@@ -4,7 +4,7 @@ import { check, index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-o
 import type { AgendaItemPriority, AgendaItemStatus } from '@stitch/shared/agenda/types';
 import type { PrefixedString } from '@stitch/shared/id';
 
-/** @deprecated Type field is no longer used but kept for DB compatibility */
+// Type field is no longer used but kept for DB compatibility
 type AgendaItemType = 'todo' | 'reminder' | 'checkup';
 
 export const agendaLists = sqliteTable(

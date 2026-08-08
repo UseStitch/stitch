@@ -3,7 +3,7 @@ import * as React from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
-import { useForm, useStore } from '@tanstack/react-form';
+import { useForm, useSelector } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { LocalProviderId } from '@stitch/shared/providers/types';
@@ -171,7 +171,7 @@ function ModelForm({
     validators: { onMount: modelFormSchema, onChange: modelFormSchema },
     onSubmit: ({ value }) => onSave(formToInput(value)),
   });
-  const values = useStore(form.store, (state) => state.values);
+  const values = useSelector(form.store, (state) => state.values);
 
   return (
     <div className="rounded-md border p-space-xl">

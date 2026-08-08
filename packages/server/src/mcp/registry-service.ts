@@ -36,14 +36,14 @@ const mcpRegistryServerSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   description: z.string().min(1),
-  homepageUrl: z.string().url().optional(),
-  docsUrl: z.string().url(),
-  logoUrl: z.string().url().optional(),
+  homepageUrl: z.url().optional(),
+  docsUrl: z.url(),
+  logoUrl: z.url().optional(),
   tags: z.array(z.string().min(1)).min(1),
   install: z.object({
     name: z.string().min(1),
     transport: z.enum(['stdio', 'http']),
-    url: z.string().url(),
+    url: z.url(),
     authConfig: authConfigSchema,
     optionalAuthConfigs: z.array(authConfigSchema).optional(),
   }),
@@ -51,7 +51,7 @@ const mcpRegistryServerSchema = z.object({
 
 const mcpRegistryPayloadSchema = z.object({
   version: z.number().int().positive(),
-  generatedAt: z.string().datetime({ offset: true }),
+  generatedAt: z.iso.datetime({ offset: true }),
   servers: z.array(mcpRegistryServerSchema),
 });
 

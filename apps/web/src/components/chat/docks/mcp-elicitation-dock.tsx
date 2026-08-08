@@ -129,7 +129,7 @@ export function McpElicitationDock({ request, isPending, onRespond }: McpElicita
     setValues((current) => ({ ...current, [name]: value }));
   }
 
-  function submit(event: React.FormEvent<HTMLFormElement>) {
+  function submit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const content = Object.fromEntries(
       Object.entries(values).filter(

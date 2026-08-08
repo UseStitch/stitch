@@ -35,6 +35,7 @@ export type DesktopBridge = {
     isFullScreen: () => Promise<boolean>;
   };
   devtools: { toggle: () => Promise<void>; inspect: (x: number, y: number) => Promise<void> };
+  clipboard: { cut: () => Promise<void>; copy: () => Promise<void>; paste: () => Promise<void> };
   shell: { openExternal: (url: string) => Promise<void> };
   files: { writeTmp: (data: ArrayBuffer, ext: string) => Promise<string>; openPath: () => Promise<string[]> };
   updater: {

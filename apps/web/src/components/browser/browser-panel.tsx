@@ -79,7 +79,7 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
     };
   }, [registerWebview]);
 
-  const submitAddress = (event: React.FormEvent<HTMLFormElement>) => {
+  const submitAddress = (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     void window.api.browser.userNavigate(address);
   };
