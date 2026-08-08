@@ -163,7 +163,7 @@ function applyPartUpdateToSession(session: SessionStreamState, partId: string, p
 
     case 'tool-call': {
       const existing = session.parts[partId];
-      if (existing.type === 'tool-call') {
+      if (partId in session.parts && existing.type === 'tool-call') {
         return updatePart(session, partId, { ...existing, input: part.input });
       }
       return addPart(session, partId, {
@@ -276,7 +276,7 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
 
       const existing = session.parts[toolCallId];
 
-      if (existing.type === 'tool-call') {
+      if (toolCallId in session.parts && existing.type === 'tool-call') {
         return {
           sessions: {
             ...state.sessions,
