@@ -3,7 +3,7 @@ import * as React from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
-import { useForm, useStore } from '@tanstack/react-form';
+import { useForm, useSelector } from '@tanstack/react-form';
 
 import type {
   MailAccountId,
@@ -136,7 +136,7 @@ export function Composer({ accountId, draft, replyTo, onClose }: ComposerProps) 
     },
   });
 
-  const values = useStore(form.store, (state) => state.values);
+  const values = useSelector(form.store, (state) => state.values);
   const autosaveDraft = React.useEffectEvent((nextValues: ComposerValues) => {
     void persistDraft(nextValues).catch(() => undefined);
   });

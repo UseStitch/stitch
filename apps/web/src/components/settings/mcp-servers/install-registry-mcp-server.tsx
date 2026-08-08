@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 
-import { useForm, useStore } from '@tanstack/react-form';
+import { useForm, useSelector } from '@tanstack/react-form';
 
 import { MCP_AUTH_TYPES } from '@stitch/shared/mcp/types';
 import type { McpRegistryServer } from '@stitch/shared/mcp/types';
@@ -88,7 +88,7 @@ export function InstallRegistryMcpServer({
     },
   });
 
-  const values = useStore(form.store, (state) => state.values);
+  const values = useSelector(form.store, (state) => state.values);
   const set = (key: 'oauthScopes' | 'oauthClientId' | 'oauthClientSecret', value: string) => {
     form.setFieldValue(key, value);
   };
