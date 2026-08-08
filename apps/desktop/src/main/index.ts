@@ -2,6 +2,7 @@ import { app, dialog, session, type BrowserWindow } from 'electron';
 
 import { ElectronBrowserManager } from './browser/browser-manager.js';
 import { registerBrowserHandlers } from './ipc/browser.js';
+import { registerClipboardHandlers } from './ipc/clipboard.js';
 import { registerDevtoolsHandlers } from './ipc/devtools.js';
 import { registerFilesHandlers } from './ipc/files.js';
 import { registerPermissionsHandlers } from './ipc/permissions.js';
@@ -102,6 +103,7 @@ function registerAllIpcHandlers(): void {
   registerWindowHandlers(getWindow);
   if (browserManager) registerBrowserHandlers(browserManager);
   registerDevtoolsHandlers(getWindow);
+  registerClipboardHandlers(getWindow);
   registerSpellcheckHandlers(getWindow);
   registerShellHandlers();
   registerFilesHandlers();

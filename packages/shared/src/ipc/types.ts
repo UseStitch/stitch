@@ -61,6 +61,9 @@ export interface IpcContract {
   'window:isFullScreen': { args: []; return: boolean };
   'devtools:toggle': { args: []; return: void };
   'devtools:inspect': { args: [x: number, y: number]; return: void };
+  'clipboard:cut': { args: []; return: void };
+  'clipboard:copy': { args: []; return: void };
+  'clipboard:paste': { args: []; return: void };
   'shell:openExternal': { args: [url: string]; return: void };
   'files:writeTmp': { args: [data: ArrayBuffer, ext: string]; return: string };
   'dialog:openPath': { args: []; return: string[] };

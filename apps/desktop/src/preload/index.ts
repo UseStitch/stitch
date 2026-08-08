@@ -64,6 +64,11 @@ const api = {
     toggle: () => invokeIpc('devtools:toggle'),
     inspect: (x: number, y: number) => invokeIpc('devtools:inspect', x, y),
   },
+  clipboard: {
+    cut: () => invokeIpc('clipboard:cut'),
+    copy: () => invokeIpc('clipboard:copy'),
+    paste: () => invokeIpc('clipboard:paste'),
+  },
   shell: { openExternal: (url: string) => invokeIpc('shell:openExternal', url) },
   files: {
     writeTmp: (data: ArrayBuffer, ext: string) => invokeIpc('files:writeTmp', data, ext),
