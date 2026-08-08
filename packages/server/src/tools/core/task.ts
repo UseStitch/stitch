@@ -2,7 +2,7 @@ import { tool } from 'ai';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
-import type { StoredPart } from '@stitch/shared/chat/messages';
+import { extractTextFromParts, type StoredPart } from '@stitch/shared/chat/messages';
 import { createMessageId, createPartId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { LlmProviderId } from '@stitch/shared/providers/types';
@@ -115,10 +115,10 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
       // Build history (just the system prompt + user message)
       const llmMessages = await buildSessionLlmMessages(childSessionId, { useBasePrompt: true, systemPrompt: null });
       const assistantMessageId = createMessageId();
+      const inheritedToolsetIds = [...deps.toolsetManager.getActiveIds()];
+      const allToolsetIds = [...new Set([...inheritedToolsetIds, ...(additionalToolsets ?? [])])];
 
       if (background) {
-        const inheritedToolsetIds = [...deps.toolsetManager.getActiveIds()];
-        const allToolsetIds = [...new Set([...inheritedToolsetIds, ...(additionalToolsets ?? [])])];
         try {
           await db
             .insert(messages)
@@ -179,10 +179,6 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
       };
       deps.parentAbortSignal.addEventListener('abort', onParentAbort, { once: true });
 
-      // Compute toolset IDs to pre-activate in child session
-      const inheritedToolsetIds = [...deps.toolsetManager.getActiveIds()];
-      const allToolsetIds = [...new Set([...inheritedToolsetIds, ...(additionalToolsets ?? [])])];
-
       try {
         await runStream({
           sessionId: childSessionId,
@@ -208,19 +204,7 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
           .where(and(eq(messages.sessionId, childSessionId), eq(messages.id, assistantMessageId)));
 
         const assistantMessage = childMessages.at(0);
-        let summary = 'Task completed.';
-
-        if (assistantMessage?.parts) {
-          const textParts = assistantMessage.parts
-            .filter(
-              (p: StoredPart): p is StoredPart & { type: 'text-delta'; text: string } =>
-                p.type === 'text-delta' && typeof (p as { text?: unknown }).text === 'string',
-            )
-            .map((p: { text: string }) => p.text);
-          if (textParts.length > 0) {
-            summary = textParts.join('');
-          }
-        }
+        const summary = extractTextFromParts(assistantMessage?.parts) || 'Task completed.';
 
         return { childSessionId, childSessionName: childSession.title, summary };
       } catch (error) {

@@ -17,7 +17,7 @@ export function MessageBubble({ role, parts, finishReason, onAbortTool, onSplit,
   const backgroundTaskResults = parts.filter(
     (part): part is Extract<StoredPart, { type: 'background-task-result' }> => part.type === 'background-task-result',
   );
-  if (backgroundTaskResults.length > 0) {
+  if (role === 'user' && backgroundTaskResults.length === parts.length && backgroundTaskResults.length > 0) {
     return <BackgroundTaskResultBubble parts={backgroundTaskResults} />;
   }
 

@@ -108,16 +108,20 @@ export async function listSessionMessages(
   return ok({ messages: page, hasMore });
 }
 
-export async function deleteSession(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<{ id: string }>> {
-  await cancelBackgroundTasksForParent(sessionId);
+async function deleteSessionTree(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<{ id: string }>> {
   const db = getDb();
   const children = await db.select({ id: sessions.id }).from(sessions).where(eq(sessions.parentSessionId, sessionId));
   for (const child of children) {
-    await deleteSession(child.id);
+    await deleteSessionTree(child.id);
   }
   const result = await db.delete(sessions).where(eq(sessions.id, sessionId)).returning({ id: sessions.id });
   if (result.length === 0) return err('Session not found', 404);
   return ok(result[0]);
+}
+
+export async function deleteSession(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<{ id: string }>> {
+  await cancelBackgroundTasksForParent(sessionId);
+  return deleteSessionTree(sessionId);
 }
 
 export async function archiveSession(

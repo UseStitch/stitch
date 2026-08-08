@@ -13,27 +13,24 @@ import { cancelBackgroundTasksForParent } from '@/background-tasks/service.js';
 import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema/providers.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
-import * as AbortRegistry from '@/lib/abort-registry.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { buildSessionLlmMessages } from '@/llm/session-history.js';
 import { compact } from '@/llm/session-summary.js';
-import { cancelDecision, resolveDecision, type DoomLoopResponse } from '@/llm/stream/doom-loop.js';
+import { resolveDecision, type DoomLoopResponse } from '@/llm/stream/doom-loop.js';
 import { runStream } from '@/llm/stream/runner.js';
+import { abortSessionInteractions } from '@/llm/stream/session-abort.js';
 import {
   abortActiveSessionRun,
   cancelQueuedSessionRuns,
   enqueueSessionRun,
 } from '@/llm/stream/session-run-coordinator.js';
-import { abortMcpElicitations } from '@/mcp/elicitation-service.js';
 import * as LocalModels from '@/models/llm/local.js';
 import * as Models from '@/models/llm/registry.js';
-import { abortPermissionResponses } from '@/permission/service.js';
 import { isLlmProviderCredentials, type LlmProviderCredentials } from '@/provider/config/schema.js';
 import { listProvidersWithCapabilities, type ProviderWithCapabilities } from '@/provider/service.js';
-import { abortQuestions } from '@/question/service.js';
 import { normalizeUsage } from '@/utils/usage.js';
 
 const log = Log.create({ service: 'chat-service' });
@@ -349,7 +346,6 @@ export async function abortSessionRun(sessionId: PrefixedString<'ses'>): Promise
   log.info({ event: 'stream.abort.requested', sessionId }, 'stream abort requested');
   abortActiveSessionRun(sessionId);
   cancelQueuedSessionRuns(sessionId);
-  cancelDecision(sessionId);
 
   const db = getDb();
   const childSessions = await db
@@ -359,14 +355,8 @@ export async function abortSessionRun(sessionId: PrefixedString<'ses'>): Promise
 
   await Promise.all([
     cancelBackgroundTasksForParent(sessionId),
-    abortQuestions(sessionId),
-    abortPermissionResponses(sessionId),
-    abortMcpElicitations(sessionId),
-    ...childSessions.map(async (child) => {
-      AbortRegistry.abort(child.id);
-      cancelDecision(child.id);
-      await Promise.all([abortQuestions(child.id), abortPermissionResponses(child.id), abortMcpElicitations(child.id)]);
-    }),
+    abortSessionInteractions(sessionId),
+    ...childSessions.map((child) => abortSessionInteractions(child.id)),
   ]);
 
   return ok(null);

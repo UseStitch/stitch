@@ -23,10 +23,14 @@ export function updateBackgroundTaskCache(queryClient: QueryClient, task: Backgr
   const previous = queryClient.getQueryData<BackgroundTask[]>(queryKey);
   const previousTask = previous?.find((item) => item.id === task.id);
 
-  const next = previousTask ? previous?.map((item) => (item.id === task.id ? task : item)) : [task, ...(previous ?? [])];
-  queryClient.setQueryData(queryKey, next?.toSorted((a, b) => b.startedAt - a.startedAt));
+  const next = previousTask
+    ? previous?.map((item) => (item.id === task.id ? task : item))
+    : [task, ...(previous ?? [])];
+  queryClient.setQueryData(
+    queryKey,
+    next?.toSorted((a, b) => b.startedAt - a.startedAt),
+  );
 
-  void queryClient.invalidateQueries({ queryKey });
   return previousTask;
 }
 

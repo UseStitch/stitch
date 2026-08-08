@@ -5,12 +5,12 @@ import { StickToBottom } from 'use-stick-to-bottom';
 import { useSuspenseInfiniteQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 
+import { extractTextFromParts } from '@stitch/shared/chat/messages';
 import { createMessageId, type PrefixedString } from '@stitch/shared/id';
 
 import { ChatInput } from '@/components/chat/chat-input';
 import type { Attachment } from '@/components/chat/chat-input-parts/types';
 import { DockContainer } from '@/components/chat/docks/dock';
-import { extractTextFromParts } from '@/components/chat/message-bubble/extract-text';
 import { MessageList } from '@/components/chat/message-list';
 import { Text } from '@/components/primitives/text';
 import { findLastUsedModel } from '@/components/session/session-chat-pane/session-message-context';

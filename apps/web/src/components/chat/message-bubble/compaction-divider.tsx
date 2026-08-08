@@ -1,9 +1,9 @@
 import { ChevronDownIcon, ChevronRightIcon } from 'lucide-react';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
+import { extractTextFromParts } from '@stitch/shared/chat/messages';
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
-import { extractTextFromParts } from '@/components/chat/message-bubble/extract-text.js';
 import { Icon } from '@/components/primitives/icon.js';
 import { Text } from '@/components/primitives/text.js';
 

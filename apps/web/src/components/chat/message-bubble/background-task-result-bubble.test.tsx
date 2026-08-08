@@ -12,9 +12,7 @@ describe('background task result message', () => {
       id: 'prt_result',
       startedAt: 1,
       endedAt: 1,
-      tasks: [
-        { taskId: 'ses_child', childSessionId: 'ses_child', title: 'Task', state: 'completed', text: 'done' },
-      ],
+      tasks: [{ taskId: 'ses_child', childSessionId: 'ses_child', title: 'Task', state: 'completed', text: 'done' }],
     };
     const messageRole = 'user';
     const html = renderToStaticMarkup(
@@ -25,5 +23,30 @@ describe('background task result message', () => {
     expect(html).not.toContain('Edit');
     expect(html).not.toContain('Split');
     expect(html).not.toContain('done');
+  });
+
+  test('does not hide content in a mixed message', () => {
+    const now = 1;
+    const messageRole = 'assistant';
+    const html = renderToStaticMarkup(
+      <MessageBubble
+        role={messageRole}
+        parts={[
+          {
+            type: 'background-task-result',
+            id: 'prt_result',
+            startedAt: now,
+            endedAt: now,
+            tasks: [
+              { taskId: 'ses_child', childSessionId: 'ses_child', title: 'Task', state: 'completed', text: 'done' },
+            ],
+          },
+          { type: 'text-delta', id: 'prt_text', text: 'Visible response', startedAt: now, endedAt: now },
+        ]}
+      />,
+    );
+
+    expect(html).toContain('Visible response');
+    expect(html).not.toContain('Background task result received');
   });
 });

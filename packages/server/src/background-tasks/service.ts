@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 
 import type { BackgroundTask } from '@stitch/shared/background-tasks/types';
-import type { StoredPart } from '@stitch/shared/chat/messages';
+import { extractTextFromParts } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { LlmProviderId } from '@stitch/shared/providers/types';
 
@@ -22,12 +22,9 @@ import * as AbortRegistry from '@/lib/abort-registry.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { err, ok, type ServiceResult } from '@/lib/service-result.js';
-import { cancelDecision } from '@/llm/stream/doom-loop.js';
 import type { runStream } from '@/llm/stream/runner.js';
-import { abortMcpElicitations } from '@/mcp/elicitation-service.js';
-import { abortPermissionResponses } from '@/permission/service.js';
+import { abortSessionInteractions } from '@/llm/stream/session-abort.js';
 import type { LlmProviderCredentials } from '@/provider/config/schema.js';
-import { abortQuestions } from '@/question/service.js';
 import type { ModelMessage } from 'ai';
 
 const log = Log.create({ service: 'background-task-service' });
@@ -63,17 +60,6 @@ const defaultDependencies: BackgroundTaskServiceDependencies = {
   cleanupAbort: AbortRegistry.cleanup,
 };
 
-function extractAssistantText(parts: StoredPart[] | undefined): string {
-  const text = parts
-    ?.filter(
-      (part): part is StoredPart & { type: 'text-delta'; text: string } =>
-        part.type === 'text-delta' && typeof (part as { text?: unknown }).text === 'string',
-    )
-    .map((part) => part.text)
-    .join('');
-  return text || 'Task completed.';
-}
-
 async function scheduleResult(input: StartBackgroundTaskInput): Promise<void> {
   try {
     (input.scheduleResult ?? scheduleBackgroundTaskResult)(input.parentSessionId);
@@ -106,7 +92,10 @@ async function executeBackgroundTask(
         .from(messages)
         .where(and(eq(messages.sessionId, input.childSessionId), eq(messages.id, input.childAssistantMessageId)))
     ).at(0);
-    const settled = await completeBackgroundTask(input.taskId, extractAssistantText(assistantMessage?.parts));
+    const settled = await completeBackgroundTask(
+      input.taskId,
+      extractTextFromParts(assistantMessage?.parts) || 'Task completed.',
+    );
     if (!settled) return;
 
     internalBus.emit('background-task.completed', { task: settled });
@@ -214,13 +203,7 @@ export async function cancelBackgroundTask(taskId: PrefixedString<'ses'>) {
   const cancelled = await markBackgroundTaskCancelled(taskId);
   if (!cancelled) return getBackgroundTask(taskId);
 
-  AbortRegistry.abort(cancelled.childSessionId);
-  cancelDecision(cancelled.childSessionId);
-  await Promise.all([
-    abortQuestions(cancelled.childSessionId),
-    abortPermissionResponses(cancelled.childSessionId),
-    abortMcpElicitations(cancelled.childSessionId),
-  ]);
+  await abortSessionInteractions(cancelled.childSessionId);
   internalBus.emit('background-task.cancelled', { task: cancelled });
   return cancelled;
 }

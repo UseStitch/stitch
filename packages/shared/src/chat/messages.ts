@@ -89,6 +89,15 @@ type AllPart =
 
 export type StoredPart = AllPart & { id: PartId; startedAt: number; endedAt: number };
 
+export function extractTextFromParts(parts: StoredPart[] | undefined): string {
+  return (
+    parts
+      ?.filter((part): part is Extract<StoredPart, { type: 'text-delta' }> => part.type === 'text-delta')
+      .map((part) => part.text)
+      .join('') ?? ''
+  );
+}
+
 export type Message = {
   id: PrefixedString<'msg'>;
   sessionId: PrefixedString<'ses'>;
