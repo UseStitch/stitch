@@ -37,14 +37,12 @@ export type RecordingPermissionsPayload = {
 
 export type MeetingCallDismissedPayload = { key: string };
 
-type MeetingDetectedNotificationPayload = MeetingCallDetectedPayload;
-
 export type DesktopNotificationEvent = {
   id: string;
   type: 'meeting-detected';
   createdAt: number;
   autoDismissMs: number | null;
-  payload: MeetingDetectedNotificationPayload;
+  payload: MeetingCallDetectedPayload;
 };
 
 export interface IpcContract {

@@ -7,10 +7,8 @@ import type { NativeWatchEvent, NativeWatchRow } from '../native.js';
 import type { MeetingDetectionOptions, MeetingDetector } from '../types.js';
 import type { MeetingObservation } from './engine.js';
 
-type WatchRow = NativeWatchRow;
-
 /** Per-platform row classification implemented in the classifier files. */
-type RowClassifier = (rows: WatchRow[]) => MeetingObservation[];
+type RowClassifier = (rows: NativeWatchRow[]) => MeetingObservation[];
 
 // The native watcher is edge-triggered, but the engine activates a candidate
 // only after it has been seen for the activation threshold. Re-feed the latest

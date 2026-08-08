@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, jest, mock, test } from 'bun:test';
 
+import type { StitchLogger } from '@stitch/shared/logger';
+
 import { createScheduler } from './scheduler.js';
 
-import type { JobSchedule, PersistedJob, PersistedJobRun, SchedulerLogger, SchedulerStore } from './types.js';
+import type { JobSchedule, PersistedJob, PersistedJobRun, SchedulerStore } from './types.js';
 
 const BASE_TIME = new Date('2026-01-01T00:00:00.000Z').getTime();
 let mockNow = BASE_TIME;
@@ -19,7 +21,7 @@ async function advanceTime(ms: number, step = 10): Promise<void> {
   }
 }
 
-function makeLogger(): SchedulerLogger {
+function makeLogger(): StitchLogger {
   const noop = () => {};
   return { debug: noop, info: noop, warn: noop, error: noop };
 }

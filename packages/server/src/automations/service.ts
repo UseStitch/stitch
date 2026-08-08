@@ -31,8 +31,7 @@ import { validateProviderModel } from '@/llm/resolve-model.js';
 const log = Log.create({ service: 'automations' });
 
 type AutomationDbRow = typeof automations.$inferSelect;
-type AutomationRow = Automation;
-type SyncAutomationSchedule = (automation: AutomationRow) => Promise<void>;
+type SyncAutomationSchedule = (automation: Automation) => Promise<void>;
 
 function normalizeText(value: string): string {
   return value.trim();
@@ -59,7 +58,7 @@ function deserializeAutomationSchedule(blob: AutomationScheduleBlob | null): Aut
   return blob.schedule;
 }
 
-function toAutomationRow(row: AutomationDbRow): AutomationRow {
+function toAutomationRow(row: AutomationDbRow): Automation {
   return { ...row, schedule: deserializeAutomationSchedule(row.schedule) };
 }
 
@@ -80,7 +79,7 @@ export async function listAutomations(input: {
   return ok({ automations: result.items, ...result });
 }
 
-export async function getAutomation(automationId: string): Promise<ServiceResult<AutomationRow>> {
+export async function getAutomation(automationId: string): Promise<ServiceResult<Automation>> {
   const db = getDb();
   const automation = (
     await db
@@ -96,7 +95,7 @@ export async function getAutomation(automationId: string): Promise<ServiceResult
   return ok(toAutomationRow(automation));
 }
 
-async function createAutomation(input: CreateAutomationInput): Promise<ServiceResult<AutomationRow>> {
+async function createAutomation(input: CreateAutomationInput): Promise<ServiceResult<Automation>> {
   const providerId = normalizeText(input.providerId);
   const modelId = normalizeText(input.modelId);
   const title = normalizeText(input.title);
@@ -137,7 +136,7 @@ async function createAutomation(input: CreateAutomationInput): Promise<ServiceRe
 export async function createAutomationAndSync(
   input: CreateAutomationInput,
   syncSchedule: SyncAutomationSchedule,
-): Promise<ServiceResult<AutomationRow>> {
+): Promise<ServiceResult<Automation>> {
   const result = await createAutomation(input);
   if (result.error) return result;
 
@@ -153,7 +152,7 @@ export async function createAutomationAndSync(
 async function updateAutomation(
   automationId: string,
   input: UpdateAutomationInput,
-): Promise<ServiceResult<AutomationRow>> {
+): Promise<ServiceResult<Automation>> {
   const db = getDb();
   const existing = (
     await db
@@ -213,7 +212,7 @@ export async function updateAutomationAndSync(
   automationId: string,
   input: UpdateAutomationInput,
   syncSchedule: SyncAutomationSchedule,
-): Promise<ServiceResult<AutomationRow>> {
+): Promise<ServiceResult<Automation>> {
   const beforeResult = await getAutomation(automationId);
   if (beforeResult.error) return beforeResult;
 

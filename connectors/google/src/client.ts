@@ -58,12 +58,7 @@ type GoogleErrorResponse = {
   };
 };
 
-type RequestOptions = RequestInit;
-
-function mergeHeaders(
-  base: RequestOptions['headers'] | undefined,
-  extra: Record<string, string>,
-): Record<string, string> {
+function mergeHeaders(base: RequestInit['headers'] | undefined, extra: Record<string, string>): Record<string, string> {
   const headers = new Headers(base);
   for (const [key, value] of Object.entries(extra)) headers.set(key, value);
   return { ...Object.fromEntries(headers.entries()), ...extra };
@@ -88,7 +83,7 @@ export class GoogleClient {
     );
   }
 
-  async request<T>(url: string, options?: RequestOptions): Promise<T> {
+  async request<T>(url: string, options?: RequestInit): Promise<T> {
     const response = await this.executeWithRetries(url, {
       ...options,
       headers: mergeHeaders(options?.headers, { 'Content-Type': 'application/json' }),
@@ -96,16 +91,16 @@ export class GoogleClient {
     return (await response.json()) as T;
   }
 
-  async requestRaw(url: string, options?: RequestOptions): Promise<Response> {
+  async requestRaw(url: string, options?: RequestInit): Promise<Response> {
     return this.executeWithRetries(url, options);
   }
 
-  async requestText(url: string, options?: RequestOptions): Promise<string> {
+  async requestText(url: string, options?: RequestInit): Promise<string> {
     const response = await this.executeWithRetries(url, options);
     return await response.text();
   }
 
-  private async executeWithRetries(url: string, options?: RequestOptions): Promise<Response> {
+  private async executeWithRetries(url: string, options?: RequestInit): Promise<Response> {
     const method = options?.method ?? 'GET';
     let forceRefresh = false;
     let retriedUnauthorized = false;

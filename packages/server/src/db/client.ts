@@ -13,11 +13,9 @@ import { seedMeetingNoteTemplates } from '@/recordings/meeting-note-templates.js
 import type { Database } from 'bun:sqlite';
 import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 
-type Db = BunSQLiteDatabase;
-
 const log = Log.create({ service: 'db' });
 
-let _db: Db | undefined;
+let _db: BunSQLiteDatabase | undefined;
 let _sqlite: Database | undefined;
 
 function getDatabasePath(): string {
@@ -38,7 +36,7 @@ function getMigrationsDir(): string {
   return migrationsDir;
 }
 
-function seedShortcuts(db: Db): void {
+function seedShortcuts(db: BunSQLiteDatabase): void {
   for (const def of SHORTCUT_DEFAULTS) {
     db.insert(keyboardShortcuts)
       .values({
@@ -53,7 +51,7 @@ function seedShortcuts(db: Db): void {
   }
 }
 
-function seedSettings(db: Db): void {
+function seedSettings(db: BunSQLiteDatabase): void {
   for (const def of SETTINGS_DEFAULTS) {
     db.insert(userSettings)
       .values({ key: def.key, value: def.value, description: def.description })
@@ -62,7 +60,7 @@ function seedSettings(db: Db): void {
   }
 }
 
-export function getDb(): Db {
+export function getDb(): BunSQLiteDatabase {
   if (!_db) throw new DatabaseNotInitializedError();
   return _db;
 }
@@ -91,7 +89,7 @@ export async function initDb(): Promise<void> {
   sqlite.run('PRAGMA foreign_keys = ON');
 
   _sqlite = sqlite;
-  _db = drizzle({ client: sqlite }) as Db;
+  _db = drizzle({ client: sqlite }) as BunSQLiteDatabase;
   migrate(_db, { migrationsFolder: migrationsDir });
 
   seedShortcuts(_db);

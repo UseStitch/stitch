@@ -3,13 +3,7 @@ import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
 
 import type { Tool } from 'ai';
 
-export type ToolRuntimeContext = {
-  sessionId: PrefixedString<'ses'>;
-  messageId: PrefixedString<'msg'>;
-  streamRunId: string;
-};
-
-export type ToolContext = ToolRuntimeContext;
+export type ToolContext = { sessionId: PrefixedString<'ses'>; messageId: PrefixedString<'msg'>; streamRunId: string };
 
 export type RuntimeToolSource = 'core' | 'toolset' | 'mcp' | 'meta' | 'task' | 'code-mode';
 
@@ -33,7 +27,7 @@ export type ToolExecutionInput = {
   args: unknown;
   executeOptions: unknown;
   tool: Tool;
-  context: ToolRuntimeContext;
+  context: ToolContext;
   metadata: RuntimeToolMetadata;
 };
 
@@ -54,7 +48,7 @@ export function defineRuntimeTool(name: string, tool: Tool, metadata: RuntimeToo
   return { ...metadata, name, description: tool.description ?? '', tool };
 }
 
-export function createToolRuntime(context: ToolRuntimeContext): ToolRuntime {
+export function createToolRuntime(context: ToolContext): ToolRuntime {
   const middlewares: ToolMiddleware[] = [];
 
   const runtime: ToolRuntime = {

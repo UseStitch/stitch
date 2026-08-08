@@ -16,8 +16,6 @@ const GOOGLE_SERVICE_ICON_SLUGS = {
   calendar: 'googlecalendar',
 } as const;
 
-type ToolSummaryKind = ToolIconKind;
-
 export type ToolCallDisplayItem = {
   id: string;
   toolName: string;
@@ -28,7 +26,7 @@ export type ToolCallDisplayItem = {
 };
 
 export type ToolCallSummary = {
-  kind: ToolSummaryKind;
+  kind: ToolIconKind;
   label: string;
   preview: string;
   meta?: string;
@@ -136,12 +134,12 @@ function getChildSessionId(result: unknown): string | null {
   return typeof id === 'string' ? id : null;
 }
 
-function getToolKind(toolName: string): ToolSummaryKind {
+function getToolKind(toolName: string): ToolIconKind {
   if (parseMcpToolName(toolName)) return 'mcp';
   return getToolIconKind(toolName);
 }
 
-function getToolLabel(toolName: string, displayName: string, kind: ToolSummaryKind): string {
+function getToolLabel(toolName: string, displayName: string, kind: ToolIconKind): string {
   if (toolName === 'gmail_download_attachments') return 'Gmail Attachments';
 
   if (kind === 'mcp') {
@@ -159,7 +157,7 @@ function getConnectorIconSlug(toolName: string): string | null {
   return GOOGLE_SERVICE_ICON_SLUGS[service as keyof typeof GOOGLE_SERVICE_ICON_SLUGS] ?? null;
 }
 
-function getToolPreview(call: ToolCallDisplayItem, kind: ToolSummaryKind): string {
+function getToolPreview(call: ToolCallDisplayItem, kind: ToolIconKind): string {
   if (call.error) return truncateText(call.error, 96);
 
   for (const getPreview of [getToolsetPreview, getGmailPreview, getSkillPreview]) {
