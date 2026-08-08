@@ -1,5 +1,4 @@
-import { describe, expect, test } from 'bun:test';
-import { createServer, type Server } from 'node:http';
+import { afterEach, describe, expect, test } from 'bun:test';
 
 import {
   OAuthRefreshError,
@@ -7,24 +6,26 @@ import {
   requiresOAuthReauth,
   startOAuthFlow,
 } from '@/connectors/auth/oauth2.js';
-import type { AddressInfo } from 'node:net';
 
-async function listen(server: Server): Promise<number> {
-  return new Promise((resolve, reject) => {
-    server.listen(0, '127.0.0.1', () => {
-      resolve((server.address() as AddressInfo).port);
-    });
-    server.once('error', reject);
-  });
-}
+const TOKEN_URL = 'https://token.example.test/token';
+const originalFetch = globalThis.fetch;
 
-async function close(server: Server): Promise<void> {
-  return new Promise((resolve, reject) => {
-    server.close((error) => {
-      if (error) reject(error);
-      else resolve();
-    });
-  });
+afterEach(() => {
+  globalThis.fetch = originalFetch;
+});
+
+/**
+ * Mocks the global fetch used by openid-client so requests to the configured
+ * token endpoint resolve to a canned response, while any other request (e.g.
+ * startOAuthFlow's real loopback callback server) passes through unmocked.
+ */
+function mockTokenEndpoint(status: number, body: unknown, headers: Record<string, string> = {}): void {
+  globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    if (!url.startsWith(TOKEN_URL)) return originalFetch(input, init);
+
+    return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...headers } });
+  }) as typeof fetch;
 }
 
 /**
@@ -80,24 +81,18 @@ describe('requiresOAuthReauth', () => {
 
 describe('startOAuthFlow', () => {
   test('preserves connector params and completes loopback token exchange', async () => {
-    const tokenServer = createServer((_req, res) => {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          access_token: 'access',
-          token_type: 'Bearer',
-          refresh_token: 'refresh',
-          expires_in: 3600,
-          id_token: idToken('https://accounts.example.test'),
-        }),
-      );
+    mockTokenEndpoint(200, {
+      access_token: 'access',
+      token_type: 'Bearer',
+      refresh_token: 'refresh',
+      expires_in: 3600,
+      id_token: idToken('https://accounts.example.test'),
     });
-    const tokenPort = await listen(tokenServer);
 
     const { authUrl, waitForTokens } = await startOAuthFlow(
       {
         authUrl: 'https://accounts.example.test/oauth/authorize',
-        tokenUrl: `http://127.0.0.1:${tokenPort}/token`,
+        tokenUrl: TOKEN_URL,
         defaultScopes: [],
         scopeDescriptions: {},
         additionalParams: { access_type: 'offline', prompt: 'consent' },
@@ -120,25 +115,20 @@ describe('startOAuthFlow', () => {
     const tokensPromise = waitForTokens();
     // Providers such as Google append their issuer as the `iss` callback param;
     // it must match the configured issuer (derived from the authUrl origin).
-    await fetch(
+    await originalFetch(
       `${redirectUri}?code=auth-code&state=${state}&iss=${encodeURIComponent('https://accounts.example.test')}`,
     );
 
     expect(tokensPromise).resolves.toEqual({ accessToken: 'access', refreshToken: 'refresh', expiresIn: 3600 });
-    await close(tokenServer);
   });
 
   test('accepts an explicit issuer that differs from the authorization endpoint', async () => {
-    const tokenServer = createServer((_req, res) => {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ access_token: 'access', token_type: 'Bearer', expires_in: 3600 }));
-    });
-    const tokenPort = await listen(tokenServer);
+    mockTokenEndpoint(200, { access_token: 'access', token_type: 'Bearer', expires_in: 3600 });
 
     const { authUrl, waitForTokens } = await startOAuthFlow(
       {
         authUrl: 'https://login.example.test/authorize',
-        tokenUrl: `http://127.0.0.1:${tokenPort}/token`,
+        tokenUrl: TOKEN_URL,
         issuer: 'https://issuer.example.test',
         defaultScopes: [],
         scopeDescriptions: {},
@@ -154,69 +144,37 @@ describe('startOAuthFlow', () => {
     if (!redirectUri || !state) throw new Error('OAuth URL missing callback parameters');
 
     const tokensPromise = waitForTokens();
-    await fetch(
+    await originalFetch(
       `${redirectUri}?code=auth-code&state=${state}&iss=${encodeURIComponent('https://issuer.example.test')}`,
     );
 
     expect(tokensPromise).resolves.toEqual({ accessToken: 'access', refreshToken: null, expiresIn: 3600 });
-    await close(tokenServer);
   });
 });
 
 describe('refreshAccessToken', () => {
-  test('maps rotated refresh tokens', async () => {
-    const server = createServer((_req, res) => {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          access_token: 'new-access',
-          token_type: 'Bearer',
-          refresh_token: 'new-refresh',
-          expires_in: 1800,
-        }),
-      );
-    });
-    const port = await listen(server);
-
-    expect(
-      refreshAccessToken(`http://127.0.0.1:${port}/token`, 'client-id', 'client-secret', 'old-refresh'),
-    ).resolves.toEqual({ accessToken: 'new-access', refreshToken: 'new-refresh', expiresIn: 1800 });
-
-    await close(server);
-  });
-
   test('ignores an id_token whose issuer differs from the token endpoint', async () => {
-    const server = createServer((_req, res) => {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          access_token: 'new-access',
-          token_type: 'Bearer',
-          refresh_token: 'new-refresh',
-          expires_in: 1800,
-          id_token: idToken('https://accounts.google.com'),
-        }),
-      );
+    mockTokenEndpoint(200, {
+      access_token: 'new-access',
+      token_type: 'Bearer',
+      refresh_token: 'new-refresh',
+      expires_in: 1800,
+      id_token: idToken('https://accounts.google.com'),
     });
-    const port = await listen(server);
 
-    expect(
-      refreshAccessToken(`http://127.0.0.1:${port}/token`, 'client-id', 'client-secret', 'old-refresh'),
-    ).resolves.toEqual({ accessToken: 'new-access', refreshToken: 'new-refresh', expiresIn: 1800 });
-
-    await close(server);
+    expect(refreshAccessToken(TOKEN_URL, 'client-id', 'client-secret', 'old-refresh')).resolves.toEqual({
+      accessToken: 'new-access',
+      refreshToken: 'new-refresh',
+      expiresIn: 1800,
+    });
   });
 
   test('preserves refresh error details and clock skew', async () => {
     const serverTime = new Date(Date.now() - 10 * 60_000).toUTCString();
-    const server = createServer((_req, res) => {
-      res.writeHead(400, { 'Content-Type': 'application/json', Date: serverTime });
-      res.end(JSON.stringify({ error: 'invalid_grant', error_description: 'revoked' }));
-    });
-    const port = await listen(server);
+    mockTokenEndpoint(400, { error: 'invalid_grant', error_description: 'revoked' }, { Date: serverTime });
 
     try {
-      await refreshAccessToken(`http://127.0.0.1:${port}/token`, 'client-id', 'client-secret', 'old-refresh');
+      await refreshAccessToken(TOKEN_URL, 'client-id', 'client-secret', 'old-refresh');
       throw new Error('expected refresh to fail');
     } catch (error) {
       expect(error).toBeInstanceOf(OAuthRefreshError);
@@ -224,7 +182,5 @@ describe('refreshAccessToken', () => {
       expect((error as OAuthRefreshError).errorCode).toBe('invalid_grant');
       expect((error as OAuthRefreshError).clockSkewMs).toBeGreaterThanOrEqual(5 * 60_000);
     }
-
-    await close(server);
   });
 });
