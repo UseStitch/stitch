@@ -10,6 +10,7 @@ import {
   failBackgroundTask,
   getBackgroundTask,
   insertBackgroundTask,
+  interruptStaleBackgroundTasks,
   listBackgroundTasks,
   listRunningBackgroundTasks,
   markBackgroundTaskCancelled,
@@ -30,6 +31,10 @@ import { abortQuestions } from '@/question/service.js';
 import type { ModelMessage } from 'ai';
 
 const log = Log.create({ service: 'background-task-service' });
+const liveExecutions = new Map<PrefixedString<'ses'>, Promise<void>>();
+let acceptingTasks = false;
+let pendingStarts = 0;
+let pendingStartsDrained: (() => void) | null = null;
 
 type StartBackgroundTaskInput = {
   taskId: PrefixedString<'ses'>;
@@ -118,31 +123,88 @@ async function executeBackgroundTask(
   }
 }
 
+function finishPendingStart(): void {
+  pendingStarts--;
+  if (pendingStarts === 0) {
+    pendingStartsDrained?.();
+    pendingStartsDrained = null;
+  }
+}
+
+function waitForPendingStarts(): Promise<void> {
+  if (pendingStarts === 0) return Promise.resolve();
+  return new Promise((resolve) => {
+    pendingStartsDrained = resolve;
+  });
+}
+
+function isAcceptingTasks(): boolean {
+  return acceptingTasks;
+}
+
+export async function initializeBackgroundTaskService(): Promise<void> {
+  acceptingTasks = false;
+  const interrupted = await interruptStaleBackgroundTasks();
+  if (interrupted.length > 0) {
+    log.warn(
+      { event: 'background_task.interrupted', count: interrupted.length, taskIds: interrupted.map((task) => task.id) },
+      'interrupted stale background tasks during startup',
+    );
+  }
+  acceptingTasks = true;
+}
+
+export async function shutdownBackgroundTaskService(): Promise<void> {
+  acceptingTasks = false;
+  await waitForPendingStarts();
+
+  const taskIds = [...liveExecutions.keys()];
+  const executions = [...liveExecutions.values()];
+  await Promise.all(taskIds.map((taskId) => cancelBackgroundTask(taskId)));
+  await Promise.all(executions);
+}
+
 export async function startBackgroundTask(
   input: StartBackgroundTaskInput,
   dependencies: BackgroundTaskServiceDependencies = defaultDependencies,
 ): Promise<void> {
-  const task = await insertBackgroundTask({
-    id: input.taskId,
-    parentSessionId: input.parentSessionId,
-    childSessionId: input.childSessionId,
-    originMessageId: input.originMessageId,
-    originToolCallId: input.originToolCallId,
-    title: input.title,
-    providerId: input.providerId,
-    modelId: input.modelId,
-    activeToolsetIds: input.activeToolsetIds,
-  });
-  internalBus.emit('background-task.started', { task });
+  if (!isAcceptingTasks()) throw new Error('Background task service is shutting down');
 
-  const abortSignal = dependencies.registerAbort(input.childSessionId);
-  const execution = executeBackgroundTask(input, abortSignal, dependencies);
-  void execution.catch((error) => {
-    log.error(
-      { event: 'background_task.execution.unhandled', taskId: input.taskId, error },
-      'detached execution failed',
-    );
-  });
+  pendingStarts++;
+  try {
+    const task = await insertBackgroundTask({
+      id: input.taskId,
+      parentSessionId: input.parentSessionId,
+      childSessionId: input.childSessionId,
+      originMessageId: input.originMessageId,
+      originToolCallId: input.originToolCallId,
+      title: input.title,
+      providerId: input.providerId,
+      modelId: input.modelId,
+      activeToolsetIds: input.activeToolsetIds,
+    });
+
+    if (!isAcceptingTasks()) {
+      await markBackgroundTaskCancelled(input.taskId);
+      throw new Error('Background task service is shutting down');
+    }
+
+    internalBus.emit('background-task.started', { task });
+    const abortSignal = dependencies.registerAbort(input.childSessionId);
+    const execution = executeBackgroundTask(input, abortSignal, dependencies)
+      .catch((error) => {
+        log.error(
+          { event: 'background_task.execution.unhandled', taskId: input.taskId, error },
+          'detached execution failed',
+        );
+      })
+      .finally(() => {
+        liveExecutions.delete(input.taskId);
+      });
+    liveExecutions.set(input.taskId, execution);
+  } finally {
+    finishPendingStart();
+  }
 }
 
 export async function cancelBackgroundTask(taskId: PrefixedString<'ses'>) {

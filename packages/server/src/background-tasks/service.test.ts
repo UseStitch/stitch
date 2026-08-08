@@ -1,10 +1,16 @@
-import { describe, expect, test } from 'bun:test';
+import { beforeEach, describe, expect, test } from 'bun:test';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 
-import { getBackgroundTask } from '@/background-tasks/repository.js';
-import { cancelBackgroundTask, startBackgroundTask } from '@/background-tasks/service.js';
+import { getBackgroundTask, insertBackgroundTask } from '@/background-tasks/repository.js';
+import {
+  cancelBackgroundTask,
+  initializeBackgroundTaskService,
+  shutdownBackgroundTaskService,
+  startBackgroundTask,
+} from '@/background-tasks/service.js';
+import { archiveSession, deleteSession } from '@/chat/session-crud.js';
 import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
 import { setupTestDb } from '@/db/test-helpers.js';
@@ -12,6 +18,10 @@ import { internalBus } from '@/lib/internal-bus.js';
 import type { LlmProviderCredentials } from '@/provider/config/schema.js';
 
 setupTestDb();
+
+beforeEach(async () => {
+  await initializeBackgroundTaskService();
+});
 
 const parentSessionId = 'ses_service_parent' as PrefixedString<'ses'>;
 const childSessionId = 'ses_service_child' as PrefixedString<'ses'>;
@@ -162,5 +172,102 @@ describe('background task service', () => {
 
     expect((await getBackgroundTask(childSessionId))?.status).toBe('error');
     expect(scheduled).toEqual([parentSessionId]);
+  });
+
+  test('reconciles stale tasks without emitting lifecycle events', async () => {
+    await setupSessions();
+    await shutdownBackgroundTaskService();
+    await insertBackgroundTask({
+      id: childSessionId,
+      parentSessionId,
+      childSessionId,
+      originMessageId,
+      originToolCallId: 'tool-call',
+      title: 'Child',
+      providerId: 'openai',
+      modelId: 'model',
+      activeToolsetIds: [],
+    });
+
+    const events: string[] = [];
+    const unsubscribe = internalBus.on('background-task.interrupted', async () => {
+      events.push('interrupted');
+    });
+    await initializeBackgroundTaskService();
+    unsubscribe();
+
+    const task = await getBackgroundTask(childSessionId);
+    expect(task?.status).toBe('interrupted');
+    expect(task?.deliveryStatus).toBe('not-applicable');
+    expect(task?.completedAt).toBeNumber();
+    expect(events).toEqual([]);
+  });
+
+  test('shutdown rejects new launches until initialization resets the service', async () => {
+    await setupSessions();
+    await shutdownBackgroundTaskService();
+
+    expect(startBackgroundTask(input(async () => undefined))).rejects.toThrow(
+      'Background task service is shutting down',
+    );
+    expect(await getBackgroundTask(childSessionId)).toBeNull();
+
+    await initializeBackgroundTaskService();
+    await startBackgroundTask(
+      input(async () => undefined),
+      { registerAbort: () => new AbortController().signal, cleanupAbort: () => undefined },
+    );
+    await Bun.sleep(0);
+    expect((await getBackgroundTask(childSessionId))?.status).toBe('completed');
+  });
+
+  test('shutdown cancels and aborts live child streams before returning', async () => {
+    await setupSessions();
+    let childSignal: AbortSignal | undefined;
+    await startBackgroundTask(
+      input(async ({ abortSignal }) => {
+        childSignal = abortSignal;
+        await new Promise<void>((resolve) => abortSignal.addEventListener('abort', () => resolve(), { once: true }));
+      }),
+    );
+
+    await shutdownBackgroundTaskService();
+
+    expect(childSignal?.aborted).toBeTrue();
+    expect((await getBackgroundTask(childSessionId))?.status).toBe('cancelled');
+  });
+
+  test('deleting a parent aborts live descendants before cascading their rows', async () => {
+    await setupSessions();
+    let childSignal: AbortSignal | undefined;
+    await startBackgroundTask(
+      input(async ({ abortSignal }) => {
+        childSignal = abortSignal;
+        await new Promise<void>((resolve) => abortSignal.addEventListener('abort', () => resolve(), { once: true }));
+      }),
+    );
+
+    const result = await deleteSession(parentSessionId);
+
+    expect(result.error).toBeNull();
+    expect(childSignal?.aborted).toBeTrue();
+    expect(await getBackgroundTask(childSessionId)).toBeNull();
+  });
+
+  test('archiving a parent cancels live descendants', async () => {
+    await setupSessions();
+    let childSignal: AbortSignal | undefined;
+    await startBackgroundTask(
+      input(async ({ abortSignal }) => {
+        childSignal = abortSignal;
+        await new Promise<void>((resolve) => abortSignal.addEventListener('abort', () => resolve(), { once: true }));
+      }),
+    );
+
+    const result = await archiveSession(parentSessionId);
+
+    expect(result.error).toBeNull();
+    expect(childSignal?.aborted).toBeTrue();
+    expect((await getBackgroundTask(childSessionId))?.status).toBe('cancelled');
   });
 });
