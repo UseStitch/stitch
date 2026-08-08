@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm';
+import { z } from 'zod';
 
 import { isLocalProviderId } from '@stitch/shared/providers/types';
 
@@ -30,7 +31,7 @@ export async function upsertProviderCredentials(providerId: string, body: unknow
 
   const parsed = ProviderCredentialsSchema.safeParse({ ...(body as Record<string, unknown>), providerId });
   if (!parsed.success) {
-    return err('Invalid credentials', 400, parsed.error.flatten());
+    return err('Invalid credentials', 400, z.treeifyError(parsed.error));
   }
 
   const db = getDb();

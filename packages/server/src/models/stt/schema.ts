@@ -68,7 +68,7 @@ const SttProviderSchema = z.object({
 
 export const SttRegistryPayloadSchema = z.object({
   version: z.number().int().positive(),
-  generatedAt: z.string().datetime({ offset: true }),
+  generatedAt: z.iso.datetime({ offset: true }),
   providers: z.array(SttProviderSchema).min(1),
 });
 

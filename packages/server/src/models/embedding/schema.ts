@@ -36,7 +36,7 @@ const EmbeddingProviderSchema = z.object({
 
 export const EmbeddingRegistryPayloadSchema = z.object({
   version: z.number().int().positive(),
-  generatedAt: z.string().datetime({ offset: true }),
+  generatedAt: z.iso.datetime({ offset: true }),
   providers: z.array(EmbeddingProviderSchema).min(1),
 });
 
