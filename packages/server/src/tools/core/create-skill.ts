@@ -4,12 +4,12 @@ import { createSkillSchema } from '@stitch/shared/skills/types';
 
 import { createSkill } from '@/skills/service.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
+import type { z } from 'zod';
 
 const createSkillInputSchema = createSkillSchema.describe('A reusable skill to save for future use');
 
-export async function createSkillFromTool(input: unknown) {
-  const parsed = createSkillSchema.parse(input);
-  const result = await createSkill(parsed);
+export async function createSkillFromTool(input: z.input<typeof createSkillSchema>) {
+  const result = await createSkill(createSkillSchema.parse(input));
   if (result.error) {
     return { error: result.error.message };
   }

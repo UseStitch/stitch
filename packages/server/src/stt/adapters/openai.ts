@@ -112,7 +112,11 @@ export function createOpenAIMessageParser(sessionStartMs: number) {
 }
 
 function buildSessionConfig(config: STTConnectionConfig): string {
-  const audioInput: Record<string, unknown> = {
+  const audioInput: {
+    format: { type: 'audio/pcm'; rate: number };
+    transcription: { model: string; language?: string };
+    turn_detection: null;
+  } = {
     format: { type: 'audio/pcm', rate: 24000 },
     transcription: { model: config.modelId, ...(config.language ? { language: config.language } : {}) },
     turn_detection: null,

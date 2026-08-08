@@ -27,7 +27,7 @@ export function useRespondMcpElicitation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: RespondInput) =>
-      serverRequest<unknown>(`/chat/sessions/${input.sessionId}/mcp-elicitations/${input.elicitationId}/respond`, {
+      serverRequest<null>(`/chat/sessions/${input.sessionId}/mcp-elicitations/${input.elicitationId}/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: input.action, content: input.content }),
