@@ -109,6 +109,35 @@ describe('sse adapter', () => {
     unregisterSseConnection(stream);
   });
 
+  test('passthrough: forwards background task lifecycle events', () => {
+    const { stream, captured } = createMockStream();
+    registerSseConnection(stream);
+
+    const task = {
+      id: 'ses_child' as PrefixedString<'ses'>,
+      parentSessionId: sessionId,
+      childSessionId: 'ses_child' as PrefixedString<'ses'>,
+      originMessageId: messageId,
+      originToolCallId: 'tool_1',
+      title: 'Inspect cancellation',
+      status: 'completed' as const,
+      deliveryStatus: 'pending' as const,
+      result: 'Cancellation is conditional.',
+      error: null,
+      providerId: 'openai',
+      modelId: 'gpt-4o',
+      activeToolsetIds: ['developer'],
+      startedAt: 1,
+      completedAt: 2,
+      deliveredAt: null,
+    };
+
+    internalBus.emit('background-task.completed', { task });
+
+    expect(parseCaptured(captured, 'background-task.completed')).toEqual([{ task }]);
+    unregisterSseConnection(stream);
+  });
+
   test('tool lifecycle: maps five internal events to discriminated tool.state', () => {
     const { stream, captured } = createMockStream();
     registerSseConnection(stream);
