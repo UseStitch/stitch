@@ -21,6 +21,11 @@ import { buildSessionLlmMessages } from '@/llm/session-history.js';
 import { compact } from '@/llm/session-summary.js';
 import { cancelDecision, resolveDecision, type DoomLoopResponse } from '@/llm/stream/doom-loop.js';
 import { runStream } from '@/llm/stream/runner.js';
+import {
+  abortActiveSessionRun,
+  cancelQueuedSessionRuns,
+  enqueueSessionRun,
+} from '@/llm/stream/session-run-coordinator.js';
 import { abortMcpElicitations } from '@/mcp/elicitation-service.js';
 import * as LocalModels from '@/models/llm/local.js';
 import * as Models from '@/models/llm/registry.js';
@@ -174,38 +179,33 @@ async function loadTurnContext(
   return ok({ session, config: config as LlmTurnConfig });
 }
 
-async function runTurn(input: {
+function runTurn(input: {
   sessionId: PrefixedString<'ses'>;
   assistantMessageId: string;
   session: TurnSession;
   config: LlmTurnConfig;
   modelId: string;
-}): Promise<void> {
-  const llmMessages = await buildSessionLlmMessages(input.sessionId, { useBasePrompt: true, systemPrompt: null });
-
-  const abortSignal = AbortRegistry.register(input.sessionId);
-
+}): void {
   const isChildSession = input.session.parentSessionId !== null;
 
-  void runStream({
-    sessionId: input.sessionId,
-    assistantMessageId: input.assistantMessageId as PrefixedString<'msg'>,
-    modelId: input.modelId,
-    llmMessages,
-    credentials: input.config.credentials,
-    abortSignal,
-    allowTaskTool: !isChildSession,
-    excludedToolsetIds: isChildSession ? ['browser'] : undefined,
-  })
-    .catch((error) => {
-      log.error(
-        { event: 'stream.failed', sessionId: input.sessionId, messageId: input.assistantMessageId, error },
-        'stream run failed',
-      );
-    })
-    .finally(() => {
-      AbortRegistry.cleanup(input.sessionId);
+  void enqueueSessionRun(input.sessionId, async (abortSignal) => {
+    const llmMessages = await buildSessionLlmMessages(input.sessionId, { useBasePrompt: true, systemPrompt: null });
+    await runStream({
+      sessionId: input.sessionId,
+      assistantMessageId: input.assistantMessageId as PrefixedString<'msg'>,
+      modelId: input.modelId,
+      llmMessages,
+      credentials: input.config.credentials,
+      abortSignal,
+      allowTaskTool: !isChildSession,
+      excludedToolsetIds: isChildSession ? ['browser'] : undefined,
     });
+  }).catch((error) => {
+    log.error(
+      { event: 'stream.failed', sessionId: input.sessionId, messageId: input.assistantMessageId, error },
+      'stream run failed',
+    );
+  });
 }
 
 export async function sendMessage(
@@ -246,7 +246,7 @@ export async function sendMessage(
 
   await db.update(sessions).set({ updatedAt: Date.now() }).where(eq(sessions.id, input.sessionId));
 
-  await runTurn({
+  runTurn({
     sessionId: input.sessionId,
     assistantMessageId: input.assistantMessageId,
     session: context.data.session,
@@ -321,7 +321,7 @@ export async function redoMessage(
     await tx.update(sessions).set({ updatedAt: now }).where(eq(sessions.id, input.sessionId));
   });
 
-  await runTurn({
+  runTurn({
     sessionId: input.sessionId,
     assistantMessageId: input.assistantMessageId,
     session: context.data.session,
@@ -346,7 +346,8 @@ export function resolveDoomLoop(
 
 export async function abortSessionRun(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<null>> {
   log.info({ event: 'stream.abort.requested', sessionId }, 'stream abort requested');
-  AbortRegistry.abort(sessionId);
+  abortActiveSessionRun(sessionId);
+  cancelQueuedSessionRuns(sessionId);
   cancelDecision(sessionId);
 
   const db = getDb();
