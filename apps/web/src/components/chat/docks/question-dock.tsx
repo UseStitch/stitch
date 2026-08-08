@@ -63,7 +63,7 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
     setCustomAnswers(newCustomAnswers);
   }
 
-  function handleSubmit(event?: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(event?: React.SubmitEvent<HTMLFormElement>) {
     event?.preventDefault();
     const finalAnswers = answers.map((a, i) => {
       const customAnswer = customAnswers[i]?.trim();
