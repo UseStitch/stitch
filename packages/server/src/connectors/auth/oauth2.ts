@@ -91,7 +91,6 @@ function createOAuthConfiguration(
   clientId: string,
   clientSecret: string,
 ): oauth.Configuration {
-  const tokenUrl = new URL(config.tokenUrl);
   const configuration = new oauth.Configuration(
     {
       issuer: config.issuer ?? new URL(config.authUrl).origin,
@@ -105,10 +104,6 @@ function createOAuthConfiguration(
   );
 
   configuration[oauth.customFetch] = stripIdTokenFetch;
-
-  if (tokenUrl.protocol === 'http:' && tokenUrl.hostname === '127.0.0.1') {
-    oauth.allowInsecureRequests(configuration);
-  }
 
   return configuration;
 }
