@@ -1,6 +1,7 @@
 import type { StoredPart } from '@stitch/shared/chat/messages';
 
 import { AssistantMessageBubble } from '@/components/chat/message-bubble/assistant-message-bubble';
+import { BackgroundTaskResultBubble } from '@/components/chat/message-bubble/background-task-result-bubble';
 import { UserMessageBubble } from '@/components/chat/message-bubble/user-message-bubble';
 
 type MessageBubbleProps = {
@@ -13,6 +14,13 @@ type MessageBubbleProps = {
 };
 
 export function MessageBubble({ role, parts, finishReason, onAbortTool, onSplit, onEdit }: MessageBubbleProps) {
+  const backgroundTaskResults = parts.filter(
+    (part): part is Extract<StoredPart, { type: 'background-task-result' }> => part.type === 'background-task-result',
+  );
+  if (backgroundTaskResults.length > 0) {
+    return <BackgroundTaskResultBubble parts={backgroundTaskResults} />;
+  }
+
   if (role === 'user') {
     return <UserMessageBubble parts={parts} onSplit={onSplit} onEdit={onEdit} />;
   }
