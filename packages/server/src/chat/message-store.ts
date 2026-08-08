@@ -62,6 +62,18 @@ export async function saveAssistantMessage(opts: SaveAssistantMessageOpts): Prom
       createdAt: startedAt,
       startedAt,
       duration: finishedAt - startedAt,
+    })
+    .onConflictDoUpdate({
+      target: messages.id,
+      set: {
+        parts: accumulatedParts,
+        usage: totalUsage,
+        costUsd,
+        finishReason: finalFinishReason,
+        updatedAt: finishedAt,
+        startedAt,
+        duration: finishedAt - startedAt,
+      },
     });
 
   internalBus.emit('session.message.saved', {

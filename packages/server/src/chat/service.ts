@@ -9,6 +9,7 @@ import { createMessageId, createPartId, createSessionId } from '@stitch/shared/i
 import type { PrefixedString } from '@stitch/shared/id';
 import { isLocalProviderId } from '@stitch/shared/providers/types';
 
+import { cancelBackgroundTasksForParent } from '@/background-tasks/service.js';
 import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema/providers.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
@@ -357,6 +358,7 @@ export async function abortSessionRun(sessionId: PrefixedString<'ses'>): Promise
     .where(eq(sessions.parentSessionId, sessionId));
 
   await Promise.all([
+    cancelBackgroundTasksForParent(sessionId),
     abortQuestions(sessionId),
     abortPermissionResponses(sessionId),
     abortMcpElicitations(sessionId),
