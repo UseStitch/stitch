@@ -47,9 +47,7 @@ export const EMPTY_ADD_FORM: AddFormState = {
 export const addMcpServerSchema = z
   .object({
     name: z.string().trim().min(1, 'Name is required'),
-    url: z
-      .url('Enter a valid URL, e.g. https://mcp.example.com')
-      .refine((url) => ['http:', 'https:'].includes(new URL(url).protocol), 'URL must use http or https'),
+    url: z.url('Enter a valid URL, e.g. https://mcp.example.com'),
     transport: z.enum(MCP_TRANSPORT_TYPES),
     authType: z.enum(MCP_AUTH_TYPES),
     apiKey: z.string(),

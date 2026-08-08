@@ -71,6 +71,17 @@ function getSessionIdFromPayload(eventName: SseEventName, payload: unknown): str
     return payload.permissionResponse.sessionId;
   }
 
+  if (
+    eventName === 'mcp.elicitation.requested' &&
+    'elicitation' in payload &&
+    payload.elicitation &&
+    typeof payload.elicitation === 'object' &&
+    'sessionId' in payload.elicitation &&
+    typeof payload.elicitation.sessionId === 'string'
+  ) {
+    return payload.elicitation.sessionId;
+  }
+
   return null;
 }
 

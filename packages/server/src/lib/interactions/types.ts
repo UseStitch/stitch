@@ -1,6 +1,6 @@
 import type { PrefixedString } from '@stitch/shared/id';
 
-type InteractionKind = 'permission' | 'question' | 'doom_loop';
+type InteractionKind = 'permission' | 'question' | 'doom_loop' | 'mcp_elicitation';
 
 export type PendingInteractionSnapshot = {
   id: string;

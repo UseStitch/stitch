@@ -11,6 +11,7 @@ import { useSSE } from '@/hooks/sse/sse-context';
 import { sessionKeys } from '@/lib/queries/chat';
 import { connectorKeys } from '@/lib/queries/connectors';
 import { mcpKeys } from '@/lib/queries/mcp';
+import { mcpElicitationKeys } from '@/lib/queries/mcp-elicitations';
 import { permissionResponseKeys } from '@/lib/queries/permissions';
 import { questionKeys } from '@/lib/queries/questions';
 import { recordingsKeys } from '@/lib/queries/recordings';
@@ -267,6 +268,14 @@ function useServerEventSync(): void {
     },
     'mcp.auth.status_changed': () => {
       void queryClient.invalidateQueries({ queryKey: mcpKeys.list() });
+    },
+    'mcp.elicitation.requested': ({ elicitation }) => {
+      void queryClient.invalidateQueries({ queryKey: mcpElicitationKeys.list(elicitation.sessionId) });
+      markSessionUnread(queryClient, elicitation.sessionId, currentSessionId);
+      if (isSoundEnabled(queryClient)) playNotificationSound();
+    },
+    'mcp.elicitation.resolved': ({ sessionId }) => {
+      void queryClient.invalidateQueries({ queryKey: mcpElicitationKeys.list(sessionId) });
     },
   });
 }

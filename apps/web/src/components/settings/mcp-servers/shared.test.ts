@@ -9,11 +9,19 @@ function form(overrides: Partial<AddFormState> = {}): AddFormState {
 }
 
 describe('MCP server form validation', () => {
-  test('accepts only HTTP and HTTPS remote URLs', () => {
+  test('validates the initial empty form synchronously', () => {
+    const result = addMcpServerSchema['~standard'].validate(EMPTY_ADD_FORM);
+
+    expect(result).not.toBeInstanceOf(Promise);
+    expect(result).toHaveProperty('issues');
+  });
+
+  test('accepts valid MCP server URLs regardless of protocol', () => {
     expect(addMcpServerSchema.safeParse(form({ url: 'http://localhost:3000/mcp' })).success).toBe(true);
     expect(addMcpServerSchema.safeParse(form({ url: 'https://mcp.example.com' })).success).toBe(true);
-    expect(addMcpServerSchema.safeParse(form({ url: 'ftp://mcp.example.com' })).success).toBe(false);
-    expect(addMcpServerSchema.safeParse(form({ url: 'file:///tmp/mcp' })).success).toBe(false);
+    expect(addMcpServerSchema.safeParse(form({ url: 'ftp://mcp.example.com' })).success).toBe(true);
+    expect(addMcpServerSchema.safeParse(form({ url: 'file:///tmp/mcp' })).success).toBe(true);
+    expect(addMcpServerSchema.safeParse(form({ url: 'not a URL' })).success).toBe(false);
   });
 
   test('requires credentials for API key and header authentication', () => {
