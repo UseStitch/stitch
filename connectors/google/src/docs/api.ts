@@ -30,6 +30,10 @@ type DocsSearchResult = {
 
 type DocsReadResult = { id: string; title: string; text: string; webViewLink: string };
 
+type DocsBatchUpdateRequest =
+  | { deleteContentRange: { range: { startIndex: number; endIndex: number } } }
+  | { insertText: { location: { index: number }; text: string } };
+
 function collectText(elements: DocsStructuralElement[] | undefined): string {
   if (!elements?.length) {
     return '';
@@ -159,7 +163,7 @@ export async function updateDocument(
 ): Promise<{ id: string; title: string; webViewLink: string }> {
   const doc = await client.request<DocsDocumentRaw>(`${DOCS_API}/documents/${documentId}`);
   const bodyEndIndex = getBodyEndIndex(doc);
-  const requests: Array<Record<string, unknown>> = [];
+  const requests: DocsBatchUpdateRequest[] = [];
 
   if (mode === 'replace' && bodyEndIndex > 2) {
     requests.push({ deleteContentRange: { range: { startIndex: 1, endIndex: bodyEndIndex - 1 } } });

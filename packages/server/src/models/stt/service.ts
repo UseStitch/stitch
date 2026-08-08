@@ -5,7 +5,7 @@ import type { ModelDescriptor } from '@/stt/types.js';
 type CatalogEntry = { providerId: string; providerName: string; models: ModelDescriptor[] };
 
 function toModelDescriptor(model: SttModel): ModelDescriptor {
-  return model as unknown as ModelDescriptor;
+  return model;
 }
 
 function toCatalogEntry(provider: SttProvider): CatalogEntry {

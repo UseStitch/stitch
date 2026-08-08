@@ -438,7 +438,7 @@ export function LocalModelsPanel({ provider }: Props) {
 
   const upsertMutation = useMutation({
     mutationFn: (input: LocalModelInput) =>
-      serverRequest<unknown>(`/llm/local/${provider}/models`, {
+      serverRequest<LocalModel>(`/llm/local/${provider}/models`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),

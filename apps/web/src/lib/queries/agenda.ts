@@ -5,6 +5,8 @@ import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query
 import type {
   AgendaItemPriority,
   AgendaItemStatus,
+  AgendaItem,
+  AgendaList,
   AgendaListWithCounts,
   ListAgendaItemsResponse,
 } from '@stitch/shared/agenda/types';
@@ -63,7 +65,7 @@ export function useCreateAgendaList() {
 
   return useMutation({
     mutationFn: (input: { name: string; description?: string; color?: string }) =>
-      serverRequest<unknown>('/agenda/lists', {
+      serverRequest<AgendaList>('/agenda/lists', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
@@ -84,7 +86,7 @@ export function useUpdateAgendaList() {
       id: string;
       updates: { name?: string; description?: string; color?: string | null; isArchived?: boolean };
     }) =>
-      serverRequest<unknown>(`/agenda/lists/${input.id}`, {
+      serverRequest<AgendaList>(`/agenda/lists/${input.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input.updates),
@@ -124,7 +126,7 @@ export function useCreateAgendaItem() {
       listId?: string;
       listName?: string;
     }) =>
-      serverRequest<unknown>('/agenda/items', {
+      serverRequest<AgendaItem>('/agenda/items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
@@ -153,7 +155,7 @@ export function useUpdateAgendaItem() {
         listId?: string;
       };
     }) =>
-      serverRequest<unknown>(`/agenda/items/${input.id}`, {
+      serverRequest<AgendaItem>(`/agenda/items/${input.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input.updates),
@@ -191,7 +193,7 @@ export function useMergeAgendaLists() {
 
   return useMutation({
     mutationFn: (input: { targetId: string; sourceId: string }) =>
-      serverRequest<unknown>(`/agenda/lists/${input.targetId}/merge`, {
+      serverRequest<AgendaList>(`/agenda/lists/${input.targetId}/merge`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sourceId: input.sourceId }),

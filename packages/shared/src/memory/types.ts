@@ -57,6 +57,12 @@ export type MemoryConsolidationStatus = {
   rejectedCount: number;
 };
 
+export type MemoryConsolidationResult = Omit<MemoryConsolidationStatus, 'status' | 'lastRunAt' | 'summary'> & {
+  status: Exclude<MemoryConsolidationStatus['status'], 'never'>;
+  lastRunAt: string;
+  summary: string;
+};
+
 export type MemoryFilesOverview = {
   memory: MemoryFileSnapshot;
   user: MemoryFileSnapshot;

@@ -36,6 +36,16 @@ type CalendarEvent = {
 
 type CalendarSearchResult = { events: CalendarEvent[]; nextPageToken: string | undefined };
 
+type CalendarEventBody = {
+  summary?: string;
+  description?: string;
+  location?: string;
+  start?: { dateTime: string; timeZone?: string };
+  end?: { dateTime: string; timeZone?: string };
+  attendees?: { email: string }[];
+  conferenceData?: { createRequest: { requestId: string } };
+};
+
 function mapEvent(raw: CalendarEventRaw): CalendarEvent {
   const meetLink = raw.conferenceData?.entryPoints?.find((ep) => ep.entryPointType === 'video')?.uri;
 
@@ -116,7 +126,7 @@ export async function createEvent(
   const url = new URL(`${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events`);
   if (event.addMeet) url.searchParams.set('conferenceDataVersion', '1');
 
-  const body: Record<string, unknown> = {
+  const body: CalendarEventBody = {
     summary: event.summary,
     description: event.description,
     location: event.location,
@@ -153,7 +163,7 @@ export async function updateEvent(
   url.searchParams.set('sendUpdates', sendUpdates);
   if (patch.addMeet) url.searchParams.set('conferenceDataVersion', '1');
 
-  const body: Record<string, unknown> = {};
+  const body: CalendarEventBody = {};
   if (patch.summary !== undefined) body['summary'] = patch.summary;
   if (patch.description !== undefined) body['description'] = patch.description;
   if (patch.location !== undefined) body['location'] = patch.location;

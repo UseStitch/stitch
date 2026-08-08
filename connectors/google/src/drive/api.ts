@@ -34,6 +34,8 @@ type DriveSearchResult = { files: DriveFile[]; nextPageToken: string | undefined
 
 type DriveFileContent = { id: string; name: string; mimeType: string; content: string };
 
+type DriveFileMetadata = { name: string; mimeType?: string; parents?: string[] };
+
 function mapFile(raw: DriveFileRaw): DriveFile {
   return {
     id: raw.id,
@@ -121,7 +123,7 @@ export async function createFile(
   mimeType = 'text/plain',
   parentId?: string,
 ): Promise<DriveWriteResult> {
-  const metadata: Record<string, unknown> = { name, mimeType };
+  const metadata: DriveFileMetadata = { name, mimeType };
   if (parentId) metadata['parents'] = [parentId];
 
   const metadataPart = JSON.stringify(metadata);
@@ -155,7 +157,7 @@ export async function uploadFile(
   const content = await fs.readFile(filePath);
   const name = options?.name ?? path.basename(filePath);
   const mimeType = options?.mimeType ?? 'application/octet-stream';
-  const metadata: Record<string, unknown> = { name };
+  const metadata: DriveFileMetadata = { name };
   if (options?.parentId) metadata['parents'] = [options.parentId];
 
   const boundary = 'drive_upload_boundary';

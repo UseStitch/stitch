@@ -1,12 +1,14 @@
+import type { MemoryConsolidationResult } from '@stitch/shared/memory/types';
+
 import * as Log from '@/lib/log.js';
 import { ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { getMemoryConfig } from '@/memory/config.js';
-import { consolidateMemories, type ConsolidationResult } from '@/memory/consolidation.js';
+import { consolidateMemories } from '@/memory/consolidation.js';
 
 const log = Log.create({ service: 'memory-consolidation' });
 
-export async function runMemoryMaintenance(): Promise<ServiceResult<ConsolidationResult>> {
+export async function runMemoryMaintenance(): Promise<ServiceResult<MemoryConsolidationResult>> {
   const config = await getMemoryConfig();
   if (!config.enabled) {
     return ok({

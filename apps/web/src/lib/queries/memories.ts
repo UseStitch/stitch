@@ -5,6 +5,7 @@ import { queryOptions, type MutationOptions, type QueryClient } from '@tanstack/
 import type {
   DailyMemoryFilesResponse,
   ManagedMemoryEntry,
+  MemoryConsolidationResult,
   MemoryFileSnapshot,
   MemoryFilesOverview,
   MemorySearchResult,
@@ -109,7 +110,9 @@ export function saveRawMemoryMutationOptions(
   };
 }
 
-export function consolidateMemoryMutationOptions(queryClient: QueryClient): MutationOptions<unknown, Error, void> {
+export function consolidateMemoryMutationOptions(
+  queryClient: QueryClient,
+): MutationOptions<MemoryConsolidationResult, Error, void> {
   return {
     mutationFn: () => serverRequest('/memory/consolidate', { method: 'POST' }),
     onSuccess: () => {

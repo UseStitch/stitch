@@ -1,5 +1,7 @@
 import { generateText, Output } from 'ai';
 
+import type { MemoryConsolidationResult } from '@stitch/shared/memory/types';
+
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { createProvider } from '@/llm/provider/provider.js';
@@ -14,16 +16,7 @@ const MAX_CANDIDATE_CHARACTERS = 20_000;
 type ConsolidationCheckpoint = {
   processedDailyHashes: Record<string, string>;
   processedCandidateIds: string[];
-  lastRun: ConsolidationResult;
-};
-
-export type ConsolidationResult = {
-  status: 'accepted' | 'rejected' | 'failed' | 'noop';
-  lastRunAt: string;
-  summary: string;
-  candidateCount: number;
-  promotedCount: number;
-  rejectedCount: number;
+  lastRun: MemoryConsolidationResult;
 };
 
 type ValidationInput = {
@@ -177,7 +170,7 @@ function nextCheckpoint(
   previous: ConsolidationCheckpoint | null,
   pending: Awaited<ReturnType<typeof eligibleCandidates>>,
   handledIds: string[],
-  result: ConsolidationResult,
+  result: MemoryConsolidationResult,
 ): ConsolidationCheckpoint {
   const processedCandidateIds = [...new Set([...(previous?.processedCandidateIds ?? []), ...handledIds])];
   const processed = new Set(processedCandidateIds);
@@ -189,11 +182,14 @@ function nextCheckpoint(
   return { processedDailyHashes, processedCandidateIds, lastRun: result };
 }
 
-function auditMarkdown(result: ConsolidationResult): string {
+function auditMarkdown(result: MemoryConsolidationResult): string {
   return `## ${result.lastRunAt} - ${result.status}\n\n${result.summary}\n\n- Candidates: ${result.candidateCount}\n- Promoted: ${result.promotedCount}\n- Rejected/no-op: ${result.rejectedCount}`;
 }
 
-async function recordRejected(store: MemoryFileStore, result: ConsolidationResult): Promise<ConsolidationResult> {
+async function recordRejected(
+  store: MemoryFileStore,
+  result: MemoryConsolidationResult,
+): Promise<MemoryConsolidationResult> {
   await store
     .appendConsolidationLog(auditMarkdown(result))
     .catch((error) => log.warn({ error }, 'failed to append rejected consolidation audit'));
@@ -206,7 +202,7 @@ export async function consolidateMemories(
     maxCandidates?: number;
     propose?: (prompt: string) => Promise<ConsolidationProposal>;
   } = {},
-): Promise<ConsolidationResult> {
+): Promise<MemoryConsolidationResult> {
   const previous = maintenanceQueue;
   let release = (): void => undefined;
   maintenanceQueue = new Promise<void>((resolve) => {
@@ -235,7 +231,7 @@ export async function consolidateMemories(
       };
     }
     if (pending.candidates.length === 0) {
-      const result: ConsolidationResult = {
+      const result: MemoryConsolidationResult = {
         status: 'noop',
         lastRunAt,
         summary: 'No eligible user-origin candidates were found.',
@@ -297,7 +293,7 @@ export async function consolidateMemories(
       memoryHash: memory.contentHash,
       userHash: user.contentHash,
     });
-    const result: ConsolidationResult = {
+    const result: MemoryConsolidationResult = {
       status: 'accepted',
       lastRunAt,
       summary: proposal.summary,

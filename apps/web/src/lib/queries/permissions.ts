@@ -29,7 +29,7 @@ export function useAllowPermissionResponse() {
 
   return useMutation({
     mutationFn: (input: PermissionBaseInput) =>
-      serverRequest<unknown>(
+      serverRequest<null>(
         `/chat/sessions/${input.sessionId}/permission-responses/${input.permissionResponseId}/allow`,
         {
           method: 'POST',
@@ -48,7 +48,7 @@ export function useRejectPermissionResponse() {
 
   return useMutation({
     mutationFn: (input: PermissionBaseInput) =>
-      serverRequest<unknown>(
+      serverRequest<null>(
         `/chat/sessions/${input.sessionId}/permission-responses/${input.permissionResponseId}/reject`,
         {
           method: 'POST',
@@ -67,7 +67,7 @@ export function useAlternativePermissionResponse() {
 
   return useMutation({
     mutationFn: (input: PermissionAlternativeInput) =>
-      serverRequest<unknown>(
+      serverRequest<null>(
         `/chat/sessions/${input.sessionId}/permission-responses/${input.permissionResponseId}/alternative`,
         {
           method: 'POST',

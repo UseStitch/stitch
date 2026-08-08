@@ -25,7 +25,7 @@ export function useReplyQuestion() {
 
   return useMutation({
     mutationFn: (input: ReplyQuestionInput) =>
-      serverRequest<unknown>(`/chat/sessions/${input.sessionId}/questions/${input.questionId}/reply`, {
+      serverRequest<null>(`/chat/sessions/${input.sessionId}/questions/${input.questionId}/reply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answers: input.answers }),
@@ -41,9 +41,7 @@ export function useRejectQuestion() {
 
   return useMutation({
     mutationFn: (input: RejectQuestionInput) =>
-      serverRequest<unknown>(`/chat/sessions/${input.sessionId}/questions/${input.questionId}/reject`, {
-        method: 'POST',
-      }),
+      serverRequest<null>(`/chat/sessions/${input.sessionId}/questions/${input.questionId}/reject`, { method: 'POST' }),
     onSuccess: (_data, input) => {
       void queryClient.invalidateQueries({ queryKey: questionKeys.list(input.sessionId) });
     },

@@ -23,10 +23,10 @@ type UseSessionDocksOptions = {
   pendingPermissionResponses: PermissionResponse[];
   pendingMcpElicitations: McpElicitationRequest[];
   todos: SessionTodo[];
-  replyQuestion: UseMutationResult<unknown, Error, { sessionId: string; questionId: string; answers: string[][] }>;
-  rejectQuestion: UseMutationResult<unknown, Error, { sessionId: string; questionId: string }>;
+  replyQuestion: UseMutationResult<null, Error, { sessionId: string; questionId: string; answers: string[][] }>;
+  rejectQuestion: UseMutationResult<null, Error, { sessionId: string; questionId: string }>;
   allowPermissionResponse: UseMutationResult<
-    unknown,
+    null,
     Error,
     {
       sessionId: string;
@@ -35,7 +35,7 @@ type UseSessionDocksOptions = {
     }
   >;
   rejectPermissionResponse: UseMutationResult<
-    unknown,
+    null,
     Error,
     {
       sessionId: string;
@@ -44,12 +44,12 @@ type UseSessionDocksOptions = {
     }
   >;
   alternativePermissionResponse: UseMutationResult<
-    unknown,
+    null,
     Error,
     { sessionId: string; permissionResponseId: string; entry: string }
   >;
   respondMcpElicitation: UseMutationResult<
-    unknown,
+    null,
     Error,
     { sessionId: string; elicitationId: string; action: McpElicitationAction; content?: McpElicitationContent }
   >;
@@ -72,7 +72,7 @@ export function useSessionDocks({
 }: UseSessionDocksOptions): DockItem[] {
   const items: DockItem[] = [];
 
-  const runMutation = async (action: () => Promise<unknown>, errorMessage: string) => {
+  const runMutation = async (action: () => Promise<null>, errorMessage: string) => {
     try {
       await action();
     } catch (error) {
