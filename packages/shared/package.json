@@ -7,6 +7,8 @@
     "./apps/types": "./src/apps/types.ts",
     "./appearance/types": "./src/appearance/types.ts",
     "./automations/types": "./src/automations/types.ts",
+    "./background-tasks/events": "./src/background-tasks/events.ts",
+    "./background-tasks/types": "./src/background-tasks/types.ts",
     "./browser/electron": "./src/browser/electron.ts",
     "./chat/errors": "./src/chat/errors.ts",
     "./chat/messages": "./src/chat/messages.ts",

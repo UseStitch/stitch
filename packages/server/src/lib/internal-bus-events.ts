@@ -1,3 +1,4 @@
+import type { BackgroundTaskEvents } from '@stitch/shared/background-tasks/events';
 import type { StreamErrorDetails } from '@stitch/shared/chat/errors';
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { SessionEvents } from '@stitch/shared/chat/session-events';
@@ -224,6 +225,13 @@ type ScheduleJobFailedEvent = { key: string; automationId: PrefixedString<'auto'
 // ─── Event Map ───────────────────────────────────────────────────────────────
 
 export type InternalEventMap = {
+  // Background tasks
+  'background-task.started': BackgroundTaskEvents['background-task.started'];
+  'background-task.completed': BackgroundTaskEvents['background-task.completed'];
+  'background-task.failed': BackgroundTaskEvents['background-task.failed'];
+  'background-task.cancelled': BackgroundTaskEvents['background-task.cancelled'];
+  'background-task.interrupted': BackgroundTaskEvents['background-task.interrupted'];
+
   // Stream lifecycle
   'stream.started': StreamStartedEvent;
   'stream.step.completed': StreamStepCompletedEvent;

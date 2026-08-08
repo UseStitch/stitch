@@ -1,3 +1,4 @@
+import { BACKGROUND_TASK_EVENT_NAMES, type BackgroundTaskEvents } from './background-tasks/events.js';
 import { SESSION_EVENT_NAMES, type SessionEvents } from './chat/session-events.js';
 import { STREAM_EVENT_NAMES, type StreamEvents } from './chat/stream-events.js';
 import { CONNECTOR_EVENT_NAMES, type ConnectorEvents } from './connectors/events.js';
@@ -13,6 +14,7 @@ const CONNECTION_EVENT_NAMES = ['heartbeat', 'connected'] as const;
 type ConnectionEvents = { heartbeat: { ts: number }; connected: { ts: number } };
 
 export type SseEventPayloadMap = ConnectionEvents &
+  BackgroundTaskEvents &
   StreamEvents &
   SessionEvents &
   RecordingEvents &
@@ -25,6 +27,7 @@ export type SseEventPayloadMap = ConnectionEvents &
 
 export const SSE_EVENT_NAMES = [
   ...CONNECTION_EVENT_NAMES,
+  ...BACKGROUND_TASK_EVENT_NAMES,
   ...STREAM_EVENT_NAMES,
   ...SESSION_EVENT_NAMES,
   ...RECORDING_EVENT_NAMES,

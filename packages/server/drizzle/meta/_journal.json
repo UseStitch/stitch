@@ -48,6 +48,7 @@
     { "idx": 37, "version": "6", "when": 1783471267511, "tag": "0037_rich_maelstrom", "breakpoints": true },
     { "idx": 38, "version": "6", "when": 1783713767858, "tag": "0038_right_salo", "breakpoints": true },
     { "idx": 39, "version": "6", "when": 1784239111266, "tag": "0039_mushy_the_hunter", "breakpoints": true },
-    { "idx": 40, "version": "6", "when": 1786207876027, "tag": "0040_curly_timeslip", "breakpoints": true }
+    { "idx": 40, "version": "6", "when": 1786207876027, "tag": "0040_curly_timeslip", "breakpoints": true },
+    { "idx": 41, "version": "6", "when": 1786213804474, "tag": "0041_chief_mentallo", "breakpoints": true }
   ]
 }
