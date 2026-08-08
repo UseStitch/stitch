@@ -1,12 +1,14 @@
 import type { UseMutationResult } from '@tanstack/react-query';
 
 import { parseMcpToolName } from '@stitch/shared/mcp/types';
+import type { McpElicitationAction, McpElicitationContent, McpElicitationRequest } from '@stitch/shared/mcp/types';
 import type { PermissionResponse } from '@stitch/shared/permissions/types';
 import type { QuestionRequest } from '@stitch/shared/questions/types';
 import type { SessionTodo } from '@stitch/shared/todos/types';
 
 import type { DockItem } from '@/components/chat/docks/dock';
 import { DoomLoopDock } from '@/components/chat/docks/doom-loop-dock';
+import { McpElicitationDock } from '@/components/chat/docks/mcp-elicitation-dock';
 import { PermissionResponseDock } from '@/components/chat/docks/permission-response-dock';
 import { QuestionDock } from '@/components/chat/docks/question-dock';
 import { RetryDock } from '@/components/chat/docks/retry-dock';
@@ -19,6 +21,7 @@ type UseSessionDocksOptions = {
   doomLoop: DoomLoopInfo | null;
   pendingQuestions: QuestionRequest[];
   pendingPermissionResponses: PermissionResponse[];
+  pendingMcpElicitations: McpElicitationRequest[];
   todos: SessionTodo[];
   replyQuestion: UseMutationResult<unknown, Error, { sessionId: string; questionId: string; answers: string[][] }>;
   rejectQuestion: UseMutationResult<unknown, Error, { sessionId: string; questionId: string }>;
@@ -45,6 +48,11 @@ type UseSessionDocksOptions = {
     Error,
     { sessionId: string; permissionResponseId: string; entry: string }
   >;
+  respondMcpElicitation: UseMutationResult<
+    unknown,
+    Error,
+    { sessionId: string; elicitationId: string; action: McpElicitationAction; content?: McpElicitationContent }
+  >;
 };
 
 export function useSessionDocks({
@@ -53,12 +61,14 @@ export function useSessionDocks({
   doomLoop,
   pendingQuestions,
   pendingPermissionResponses,
+  pendingMcpElicitations,
   todos,
   replyQuestion,
   rejectQuestion,
   allowPermissionResponse,
   rejectPermissionResponse,
   alternativePermissionResponse,
+  respondMcpElicitation,
 }: UseSessionDocksOptions): DockItem[] {
   const items: DockItem[] = [];
 
@@ -110,6 +120,28 @@ export function useSessionDocks({
             await runMutation(
               () => rejectQuestion.mutateAsync({ sessionId, questionId }),
               'Failed to reject question:',
+            );
+          }}
+        />
+      ),
+    });
+  }
+
+  if (pendingMcpElicitations.length > 0) {
+    const elicitation = pendingMcpElicitations[0];
+    items.push({
+      id: 'mcp-elicitation',
+      title: `Request from ${elicitation.serverName}`,
+      defaultExpanded: true,
+      variant: 'primary',
+      children: (
+        <McpElicitationDock
+          request={elicitation}
+          isPending={respondMcpElicitation.isPending}
+          onRespond={async (action, content) => {
+            await runMutation(
+              () => respondMcpElicitation.mutateAsync({ sessionId, elicitationId: elicitation.id, action, content }),
+              'Failed to respond to MCP elicitation:',
             );
           }}
         />

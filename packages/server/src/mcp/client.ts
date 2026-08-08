@@ -1,6 +1,7 @@
 import { UnauthorizedError } from '@modelcontextprotocol/sdk/client/auth.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { ElicitRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { dynamicTool, jsonSchema } from 'ai';
 
 import type { PrefixedString } from '@stitch/shared/id';
@@ -9,6 +10,7 @@ import type { McpAuthConfig } from '@stitch/shared/mcp/types';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { buildAuthHeaders } from '@/mcp/auth.js';
+import { requestMcpElicitation } from '@/mcp/elicitation-service.js';
 import { McpOAuthProvider, setMcpAuthStatus } from '@/mcp/oauth-provider.js';
 import type { Tool as McpTool } from '@modelcontextprotocol/sdk/types.js';
 import type { JSONSchema7 } from 'ai';
@@ -57,28 +59,43 @@ function buildTransport(server: McpServerRef): StreamableHTTPClientTransport {
   return new StreamableHTTPClientTransport(new URL(server.url), { requestInit: { headers } });
 }
 
-function createAiTool(server: McpServerRef, tool: McpTool): Tool {
+function createAiTool(server: McpServerRef, tool: McpTool, sessionId: PrefixedString<'ses'>): Tool {
   return dynamicTool({
     title: tool.title,
     description: tool.description,
     inputSchema: jsonSchema(tool.inputSchema as JSONSchema7),
-    execute: (input) =>
-      withMcpClient(server, (client) =>
-        client.callTool({
-          name: tool.name,
-          arguments: input && typeof input === 'object' ? (input as Record<string, unknown>) : {},
-        }),
+    execute: (input, { abortSignal }) =>
+      withMcpClient(
+        server,
+        (client) =>
+          client.callTool(
+            {
+              name: tool.name,
+              arguments: input && typeof input === 'object' ? (input as Record<string, unknown>) : {},
+            },
+            undefined,
+            { signal: abortSignal },
+          ),
+        sessionId,
       ),
   });
 }
 
-export async function listMcpAiTools(server: McpServerRef): Promise<Record<string, Tool>> {
-  const result = await withMcpClient(server, (client) => client.listTools());
-  return Object.fromEntries(result.tools.map((tool) => [tool.name, createAiTool(server, tool)]));
+export async function listMcpAiTools(
+  server: McpServerRef,
+  sessionId: PrefixedString<'ses'>,
+): Promise<Record<string, Tool>> {
+  const result = await withMcpClient(server, (client) => client.listTools(), sessionId);
+  return Object.fromEntries(result.tools.map((tool) => [tool.name, createAiTool(server, tool, sessionId)]));
 }
 
-async function openClient(server: McpServerRef): Promise<McpClient> {
+function clientCacheKey(serverId: string, sessionId?: string): string {
+  return sessionId ? `${serverId}:${sessionId}` : serverId;
+}
+
+async function openClient(server: McpServerRef, sessionId?: PrefixedString<'ses'>): Promise<McpClient> {
   const transport = buildTransport(server);
+  const cacheKey = clientCacheKey(server.id, sessionId);
   const client = new Client(
     { name: 'stitch', version: '1.0.0' },
     {
@@ -101,10 +118,22 @@ async function openClient(server: McpServerRef): Promise<McpClient> {
           },
         },
       },
+      capabilities: sessionId ? { elicitation: { form: { applyDefaults: true }, url: {} } } : undefined,
     },
   );
+  if (sessionId) {
+    client.setRequestHandler(ElicitRequestSchema, (request, extra) =>
+      requestMcpElicitation({
+        sessionId,
+        serverId: server.id,
+        serverName: server.name,
+        params: request.params,
+        abortSignal: extra.signal,
+      }),
+    );
+  }
   client.onclose = () => {
-    clientCache.delete(server.id);
+    clientCache.delete(cacheKey);
   };
   client.onerror = (error) => {
     log.warn({ error, serverId: server.id, serverName: server.name }, 'MCP client error');
@@ -115,14 +144,15 @@ async function openClient(server: McpServerRef): Promise<McpClient> {
     .then(() => client)
     .catch((err) => {
       // Evict on connection failure so next call retries
-      clientCache.delete(server.id);
+      clientCache.delete(cacheKey);
       throw err;
     });
 }
 
 /** Get (or create) a cached MCP client for a server. */
-export function getMcpClient(server: McpServerRef): Promise<McpClient> {
-  const cached = clientCache.get(server.id);
+export function getMcpClient(server: McpServerRef, sessionId?: PrefixedString<'ses'>): Promise<McpClient> {
+  const cacheKey = clientCacheKey(server.id, sessionId);
+  const cached = clientCache.get(cacheKey);
   if (cached) return cached;
 
   log.info(
@@ -130,28 +160,35 @@ export function getMcpClient(server: McpServerRef): Promise<McpClient> {
     'opening MCP client connection',
   );
 
-  const promise = openClient(server);
-  clientCache.set(server.id, promise);
+  const promise = openClient(server, sessionId);
+  clientCache.set(cacheKey, promise);
   return promise;
 }
 
 /** Evict a cached client, forcing reconnect on next use. */
 export function evictMcpClient(serverId: string): void {
-  const cached = clientCache.get(serverId);
-  clientCache.delete(serverId);
-  void cached?.then((client) => client.close()).catch(() => undefined);
+  for (const [key, cached] of clientCache) {
+    if (key !== serverId && !key.startsWith(`${serverId}:`)) continue;
+    clientCache.delete(key);
+    void cached.then((client) => client.close()).catch(() => undefined);
+  }
 }
 
 /**
  * Call a function with a cached client, evicting the cache entry on failure
  * so the next call reconnects cleanly.
  */
-export async function withMcpClient<T>(server: McpServerRef, fn: (client: McpClient) => Promise<T>): Promise<T> {
-  const client = await getMcpClient(server);
+export async function withMcpClient<T>(
+  server: McpServerRef,
+  fn: (client: McpClient) => Promise<T>,
+  sessionId?: PrefixedString<'ses'>,
+): Promise<T> {
+  const cacheKey = clientCacheKey(server.id, sessionId);
+  const client = await getMcpClient(server, sessionId);
   try {
     return await fn(client);
   } catch (err) {
-    clientCache.delete(server.id);
+    clientCache.delete(cacheKey);
     if (server.authConfig.type === 'oauth' && isUnauthorizedError(err)) {
       await setMcpAuthStatus(server.id, 'reauthorization_required');
     }

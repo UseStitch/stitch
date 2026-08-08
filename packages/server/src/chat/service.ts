@@ -21,6 +21,7 @@ import { buildSessionLlmMessages } from '@/llm/session-history.js';
 import { compact } from '@/llm/session-summary.js';
 import { cancelDecision, resolveDecision, type DoomLoopResponse } from '@/llm/stream/doom-loop.js';
 import { runStream } from '@/llm/stream/runner.js';
+import { abortMcpElicitations } from '@/mcp/elicitation-service.js';
 import * as LocalModels from '@/models/llm/local.js';
 import * as Models from '@/models/llm/registry.js';
 import { abortPermissionResponses } from '@/permission/service.js';
@@ -357,10 +358,11 @@ export async function abortSessionRun(sessionId: PrefixedString<'ses'>): Promise
   await Promise.all([
     abortQuestions(sessionId),
     abortPermissionResponses(sessionId),
+    abortMcpElicitations(sessionId),
     ...childSessions.map(async (child) => {
       AbortRegistry.abort(child.id);
       cancelDecision(child.id);
-      await Promise.all([abortQuestions(child.id), abortPermissionResponses(child.id)]);
+      await Promise.all([abortQuestions(child.id), abortPermissionResponses(child.id), abortMcpElicitations(child.id)]);
     }),
   ]);
 

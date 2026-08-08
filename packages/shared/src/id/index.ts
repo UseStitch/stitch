@@ -9,6 +9,7 @@ export const ID_PREFIXES = {
   permissionResponse: 'permres',
   permissionRule: 'perm',
   mcpServer: 'mcp',
+  mcpElicitation: 'mcpel',
   connector: 'cnr',
   connectorInstance: 'conn',
   automation: 'auto',
@@ -80,6 +81,7 @@ export const createQuestionId = createIdFactory(ID_PREFIXES.question);
 export const createPermissionResponseId = createIdFactory(ID_PREFIXES.permissionResponse);
 export const createPermissionRuleId = createIdFactory(ID_PREFIXES.permissionRule);
 export const createMcpServerId = createIdFactory(ID_PREFIXES.mcpServer);
+export const createMcpElicitationId = createIdFactory(ID_PREFIXES.mcpElicitation);
 export const createConnectorId = createIdFactory(ID_PREFIXES.connector);
 export const createConnectorInstanceId = createIdFactory(ID_PREFIXES.connectorInstance);
 export const createAutomationId = createIdFactory(ID_PREFIXES.automation);

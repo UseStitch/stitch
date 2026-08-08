@@ -64,12 +64,14 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
     doomLoop: streamState.doomLoop,
     pendingQuestions: pendingItems.pendingQuestions,
     pendingPermissionResponses: pendingItems.pendingPermissionResponses,
+    pendingMcpElicitations: pendingItems.pendingMcpElicitations,
     todos,
     replyQuestion: pendingItems.replyQuestion,
     rejectQuestion: pendingItems.rejectQuestion,
     allowPermissionResponse: pendingItems.allowPermissionResponse,
     rejectPermissionResponse: pendingItems.rejectPermissionResponse,
     alternativePermissionResponse: pendingItems.alternativePermissionResponse,
+    respondMcpElicitation: pendingItems.respondMcpElicitation,
   });
 
   const isStreaming = streamState.isStreaming;

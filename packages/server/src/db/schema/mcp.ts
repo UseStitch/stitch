@@ -1,7 +1,17 @@
 import { blob, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 import type { PrefixedString } from '@stitch/shared/id';
-import type { McpAuthConfig, McpAuthStatus, McpTool, McpTransport } from '@stitch/shared/mcp/types';
+import type {
+  McpAuthConfig,
+  McpAuthStatus,
+  McpElicitationContent,
+  McpElicitationSchema,
+  McpElicitationStatus,
+  McpTool,
+  McpTransport,
+} from '@stitch/shared/mcp/types';
+
+import { sessions } from '@/db/schema/sessions.js';
 
 export const mcpServers = sqliteTable('mcp_servers', {
   id: text('id').$type<PrefixedString<'mcp'>>().primaryKey(),
@@ -57,4 +67,28 @@ export const mcpOAuthSessions = sqliteTable('mcp_oauth_sessions', {
   updatedAt: integer('updated_at', { mode: 'number' })
     .notNull()
     .$defaultFn(() => Date.now()),
+});
+
+export const mcpElicitations = sqliteTable('mcp_elicitations', {
+  id: text('id').$type<PrefixedString<'mcpel'>>().primaryKey(),
+  sessionId: text('session_id')
+    .$type<PrefixedString<'ses'>>()
+    .notNull()
+    .references(() => sessions.id, { onDelete: 'cascade' }),
+  serverId: text('server_id')
+    .$type<PrefixedString<'mcp'>>()
+    .notNull()
+    .references(() => mcpServers.id, { onDelete: 'cascade' }),
+  serverName: text('server_name').notNull(),
+  mode: text('mode').$type<'form' | 'url'>().notNull(),
+  message: text('message').notNull(),
+  requestedSchema: blob('requested_schema', { mode: 'json' }).$type<McpElicitationSchema>(),
+  url: text('url'),
+  externalElicitationId: text('external_elicitation_id'),
+  status: text('status').$type<McpElicitationStatus>().notNull().default('pending'),
+  content: blob('content', { mode: 'json' }).$type<McpElicitationContent>(),
+  createdAt: integer('created_at', { mode: 'number' })
+    .notNull()
+    .$defaultFn(() => Date.now()),
+  resolvedAt: integer('resolved_at', { mode: 'number' }),
 });

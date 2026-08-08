@@ -79,6 +79,80 @@ export type McpTool = {
 
 export type McpIcon = { src: string; mimeType?: string; sizes?: string[]; theme?: 'light' | 'dark' };
 
+type McpElicitationStringSchema = {
+  type: 'string';
+  title?: string;
+  description?: string;
+  minLength?: number;
+  maxLength?: number;
+  format?: 'email' | 'uri' | 'date' | 'date-time';
+  default?: string;
+};
+
+type McpElicitationNumberSchema = {
+  type: 'number' | 'integer';
+  title?: string;
+  description?: string;
+  minimum?: number;
+  maximum?: number;
+  default?: number;
+};
+
+type McpElicitationBooleanSchema = { type: 'boolean'; title?: string; description?: string; default?: boolean };
+
+type McpElicitationSingleSelectSchema = {
+  type: 'string';
+  title?: string;
+  description?: string;
+  enum?: string[];
+  oneOf?: Array<{ const: string; title: string }>;
+  default?: string;
+};
+
+type McpElicitationMultiSelectSchema = {
+  type: 'array';
+  title?: string;
+  description?: string;
+  minItems?: number;
+  maxItems?: number;
+  items: { type?: 'string'; enum?: string[]; anyOf?: Array<{ const: string; title: string }> };
+  default?: string[];
+};
+
+export type McpElicitationPropertySchema =
+  | McpElicitationStringSchema
+  | McpElicitationNumberSchema
+  | McpElicitationBooleanSchema
+  | McpElicitationSingleSelectSchema
+  | McpElicitationMultiSelectSchema;
+
+export type McpElicitationSchema = {
+  $schema?: string;
+  type: 'object';
+  properties: Record<string, McpElicitationPropertySchema>;
+  required?: string[];
+};
+
+export type McpElicitationContent = Record<string, string | number | boolean | string[]>;
+export type McpElicitationAction = 'accept' | 'decline' | 'cancel';
+export type McpElicitationStatus = 'pending' | 'accepted' | 'declined' | 'cancelled';
+
+export type McpElicitationRequest = {
+  id: PrefixedString<'mcpel'>;
+  sessionId: PrefixedString<'ses'>;
+  serverId: PrefixedString<'mcp'>;
+  serverName: string;
+  mode: 'form' | 'url';
+  message: string;
+  requestedSchema?: McpElicitationSchema;
+  url?: string;
+  externalElicitationId?: string;
+  status: McpElicitationStatus;
+  content?: McpElicitationContent;
+  createdAt: number;
+  resolvedAt?: number;
+};
+
 const MCP_SERVER_ID_LENGTH = 30; // "mcp_" (4) + 26 body chars
 
 /** Formats a tool name for the AI SDK tools map by combining the server ID and tool name. */

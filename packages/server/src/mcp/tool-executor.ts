@@ -39,7 +39,7 @@ const DEFAULT_DEPS: McpToolExecutorDeps = {
 };
 
 async function getToolsForServer(server: McpServerWithTools, context: ToolContext): Promise<Record<string, Tool>> {
-  const rawTools = await listMcpAiTools(server);
+  const rawTools = await listMcpAiTools(server, context.sessionId);
 
   const pipeline = ToolPipeline.create(context);
   const prefixed: Record<string, Tool> = {};

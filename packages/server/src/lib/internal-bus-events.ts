@@ -5,6 +5,7 @@ import type { StreamEvents } from '@stitch/shared/chat/stream-events';
 import type { ConnectorEvents } from '@stitch/shared/connectors/events';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { MailEvents } from '@stitch/shared/mail/events';
+import type { McpEvents } from '@stitch/shared/mcp/events';
 import type { McpAuthStatus } from '@stitch/shared/mcp/types';
 import type { PermissionEvents } from '@stitch/shared/permissions/events';
 import type { QuestionEvents } from '@stitch/shared/questions/events';
@@ -286,6 +287,8 @@ export type InternalEventMap = {
   'mcp.tools.list_changed': McpToolsChangedEvent;
   'mcp.tools.changed': McpToolsChangedEvent;
   'mcp.auth.status_changed': McpAuthStatusChangedEvent;
+  'mcp.elicitation.requested': McpEvents['mcp.elicitation.requested'];
+  'mcp.elicitation.resolved': McpEvents['mcp.elicitation.resolved'];
 
   // Skills
   'skill.created': SkillEvents['skill.created'];
