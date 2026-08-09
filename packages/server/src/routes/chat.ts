@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 
 import { generateAutomationDraft } from '@/automations/generation.js';
+import { cancelBackgroundTaskById, listBackgroundTasksForParent } from '@/background-tasks/service.js';
 import {
   abortSessionRun,
   getSessionStats,
@@ -92,6 +93,16 @@ chatRouter.get('/sessions/:id/todos', zValidator('param', sessionIdParamSchema),
   const { id } = c.req.valid('param');
   const result = await listSessionTodos(id);
   return unwrapResult(c, result);
+});
+
+chatRouter.get('/sessions/:id/background-tasks', zValidator('param', sessionIdParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
+  return unwrapResult(c, await listBackgroundTasksForParent(id));
+});
+
+chatRouter.post('/background-tasks/:id/cancel', zValidator('param', sessionIdParamSchema), async (c) => {
+  const { id } = c.req.valid('param');
+  return unwrapResult(c, await cancelBackgroundTaskById(id));
 });
 
 chatRouter.get(

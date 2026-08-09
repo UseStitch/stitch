@@ -128,7 +128,7 @@ function isToolResultError(output: unknown): boolean {
   );
 }
 
-function getChildSessionId(result: unknown): string | null {
+export function getChildSessionId(result: unknown): string | null {
   if (!result || typeof result !== 'object') return null;
   const id = (result as Record<string, unknown>).childSessionId;
   return typeof id === 'string' ? id : null;

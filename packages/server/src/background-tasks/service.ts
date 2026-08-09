@@ -1,5 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 
+import type { BackgroundTask } from '@stitch/shared/background-tasks/types';
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { LlmProviderId } from '@stitch/shared/providers/types';
@@ -9,6 +10,7 @@ import {
   failBackgroundTask,
   getBackgroundTask,
   insertBackgroundTask,
+  listBackgroundTasks,
   listRunningBackgroundTasks,
   markBackgroundTaskCancelled,
 } from '@/background-tasks/repository.js';
@@ -18,6 +20,7 @@ import { messages } from '@/db/schema/sessions.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
+import { err, ok, type ServiceResult } from '@/lib/service-result.js';
 import { cancelDecision } from '@/llm/stream/doom-loop.js';
 import type { runStream } from '@/llm/stream/runner.js';
 import { abortMcpElicitations } from '@/mcp/elicitation-service.js';
@@ -169,4 +172,15 @@ export async function cancelBackgroundTasksForParent(parentSessionId: PrefixedSt
     pendingParents.push(...tasks.map((task) => task.childSessionId));
     await Promise.all(tasks.map((task) => cancelBackgroundTask(task.id)));
   }
+}
+
+export async function listBackgroundTasksForParent(
+  parentSessionId: PrefixedString<'ses'>,
+): Promise<ServiceResult<BackgroundTask[]>> {
+  return ok(await listBackgroundTasks(parentSessionId));
+}
+
+export async function cancelBackgroundTaskById(taskId: PrefixedString<'ses'>): Promise<ServiceResult<BackgroundTask>> {
+  const task = await cancelBackgroundTask(taskId);
+  return task ? ok(task) : err('Background task not found', 404);
 }

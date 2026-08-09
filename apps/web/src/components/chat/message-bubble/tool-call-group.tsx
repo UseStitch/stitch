@@ -2,18 +2,21 @@ import { cn } from 'cnfast';
 import { ChevronDownIcon, ClockIcon, ExternalLinkIcon, SquareIcon } from 'lucide-react';
 import * as React from 'react';
 
-import { Link } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
+import { Link, useParams } from '@tanstack/react-router';
 
+import type { BackgroundTask, BackgroundTaskStatus } from '@stitch/shared/background-tasks/types';
 import type { ToolCallStatus } from '@stitch/shared/chat/stream-events';
 
 import {
   getToolCallActions,
+  getChildSessionId,
   getToolSummary,
   type ToolCallAction,
   type ToolCallDisplayItem,
   type ToolCallSummary,
 } from './tool-call-display';
-import { useStitchToolDisplayName } from './tool-call/card-primitives';
+import { truncateText, useStitchToolDisplayName } from './tool-call/card-primitives';
 
 import { ConnectorIcon } from '@/components/connectors/connector-icon';
 import { McpServerLogo } from '@/components/mcp/mcp-server-logo';
@@ -24,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { CopyButton } from '@/components/ui/copy-button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
+import { backgroundTasksQueryOptions, useCancelBackgroundTask } from '@/lib/queries/background-tasks';
 
 const VISIBLE_TOOL_COUNT = 4;
 
@@ -45,10 +49,27 @@ const STATUS_LABEL: Record<ToolCallStatus, string> = {
   error: 'Error',
 };
 
+const BACKGROUND_STATUS_LABEL: Record<BackgroundTaskStatus, string> = {
+  running: 'Running',
+  completed: 'Completed',
+  error: 'Failed',
+  cancelled: 'Cancelled',
+  interrupted: 'Interrupted',
+};
+
+const BACKGROUND_STATUS_TONE = {
+  running: 'primary',
+  completed: 'success',
+  error: 'destructive',
+  cancelled: 'muted',
+  interrupted: 'muted',
+} as const;
+
 type ToolCallRowContextValue = {
   call: ToolCallDisplayItem;
   summary: ToolCallSummary;
   errorDetails: ToolErrorDetails | null;
+  backgroundTask: BackgroundTask | undefined;
   onViewErrorDetails: (details: ToolErrorDetails) => void;
 };
 
@@ -116,10 +137,26 @@ function ToolCallDisplayRow({
   animateIn: boolean;
 }) {
   const displayName = useStitchToolDisplayName(call.toolName);
-  const summary = getToolSummary(call, displayName);
+  const params = useParams({ strict: false });
+  const childSessionId = getChildSessionId(call.result);
+  const isBackgroundTask = call.toolName === 'task' && Boolean(params.id && childSessionId);
+  const { data: backgroundTasks } = useQuery({
+    ...backgroundTasksQueryOptions(params.id ?? ''),
+    enabled: isBackgroundTask,
+  });
+  const backgroundTask = backgroundTasks?.find((task) => task.childSessionId === childSessionId);
+  const baseSummary = getToolSummary(call, displayName);
+  const summary =
+    backgroundTask?.status === 'error' && backgroundTask.error
+      ? { ...baseSummary, preview: truncateText(backgroundTask.error, 96) }
+      : baseSummary;
   const isActive = call.status === 'pending' || call.status === 'in-progress';
   const errorDetails =
-    call.status === 'error' && call.error ? { toolName: call.toolName, label: summary.label, error: call.error } : null;
+    backgroundTask?.status === 'error' && backgroundTask.error
+      ? { toolName: call.toolName, label: summary.label, error: backgroundTask.error }
+      : call.status === 'error' && call.error
+        ? { toolName: call.toolName, label: summary.label, error: call.error }
+        : null;
   const actions = getToolCallActions(call);
 
   return (
@@ -127,6 +164,7 @@ function ToolCallDisplayRow({
       call={call}
       summary={summary}
       errorDetails={errorDetails}
+      backgroundTask={backgroundTask}
       onViewErrorDetails={onViewErrorDetails}
       animateIn={animateIn && isActive}>
       <ToolCallRow.Icon />
@@ -135,6 +173,7 @@ function ToolCallDisplayRow({
       <ToolCallRow.Meta />
       <ToolCallRow.Status />
       {isActive && onAbort ? <ToolCallRow.StopButton onAbort={onAbort} /> : null}
+      {backgroundTask?.status === 'running' ? <BackgroundTaskCancelButton task={backgroundTask} /> : null}
       <ToolCallRow.Actions actions={actions} />
     </ToolCallRow.Root>
   );
@@ -155,6 +194,7 @@ function ToolCallRowRoot({
   call,
   summary,
   errorDetails,
+  backgroundTask,
   onViewErrorDetails,
   animateIn,
   children,
@@ -162,13 +202,14 @@ function ToolCallRowRoot({
   call: ToolCallDisplayItem;
   summary: ToolCallSummary;
   errorDetails: ToolErrorDetails | null;
+  backgroundTask: BackgroundTask | undefined;
   onViewErrorDetails: (details: ToolErrorDetails) => void;
   animateIn: boolean;
   children: React.ReactNode;
 }) {
   const contextValue = React.useMemo(
-    () => ({ call, summary, errorDetails, onViewErrorDetails }),
-    [call, summary, errorDetails, onViewErrorDetails],
+    () => ({ call, summary, errorDetails, backgroundTask, onViewErrorDetails }),
+    [call, summary, errorDetails, backgroundTask, onViewErrorDetails],
   );
 
   return (
@@ -185,8 +226,8 @@ function ToolCallRowRoot({
 }
 
 function ToolCallRowIcon() {
-  const { call, summary } = useToolCallRow();
-  return <ToolStatusIcon status={call.status} summary={summary} />;
+  const { call, summary, backgroundTask } = useToolCallRow();
+  return <ToolStatusIcon status={call.status} summary={summary} backgroundStatus={backgroundTask?.status} />;
 }
 
 function ToolCallRowLabel() {
@@ -241,7 +282,17 @@ function ToolCallRowMeta() {
 }
 
 function ToolCallRowStatus() {
-  const { call, errorDetails, onViewErrorDetails } = useToolCallRow();
+  const { call, errorDetails, backgroundTask, onViewErrorDetails } = useToolCallRow();
+
+  if (backgroundTask && !errorDetails) {
+    return (
+      <span className="flex h-5 w-16 shrink-0 items-center justify-end">
+        <Text as="span" variant="micro" tone={BACKGROUND_STATUS_TONE[backgroundTask.status]} align="right">
+          {BACKGROUND_STATUS_LABEL[backgroundTask.status]}
+        </Text>
+      </span>
+    );
+  }
 
   if (!errorDetails) {
     return (
@@ -262,7 +313,7 @@ function ToolCallRowStatus() {
         onClick={() => onViewErrorDetails(errorDetails)}
         className="hover:underline"
         title="View full error">
-        {STATUS_LABEL[call.status]}
+        {backgroundTask?.status === 'error' ? BACKGROUND_STATUS_LABEL.error : STATUS_LABEL[call.status]}
       </Button>
     </span>
   );
@@ -274,6 +325,24 @@ function ToolCallRowStopButton({ onAbort }: { onAbort: () => void }) {
       <Icon as={SquareIcon} size="xs" />
       <Text as="span" variant="micro" tone="destructive">
         Stop
+      </Text>
+    </Button>
+  );
+}
+
+function BackgroundTaskCancelButton({ task }: { task: BackgroundTask }) {
+  const cancel = useCancelBackgroundTask();
+  return (
+    <Button
+      type="button"
+      variant="destructive-quiet"
+      size="xs"
+      disabled={cancel.isPending}
+      onClick={() => cancel.mutate(task.id)}
+      title="Cancel background task">
+      <Icon as={SquareIcon} size="xs" />
+      <Text as="span" variant="micro" tone="destructive">
+        Cancel
       </Text>
     </Button>
   );
@@ -333,7 +402,19 @@ function ToolErrorDetailsDialog({
   );
 }
 
-function ToolStatusIcon({ status, summary }: { status: ToolCallStatus; summary: ToolCallSummary }) {
+function ToolStatusIcon({
+  status,
+  summary,
+  backgroundStatus,
+}: {
+  status: ToolCallStatus;
+  summary: ToolCallSummary;
+  backgroundStatus?: BackgroundTaskStatus;
+}) {
+  if (backgroundStatus === 'running') {
+    return <Spinner size="sm" tone="primary" className="shrink-0" />;
+  }
+
   if (status === 'pending') {
     return <Icon as={ClockIcon} size="s" color="var(--muted-foreground)" />;
   }
@@ -346,7 +427,14 @@ function ToolStatusIcon({ status, summary }: { status: ToolCallStatus; summary: 
     return (
       <ConnectorIcon
         icon={{ type: 'simpleIcons', slug: summary.connectorIconSlug }}
-        className={cn('size-3.5 shrink-0', status === 'error' ? 'bg-destructive' : 'bg-success')}
+        className={cn(
+          'size-3.5 shrink-0',
+          backgroundStatus === 'cancelled' || backgroundStatus === 'interrupted'
+            ? 'bg-muted-foreground'
+            : status === 'error' || backgroundStatus === 'error'
+              ? 'bg-destructive'
+              : 'bg-success',
+        )}
       />
     );
   }
@@ -358,7 +446,14 @@ function ToolStatusIcon({ status, summary }: { status: ToolCallStatus; summary: 
   return (
     <ToolKindIcon
       kind={summary.kind}
-      className={cn('size-3.5 shrink-0', status === 'error' ? 'text-destructive' : 'text-success')}
+      className={cn(
+        'size-3.5 shrink-0',
+        backgroundStatus === 'cancelled' || backgroundStatus === 'interrupted'
+          ? 'text-muted-foreground'
+          : status === 'error' || backgroundStatus === 'error'
+            ? 'text-destructive'
+            : 'text-success',
+      )}
     />
   );
 }

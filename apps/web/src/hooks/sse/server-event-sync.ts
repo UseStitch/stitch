@@ -4,10 +4,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { InfiniteData, QueryClient } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
 
+import type { BackgroundTask } from '@stitch/shared/background-tasks/types';
 import type { Session, SessionsPage } from '@stitch/shared/chat/messages';
 import type { PartDelta } from '@stitch/shared/chat/stream-events';
 
 import { useSSE } from '@/hooks/sse/sse-context';
+import { updateBackgroundTaskCache } from '@/lib/queries/background-tasks';
 import { sessionKeys } from '@/lib/queries/chat';
 import { connectorKeys } from '@/lib/queries/connectors';
 import { mcpKeys } from '@/lib/queries/mcp';
@@ -48,6 +50,22 @@ function markSessionUnread(queryClient: QueryClient, sessionId: string, currentS
 function isSoundEnabled(queryClient: QueryClient): boolean {
   const settings = queryClient.getQueryData<Record<string, string>>(settingsQueryOptions.queryKey);
   return settings?.['notifications.sound.enabled'] !== 'false';
+}
+
+const TERMINAL_BACKGROUND_TASK_STATUSES = new Set(['completed', 'error', 'cancelled', 'interrupted']);
+
+export function syncBackgroundTaskEvent(
+  queryClient: QueryClient,
+  task: BackgroundTask,
+  currentSessionId: string | undefined,
+  notify: () => void = playNotificationSound,
+): void {
+  const previous = updateBackgroundTaskCache(queryClient, task);
+  if (task.status !== 'completed' && task.status !== 'error') return;
+
+  markSessionUnread(queryClient, task.parentSessionId, currentSessionId);
+  const wasTerminal = previous && TERMINAL_BACKGROUND_TASK_STATUSES.has(previous.status);
+  if (!wasTerminal && isSoundEnabled(queryClient)) notify();
 }
 
 function useServerEventSync(): void {
@@ -233,6 +251,13 @@ function useServerEventSync(): void {
     'session.compaction.completed': ({ sessionId }) => {
       void queryClient.resetQueries({ queryKey: sessionKeys.messages(sessionId) });
     },
+
+    // Background Task Events
+    'background-task.started': ({ task }) => syncBackgroundTaskEvent(queryClient, task, currentSessionId),
+    'background-task.completed': ({ task }) => syncBackgroundTaskEvent(queryClient, task, currentSessionId),
+    'background-task.failed': ({ task }) => syncBackgroundTaskEvent(queryClient, task, currentSessionId),
+    'background-task.cancelled': ({ task }) => syncBackgroundTaskEvent(queryClient, task, currentSessionId),
+    'background-task.interrupted': ({ task }) => syncBackgroundTaskEvent(queryClient, task, currentSessionId),
 
     // Question Events
     'question.asked': ({ question }) => {
