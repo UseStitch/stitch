@@ -62,7 +62,7 @@ const defaultDependencies: BackgroundTaskServiceDependencies = {
 
 async function scheduleResult(input: StartBackgroundTaskInput): Promise<void> {
   try {
-    (input.scheduleResult ?? scheduleBackgroundTaskResult)(input.parentSessionId);
+    await Promise.resolve((input.scheduleResult ?? scheduleBackgroundTaskResult)(input.parentSessionId));
   } catch (error) {
     log.error({ event: 'background_task.delivery.failed', taskId: input.taskId, error }, 'result scheduling failed');
   }
