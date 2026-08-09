@@ -9,6 +9,7 @@ import { internalBus } from '@/lib/internal-bus.js';
 import type { InternalEventMap, InternalEventName } from '@/lib/internal-bus.js';
 import { PermissionRejectedError, StreamAbortedError } from '@/llm/stream/errors.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
+import type { LanguageModelV3StreamPart, LanguageModelV3StreamResult } from '@ai-sdk/provider';
 
 type EmittedEvent = [InternalEventName, InternalEventMap[InternalEventName]];
 let emittedEvents: EmittedEvent[] = [];
@@ -47,8 +48,7 @@ function createMockModel(doStream: MockLanguageModelV3['doStream']): MockLanguag
   return new MockLanguageModelV3({ doStream });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function makeStreamResult(chunks: any[]) {
+function makeStreamResult(chunks: LanguageModelV3StreamPart[]): LanguageModelV3StreamResult {
   return { stream: simulateReadableStream({ chunks, initialDelayInMs: null, chunkDelayInMs: null }) };
 }
 
