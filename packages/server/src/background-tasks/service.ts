@@ -12,6 +12,7 @@ import {
   listRunningBackgroundTasks,
   markBackgroundTaskCancelled,
 } from '@/background-tasks/repository.js';
+import { scheduleBackgroundTaskResult } from '@/background-tasks/result-delivery.js';
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema/sessions.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
@@ -66,9 +67,8 @@ function extractAssistantText(parts: StoredPart[] | undefined): string {
 }
 
 async function scheduleResult(input: StartBackgroundTaskInput): Promise<void> {
-  if (!input.scheduleResult) return;
   try {
-    await input.scheduleResult(input.parentSessionId);
+    (input.scheduleResult ?? scheduleBackgroundTaskResult)(input.parentSessionId);
   } catch (error) {
     log.error({ event: 'background_task.delivery.failed', taskId: input.taskId, error }, 'result scheduling failed');
   }

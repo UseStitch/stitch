@@ -56,6 +56,17 @@ type AutomationGenerationPart = {
   modelId: string;
 };
 
+export type BackgroundTaskResultPart = {
+  type: 'background-task-result';
+  tasks: Array<{
+    taskId: PrefixedString<'ses'>;
+    childSessionId: PrefixedString<'ses'>;
+    title: string;
+    state: 'completed' | 'error';
+    text: string;
+  }>;
+};
+
 type AllPart =
   | TextStartPart
   | TextDeltaPart
@@ -71,6 +82,7 @@ type AllPart =
   | SessionTitlePart
   | StreamErrorPart
   | AutomationGenerationPart
+  | BackgroundTaskResultPart
   | UserImagePart
   | UserFilePart
   | UserTextFilePart;
