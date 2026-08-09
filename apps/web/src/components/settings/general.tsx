@@ -271,9 +271,11 @@ function PrivacyContent() {
     try {
       const newState = await setClientTelemetryEnabled(checked);
       setEnabled(newState.enabled);
-    } finally {
+    } catch (error) {
       setPending(false);
+      throw error;
     }
+    setPending(false);
   }
 
   return (

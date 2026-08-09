@@ -1,5 +1,7 @@
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+
 export function formatDateTime(value: number): string {
-  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+  return DATE_TIME_FORMATTER.format(new Date(value));
 }
 
 /** Clamps at zero so clock skew between a remote server and the client cannot render a negative age. */

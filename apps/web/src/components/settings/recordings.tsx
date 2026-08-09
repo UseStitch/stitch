@@ -111,9 +111,11 @@ function PermissionStatus() {
         }
       }
       setTimeout(() => void refetch(), 2000);
-    } finally {
+    } catch (error) {
       setRequesting(false);
+      throw error;
     }
+    setRequesting(false);
   };
 
   return (
@@ -364,7 +366,7 @@ function MeetingNoteTemplatesSettings() {
   const createMutation = useCreateMeetingNoteTemplate();
   const updateMutation = useUpdateMeetingNoteTemplate();
   const deleteMutation = useDeleteMeetingNoteTemplate();
-  const [selectedId, setSelectedId] = React.useState<string | null>(data.templates.at(0)?.id ?? null);
+  const [selectedId, setSelectedId] = React.useState<string | null>(() => data.templates.at(0)?.id ?? null);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
 
   const selectedTemplate = data.templates.find((template) => template.id === selectedId) ?? null;

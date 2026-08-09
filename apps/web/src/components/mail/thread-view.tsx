@@ -241,7 +241,7 @@ export function ThreadView({ accountId, threadId, onClose }: ThreadViewProps) {
 
             return (
               <MessageCard
-                key={message.id}
+                key={`${message.id}:${isLatestMessage}`}
                 message={message}
                 collapsed={!isLatestMessage}
                 collapseQuotedReplies={collapseQuotedReplies}

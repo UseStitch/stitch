@@ -25,6 +25,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useDeleteAgendaItem, useUpdateAgendaItem } from '@/lib/queries/agenda';
 
 const DEBOUNCE_MS = 600;
+const RESOLVED_PROMISE = Promise.resolve();
 
 const agendaItemDetailSchema = z.object({
   title: z.string(),
@@ -70,7 +71,7 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
   const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingTextRef = React.useRef<PendingTextSave | null>(null);
   const pendingSavesRef = React.useRef<AgendaSaveRequest[]>([]);
-  const saveQueueRef = React.useRef(Promise.resolve());
+  const saveQueueRef = React.useRef(RESOLVED_PROMISE);
 
   function queueSave(id: string, updates: AgendaItemUpdates) {
     const queued = pendingSavesRef.current.find((request) => request.id === id && !request.started);
