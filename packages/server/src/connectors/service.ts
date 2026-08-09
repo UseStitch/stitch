@@ -395,7 +395,7 @@ export async function updateConnectorInstance(
 
   if (!existing) return err('Connector instance not found', 404);
 
-  const setValues: Record<string, unknown> = { updatedAt: Date.now() };
+  const setValues: Partial<typeof connectorInstances.$inferInsert> = { updatedAt: Date.now() };
   if (updates.label !== undefined) setValues['label'] = updates.label;
   if (updates.scopes !== undefined) setValues['scopes'] = updates.scopes;
 

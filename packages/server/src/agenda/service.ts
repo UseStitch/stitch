@@ -144,7 +144,7 @@ export function updateAgendaList(id: PrefixedString<'alist'>, input: UpdateAgend
   const existing = db.select().from(agendaLists).where(eq(agendaLists.id, id)).get();
   if (!existing) return err('List not found', 404);
 
-  const updates: Record<string, unknown> = { updatedAt: Date.now() };
+  const updates: Partial<AgendaListRow> = { updatedAt: Date.now() };
   if (input.name !== undefined) updates.name = input.name;
   if (input.description !== undefined) updates.description = input.description;
   if (input.color !== undefined) updates.color = input.color;
@@ -286,7 +286,7 @@ export function updateAgendaItem(id: PrefixedString<'aitm'>, input: UpdateAgenda
   if (!existing) return err('Item not found', 404);
 
   const now = Date.now();
-  const updates: Record<string, unknown> = { updatedAt: now };
+  const updates: Partial<AgendaItemRow> = { updatedAt: now };
   if (input.title !== undefined) updates.title = input.title;
   if (input.description !== undefined) updates.description = input.description;
   if (input.priority !== undefined) updates.priority = input.priority;

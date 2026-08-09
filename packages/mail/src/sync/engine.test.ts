@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 import { closeMailDb, getMailDb, initMailDb } from '../db/client.js';
 import { mailAccounts } from '../db/schema.js';
-import { createMailEngine } from './engine.js';
+import { createMailEngine, type MailEngineEvent } from './engine.js';
 
 const migrationsDir = fileURLToPath(new URL('../../drizzle', import.meta.url));
 
@@ -14,7 +14,7 @@ afterEach(() => {
 describe('mail engine enrollment', () => {
   test('creates new accounts with manual first sync defaults', async () => {
     await initMailDb(':memory:', migrationsDir);
-    const events: unknown[] = [];
+    const events: MailEngineEvent[] = [];
     const engine = createMailEngine({
       attachmentsDir: '',
       createHttpClient: () => ({ request: () => Promise.reject(new Error('unexpected request')) }),

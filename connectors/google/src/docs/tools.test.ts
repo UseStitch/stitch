@@ -3,15 +3,15 @@ import { describe, expect, test } from 'bun:test';
 import { StubGoogleClient } from '../test-helpers.js';
 import { createDocsTools } from './tools.js';
 
-type ExecutableTool = { execute: (input: unknown) => Promise<unknown> };
+type ExecutableTool = { execute: (input: Record<string, unknown>) => Promise<unknown> };
 
-function getToolExecutor(tools: Record<string, unknown>, name: string): ExecutableTool {
-  const candidate = tools[name];
-  if (!candidate || typeof candidate !== 'object' || !('execute' in candidate)) {
+function getToolExecutor(tools: ReturnType<typeof createDocsTools>, name: string): ExecutableTool {
+  const tool = tools[name] as { execute?: ExecutableTool['execute'] } | undefined;
+  if (!tool || typeof tool.execute !== 'function') {
     throw new Error(`Missing execute for tool: ${name}`);
   }
 
-  return candidate as ExecutableTool;
+  return tool as ExecutableTool;
 }
 
 function createDocsDocument(documentId: string, title: string, text: string) {

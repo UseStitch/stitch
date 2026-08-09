@@ -2,6 +2,7 @@ import { queryOptions } from '@tanstack/react-query';
 
 import type { EmbeddingProviderModels } from '@stitch/shared/embedding/types';
 import { buildDefaultVisibleSet, isModelVisible } from '@stitch/shared/providers/model-visibility';
+import type { ModelCost } from '@stitch/shared/providers/types';
 import type { SttProviderModels } from '@stitch/shared/stt/types';
 
 import { serverRequest } from '@/lib/api';
@@ -21,7 +22,7 @@ export type ModelSummary = {
   name: string;
   family?: string;
   release_date?: string;
-  cost?: Record<string, unknown>;
+  cost?: ModelCost;
   limit?: { context: number; input?: number; output: number };
   modalities?: { input: string[]; output: string[] };
 };
