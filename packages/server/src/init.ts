@@ -6,6 +6,7 @@ import { initMailDb } from '@stitch/mail/db/client';
 
 import { registerAdapters } from '@/adapters/index.js';
 import { syncAllAutomationSchedules } from '@/automations/scheduler.js';
+import { initializeBackgroundTaskService } from '@/background-tasks/service.js';
 import { registerAllConnectors } from '@/connectors/definitions/index.js';
 import { initConnectorRuntime } from '@/connectors/runtime.js';
 import { initDb } from '@/db/client.js';
@@ -35,6 +36,7 @@ export async function init() {
   registerAdapters();
 
   await initDb();
+  await initializeBackgroundTaskService();
   await initMailDb(PATHS.filePaths.mailDb, resolveMailMigrationsDir());
 
   const builtInSkills = await loadBuiltInSkills();

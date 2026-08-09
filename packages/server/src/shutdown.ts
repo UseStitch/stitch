@@ -1,5 +1,6 @@
 import { closeMailDb } from '@stitch/mail/db/client';
 
+import { shutdownBackgroundTaskService } from '@/background-tasks/service.js';
 import { shutdownConnectorRuntime } from '@/connectors/runtime.js';
 import { closeDb } from '@/db/client.js';
 import * as Log from '@/lib/log.js';
@@ -11,6 +12,7 @@ const log = Log.create({ service: 'shutdown' });
 
 async function shutdown(signal: string) {
   log.info({ signal }, 'shutting down');
+  await shutdownBackgroundTaskService();
   await stopScheduler();
   await stopMailEngine().catch((error) => {
     log.warn({ error }, 'failed to stop mail engine during shutdown');
