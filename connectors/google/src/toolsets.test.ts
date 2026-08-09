@@ -149,8 +149,16 @@ describe('buildGoogleToolsets', () => {
     expect(toolNames(readOnly)).toEqual(expect.arrayContaining(['drive_search', 'drive_read', 'drive_info']));
     expect(toolNames(readOnly)).not.toContain('drive_write');
     expect(toolNames(readOnly)).not.toContain('drive_upload');
+    expect(toolNames(readOnly)).not.toContain('drive_delete');
     expect(toolNames(writable)).toEqual(
-      expect.arrayContaining(['drive_search', 'drive_read', 'drive_info', 'drive_write', 'drive_upload']),
+      expect.arrayContaining([
+        'drive_search',
+        'drive_read',
+        'drive_info',
+        'drive_write',
+        'drive_upload',
+        'drive_delete',
+      ]),
     );
   });
 });

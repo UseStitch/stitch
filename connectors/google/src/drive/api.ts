@@ -1,9 +1,13 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { DriveBatchDeleteError } from '../errors.js';
+
 import type { GoogleClient } from '../client.js';
 
 const DRIVE_API = 'https://www.googleapis.com/drive/v3';
+const DRIVE_BATCH_API = 'https://www.googleapis.com/batch/drive/v3';
+const DRIVE_BATCH_LIMIT = 100;
 
 type DriveFileRaw = {
   id: string;
@@ -188,4 +192,46 @@ export async function uploadFile(
   );
 
   return { id: raw.id, name: raw.name, mimeType: raw.mimeType, webViewLink: raw.webViewLink };
+}
+
+export async function deleteFiles(client: GoogleClient, fileIds: string[]): Promise<{ deletedFileIds: string[] }> {
+  const batches: string[][] = [];
+  for (let index = 0; index < fileIds.length; index += DRIVE_BATCH_LIMIT) {
+    batches.push(fileIds.slice(index, index + DRIVE_BATCH_LIMIT));
+  }
+
+  await Promise.all(
+    batches.map(async (batch, batchIndex) => {
+      const boundary = `drive_delete_${crypto.randomUUID()}`;
+      const body = [
+        ...batch.flatMap((fileId, index) => [
+          `--${boundary}`,
+          'Content-Type: application/http',
+          `Content-ID: delete-${batchIndex * DRIVE_BATCH_LIMIT + index}`,
+          '',
+          `DELETE /drive/v3/files/${encodeURIComponent(fileId)}?supportsAllDrives=true HTTP/1.1`,
+          '',
+        ]),
+        `--${boundary}--`,
+        '',
+      ].join('\r\n');
+      const response = await client.requestRaw(DRIVE_BATCH_API, {
+        method: 'POST',
+        headers: { 'Content-Type': `multipart/mixed; boundary=${boundary}` },
+        body,
+      });
+      const responseBody = await response.text();
+      const statuses = [...responseBody.matchAll(/^HTTP\/\d(?:\.\d)?\s+(\d{3})/gm)].map((match) => Number(match[1]));
+      if (statuses.length !== batch.length) {
+        throw new DriveBatchDeleteError(batch.map((fileId, index) => ({ fileId, status: statuses.at(index) })));
+      }
+      const failures = batch.flatMap((fileId, index) => {
+        const status = statuses[index];
+        return status >= 200 && status < 300 ? [] : [{ fileId, status }];
+      });
+      if (failures.length > 0) throw new DriveBatchDeleteError(failures);
+    }),
+  );
+
+  return { deletedFileIds: fileIds };
 }

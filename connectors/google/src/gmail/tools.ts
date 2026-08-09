@@ -56,6 +56,16 @@ const gmailSendSchema = z.object({
     .optional()
     .describe('Message-ID header of the message being replied to — read the original message first to get this value'),
   threadId: z.string().optional().describe('Gmail thread ID to reply within'),
+  attachments: z
+    .array(
+      z.object({
+        filePath: z.string().describe('Local path of the file to attach'),
+        name: z.string().optional().describe('Optional attachment filename. Defaults to the local filename.'),
+        mimeType: z.string().optional().describe('Optional MIME type. Defaults to application/octet-stream.'),
+      }),
+    )
+    .optional()
+    .describe('Local files to attach. Their combined size must not exceed 25 MiB.'),
 });
 
 const gmailListLabelsSchema = z.object({
@@ -281,7 +291,8 @@ export function createGmailTools(
 
   if (canSend) {
     tools['gmail_send'] = tool({
-      description: 'Send an email via Gmail. Can also reply to an existing thread by providing inReplyTo and threadId.',
+      description:
+        'Send an email via Gmail, optionally with local file attachments. Can also reply to an existing thread by providing inReplyTo and threadId.',
       inputSchema: gmailSendSchema,
       execute: async (input: z.infer<typeof gmailSendSchema>) => {
         const { client, usedAccount } = await resolveClient(input.account);
@@ -291,6 +302,7 @@ export function createGmailTools(
           bcc: input.bcc,
           inReplyTo: input.inReplyTo,
           threadId: input.threadId,
+          attachments: input.attachments,
         });
         return { ...result, usedAccount };
       },

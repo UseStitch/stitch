@@ -66,10 +66,30 @@ export class GmailAttachmentMissingDataError extends GoogleConnectorError {
   }
 }
 
+export class GmailAttachmentSizeLimitError extends GoogleConnectorError {
+  readonly totalBytes: number;
+  readonly maxBytes: number;
+  constructor(totalBytes: number, maxBytes: number) {
+    super(`Gmail attachments total ${totalBytes} bytes, exceeding the ${maxBytes} byte limit`);
+    this.name = 'GmailAttachmentSizeLimitError';
+    this.totalBytes = totalBytes;
+    this.maxBytes = maxBytes;
+  }
+}
+
 export class GmailFilterNoCriteriaError extends GoogleConnectorError {
   constructor() {
     super('A filter must have at least one criteria field (e.g. from, to, subject, query, hasAttachment).');
     this.name = 'GmailFilterNoCriteriaError';
+  }
+}
+
+export class DriveBatchDeleteError extends GoogleConnectorError {
+  readonly failures: { fileId: string; status: number | undefined }[];
+  constructor(failures: { fileId: string; status: number | undefined }[]) {
+    super(`Failed to delete ${failures.length} Google Drive file(s)`);
+    this.name = 'DriveBatchDeleteError';
+    this.failures = failures;
   }
 }
 

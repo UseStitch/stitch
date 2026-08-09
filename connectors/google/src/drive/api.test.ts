@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { uploadFile } from './api.js';
+import { deleteFiles, uploadFile } from './api.js';
 
 import type { GoogleClient } from '../client.js';
 
@@ -53,5 +53,59 @@ describe('Drive API uploadFile', () => {
       mimeType: 'text/plain',
       webViewLink: 'https://drive.google.com/file/d/file-1/view',
     });
+  });
+});
+
+describe('Drive API deleteFiles', () => {
+  test('deletes multiple files', async () => {
+    let requestUrl = '';
+    let requestOptions: RequestInit | undefined;
+    const client = {
+      requestRaw: async (url: string, options?: RequestInit) => {
+        requestUrl = url;
+        requestOptions = options;
+        return new Response(
+          [
+            '--response',
+            'Content-Type: application/http',
+            '',
+            'HTTP/1.1 204 No Content',
+            '',
+            '--response',
+            'Content-Type: application/http',
+            '',
+            'HTTP/1.1 204 No Content',
+            '',
+            '--response--',
+          ].join('\r\n'),
+        );
+      },
+    } as unknown as GoogleClient;
+
+    const result = await deleteFiles(client, ['file-1', 'file/2']);
+
+    expect(requestUrl).toBe('https://www.googleapis.com/batch/drive/v3');
+    expect(requestOptions?.method).toBe('POST');
+    expect(requestOptions?.headers).toEqual({
+      'Content-Type': expect.stringContaining('multipart/mixed; boundary=drive_delete_'),
+    });
+    expect(requestOptions?.body).toContain('DELETE /drive/v3/files/file-1?supportsAllDrives=true HTTP/1.1');
+    expect(requestOptions?.body).toContain('DELETE /drive/v3/files/file%2F2?supportsAllDrives=true HTTP/1.1');
+    expect(result).toEqual({ deletedFileIds: ['file-1', 'file/2'] });
+  });
+
+  test('reports failed inner delete requests', async () => {
+    const client = {
+      requestRaw: async () =>
+        new Response(
+          ['--response', 'Content-Type: application/http', '', 'HTTP/1.1 404 Not Found', '', '--response--'].join(
+            '\r\n',
+          ),
+        ),
+    } as unknown as GoogleClient;
+
+    expect(deleteFiles(client, ['missing-file'])).rejects.toEqual(
+      expect.objectContaining({ failures: [{ fileId: 'missing-file', status: 404 }] }),
+    );
   });
 });

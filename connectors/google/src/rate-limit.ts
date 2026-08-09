@@ -175,7 +175,11 @@ export function resolveGoogleQuotaOperation(url: string, method: string | undefi
   }
 
   if (parsed.hostname === 'www.googleapis.com') {
-    if (parsed.pathname.startsWith('/drive/') || parsed.pathname.startsWith('/upload/drive/')) {
+    if (
+      parsed.pathname.startsWith('/drive/') ||
+      parsed.pathname.startsWith('/upload/drive/') ||
+      parsed.pathname.startsWith('/batch/drive/')
+    ) {
       return {
         service: 'drive',
         quotaCost: resolveDriveQuotaCost(parsed.pathname, normalizedMethod, parsed.searchParams),
