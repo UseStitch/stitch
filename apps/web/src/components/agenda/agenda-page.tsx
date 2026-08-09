@@ -2,7 +2,6 @@ import {
   ActivityIcon,
   CheckCircleIcon,
   CircleAlertIcon,
-  GripVerticalIcon,
   InboxIcon,
   ListTodoIcon,
   PencilIcon,
@@ -50,7 +49,6 @@ import {
   useCreateAgendaItem,
   useDeleteAgendaItem,
   useDeleteAgendaList,
-  useReorderAgendaItems,
   useUpdateAgendaItem,
   useUpdateAgendaList,
 } from '@/lib/queries/agenda';
@@ -112,67 +110,11 @@ export function AgendaPage({ listId }: { listId?: string }) {
   const deleteMutation = useDeleteAgendaItem();
   const updateMutation = useUpdateAgendaItem();
   const deleteListMutation = useDeleteAgendaList();
-  const reorderMutation = useReorderAgendaItems();
   const updateListMutation = useUpdateAgendaList();
 
   const [editingTitle, setEditingTitle] = React.useState(false);
   const [editTitleValue, setEditTitleValue] = React.useState('');
   const titleInputRef = React.useRef<HTMLInputElement>(null);
-
-  const [dragItemId, setDragItemId] = React.useState<string | null>(null);
-  const [dropIndex, setDropIndex] = React.useState<number | null>(null);
-
-  React.useEffect(() => {
-    function clearDrag() {
-      setDragItemId(null);
-      setDropIndex(null);
-    }
-    document.addEventListener('dragend', clearDrag);
-    return () => document.removeEventListener('dragend', clearDrag);
-  }, []);
-
-  function handleRowDragStart(itemId: string) {
-    setDragItemId(itemId);
-  }
-
-  function handleRowDragOver(e: React.DragEvent, index: number) {
-    if (!e.dataTransfer.types.includes('application/x-agenda-item')) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const midY = rect.top + rect.height / 2;
-    const targetIdx = e.clientY < midY ? index : index + 1;
-    setDropIndex(targetIdx);
-  }
-
-  function handleRowDrop(e: React.DragEvent) {
-    e.preventDefault();
-    const droppedItemId = e.dataTransfer.getData('application/x-agenda-item');
-    if (!droppedItemId || dropIndex === null) {
-      setDragItemId(null);
-      setDropIndex(null);
-      return;
-    }
-
-    const currentIndex = items.findIndex((i) => i.id === droppedItemId);
-    if (currentIndex === -1 || currentIndex === dropIndex || currentIndex + 1 === dropIndex) {
-      setDragItemId(null);
-      setDropIndex(null);
-      return;
-    }
-
-    const newOrder = items.reduce<string[]>((acc, i) => {
-      if (i.id !== droppedItemId) acc.push(i.id);
-      return acc;
-    }, []);
-    const insertAt = dropIndex > currentIndex ? dropIndex - 1 : dropIndex;
-    newOrder.splice(insertAt, 0, droppedItemId);
-    reorderMutation.mutate(newOrder);
-
-    setDragItemId(null);
-    setDropIndex(null);
-  }
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
@@ -418,7 +360,6 @@ export function AgendaPage({ listId }: { listId?: string }) {
             <Table.Root className="min-w-175 table-fixed">
               <Table.Header>
                 <Table.Row className="hover:bg-transparent">
-                  <Table.Head className="w-8" />
                   <Table.Head className="w-10 text-center">
                     <Checkbox
                       checked={allSelected}
@@ -434,16 +375,10 @@ export function AgendaPage({ listId }: { listId?: string }) {
                   <Table.Head className="w-24 text-right">Due</Table.Head>
                 </Table.Row>
               </Table.Header>
-              <Table.Body
-                onDragOver={(e) => {
-                  if (!e.dataTransfer.types.includes('application/x-agenda-item')) return;
-                  e.preventDefault();
-                }}
-                onDrop={handleRowDrop}>
+              <Table.Body>
                 {isLoading ? (
                   <Table.SkeletonRows
                     columns={[
-                      { className: 'w-8' },
                       { className: 'w-10' },
                       { className: 'w-full max-w-0 min-w-0 overflow-hidden', skeletonClassName: 'h-4' },
                       { className: 'w-24', skeletonClassName: 'mx-auto h-5 w-16 rounded-full' },
@@ -453,7 +388,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
                     ]}
                   />
                 ) : items.length === 0 ? (
-                  <Table.EmptyRow colSpan={listId ? 6 : 7}>
+                  <Table.EmptyRow colSpan={listId ? 5 : 6}>
                     <Empty>
                       <EmptyMedia variant="icon">
                         <Icon as={ListTodoIcon} size="m" />
@@ -464,36 +399,18 @@ export function AgendaPage({ listId }: { listId?: string }) {
                   </Table.EmptyRow>
                 ) : (
                   <>
-                    {items.map((item, index) => (
-                      <React.Fragment key={item.id}>
-                        {dropIndex === index && dragItemId && dragItemId !== item.id && (
-                          <tr aria-hidden="true">
-                            <Table.Cell colSpan={listId ? 6 : 7} className="p-space-none">
-                              <div className="h-0.5 bg-primary" />
-                            </Table.Cell>
-                          </tr>
-                        )}
-                        <AgendaItemRow
-                          item={item}
-                          selected={selectedIds.has(item.id)}
-                          showListColumn={!listId}
-                          isDragging={dragItemId === item.id}
-                          timeZone={timeZone}
-                          onToggleSelect={() => toggleSelect(item.id)}
-                          onClick={() => openItem(item)}
-                          onDragStart={() => handleRowDragStart(item.id)}
-                          onDragOver={(e) => handleRowDragOver(e, index)}
-                          onDateChange={handleDateChange}
-                        />
-                      </React.Fragment>
+                    {items.map((item) => (
+                      <AgendaItemRow
+                        key={item.id}
+                        item={item}
+                        selected={selectedIds.has(item.id)}
+                        showListColumn={!listId}
+                        timeZone={timeZone}
+                        onToggleSelect={() => toggleSelect(item.id)}
+                        onClick={() => openItem(item)}
+                        onDateChange={handleDateChange}
+                      />
                     ))}
-                    {dropIndex === items.length && dragItemId && (
-                      <tr aria-hidden="true">
-                        <Table.Cell colSpan={listId ? 6 : 7} className="p-space-none">
-                          <div className="h-0.5 bg-primary" />
-                        </Table.Cell>
-                      </tr>
-                    )}
                   </>
                 )}
               </Table.Body>
@@ -616,12 +533,9 @@ type AgendaItemRowProps = {
   item: AgendaItem;
   selected: boolean;
   showListColumn: boolean;
-  isDragging: boolean;
   timeZone: string;
   onToggleSelect: () => void;
   onClick: () => void;
-  onDragStart: () => void;
-  onDragOver: (e: React.DragEvent) => void;
   onDateChange: (itemId: string, dueAt: number | null) => void;
 };
 
@@ -629,12 +543,9 @@ function AgendaItemRow({
   item,
   selected,
   showListColumn,
-  isDragging,
   timeZone,
   onToggleSelect,
   onClick,
-  onDragStart,
-  onDragOver,
   onDateChange,
 }: AgendaItemRowProps) {
   const [dateOpen, setDateOpen] = React.useState(false);
@@ -642,50 +553,8 @@ function AgendaItemRow({
   const isDone = item.status === 'done' || item.status === 'cancelled';
   const isOverdue = item.dueAt && item.dueAt < nowMs && item.status !== 'done' && item.status !== 'cancelled';
 
-  function handleDragStart(e: React.DragEvent) {
-    e.stopPropagation();
-    e.dataTransfer.setData('application/x-agenda-item', item.id);
-    e.dataTransfer.effectAllowed = 'move';
-    onDragStart();
-
-    const row = (e.currentTarget as HTMLElement).closest('tr');
-    if (row) {
-      const clone = row.cloneNode(true) as HTMLElement;
-      clone.style.opacity = '0.85';
-      const table = document.createElement('table');
-      const tbody = document.createElement('tbody');
-      tbody.appendChild(clone);
-      table.appendChild(tbody);
-      table.style.width = `${row.offsetWidth}px`;
-      table.style.position = 'absolute';
-      table.style.top = '-9999px';
-      table.style.left = '-9999px';
-      document.body.appendChild(table);
-      e.dataTransfer.setDragImage(clone, 20, 20);
-      requestAnimationFrame(() => table.remove());
-    }
-  }
-
   return (
-    <Table.Row
-      className={`cursor-pointer ${isDragging ? 'opacity-40' : ''} ${isDone ? 'opacity-50' : ''}`}
-      onClick={onClick}
-      onDragOver={onDragOver}>
-      <Table.Cell className="w-8">
-        <span className="cursor-grab opacity-0 transition-opacity group-hover:opacity-60 active:cursor-grabbing">
-          <Button
-            type="button"
-            variant="quiet"
-            size="inline"
-            draggable
-            aria-label={`Reorder ${item.title}`}
-            onDragStart={handleDragStart}
-            onClick={(e) => e.stopPropagation()}>
-            <Icon as={GripVerticalIcon} size="s" tone="muted" />
-          </Button>
-        </span>
-      </Table.Cell>
-
+    <Table.Row className={`cursor-pointer ${isDone ? 'opacity-50' : ''}`} onClick={onClick}>
       <Table.Cell
         className="w-10 text-center"
         onClick={(e) => {
