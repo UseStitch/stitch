@@ -1,5 +1,4 @@
 import { cn } from 'cnfast';
-import { useMemo } from 'react';
 
 import { barY, defineChart, group, lineY } from '@tanstack/charts';
 import { scaleBand } from '@tanstack/charts-scales/band';
@@ -175,27 +174,25 @@ function getLiquidChartRows(node: LiquidChartNode) {
 }
 
 function LiquidBarChart({ node }: { node: LiquidChartNode }) {
-  const definition = useMemo(() => {
-    const rows = getLiquidChartRows(node);
-    return defineChart({
-      marks: [
-        barY(rows, {
-          x: 'label',
-          y: 'value',
-          z: 'series',
-          key: 'id',
-          fill: (row) => row.color,
-          layout: group({ padding: 0.15 }),
-          radius: 4,
-        }),
-      ],
-      x: { scale: () => scaleBand().padding(0.15) },
-      y: { scale: scaleLinear, nice: true, grid: true },
-      theme: CHART_THEME,
-      focus: 'group-x',
-      tooltip: { use: tooltip, className: CHART_TOOLTIP_CLASS_NAME, anchor: 'group-center', offset: 8 },
-    });
-  }, [node]);
+  const rows = getLiquidChartRows(node);
+  const definition = defineChart({
+    marks: [
+      barY(rows, {
+        x: 'label',
+        y: 'value',
+        z: 'series',
+        key: 'id',
+        fill: (row) => row.color,
+        layout: group({ padding: 0.15 }),
+        radius: 4,
+      }),
+    ],
+    x: { scale: () => scaleBand().padding(0.15) },
+    y: { scale: scaleLinear, nice: true, grid: true },
+    theme: CHART_THEME,
+    focus: 'group-x',
+    tooltip: { use: tooltip, className: CHART_TOOLTIP_CLASS_NAME, anchor: 'group-center', offset: 8 },
+  });
 
   return (
     <Chart className={CHART_CLASS_NAME} definition={definition} height={220} ariaLabel={node.title ?? 'Bar chart'} />
@@ -203,27 +200,25 @@ function LiquidBarChart({ node }: { node: LiquidChartNode }) {
 }
 
 function LiquidLineChart({ node }: { node: LiquidChartNode }) {
-  const definition = useMemo(() => {
-    const rows = getLiquidChartRows(node);
-    return defineChart({
-      marks: [
-        lineY(rows, {
-          x: 'label',
-          y: 'value',
-          z: 'series',
-          key: 'id',
-          stroke: (row) => row.color,
-          strokeWidth: 2,
-          points: true,
-        }),
-      ],
-      x: { scale: scalePoint },
-      y: { scale: scaleLinear, nice: true, grid: true },
-      theme: CHART_THEME,
-      focus: 'group-x',
-      tooltip: { use: tooltip, className: CHART_TOOLTIP_CLASS_NAME, anchor: 'group-center', offset: 8 },
-    });
-  }, [node]);
+  const rows = getLiquidChartRows(node);
+  const definition = defineChart({
+    marks: [
+      lineY(rows, {
+        x: 'label',
+        y: 'value',
+        z: 'series',
+        key: 'id',
+        stroke: (row) => row.color,
+        strokeWidth: 2,
+        points: true,
+      }),
+    ],
+    x: { scale: scalePoint },
+    y: { scale: scaleLinear, nice: true, grid: true },
+    theme: CHART_THEME,
+    focus: 'group-x',
+    tooltip: { use: tooltip, className: CHART_TOOLTIP_CLASS_NAME, anchor: 'group-center', offset: 8 },
+  });
 
   return (
     <Chart className={CHART_CLASS_NAME} definition={definition} height={220} ariaLabel={node.title ?? 'Line chart'} />
@@ -231,50 +226,48 @@ function LiquidLineChart({ node }: { node: LiquidChartNode }) {
 }
 
 function LiquidPieChart({ node }: { node: LiquidChartNode }) {
-  const definition = useMemo(() => {
-    const ringCount = node.datasets.length;
-    const marks = node.datasets.map((dataset, datasetIndex) => {
-      const total = dataset.data.reduce((sum, value) => sum + Math.max(0, value), 0);
-      let angle = 0;
-      const arcs = node.labels.map((label, labelIndex) => {
-        const value = dataset.data[labelIndex] ?? 0;
-        const startAngle = angle;
-        angle += total === 0 ? 0 : (Math.max(0, value) / total) * Math.PI * 2;
-        return {
-          id: `${datasetIndex}:${labelIndex}`,
-          label,
-          series: dataset.label,
-          value,
-          startAngle,
-          endAngle: angle,
-          color: getChartColor(labelIndex),
-        };
-      });
-      const ringWidth = 1 / Math.max(ringCount, 1);
-      const outerRatio = 1 - datasetIndex * ringWidth;
-      const innerRatio = outerRatio - ringWidth;
-
-      return radialArc(arcs, {
-        key: 'id',
-        fill: (arc) => arc.color,
-        innerRadius: ({ radius }) => radius * innerRatio,
-        outerRadius: ({ radius }) => radius * outerRatio,
-        cornerRadius: 3,
-      });
+  const ringCount = node.datasets.length;
+  const marks = node.datasets.map((dataset, datasetIndex) => {
+    const total = dataset.data.reduce((sum, value) => sum + Math.max(0, value), 0);
+    let angle = 0;
+    const arcs = node.labels.map((label, labelIndex) => {
+      const value = dataset.data[labelIndex] ?? 0;
+      const startAngle = angle;
+      angle += total === 0 ? 0 : (Math.max(0, value) / total) * Math.PI * 2;
+      return {
+        id: `${datasetIndex}:${labelIndex}`,
+        label,
+        series: dataset.label,
+        value,
+        startAngle,
+        endAngle: angle,
+        color: getChartColor(labelIndex),
+      };
     });
+    const ringWidth = 1 / Math.max(ringCount, 1);
+    const outerRatio = 1 - datasetIndex * ringWidth;
+    const innerRatio = outerRatio - ringWidth;
 
-    return defineChart({
-      marks: [polar({ marks, inset: 4 })],
-      guides: false,
-      theme: CHART_THEME,
-      tooltip: {
-        use: tooltip,
-        className: CHART_TOOLTIP_CLASS_NAME,
-        offset: 8,
-        format: (point) => `${point.datum.label}: ${point.datum.value.toLocaleString()}`,
-      },
+    return radialArc(arcs, {
+      key: 'id',
+      fill: (arc) => arc.color,
+      innerRadius: ({ radius }) => radius * innerRatio,
+      outerRadius: ({ radius }) => radius * outerRatio,
+      cornerRadius: 3,
     });
-  }, [node]);
+  });
+
+  const definition = defineChart({
+    marks: [polar({ marks, inset: 4 })],
+    guides: false,
+    theme: CHART_THEME,
+    tooltip: {
+      use: tooltip,
+      className: CHART_TOOLTIP_CLASS_NAME,
+      offset: 8,
+      format: (point) => `${point.datum.label}: ${point.datum.value.toLocaleString()}`,
+    },
+  });
 
   return (
     <Chart className={CHART_CLASS_NAME} definition={definition} height={220} ariaLabel={node.title ?? 'Pie chart'} />

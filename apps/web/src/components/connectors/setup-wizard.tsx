@@ -1,5 +1,5 @@
 import { ExternalLinkIcon, CheckIcon, ArrowRightIcon, ArrowLeftIcon } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -625,7 +625,7 @@ function ScopesStep({
   });
   const values = useSelector(form.store, (state) => state.values);
   const { selectedScopes, serviceAccess } = values;
-  const selectedScopeSet = useMemo(() => new Set(selectedScopes), [selectedScopes]);
+  const selectedScopeSet = new Set(selectedScopes);
   const computedScopes = getComputedScopes(config, values);
 
   const enableApisUrl = buildEnableApisUrl(config.scopeApiMap, computedScopes);
