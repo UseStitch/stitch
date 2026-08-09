@@ -51,6 +51,10 @@ type ModelFormState = {
 };
 
 const ALL_MODALITIES: LocalModality[] = ['text', 'audio', 'image', 'video', 'pdf'];
+const MODALITY_GROUPS = [
+  { label: 'Input', field: 'inputModalities', id: 'input' },
+  { label: 'Output', field: 'outputModalities', id: 'output' },
+] as const;
 
 const DEFAULT_FORM: ModelFormState = {
   id: '',
@@ -371,48 +375,29 @@ function ModelForm({
           Modalities
         </Text>
         <div className="grid grid-cols-2 gap-x-space-2xl gap-y-space-m">
-          <Stack gap="s">
-            <Text variant="caption" tone="muted">
-              Input
-            </Text>
-            {ALL_MODALITIES.map((m) => (
-              <Stack key={m} direction="row" align="center" gap="m">
-                <Checkbox
-                  id={`local-input-mod-${m}`}
-                  checked={values.inputModalities.includes(m)}
-                  disabled={m === 'text'}
-                  onCheckedChange={(v) =>
-                    form.setFieldValue(
-                      'inputModalities',
-                      v ? [...values.inputModalities, m] : values.inputModalities.filter((x) => x !== m),
-                    )
-                  }
-                />
-                <Label htmlFor={`local-input-mod-${m}`}>{m}</Label>
-              </Stack>
-            ))}
-          </Stack>
-          <Stack gap="s">
-            <Text variant="caption" tone="muted">
-              Output
-            </Text>
-            {ALL_MODALITIES.map((m) => (
-              <Stack key={m} direction="row" align="center" gap="m">
-                <Checkbox
-                  id={`local-output-mod-${m}`}
-                  checked={values.outputModalities.includes(m)}
-                  disabled={m === 'text'}
-                  onCheckedChange={(v) =>
-                    form.setFieldValue(
-                      'outputModalities',
-                      v ? [...values.outputModalities, m] : values.outputModalities.filter((x) => x !== m),
-                    )
-                  }
-                />
-                <Label htmlFor={`local-output-mod-${m}`}>{m}</Label>
-              </Stack>
-            ))}
-          </Stack>
+          {MODALITY_GROUPS.map(({ label, field, id }) => (
+            <Stack key={field} gap="s">
+              <Text variant="caption" tone="muted">
+                {label}
+              </Text>
+              {ALL_MODALITIES.map((modality) => (
+                <Stack key={modality} direction="row" align="center" gap="m">
+                  <Checkbox
+                    id={`local-${id}-mod-${modality}`}
+                    checked={values[field].includes(modality)}
+                    disabled={modality === 'text'}
+                    onCheckedChange={(checked) =>
+                      form.setFieldValue(
+                        field,
+                        checked ? [...values[field], modality] : values[field].filter((value) => value !== modality),
+                      )
+                    }
+                  />
+                  <Label htmlFor={`local-${id}-mod-${modality}`}>{modality}</Label>
+                </Stack>
+              ))}
+            </Stack>
+          ))}
         </div>
 
         <div className="flex gap-space-m pt-space-xs">
