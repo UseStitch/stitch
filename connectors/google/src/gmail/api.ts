@@ -1,11 +1,16 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { GmailAttachmentMissingDataError, GmailFilterNoCriteriaError } from '../errors.js';
+import {
+  GmailAttachmentMissingDataError,
+  GmailAttachmentSizeLimitError,
+  GmailFilterNoCriteriaError,
+} from '../errors.js';
 
 import type { GoogleClient } from '../client.js';
 
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
+const GMAIL_ATTACHMENT_SIZE_LIMIT_BYTES = 25 * 1024 * 1024;
 
 type GmailHeader = { name: string; value: string };
 
@@ -341,9 +346,23 @@ export async function sendMessage(
   to: string,
   subject: string,
   body: string,
-  options?: { from?: string; cc?: string; bcc?: string; inReplyTo?: string; threadId?: string },
+  options?: {
+    from?: string;
+    cc?: string;
+    bcc?: string;
+    inReplyTo?: string;
+    threadId?: string;
+    attachments?: { filePath: string; name?: string; mimeType?: string }[];
+  },
 ): Promise<{ id: string; threadId: string }> {
-  const headers = [`To: ${to}`, `Subject: ${subject}`, `Content-Type: text/plain; charset="UTF-8"`];
+  const attachments = options?.attachments ?? [];
+  const attachmentStats = await Promise.all(attachments.map((attachment) => fs.stat(attachment.filePath)));
+  const totalAttachmentBytes = attachmentStats.reduce((total, stat) => total + stat.size, 0);
+  if (totalAttachmentBytes > GMAIL_ATTACHMENT_SIZE_LIMIT_BYTES) {
+    throw new GmailAttachmentSizeLimitError(totalAttachmentBytes, GMAIL_ATTACHMENT_SIZE_LIMIT_BYTES);
+  }
+
+  const headers = [`To: ${to}`, `Subject: ${subject}`];
 
   if (options?.from) headers.push(`From: ${options.from}`);
   if (options?.cc) headers.push(`Cc: ${options.cc}`);
@@ -353,8 +372,36 @@ export async function sendMessage(
     headers.push(`References: ${options.inReplyTo}`);
   }
 
-  const rawMessage = `${headers.join('\r\n')}\r\n\r\n${body}`;
-  const encoded = btoa(rawMessage).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  let messageBody = body;
+  if (attachments.length > 0) {
+    const boundary = `gmail_boundary_${crypto.randomUUID()}`;
+    headers.push('MIME-Version: 1.0', `Content-Type: multipart/mixed; boundary="${boundary}"`);
+    const parts = [
+      `--${boundary}\r\nContent-Type: text/plain; charset="UTF-8"\r\n\r\n${body}`,
+      ...(await Promise.all(
+        attachments.map(async (attachment) => {
+          const filename = safeFilename(attachment.name ?? path.basename(attachment.filePath));
+          const mimeType = attachment.mimeType ?? 'application/octet-stream';
+          const content = await fs.readFile(attachment.filePath);
+          return [
+            `--${boundary}`,
+            `Content-Type: ${mimeType}; name="${filename}"`,
+            'Content-Transfer-Encoding: base64',
+            `Content-Disposition: attachment; filename="${filename}"`,
+            '',
+            content.toString('base64'),
+          ].join('\r\n');
+        }),
+      )),
+      `--${boundary}--`,
+    ];
+    messageBody = parts.join('\r\n');
+  } else {
+    headers.push('Content-Type: text/plain; charset="UTF-8"');
+  }
+
+  const rawMessage = `${headers.join('\r\n')}\r\n\r\n${messageBody}`;
+  const encoded = Buffer.from(rawMessage).toString('base64url');
 
   const payload: Record<string, string> = { raw: encoded };
   if (options?.threadId) payload['threadId'] = options.threadId;

@@ -58,6 +58,14 @@ const driveUploadSchema = z.object({
   parentId: z.string().optional().describe('Optional parent folder ID to place the file in. Defaults to Drive root.'),
 });
 
+const driveDeleteSchema = z.object({
+  account: z
+    .string()
+    .optional()
+    .describe('Optional account email or label when multiple Google accounts are connected'),
+  fileIds: z.array(z.string()).min(1).describe('Google Drive file IDs to permanently delete'),
+});
+
 export function createDriveTools(
   resolveClient: (account?: string) => Promise<{ client: GoogleClient; usedAccount: string | null }>,
   hasWrite = false,
@@ -115,6 +123,15 @@ export function createDriveTools(
           mimeType: input.mimeType,
           parentId: input.parentId,
         });
+        return { ...result, usedAccount };
+      },
+    });
+    tools['drive_delete'] = tool({
+      description: 'Permanently delete one or more Google Drive files by ID.',
+      inputSchema: driveDeleteSchema,
+      execute: async (input: z.infer<typeof driveDeleteSchema>) => {
+        const { client, usedAccount } = await resolveClient(input.account);
+        const result = await DriveApi.deleteFiles(client, input.fileIds);
         return { ...result, usedAccount };
       },
     });

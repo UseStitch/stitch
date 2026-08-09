@@ -3,7 +3,8 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { downloadAttachments } from './api.js';
+import { GmailAttachmentSizeLimitError } from '../errors.js';
+import { downloadAttachments, sendMessage } from './api.js';
 
 import type { GoogleClient } from '../client.js';
 
@@ -64,5 +65,49 @@ describe('gmail api', () => {
     });
     expect(result.attachments.at(0)?.path).toBe(path.join(root, 'gmail-attachments', 'msg-1', 'report.pdf'));
     expect(fs.readFile(result.attachments.at(0)?.path ?? '', 'utf8')).resolves.toBe('hello world');
+  });
+
+  test('sends local files as MIME attachments', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'gmail-send-test-'));
+    tempRoot = root;
+    const filePath = path.join(root, 'report.txt');
+    await fs.writeFile(filePath, 'attachment contents');
+
+    let requestBody = '';
+    const client = {
+      request: async (_url: string, options?: RequestInit) => {
+        if (typeof options?.body !== 'string') throw new Error('Expected a JSON request body');
+        requestBody = options.body;
+        return { id: 'msg-1', threadId: 'thread-1' };
+      },
+    } as unknown as GoogleClient;
+
+    await sendMessage(client, 'person@example.com', 'Report', 'See attached.', {
+      attachments: [{ filePath, mimeType: 'text/plain' }],
+    });
+
+    const raw = JSON.parse(requestBody).raw as string;
+    const message = Buffer.from(raw, 'base64url').toString();
+    expect(message).toContain('Content-Type: multipart/mixed; boundary=');
+    expect(message).toContain('Content-Type: text/plain; charset="UTF-8"\r\n\r\nSee attached.');
+    expect(message).toContain('Content-Disposition: attachment; filename="report.txt"');
+    expect(message).toContain(Buffer.from('attachment contents').toString('base64'));
+  });
+
+  test('rejects attachments over Gmail total size limit before sending', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'gmail-send-limit-test-'));
+    tempRoot = root;
+    const filePath = path.join(root, 'large.bin');
+    await fs.writeFile(filePath, '');
+    await fs.truncate(filePath, 25 * 1024 * 1024 + 1);
+    const client = {
+      request: async () => {
+        throw new Error('Request should not be sent');
+      },
+    } as unknown as GoogleClient;
+
+    expect(
+      sendMessage(client, 'person@example.com', 'Large file', 'See attached.', { attachments: [{ filePath }] }),
+    ).rejects.toBeInstanceOf(GmailAttachmentSizeLimitError);
   });
 });
