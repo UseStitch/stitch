@@ -4,6 +4,7 @@ import { ARCHIVE_REASONS } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 import { createSessionId } from '@stitch/shared/id';
 
+import { cancelBackgroundTasksForParent } from '@/background-tasks/service.js';
 import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
 import { err, ok } from '@/lib/service-result.js';
@@ -108,6 +109,7 @@ export async function listSessionMessages(
 }
 
 export async function deleteSession(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<{ id: string }>> {
+  await cancelBackgroundTasksForParent(sessionId);
   const db = getDb();
   const result = await db.delete(sessions).where(eq(sessions.id, sessionId)).returning({ id: sessions.id });
   if (result.length === 0) return err('Session not found', 404);
@@ -117,6 +119,7 @@ export async function deleteSession(sessionId: PrefixedString<'ses'>): Promise<S
 export async function archiveSession(
   sessionId: PrefixedString<'ses'>,
 ): Promise<ServiceResult<typeof sessions.$inferSelect>> {
+  await cancelBackgroundTasksForParent(sessionId);
   const db = getDb();
   const now = Date.now();
   const updated = (

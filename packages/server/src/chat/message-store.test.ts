@@ -64,6 +64,48 @@ describe('saveAssistantMessage', () => {
     expect(emitted).toHaveLength(1);
     expect(emitted[0]).toMatchObject({ sessionId, messageId: assistantMessageId, finishReason: 'stop' });
   });
+
+  test('fills an existing placeholder used by a background task foreign key', async () => {
+    const sessionId = 'ses_test_save_placeholder' as never;
+    const assistantMessageId = 'msg_test_save_placeholder' as never;
+    const startedAt = Date.now() - 100;
+    await seedSession(sessionId);
+    await getDb()
+      .insert(messages)
+      .values({
+        id: assistantMessageId,
+        sessionId,
+        role: 'assistant',
+        parts: [],
+        modelId: 'test-model',
+        providerId: 'test-provider',
+        costUsd: 0,
+        createdAt: startedAt,
+        updatedAt: startedAt,
+        startedAt,
+        duration: null,
+      });
+
+    await saveAssistantMessage({
+      sessionId,
+      assistantMessageId,
+      modelId: 'test-model',
+      providerId: 'test-provider',
+      accumulatedParts: [
+        { type: 'text-delta', id: 'prt_test_placeholder', text: 'Finished', startedAt, endedAt: startedAt },
+      ],
+      totalUsage: ZERO_USAGE,
+      finalFinishReason: 'stop',
+      startedAt,
+    });
+
+    const rows = await getDb().select().from(messages).where(eq(messages.id, assistantMessageId));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].parts).toEqual([
+      { type: 'text-delta', id: 'prt_test_placeholder', text: 'Finished', startedAt, endedAt: startedAt },
+    ]);
+    expect(rows[0].finishReason).toBe('stop');
+  });
 });
 
 describe('markSessionUnread', () => {
