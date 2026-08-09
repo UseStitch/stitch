@@ -2,16 +2,9 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 type SessionRun = (abortSignal: AbortSignal) => Promise<void>;
 
-type QueuedRun = {
-  run: SessionRun;
-  resolve: () => void;
-  reject: (error: unknown) => void;
-};
+type QueuedRun = { run: SessionRun; resolve: () => void; reject: (error: unknown) => void };
 
-type SessionQueue = {
-  runs: QueuedRun[];
-  activeController: AbortController | null;
-};
+type SessionQueue = { runs: QueuedRun[]; activeController: AbortController | null };
 
 const queues = new Map<PrefixedString<'ses'>, SessionQueue>();
 
@@ -64,5 +57,5 @@ export function cancelQueuedSessionRuns(sessionId: PrefixedString<'ses'>): void 
 }
 
 export function isSessionRunActive(sessionId: PrefixedString<'ses'>): boolean {
-  return queues.get(sessionId)?.activeController !== null && queues.has(sessionId);
+  return Boolean(queues.get(sessionId)?.activeController);
 }

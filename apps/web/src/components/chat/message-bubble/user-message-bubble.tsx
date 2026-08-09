@@ -3,9 +3,9 @@ import { FileIcon, FileTextIcon, GitForkIcon, ChevronsDownUpIcon, ChevronsUpDown
 import { useRef, useState, useEffect } from 'react';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
+import { extractTextFromParts } from '@stitch/shared/chat/messages';
 
 import ChatMarkdown from '@/components/chat/chat-markdown.js';
-import { extractTextFromParts } from '@/components/chat/message-bubble/extract-text.js';
 import { MESSAGE_ACTION_BUTTON_CLASS, MessageCopyButton } from '@/components/chat/message-bubble/shared-components.js';
 import { Icon } from '@/components/primitives/icon.js';
 import { Stack } from '@/components/primitives/stack.js';

@@ -35,41 +35,32 @@ type ToolCallGroupProps = { calls: ToolCallDisplayItem[]; onAbort?: () => void }
 
 type ToolErrorDetails = { toolName: string; label: string; error: string };
 
-const STATUS_TONE = {
-  pending: 'muted',
-  'in-progress': 'primary',
-  completed: 'success',
-  error: 'destructive',
-} as const satisfies Record<ToolCallStatus, 'muted' | 'primary' | 'success' | 'destructive'>;
-
-const STATUS_LABEL: Record<ToolCallStatus, string> = {
-  pending: 'Pending',
-  'in-progress': 'Running',
-  completed: 'Done',
-  error: 'Error',
+type StatusPresentation = {
+  label: string;
+  tone: 'muted' | 'primary' | 'success' | 'destructive';
+  icon: 'pending' | 'running' | 'success' | 'error' | 'muted';
 };
 
-const BACKGROUND_STATUS_LABEL: Record<BackgroundTaskStatus, string> = {
-  running: 'Running',
-  completed: 'Completed',
-  error: 'Failed',
-  cancelled: 'Cancelled',
-  interrupted: 'Interrupted',
-};
+const TOOL_STATUS = {
+  pending: { label: 'Pending', tone: 'muted', icon: 'pending' },
+  'in-progress': { label: 'Running', tone: 'primary', icon: 'running' },
+  completed: { label: 'Done', tone: 'success', icon: 'success' },
+  error: { label: 'Error', tone: 'destructive', icon: 'error' },
+} as const satisfies Record<ToolCallStatus, StatusPresentation>;
 
-const BACKGROUND_STATUS_TONE = {
-  running: 'primary',
-  completed: 'success',
-  error: 'destructive',
-  cancelled: 'muted',
-  interrupted: 'muted',
-} as const;
+const BACKGROUND_TASK_STATUS = {
+  running: { label: 'Running', tone: 'primary', icon: 'running' },
+  completed: { label: 'Completed', tone: 'success', icon: 'success' },
+  error: { label: 'Failed', tone: 'destructive', icon: 'error' },
+  cancelled: { label: 'Cancelled', tone: 'muted', icon: 'muted' },
+  interrupted: { label: 'Interrupted', tone: 'muted', icon: 'muted' },
+} as const satisfies Record<BackgroundTaskStatus, StatusPresentation>;
 
 type ToolCallRowContextValue = {
   call: ToolCallDisplayItem;
   summary: ToolCallSummary;
+  status: StatusPresentation;
   errorDetails: ToolErrorDetails | null;
-  backgroundTask: BackgroundTask | undefined;
   onViewErrorDetails: (details: ToolErrorDetails) => void;
 };
 
@@ -78,6 +69,15 @@ const ToolCallRowContext = React.createContext<ToolCallRowContextValue | null>(n
 export function ToolCallGroup({ calls, onAbort }: ToolCallGroupProps) {
   const [expanded, setExpanded] = React.useState(false);
   const [errorDetails, setErrorDetails] = React.useState<ToolErrorDetails | null>(null);
+  const sessionId = useParams({ strict: false }).id;
+  const hasBackgroundTask = calls.some((call) => call.toolName === 'task' && getChildSessionId(call.result));
+  const { data: backgroundTasks } = useQuery({
+    ...backgroundTasksQueryOptions(sessionId ?? ''),
+    enabled: Boolean(sessionId && hasBackgroundTask),
+  });
+  const backgroundTasksBySessionId = new Map<string, BackgroundTask>(
+    backgroundTasks?.map((task) => [task.childSessionId, task]),
+  );
   const hiddenCount = Math.max(0, calls.length - VISIBLE_TOOL_COUNT);
   const visibleCalls = expanded ? calls : calls.slice(hiddenCount);
   // Only animate counts that grew after mount, so restored history stays static.
@@ -113,6 +113,11 @@ export function ToolCallGroup({ calls, onAbort }: ToolCallGroupProps) {
           <ToolCallDisplayRow
             key={call.id}
             call={call}
+            backgroundTask={
+              call.toolName === 'task'
+                ? backgroundTasksBySessionId.get(getChildSessionId(call.result) ?? '')
+                : undefined
+            }
             onAbort={onAbort}
             onViewErrorDetails={setErrorDetails}
             animateIn={index === visibleCalls.length - 1}
@@ -127,30 +132,25 @@ export function ToolCallGroup({ calls, onAbort }: ToolCallGroupProps) {
 
 function ToolCallDisplayRow({
   call,
+  backgroundTask,
   onAbort,
   onViewErrorDetails,
   animateIn,
 }: {
   call: ToolCallDisplayItem;
+  backgroundTask: BackgroundTask | undefined;
   onAbort?: () => void;
   onViewErrorDetails: (details: ToolErrorDetails) => void;
   animateIn: boolean;
 }) {
   const displayName = useStitchToolDisplayName(call.toolName);
-  const params = useParams({ strict: false });
-  const childSessionId = getChildSessionId(call.result);
-  const isBackgroundTask = call.toolName === 'task' && Boolean(params.id && childSessionId);
-  const { data: backgroundTasks } = useQuery({
-    ...backgroundTasksQueryOptions(params.id ?? ''),
-    enabled: isBackgroundTask,
-  });
-  const backgroundTask = backgroundTasks?.find((task) => task.childSessionId === childSessionId);
   const baseSummary = getToolSummary(call, displayName);
   const summary =
     backgroundTask?.status === 'error' && backgroundTask.error
       ? { ...baseSummary, preview: truncateText(backgroundTask.error, 96) }
       : baseSummary;
   const isActive = call.status === 'pending' || call.status === 'in-progress';
+  const status = backgroundTask ? BACKGROUND_TASK_STATUS[backgroundTask.status] : TOOL_STATUS[call.status];
   const errorDetails =
     backgroundTask?.status === 'error' && backgroundTask.error
       ? { toolName: call.toolName, label: summary.label, error: backgroundTask.error }
@@ -163,8 +163,8 @@ function ToolCallDisplayRow({
     <ToolCallRow.Root
       call={call}
       summary={summary}
+      status={status}
       errorDetails={errorDetails}
-      backgroundTask={backgroundTask}
       onViewErrorDetails={onViewErrorDetails}
       animateIn={animateIn && isActive}>
       <ToolCallRow.Icon />
@@ -193,23 +193,23 @@ const ToolCallRow = {
 function ToolCallRowRoot({
   call,
   summary,
+  status,
   errorDetails,
-  backgroundTask,
   onViewErrorDetails,
   animateIn,
   children,
 }: {
   call: ToolCallDisplayItem;
   summary: ToolCallSummary;
+  status: StatusPresentation;
   errorDetails: ToolErrorDetails | null;
-  backgroundTask: BackgroundTask | undefined;
   onViewErrorDetails: (details: ToolErrorDetails) => void;
   animateIn: boolean;
   children: React.ReactNode;
 }) {
   const contextValue = React.useMemo(
-    () => ({ call, summary, errorDetails, backgroundTask, onViewErrorDetails }),
-    [call, summary, errorDetails, backgroundTask, onViewErrorDetails],
+    () => ({ call, summary, status, errorDetails, onViewErrorDetails }),
+    [call, summary, status, errorDetails, onViewErrorDetails],
   );
 
   return (
@@ -226,8 +226,8 @@ function ToolCallRowRoot({
 }
 
 function ToolCallRowIcon() {
-  const { call, summary, backgroundTask } = useToolCallRow();
-  return <ToolStatusIcon status={call.status} summary={summary} backgroundStatus={backgroundTask?.status} />;
+  const { summary, status } = useToolCallRow();
+  return <ToolStatusIcon status={status} summary={summary} />;
 }
 
 function ToolCallRowLabel() {
@@ -282,30 +282,20 @@ function ToolCallRowMeta() {
 }
 
 function ToolCallRowStatus() {
-  const { call, errorDetails, backgroundTask, onViewErrorDetails } = useToolCallRow();
-
-  if (backgroundTask && !errorDetails) {
-    return (
-      <span className="flex h-5 w-16 shrink-0 items-center justify-end">
-        <Text as="span" variant="micro" tone={BACKGROUND_STATUS_TONE[backgroundTask.status]} align="right">
-          {BACKGROUND_STATUS_LABEL[backgroundTask.status]}
-        </Text>
-      </span>
-    );
-  }
+  const { status, errorDetails, onViewErrorDetails } = useToolCallRow();
 
   if (!errorDetails) {
     return (
-      <span className="flex h-5 w-12 shrink-0 items-center justify-end">
-        <Text as="span" variant="micro" tone={STATUS_TONE[call.status]} align="right">
-          {STATUS_LABEL[call.status]}
+      <span className="flex h-5 w-16 shrink-0 items-center justify-end">
+        <Text as="span" variant="micro" tone={status.tone} align="right">
+          {status.label}
         </Text>
       </span>
     );
   }
 
   return (
-    <span className="flex h-5 w-12 shrink-0 items-center justify-end">
+    <span className="flex h-5 w-16 shrink-0 items-center justify-end">
       <Button
         type="button"
         variant="destructive-quiet"
@@ -313,7 +303,7 @@ function ToolCallRowStatus() {
         onClick={() => onViewErrorDetails(errorDetails)}
         className="hover:underline"
         title="View full error">
-        {backgroundTask?.status === 'error' ? BACKGROUND_STATUS_LABEL.error : STATUS_LABEL[call.status]}
+        {status.label}
       </Button>
     </span>
   );
@@ -402,24 +392,12 @@ function ToolErrorDetailsDialog({
   );
 }
 
-function ToolStatusIcon({
-  status,
-  summary,
-  backgroundStatus,
-}: {
-  status: ToolCallStatus;
-  summary: ToolCallSummary;
-  backgroundStatus?: BackgroundTaskStatus;
-}) {
-  if (backgroundStatus === 'running') {
-    return <Spinner size="sm" tone="primary" className="shrink-0" />;
-  }
-
-  if (status === 'pending') {
+function ToolStatusIcon({ status, summary }: { status: StatusPresentation; summary: ToolCallSummary }) {
+  if (status.icon === 'pending') {
     return <Icon as={ClockIcon} size="s" color="var(--muted-foreground)" />;
   }
 
-  if (status === 'in-progress') {
+  if (status.icon === 'running') {
     return <Spinner size="sm" tone="primary" className="shrink-0" />;
   }
 
@@ -429,11 +407,7 @@ function ToolStatusIcon({
         icon={{ type: 'simpleIcons', slug: summary.connectorIconSlug }}
         className={cn(
           'size-3.5 shrink-0',
-          backgroundStatus === 'cancelled' || backgroundStatus === 'interrupted'
-            ? 'bg-muted-foreground'
-            : status === 'error' || backgroundStatus === 'error'
-              ? 'bg-destructive'
-              : 'bg-success',
+          status.icon === 'muted' ? 'bg-muted-foreground' : status.icon === 'error' ? 'bg-destructive' : 'bg-success',
         )}
       />
     );
@@ -448,9 +422,9 @@ function ToolStatusIcon({
       kind={summary.kind}
       className={cn(
         'size-3.5 shrink-0',
-        backgroundStatus === 'cancelled' || backgroundStatus === 'interrupted'
+        status.icon === 'muted'
           ? 'text-muted-foreground'
-          : status === 'error' || backgroundStatus === 'error'
+          : status.icon === 'error'
             ? 'text-destructive'
             : 'text-success',
       )}

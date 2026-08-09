@@ -55,7 +55,7 @@ async function setupSessions(): Promise<void> {
 
 function input(
   run: Parameters<typeof startBackgroundTask>[0]['run'],
-  scheduleResult?: (parentId: PrefixedString<'ses'>) => void,
+  scheduleResult?: (parentId: PrefixedString<'ses'>) => void | Promise<void>,
 ) {
   return {
     taskId: childSessionId,
@@ -114,7 +114,9 @@ describe('background task service', () => {
               duration: 0,
             });
         },
-        (parentId) => scheduled.push(parentId),
+        (parentId) => {
+          scheduled.push(parentId);
+        },
       ),
       { registerAbort: () => new AbortController().signal, cleanupAbort: () => undefined },
     );
@@ -136,7 +138,9 @@ describe('background task service', () => {
     await startBackgroundTask(
       input(
         async () => streamGate.promise,
-        (parentId) => scheduled.push(parentId),
+        (parentId) => {
+          scheduled.push(parentId);
+        },
       ),
       { registerAbort: () => new AbortController().signal, cleanupAbort: () => undefined },
     );
@@ -163,7 +167,9 @@ describe('background task service', () => {
         async () => {
           throw new Error('stream failed');
         },
-        (parentId) => scheduled.push(parentId),
+        (parentId) => {
+          scheduled.push(parentId);
+        },
       ),
       { registerAbort: () => new AbortController().signal, cleanupAbort: () => undefined },
     );
@@ -172,6 +178,27 @@ describe('background task service', () => {
 
     expect((await getBackgroundTask(childSessionId))?.status).toBe('error');
     expect(scheduled).toEqual([parentSessionId]);
+  });
+
+  test('keeps a completed task settled when result scheduling fails asynchronously', async () => {
+    await setupSessions();
+    const completedEvent = Promise.withResolvers<void>();
+    const unsubscribe = internalBus.on('background-task.completed', async () => completedEvent.resolve());
+
+    await startBackgroundTask(
+      input(
+        async () => undefined,
+        async () => {
+          throw new Error('delivery unavailable');
+        },
+      ),
+      { registerAbort: () => new AbortController().signal, cleanupAbort: () => undefined },
+    );
+    await completedEvent.promise;
+    await Bun.sleep(0);
+    unsubscribe();
+
+    expect((await getBackgroundTask(childSessionId))?.status).toBe('completed');
   });
 
   test('reconciles stale tasks without emitting lifecycle events', async () => {

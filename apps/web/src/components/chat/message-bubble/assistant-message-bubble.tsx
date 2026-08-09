@@ -1,8 +1,7 @@
 import { toUserFacingStreamError } from '@stitch/shared/chat/errors';
 import type { StreamErrorDetails } from '@stitch/shared/chat/errors';
-import type { StoredPart } from '@stitch/shared/chat/messages';
+import { extractTextFromParts, type StoredPart } from '@stitch/shared/chat/messages';
 
-import { extractTextFromParts } from './extract-text';
 import { buildDisplaySegments, collectToolResults } from './segment-utils';
 import { AssistantBubbleWrapper, FileBlock, InterruptedLabel, MessageCopyButton } from './shared-components';
 
