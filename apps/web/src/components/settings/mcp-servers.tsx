@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type Tab = 'configured' | 'marketplace';
 
-function McpServersContent() {
+export function McpServersSettings() {
   const page = SETTINGS_PAGE_BY_ID['mcp-servers'];
   const Icon = page.icon;
   const [view, setView] = React.useState<View>({ type: 'home', tab: 'configured' });
@@ -62,8 +62,4 @@ function McpServersContent() {
       </Tabs>
     </SettingPage>
   );
-}
-
-export function McpServersSettings() {
-  return <McpServersContent />;
 }

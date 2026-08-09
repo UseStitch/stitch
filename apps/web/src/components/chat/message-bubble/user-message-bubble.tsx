@@ -19,12 +19,12 @@ type UserMessageBubbleProps = { parts: StoredPart[]; onSplit?: () => void; onEdi
 export function UserMessageBubble({ parts, onSplit, onEdit }: UserMessageBubbleProps) {
   const text = extractTextFromParts(parts);
   const imageParts = parts.filter((part): part is StoredPart & { type: 'user-image' } => part.type === 'user-image');
-  const fileParts = parts.filter((part): part is StoredPart & { type: 'user-file' } => part.type === 'user-file');
-  const textFileParts = parts.filter(
-    (part): part is StoredPart & { type: 'user-text-file' } => part.type === 'user-text-file',
-  );
+  const fileParts = [
+    ...parts.filter((part): part is StoredPart & { type: 'user-file' } => part.type === 'user-file'),
+    ...parts.filter((part): part is StoredPart & { type: 'user-text-file' } => part.type === 'user-text-file'),
+  ];
 
-  const hasAttachments = imageParts.length > 0 || fileParts.length > 0 || textFileParts.length > 0;
+  const hasAttachments = imageParts.length > 0 || fileParts.length > 0;
 
   const contentRef = useRef<HTMLDivElement>(null);
   const [isOverflowing, setIsOverflowing] = useState(false);
@@ -59,17 +59,11 @@ export function UserMessageBubble({ parts, onSplit, onEdit }: UserMessageBubbleP
               <div
                 key={part.id}
                 className="flex h-8 max-w-48 items-center gap-space-s rounded-lg border border-border-subtle bg-surface-sunken px-space-m">
-                <Icon as={FileIcon} size="s" color="var(--muted-foreground)" />
-                <Text as="span" variant="caption" truncate>
-                  {part.filename}
-                </Text>
-              </div>
-            ))}
-            {textFileParts.map((part) => (
-              <div
-                key={part.id}
-                className="flex h-8 max-w-48 items-center gap-space-s rounded-lg border border-border-subtle bg-surface-sunken px-space-m">
-                <Icon as={FileTextIcon} size="s" color="var(--muted-foreground)" />
+                <Icon
+                  as={part.type === 'user-text-file' ? FileTextIcon : FileIcon}
+                  size="s"
+                  color="var(--muted-foreground)"
+                />
                 <Text as="span" variant="caption" truncate>
                   {part.filename}
                 </Text>

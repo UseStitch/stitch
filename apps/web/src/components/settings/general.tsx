@@ -139,7 +139,7 @@ export function GeneralSettings() {
         <DictationContent />
       </SettingSection>
       <SettingSection title="App Updates">
-        <AppUpdatesContent />
+        <AutoUpdatesContent />
       </SettingSection>
       <SettingSection title="Notifications">
         <NotificationsContent />
@@ -165,10 +165,6 @@ function updaterStatusLabel(status: string, progress?: number): string {
     return `Downloading update${progress ? ` (${Math.round(progress)}%)` : '...'}`;
   }
   return UPDATER_STATUS_LABELS[status] ?? 'Check for updates manually.';
-}
-
-function AppUpdatesContent() {
-  return <AutoUpdatesContent />;
 }
 
 function AutoUpdatesContent() {
