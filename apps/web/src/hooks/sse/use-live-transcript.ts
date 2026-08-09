@@ -11,20 +11,26 @@ type LiveTranscriptEntry = {
   kind: 'partial' | 'final';
 };
 
+type LiveTranscriptState = { entries: LiveTranscriptEntry[]; counter: number };
+
 const FLUSH_GRACE_MS = 2000;
 
 export function useLiveTranscript(recordingId: string, isRecording: boolean) {
-  const [entries, setEntries] = React.useState<LiveTranscriptEntry[]>([]);
-  const counterRef = React.useRef(0);
+  const [transcript, setTranscript] = React.useState<LiveTranscriptState>({ entries: [], counter: 0 });
 
   // After recording stops, wait for flush then promote remaining partials
   React.useEffect(() => {
     if (isRecording) return;
 
     const timer = setTimeout(() => {
-      setEntries((current) => {
-        if (!current.some((e) => e.kind === 'partial')) return current;
-        return current.map((e) => (e.kind === 'partial' ? { ...e, kind: 'final' as const } : e));
+      setTranscript((current) => {
+        if (!current.entries.some((entry) => entry.kind === 'partial')) return current;
+        return {
+          ...current,
+          entries: current.entries.map((entry) =>
+            entry.kind === 'partial' ? { ...entry, kind: 'final' as const } : entry,
+          ),
+        };
       });
     }, FLUSH_GRACE_MS);
 
@@ -34,13 +40,15 @@ export function useLiveTranscript(recordingId: string, isRecording: boolean) {
   // Keep subscribing with the recordingId so we receive post-stop flush events
   useRecordingEvents(recordingId, {
     'recording.transcript.entry': (data) => {
-      setEntries((prev) => {
+      setTranscript((current) => {
+        const { entries } = current;
         // Find existing partial from same source to replace
-        const partialIdx = prev.findLastIndex((e) => e.source === data.source && e.kind === 'partial');
+        const partialIdx = entries.findLastIndex((entry) => entry.source === data.source && entry.kind === 'partial');
 
         if (data.kind === 'partial') {
+          const counter = partialIdx >= 0 ? current.counter : current.counter + 1;
           const entry: LiveTranscriptEntry = {
-            id: partialIdx >= 0 ? prev[partialIdx].id : ++counterRef.current,
+            id: partialIdx >= 0 ? entries[partialIdx].id : counter,
             source: data.source,
             speaker: data.speaker,
             content: data.content,
@@ -48,18 +56,18 @@ export function useLiveTranscript(recordingId: string, isRecording: boolean) {
             kind: 'partial',
           };
           if (partialIdx >= 0) {
-            const next = [...prev];
+            const next = [...entries];
             next[partialIdx] = entry;
-            return next;
+            return { entries: next, counter };
           }
-          return [...prev, entry];
+          return { entries: [...entries, entry], counter };
         }
 
         // Final: replace the partial in-place to preserve chronological order,
         // or append if there was no partial for this source.
-        counterRef.current += 1;
+        const counter = current.counter + 1;
         const finalEntry: LiveTranscriptEntry = {
-          id: counterRef.current,
+          id: counter,
           source: data.source,
           speaker: data.speaker,
           content: data.content,
@@ -68,15 +76,15 @@ export function useLiveTranscript(recordingId: string, isRecording: boolean) {
         };
 
         if (partialIdx >= 0) {
-          const next = [...prev];
+          const next = [...entries];
           next[partialIdx] = finalEntry;
-          return next;
+          return { entries: next, counter };
         }
 
-        return [...prev, finalEntry];
+        return { entries: [...entries, finalEntry], counter };
       });
     },
   });
 
-  return entries;
+  return transcript.entries;
 }

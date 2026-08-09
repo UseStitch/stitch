@@ -128,7 +128,9 @@ export function SetupWizard({ definition, connectors, onClose }: Props) {
           });
           progress.connectorRefId = connector.id;
         }
-        progress.connectorRefId ??= values.selectedConnectorRefId;
+        if (progress.connectorRefId === undefined) {
+          progress.connectorRefId = values.selectedConnectorRefId;
+        }
 
         if (!progress.instanceId) {
           const instance = await createOAuthAccount.mutateAsync({

@@ -20,12 +20,14 @@ type ThreadListProps = {
   onSelectThread: (threadId: MailThreadId) => void;
 };
 
+const TIME_FORMATTER = new Intl.DateTimeFormat(undefined, { timeStyle: 'short' });
+const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
+
 function formatThreadDate(value: number): string {
   const date = new Date(value);
   const now = new Date();
-  if (date.toDateString() === now.toDateString())
-    return new Intl.DateTimeFormat(undefined, { timeStyle: 'short' }).format(date);
-  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(date);
+  if (date.toDateString() === now.toDateString()) return TIME_FORMATTER.format(date);
+  return DATE_FORMATTER.format(date);
 }
 
 function formatSender(thread: MailThreadListItem): string {
