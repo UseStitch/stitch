@@ -3,9 +3,14 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
+import { StubGoogleClient } from '../test-helpers.js';
 import { deleteFiles, uploadFile } from './api.js';
 
-import type { GoogleClient } from '../client.js';
+function decodeBody(body: BodyInit | null | undefined): string {
+  if (typeof body === 'string') return body;
+  if (body instanceof ArrayBuffer) return Buffer.from(body).toString();
+  throw new Error('Expected a string or ArrayBuffer request body');
+}
 
 describe('Drive API uploadFile', () => {
   test('uploads a local file with metadata', async () => {
@@ -14,11 +19,11 @@ describe('Drive API uploadFile', () => {
     await fs.writeFile(filePath, 'hello drive');
 
     let requestUrl = '';
-    let requestOptions: { method?: string; headers?: Record<string, string>; body?: string | ArrayBuffer } = {};
-    const client = {
-      request: async (url: string, options?: typeof requestOptions) => {
+    let requestOptions: RequestInit | undefined;
+    const client = new StubGoogleClient({
+      request: async (url: string, options?: RequestInit) => {
         requestUrl = url;
-        requestOptions = options ?? {};
+        requestOptions = options;
         return {
           id: 'file-1',
           name: 'Report.txt',
@@ -26,7 +31,7 @@ describe('Drive API uploadFile', () => {
           webViewLink: 'https://drive.google.com/file/d/file-1/view',
         };
       },
-    } as unknown as GoogleClient;
+    });
 
     const result = await uploadFile(client, filePath, {
       name: 'Report.txt',
@@ -37,12 +42,11 @@ describe('Drive API uploadFile', () => {
     expect(requestUrl).toBe(
       'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,webViewLink',
     );
-    expect(requestOptions.method).toBe('POST');
-    expect(requestOptions.headers?.['Content-Type']).toBe('multipart/related; boundary=drive_upload_boundary');
-    const requestBody =
-      typeof requestOptions.body === 'string'
-        ? requestOptions.body
-        : Buffer.from(new Uint8Array(requestOptions.body ?? new ArrayBuffer(0))).toString();
+    expect(requestOptions?.method).toBe('POST');
+    expect(new Headers(requestOptions?.headers).get('Content-Type')).toBe(
+      'multipart/related; boundary=drive_upload_boundary',
+    );
+    const requestBody = decodeBody(requestOptions?.body);
 
     expect(requestBody).toContain('hello drive');
     expect(requestBody).toContain('Content-Type: text/plain\r\n\r\nhello drive');
@@ -60,7 +64,7 @@ describe('Drive API deleteFiles', () => {
   test('deletes multiple files', async () => {
     let requestUrl = '';
     let requestOptions: RequestInit | undefined;
-    const client = {
+    const client = new StubGoogleClient({
       requestRaw: async (url: string, options?: RequestInit) => {
         requestUrl = url;
         requestOptions = options;
@@ -80,7 +84,7 @@ describe('Drive API deleteFiles', () => {
           ].join('\r\n'),
         );
       },
-    } as unknown as GoogleClient;
+    });
 
     const result = await deleteFiles(client, ['file-1', 'file/2']);
 
@@ -95,14 +99,14 @@ describe('Drive API deleteFiles', () => {
   });
 
   test('reports failed inner delete requests', async () => {
-    const client = {
+    const client = new StubGoogleClient({
       requestRaw: async () =>
         new Response(
           ['--response', 'Content-Type: application/http', '', 'HTTP/1.1 404 Not Found', '', '--response--'].join(
             '\r\n',
           ),
         ),
-    } as unknown as GoogleClient;
+    });
 
     expect(deleteFiles(client, ['missing-file'])).rejects.toEqual(
       expect.objectContaining({ failures: [{ fileId: 'missing-file', status: 404 }] }),
