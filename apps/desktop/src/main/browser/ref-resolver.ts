@@ -1,16 +1,18 @@
 import { buildRefActionScript } from './scripts/ref-action.injected.js';
 
+import type { RefActionSuccess } from './scripts/ref-action.injected.js';
 import type { RefEntry } from './types.js';
 import type { WebContents } from 'electron';
 
-type RefInteractionResult = {
-  ok: boolean;
+/** The injected script's return value before validation, since it crosses `executeJavaScript`. */
+type UnvalidatedRefAction = {
+  ok?: boolean;
   error?: string;
   result?: unknown;
-  x?: unknown;
-  y?: unknown;
-  width?: unknown;
-  height?: unknown;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
 };
 
 export class RefResolver {
@@ -50,7 +52,8 @@ export class RefResolver {
       ),
       true,
     );
-    return this.unwrapRefCoordinates(ref, result);
+    const { x, y } = this.unwrapRefSuccess(ref, result);
+    return { x, y };
   }
 
   async resolveRefBounds(ref: string): Promise<{ x: number; y: number; width: number; height: number }> {
@@ -63,12 +66,8 @@ export class RefResolver {
       ),
       true,
     );
-    const coordinates = this.unwrapRefCoordinates(ref, result);
-    const { width, height } = coordinates;
-    if (typeof width !== 'number' || typeof height !== 'number') {
-      throw new Error(`Browser interaction on ${ref} did not return bounds.`);
-    }
-    return { x: coordinates.x, y: coordinates.y, width, height };
+    const { x, y, width, height } = this.unwrapRefSuccess(ref, result);
+    return { x, y, width, height };
   }
 
   async focusRef(ref: string): Promise<void> {
@@ -94,38 +93,27 @@ export class RefResolver {
     return buildRefActionScript(entry, buildScript);
   }
 
-  private unwrapRefCoordinates(
-    ref: string,
-    result: unknown,
-  ): { x: number; y: number; width?: number; height?: number } {
-    const success = this.unwrapRefSuccess(ref, result);
-    if (typeof success.x !== 'number' || typeof success.y !== 'number') {
-      throw new Error(`Browser interaction on ${ref} did not return coordinates.`);
-    }
-    return {
-      x: success.x,
-      y: success.y,
-      width: typeof success.width === 'number' ? success.width : undefined,
-      height: typeof success.height === 'number' ? success.height : undefined,
-    };
-  }
-
   private unwrapRefResult(ref: string, result: unknown): unknown {
     return this.unwrapRefSuccess(ref, result).result;
   }
 
-  private unwrapRefSuccess(ref: string, result: unknown): RefInteractionResult {
+  private unwrapRefSuccess(ref: string, result: unknown): RefActionSuccess {
     if (!result || typeof result !== 'object' || !('ok' in result)) {
       throw new Error(`Browser interaction on ${ref} did not return a valid result.`);
     }
 
-    const interaction = result as RefInteractionResult;
+    const { ok, error, result: actionResult, x, y, width, height } = result as UnvalidatedRefAction;
 
-    if (!interaction.ok) {
-      const error = interaction.error ?? 'Element interaction failed';
-      throw new Error(`${error}: ${ref}. Take a fresh browser_snapshot before retrying.`);
+    if (!ok) {
+      throw new Error(
+        `${error ?? 'Element interaction failed'}: ${ref}. Take a fresh browser_snapshot before retrying.`,
+      );
     }
 
-    return interaction;
+    if (typeof x !== 'number' || typeof y !== 'number' || typeof width !== 'number' || typeof height !== 'number') {
+      throw new Error(`Browser interaction on ${ref} did not return coordinates.`);
+    }
+
+    return { ok: true, result: actionResult, x, y, width, height };
   }
 }
