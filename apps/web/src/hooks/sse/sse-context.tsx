@@ -40,7 +40,13 @@ function parseJson(raw: string): unknown {
   }
 }
 
-type AnyHandler = (data: never) => void;
+/** `never` makes this a supertype of every `(data: SseEventPayloadMap[K]) => void`. */
+type StoredSseHandler = (data: never) => void;
+
+/** Restores the event-name→payload pairing that the single handler map erases. */
+function callHandler(handler: StoredSseHandler | undefined, payload: unknown): void {
+  (handler as ((data: unknown) => void) | undefined)?.(payload);
+}
 
 function getSessionIdFromPayload(eventName: SseEventName, payload: unknown): string | null {
   if (!payload || typeof payload !== 'object') return null;
@@ -100,7 +106,7 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
   const [lastHeartbeat, setLastHeartbeat] = React.useState<Date | null>(null);
 
   // Map from event name → set of handlers so multiple subscribers can coexist per event.
-  const handlersRef = React.useRef<Map<SseEventName, Set<AnyHandler>>>(new Map());
+  const handlersRef = React.useRef<Map<SseEventName, Set<StoredSseHandler>>>(new Map());
 
   React.useEffect(() => {
     const connection = createSseConnection({
@@ -114,8 +120,8 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
         // meaningful for remote servers whose clock is skewed from the client's.
         if (eventName === 'heartbeat') setLastHeartbeat(new Date());
 
-        const payload = parseJson(raw) as never;
-        handlersRef.current.get(eventName)?.forEach((handler) => handler(payload));
+        const payload = parseJson(raw);
+        handlersRef.current.get(eventName)?.forEach((handler) => callHandler(handler, payload));
       },
     });
 
@@ -137,7 +143,7 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const subscribe = React.useCallback((handlers: SseHandlers) => {
-    const entries = Object.entries(handlers) as [SseEventName, AnyHandler][];
+    const entries = Object.entries(handlers) as [SseEventName, StoredSseHandler][];
 
     entries.forEach(([eventName, handler]) => {
       let eventHandlers = handlersRef.current.get(eventName);
@@ -189,8 +195,7 @@ export function useSSE(handlers: SseHandlers = {}): UseSseResult {
       eventNames.map((key) => [
         key,
         (data: unknown) => {
-          const h = handlersRef.current[key] as AnyHandler | undefined;
-          h?.(data as never);
+          callHandler(handlersRef.current[key], data);
         },
       ]),
     ) as SseHandlers;
@@ -224,8 +229,7 @@ export function useSessionEvents(
           const currentSessionId = sessionIdRef.current;
           const payloadSessionId = getSessionIdFromPayload(eventName, payload);
           if (payloadSessionId === currentSessionId) {
-            const h = handlersRef.current[eventName] as AnyHandler | undefined;
-            h?.(payload as never);
+            callHandler(handlersRef.current[eventName], payload);
           }
         },
       ]),
@@ -260,8 +264,7 @@ export function useRecordingEvents(
 
           const payloadRecordingId = getRecordingIdFromPayload(eventName, payload);
           if (payloadRecordingId === currentRecordingId) {
-            const h = handlersRef.current[eventName] as AnyHandler | undefined;
-            h?.(payload as never);
+            callHandler(handlersRef.current[eventName], payload);
           }
         },
       ]),
