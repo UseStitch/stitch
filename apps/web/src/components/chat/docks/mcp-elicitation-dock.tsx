@@ -65,12 +65,6 @@ function fieldLabel(name: string, schema: McpElicitationPropertySchema): string 
 
 export function McpElicitationDock({ request, isPending, onRespond }: McpElicitationDockProps) {
   const [values, setValues] = React.useState<Record<string, FormValue>>(() => initialValues(request));
-  const [activeRequest, setActiveRequest] = React.useState(request.id);
-
-  if (activeRequest !== request.id) {
-    setActiveRequest(request.id);
-    setValues(initialValues(request));
-  }
 
   if (request.mode === 'url' && request.url) {
     const destination = new URL(request.url);
