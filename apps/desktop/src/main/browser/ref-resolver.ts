@@ -3,6 +3,16 @@ import { buildRefActionScript } from './scripts/ref-action.injected.js';
 import type { RefEntry } from './types.js';
 import type { WebContents } from 'electron';
 
+type RefInteractionResult = {
+  ok: boolean;
+  error?: string;
+  result?: unknown;
+  x?: unknown;
+  y?: unknown;
+  width?: unknown;
+  height?: unknown;
+};
+
 export class RefResolver {
   private refs = new Map<string, RefEntry>();
 
@@ -104,19 +114,18 @@ export class RefResolver {
     return this.unwrapRefSuccess(ref, result).result;
   }
 
-  private unwrapRefSuccess(
-    ref: string,
-    result: unknown,
-  ): { result: unknown; x?: unknown; y?: unknown; width?: unknown; height?: unknown } {
+  private unwrapRefSuccess(ref: string, result: unknown): RefInteractionResult {
     if (!result || typeof result !== 'object' || !('ok' in result)) {
       throw new Error(`Browser interaction on ${ref} did not return a valid result.`);
     }
 
-    if (!(result as { ok: boolean }).ok) {
-      const error = (result as { error?: string }).error ?? 'Element interaction failed';
+    const interaction = result as RefInteractionResult;
+
+    if (!interaction.ok) {
+      const error = interaction.error ?? 'Element interaction failed';
       throw new Error(`${error}: ${ref}. Take a fresh browser_snapshot before retrying.`);
     }
 
-    return result as unknown as { result: unknown; x?: unknown; y?: unknown; width?: unknown; height?: unknown };
+    return interaction;
   }
 }

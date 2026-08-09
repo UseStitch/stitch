@@ -28,7 +28,7 @@ export async function getSettings<const Keys extends readonly SettingsKey[]>(key
   const rows = await db
     .select({ key: userSettings.key, value: userSettings.value })
     .from(userSettings)
-    .where(inArray(userSettings.key, keys as unknown as SettingsKey[]));
+    .where(inArray(userSettings.key, [...keys]));
 
   const rawByKey = new Map(rows.map((r) => [r.key, r.value]));
 

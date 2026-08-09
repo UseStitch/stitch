@@ -12,6 +12,7 @@ import type {
 } from '@stitch/shared/mcp/types';
 
 import { sessions } from '@/db/schema/sessions.js';
+import type { OAuthDiscoveryState } from '@modelcontextprotocol/sdk/client/auth.js';
 
 export const mcpServers = sqliteTable('mcp_servers', {
   id: text('id').$type<PrefixedString<'mcp'>>().primaryKey(),
@@ -59,7 +60,7 @@ export const mcpOAuthSessions = sqliteTable('mcp_oauth_sessions', {
   clientInformation: blob('client_information', { mode: 'json' }).$type<OAuthClientInformation>(),
   tokens: blob('tokens', { mode: 'json' }).$type<OAuthSessionTokens>(),
   codeVerifier: text('code_verifier'),
-  discoveryState: blob('discovery_state', { mode: 'json' }).$type<Record<string, unknown>>(),
+  discoveryState: blob('discovery_state', { mode: 'json' }).$type<OAuthDiscoveryState>(),
   state: text('state'),
   createdAt: integer('created_at', { mode: 'number' })
     .notNull()

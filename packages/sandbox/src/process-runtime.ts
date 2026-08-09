@@ -196,7 +196,7 @@ export function startProcessRuntime(preloadedModules: Record<string, Record<stri
 
     // Init message is not part of HostMessage protocol (sent only once before execution).
     if (msg.type === 'init') {
-      handleInit(message as unknown as InitData);
+      handleInit(message as InitData);
       return;
     }
 
