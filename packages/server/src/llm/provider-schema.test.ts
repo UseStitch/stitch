@@ -70,10 +70,7 @@ describe('sanitizeToolSchemasForProvider', () => {
   });
 
   test('splits multi-type arrays into anyOf and lifts null to nullable', () => {
-    const schema = {
-      type: 'object',
-      properties: { value: { type: ['string', 'number', 'null'] } },
-    } as unknown as JSONSchema7;
+    const schema: JSONSchema7 = { type: 'object', properties: { value: { type: ['string', 'number', 'null'] } } };
 
     const out = sanitizeToolSchemasForProvider({ t: mcpTool(schema) }, 'google' as LlmProviderId, 'gemini-3.5-flash');
 
@@ -122,7 +119,7 @@ describe('sanitizeToolSchemasForProvider', () => {
 
   describe('openai sanitizer', () => {
     test('replaces const with single-value enum and infers object type', () => {
-      const schema = { properties: { mode: { const: 'fast' } } } as unknown as JSONSchema7;
+      const schema: JSONSchema7 = { properties: { mode: { const: 'fast' } } };
 
       const out = sanitizeToolSchemasForProvider({ t: mcpTool(schema) }, 'openai' as LlmProviderId, 'gpt-4o');
 
@@ -133,7 +130,7 @@ describe('sanitizeToolSchemasForProvider', () => {
     });
 
     test('lowers boolean schema nodes to string type', () => {
-      const schema = { type: 'object', properties: { anything: true } } as unknown as JSONSchema7;
+      const schema: JSONSchema7 = { type: 'object', properties: { anything: true } };
 
       const out = sanitizeToolSchemasForProvider({ t: mcpTool(schema) }, 'openai' as LlmProviderId, 'gpt-4o');
 
@@ -141,7 +138,7 @@ describe('sanitizeToolSchemasForProvider', () => {
     });
 
     test('infers array type and defaults missing items to string', () => {
-      const schema = { type: 'object', properties: { tags: { items: {} } } } as unknown as JSONSchema7;
+      const schema: JSONSchema7 = { type: 'object', properties: { tags: { items: {} } } };
 
       const out = sanitizeToolSchemasForProvider({ t: mcpTool(schema) }, 'openai' as LlmProviderId, 'gpt-4o');
 
@@ -179,7 +176,7 @@ describe('sanitizeToolSchemasForProvider', () => {
     });
 
     test('applies openai sanitizer for non-gemini models on a gateway provider', () => {
-      const schema = { type: 'object', properties: { mode: { const: 'x' } } } as unknown as JSONSchema7;
+      const schema: JSONSchema7 = { type: 'object', properties: { mode: { const: 'x' } } };
 
       const out = sanitizeToolSchemasForProvider(
         { t: mcpTool(schema) },

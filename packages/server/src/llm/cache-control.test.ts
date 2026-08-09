@@ -1,7 +1,12 @@
+import { jsonSchema } from 'ai';
 import { describe, test, expect } from 'bun:test';
 
 import { addCacheControlToMessages, addCacheControlToTools, getCacheConfig } from '@/llm/cache-control.js';
 import type { ModelMessage, Tool } from 'ai';
+
+function makeTool(description: string): Tool {
+  return { description, inputSchema: jsonSchema({ type: 'object', properties: {} }) };
+}
 
 describe('getCacheConfig', () => {
   test('returns anthropic config for google-vertex with claude model', () => {
@@ -220,7 +225,7 @@ describe('addCacheControlToMessages', () => {
 
 describe('addCacheControlToTools', () => {
   test('returns tools unchanged for implicit caching providers', () => {
-    const tools = { bash: { description: 'Run a command' } } as unknown as Record<string, Tool>;
+    const tools: Record<string, Tool> = { bash: makeTool('Run a command') };
     const result = addCacheControlToTools(tools, 'openai', 'gpt-4o');
     expect(result).toBe(tools);
   });
@@ -232,32 +237,25 @@ describe('addCacheControlToTools', () => {
   });
 
   test('marks the last tool with anthropic cache control', () => {
-    const tools = {
-      bash: { description: 'Run a command' },
-      read: { description: 'Read a file' },
-      write: { description: 'Write a file' },
-    } as unknown as Record<string, Tool>;
+    const tools: Record<string, Tool> = {
+      bash: makeTool('Run a command'),
+      read: makeTool('Read a file'),
+      write: makeTool('Write a file'),
+    };
 
     const result = addCacheControlToTools(tools, 'anthropic', 'claude-sonnet-4-5');
 
-    expect((result.bash as { providerOptions?: unknown }).providerOptions).toBeUndefined();
-    expect((result.read as { providerOptions?: unknown }).providerOptions).toBeUndefined();
-    expect((result.write as { providerOptions?: unknown }).providerOptions).toEqual({
-      anthropic: { cacheControl: { type: 'ephemeral' } },
-    });
+    expect(result.bash.providerOptions).toBeUndefined();
+    expect(result.read.providerOptions).toBeUndefined();
+    expect(result.write.providerOptions).toEqual({ anthropic: { cacheControl: { type: 'ephemeral' } } });
   });
 
   test('marks the last tool with bedrock cache point', () => {
-    const tools = { bash: { description: 'Run a command' }, read: { description: 'Read a file' } } as unknown as Record<
-      string,
-      Tool
-    >;
+    const tools: Record<string, Tool> = { bash: makeTool('Run a command'), read: makeTool('Read a file') };
 
     const result = addCacheControlToTools(tools, 'amazon-bedrock', 'anthropic.claude-3-7-sonnet-20250219-v1:0');
 
-    expect((result.bash as { providerOptions?: unknown }).providerOptions).toBeUndefined();
-    expect((result.read as { providerOptions?: unknown }).providerOptions).toEqual({
-      bedrock: { cachePoint: { type: 'default' } },
-    });
+    expect(result.bash.providerOptions).toBeUndefined();
+    expect(result.read.providerOptions).toEqual({ bedrock: { cachePoint: { type: 'default' } } });
   });
 });

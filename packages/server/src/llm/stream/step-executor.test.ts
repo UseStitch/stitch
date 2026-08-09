@@ -57,7 +57,7 @@ function getDefaultOpts(model: MockLanguageModelV3, overrides?: Partial<StepOpti
     sessionId: 'ses_1' as StepOptions['sessionId'],
     messageId: 'msg_1' as StepOptions['messageId'],
     step: 0,
-    model: model as unknown as StepOptions['model'],
+    model,
     conversation: [{ role: 'user', content: 'Hello' }],
     accumulatedParts: [],
     providerId: 'openai',
@@ -179,10 +179,7 @@ describe('executeStepWithRetry', () => {
     });
 
     const accumulatedParts: StoredPart[] = [];
-    const opts = getDefaultOpts(model, {
-      accumulatedParts,
-      tools: { read: readTool } as unknown as StepOptions['tools'],
-    });
+    const opts = getDefaultOpts(model, { accumulatedParts, tools: { read: readTool } });
     const result = await executeStepWithRetry(opts);
 
     expect(result.finishReason).toBe('tool-calls');
@@ -212,10 +209,7 @@ describe('executeStepWithRetry', () => {
     });
 
     const accumulatedParts: StoredPart[] = [];
-    const opts = getDefaultOpts(model, {
-      accumulatedParts,
-      tools: { webfetch: failingTool } as unknown as StepOptions['tools'],
-    });
+    const opts = getDefaultOpts(model, { accumulatedParts, tools: { webfetch: failingTool } });
 
     expect(executeStepWithRetry(opts)).rejects.toBeInstanceOf(PermissionRejectedError);
 
@@ -242,10 +236,7 @@ describe('executeStepWithRetry', () => {
     });
 
     const accumulatedParts: StoredPart[] = [];
-    const opts = getDefaultOpts(model, {
-      accumulatedParts,
-      tools: { bash: bashTool } as unknown as StepOptions['tools'],
-    });
+    const opts = getDefaultOpts(model, { accumulatedParts, tools: { bash: bashTool } });
 
     const result = await executeStepWithRetry(opts);
 

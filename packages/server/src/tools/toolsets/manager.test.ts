@@ -1,3 +1,4 @@
+import { jsonSchema } from 'ai';
 import { beforeEach, describe, expect, test } from 'bun:test';
 
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
@@ -20,7 +21,7 @@ function createManager(): ToolsetManager {
 }
 
 function makeTool(description: string): Tool {
-  return { description, parameters: { type: 'object', properties: {} } } as unknown as Tool;
+  return { description, inputSchema: jsonSchema({ type: 'object', properties: {} }) };
 }
 
 describe('ToolsetManager.activate collision detection', () => {

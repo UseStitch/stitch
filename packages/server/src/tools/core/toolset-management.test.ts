@@ -1,3 +1,4 @@
+import { jsonSchema } from 'ai';
 import { beforeEach, describe, expect, test } from 'bun:test';
 
 import { getDb } from '@/db/client.js';
@@ -25,7 +26,7 @@ function createManager(): ToolsetManager {
 }
 
 function makeTool(description: string): Tool {
-  return { description, parameters: { type: 'object', properties: {} } } as unknown as Tool;
+  return { description, inputSchema: jsonSchema({ type: 'object', properties: {} }) };
 }
 
 function registerTestToolset(overrides: Partial<Toolset> = {}): Toolset {
