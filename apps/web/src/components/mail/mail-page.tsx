@@ -11,6 +11,7 @@ import { ThreadList } from '@/components/mail/thread-list';
 import { ThreadView } from '@/components/mail/thread-view';
 import { InternalSidebar } from '@/components/navigation/internal-sidebar';
 import { Icon } from '@/components/primitives/icon';
+import { Text } from '@/components/primitives/text';
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { getDefaultMailLabel, mailAccountsQueryOptions, mailLabelsQueryOptions } from '@/lib/queries/mail';
 
@@ -64,7 +65,9 @@ function MailPageContent({
       <div className="flex w-(--sidebar-width) min-w-80 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
         <InternalSidebar.Header>
           <InternalSidebar.Top>
-            <InternalSidebar.TopTitle>Threads</InternalSidebar.TopTitle>
+            <InternalSidebar.TopTitle>
+              <Text variant="body-strong">Threads</Text>
+            </InternalSidebar.TopTitle>
             <InternalSidebar.TopAction onClick={() => setComposerOpen(true)} aria-label="Compose mail">
               <Icon as={EditIcon} size="s" />
             </InternalSidebar.TopAction>
