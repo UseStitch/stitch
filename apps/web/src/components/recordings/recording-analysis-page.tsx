@@ -83,6 +83,15 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
     );
   };
 
+  const analysisState = isRunning
+    ? cancelAnalysis.isPending
+      ? 'cancelling'
+      : 'running'
+    : startAnalysis.isPending
+      ? 'starting'
+      : 'idle';
+  const recordingState = stopRecording.isPending ? 'stopping' : isActiveRecording ? 'recording' : 'idle';
+
   return (
     <Page className="overflow-hidden">
       <PageContent className="min-h-0 overflow-hidden">
@@ -92,12 +101,9 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
           recording={recording}
           templates={templateData.templates}
           selectedTemplateId={selectedTemplate?.id ?? ''}
-          isRunning={isRunning}
-          isStarting={startAnalysis.isPending}
-          isCancelling={cancelAnalysis.isPending}
+          analysisState={analysisState}
           isDeleting={deleteRecording.isPending}
-          isRecording={isActiveRecording}
-          isStopping={stopRecording.isPending}
+          recordingState={recordingState}
           onStartAnalysis={handleStartAnalysis}
           onTemplateChange={(templateId) => setSelectedTemplateId(templateId)}
           onCancelAnalysis={handleCancelAnalysis}
