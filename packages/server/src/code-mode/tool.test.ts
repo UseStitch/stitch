@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 
-import { isErrorResult, serializeIsolateOutput } from '@/code-mode/tool.js';
+import type { IsolateDriver } from '@stitch/sandbox';
+
+import { createCodeModeTool, isErrorResult, serializeIsolateOutput } from '@/code-mode/tool.js';
 
 describe('isErrorResult', () => {
   test('returns true for objects with error property', () => {
@@ -66,5 +68,21 @@ describe('serializeIsolateOutput', () => {
     circular.self = circular;
     const output = serializeIsolateOutput(circular, []);
     expect(output).toContain('[unserializable result]');
+  });
+});
+
+describe('createCodeModeTool', () => {
+  test('throws on invalid syntax without creating a sandbox context', () => {
+    const driver: IsolateDriver = {
+      createContext: () => {
+        throw new Error('context should not be created for invalid syntax');
+      },
+    };
+
+    const { tool: codeModeTool } = createCodeModeTool({ getTools: () => ({}), driver });
+
+    expect(
+      codeModeTool.execute?.({ code: 'const = ;', description: 'broken code' }, { toolCallId: 'call-1', messages: [] }),
+    ).rejects.toThrow('Syntax error in provided code');
   });
 });

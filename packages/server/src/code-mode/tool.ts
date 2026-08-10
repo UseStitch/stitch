@@ -11,6 +11,7 @@ import type { CodeModeToolFilter } from '@/code-mode/filter.js';
 import { stripTypeScript } from '@/code-mode/strip-typescript.js';
 import { buildCodeModeSystemPrompt } from '@/code-mode/system-prompt.js';
 import * as Log from '@/lib/log.js';
+import { ToolValidationError } from '@/tools/errors.js';
 import { truncateOutput } from '@/tools/runtime/truncation.js';
 import type { Tool } from 'ai';
 
@@ -72,7 +73,11 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
       const stripped = stripTypeScript(code);
       if (stripped.error !== null) {
         log.warn({ event: 'code-mode.syntax-error', description, error: stripped.error }, 'code mode syntax error');
-        return { error: `Syntax error in provided code:\n${stripped.error}`, description };
+        throw new ToolValidationError(
+          `Syntax error in provided code:\n${stripped.error}`,
+          'execute_typescript',
+          'code',
+        );
       }
 
       const filteredTools = getFilteredTools();
