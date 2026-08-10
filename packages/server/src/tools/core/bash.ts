@@ -4,11 +4,13 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { z } from 'zod';
 
 import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
+import { toolError } from '@stitch/shared/tools/types';
 
 import { resolvePreferredShell } from '@/lib/shell.js';
 import { ToolValidationError } from '@/tools/errors.js';
 import { deriveCommandFamilies, getCommandFamilySuggestion } from '@/tools/runtime/bash-families.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
+import type { ToolInput } from '@/tools/runtime/runtime.js';
 import { validateExistingDirectoryPath } from '@/tools/runtime/shared.js';
 
 const SIGKILL_TIMEOUT_MS = 200;
@@ -183,33 +185,38 @@ Parameter sourcing:
 
       const cleanedOutput = stripAnsi(output);
       const exitCode = proc.exitCode ?? 0;
-      const failed = exitCode !== 0 && !timedOutState.value && !aborted;
-
-      return {
-        title: input.description,
-        output: cleanedOutput,
-        failed,
-        metadata: {
-          description: input.description,
-          exit: exitCode,
-          output:
-            cleanedOutput.length > MAX_METADATA_LENGTH
-              ? `${cleanedOutput.slice(0, MAX_METADATA_LENGTH)}\n\n...`
-              : cleanedOutput,
-        },
+      const metadata = {
+        description: input.description,
+        exit: exitCode,
+        output:
+          cleanedOutput.length > MAX_METADATA_LENGTH
+            ? `${cleanedOutput.slice(0, MAX_METADATA_LENGTH)}\n\n...`
+            : cleanedOutput,
       };
+
+      if (exitCode !== 0 || timedOutState.value || aborted) {
+        const reason = timedOutState.value
+          ? `Command timed out after ${timeout} ms`
+          : aborted
+            ? 'Command was aborted'
+            : `Command failed with exit code ${exitCode}`;
+        const message = cleanedOutput.trim().length > 0 ? `${reason}:\n${cleanedOutput}` : reason;
+        return toolError(message, { title: input.description, output: cleanedOutput, metadata });
+      }
+
+      return { title: input.description, output: cleanedOutput, metadata };
     },
   });
 }
 
-function getPatternTargets(input: unknown): string[] {
-  const command = (input as { command?: unknown }).command;
+function getPatternTargets(input: ToolInput): string[] {
+  const command = input.command;
   if (typeof command !== 'string' || command.trim().length === 0) return [];
   return deriveCommandFamilies(command).map((family) => family.pattern);
 }
 
-function getSuggestion(input: unknown): PermissionSuggestion | null {
-  const command = (input as { command?: unknown }).command;
+function getSuggestion(input: ToolInput): PermissionSuggestion | null {
+  const command = input.command;
   if (typeof command !== 'string' || command.trim().length === 0) return null;
   return getCommandFamilySuggestion(command);
 }

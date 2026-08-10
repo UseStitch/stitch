@@ -1,23 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 
-import { isErrorResult, serializeIsolateOutput } from '@/code-mode/tool.js';
+import type { IsolateDriver } from '@stitch/sandbox';
 
-describe('isErrorResult', () => {
-  test('returns true for objects with error property', () => {
-    expect(isErrorResult({ error: 'something went wrong' })).toBe(true);
-    expect(isErrorResult({ error: null })).toBe(true);
-    expect(isErrorResult({ error: { code: 500 } })).toBe(true);
-  });
-
-  test('returns false for non-error objects', () => {
-    expect(isErrorResult({ value: 42 })).toBe(false);
-    expect(isErrorResult({})).toBe(false);
-    expect(isErrorResult(null)).toBe(false);
-    expect(isErrorResult(undefined)).toBe(false);
-    expect(isErrorResult('string')).toBe(false);
-    expect(isErrorResult(42)).toBe(false);
-  });
-});
+import { createCodeModeTool, serializeIsolateOutput } from '@/code-mode/tool.js';
 
 describe('serializeIsolateOutput', () => {
   test('serializes null result as no return value', () => {
@@ -36,9 +21,11 @@ describe('serializeIsolateOutput', () => {
     expect(output).toContain('Error: something failed');
   });
 
-  test('serializes error result with object error', () => {
-    const output = serializeIsolateOutput({ error: { code: 500, msg: 'bad' } }, []);
-    expect(output).toContain('Error: {"code":500,"msg":"bad"}');
+  test('serializes an object with error data as successful JSON', () => {
+    const output = serializeIsolateOutput({ error: { code: 500, msg: 'bad' }, value: 42 }, []);
+    expect(output).toContain('"error": {');
+    expect(output).toContain('"value": 42');
+    expect(output).not.toContain('Error:');
   });
 
   test('serializes successful object result as JSON', () => {
@@ -66,5 +53,72 @@ describe('serializeIsolateOutput', () => {
     circular.self = circular;
     const output = serializeIsolateOutput(circular, []);
     expect(output).toContain('[unserializable result]');
+  });
+});
+
+describe('createCodeModeTool', () => {
+  test('throws on invalid syntax without creating a sandbox context', () => {
+    const driver: IsolateDriver = {
+      createContext: () => {
+        throw new Error('context should not be created for invalid syntax');
+      },
+    };
+
+    const { tool: codeModeTool } = createCodeModeTool({ getTools: () => ({}), driver });
+
+    expect(
+      codeModeTool.execute?.({ code: 'const = ;', description: 'broken code' }, { toolCallId: 'call-1', messages: [] }),
+    ).rejects.toThrow('Syntax error in provided code');
+  });
+
+  test('returns sandbox execution errors as canonical tool errors', async () => {
+    const driver: IsolateDriver = {
+      createContext: async () => ({
+        execute: async () => ({ result: { error: 'sandbox failed' }, logs: [] }),
+        dispose: () => {},
+      }),
+    };
+    const { tool: codeModeTool } = createCodeModeTool({ getTools: () => ({}), driver });
+
+    const result = await codeModeTool.execute?.(
+      { code: 'return true;', description: 'run valid code' },
+      { toolCallId: 'call-2', messages: [] },
+    );
+
+    expect(result).toEqual({ error: 'sandbox failed' });
+  });
+
+  test('preserves sandbox logs in canonical tool error details', async () => {
+    const driver: IsolateDriver = {
+      createContext: async () => ({
+        execute: async () => ({ result: { error: 'sandbox failed' }, logs: ['[log] before failure'] }),
+        dispose: () => {},
+      }),
+    };
+    const { tool: codeModeTool } = createCodeModeTool({ getTools: () => ({}), driver });
+
+    const result = await codeModeTool.execute?.(
+      { code: 'return true;', description: 'run valid code' },
+      { toolCallId: 'call-3', messages: [] },
+    );
+
+    expect(result).toEqual({ error: 'sandbox failed', details: { logs: ['[log] before failure'] } });
+  });
+
+  test('keeps legitimate objects with error data on the success path', async () => {
+    const driver: IsolateDriver = {
+      createContext: async () => ({
+        execute: async () => ({ result: { error: 'partial failure', value: 42 }, logs: [] }),
+        dispose: () => {},
+      }),
+    };
+    const { tool: codeModeTool } = createCodeModeTool({ getTools: () => ({}), driver });
+
+    const result = await codeModeTool.execute?.(
+      { code: 'return true;', description: 'run valid code' },
+      { toolCallId: 'call-4', messages: [] },
+    );
+
+    expect(result).toMatchObject({ output: expect.stringContaining('"value": 42'), truncated: false });
   });
 });

@@ -4,9 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { GmailAttachmentSizeLimitError } from '../errors.js';
+import { StubGoogleClient } from '../test-helpers.js';
 import { downloadAttachments, sendMessage } from './api.js';
-
-import type { GoogleClient } from '../client.js';
 
 function base64Url(value: string): string {
   return Buffer.from(value, 'utf8').toString('base64url');
@@ -52,7 +51,7 @@ describe('gmail api', () => {
 
       throw new Error(`Unexpected URL: ${url}`);
     };
-    const client = { request } as unknown as GoogleClient;
+    const client = new StubGoogleClient({ request });
 
     const result = await downloadAttachments(client, 'msg-1', root);
 
@@ -74,13 +73,13 @@ describe('gmail api', () => {
     await fs.writeFile(filePath, 'attachment contents');
 
     let requestBody = '';
-    const client = {
+    const client = new StubGoogleClient({
       request: async (_url: string, options?: RequestInit) => {
         if (typeof options?.body !== 'string') throw new Error('Expected a JSON request body');
         requestBody = options.body;
         return { id: 'msg-1', threadId: 'thread-1' };
       },
-    } as unknown as GoogleClient;
+    });
 
     await sendMessage(client, 'person@example.com', 'Report', 'See attached.', {
       attachments: [{ filePath, mimeType: 'text/plain' }],
@@ -100,11 +99,11 @@ describe('gmail api', () => {
     const filePath = path.join(root, 'large.bin');
     await fs.writeFile(filePath, '');
     await fs.truncate(filePath, 25 * 1024 * 1024 + 1);
-    const client = {
+    const client = new StubGoogleClient({
       request: async () => {
         throw new Error('Request should not be sent');
       },
-    } as unknown as GoogleClient;
+    });
 
     expect(
       sendMessage(client, 'person@example.com', 'Large file', 'See attached.', { attachments: [{ filePath }] }),

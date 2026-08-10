@@ -1,11 +1,12 @@
+import { toolError } from '@stitch/shared/tools/types';
+import type { ToolErrorResult } from '@stitch/shared/tools/types';
+
 import { GoogleApiError } from './client.js';
 
-import type { Tool, ToolExecuteFunction } from 'ai';
-
-type GoogleToolErrorResult = { error: string; message: string; retryable: boolean };
+import type { Tool } from 'ai';
 
 type GoogleToolErrorClassifier = {
-  error: string;
+  code: string;
   message: string;
   retryable: boolean;
   matches: (error: GoogleApiError) => boolean;
@@ -13,7 +14,7 @@ type GoogleToolErrorClassifier = {
 
 const GOOGLE_TOOL_ERROR_CLASSIFIERS: GoogleToolErrorClassifier[] = [
   {
-    error: 'insufficient_google_permissions',
+    code: 'insufficient_google_permissions',
     message:
       "You aren't allowed to perform this action because the connected Google account does not have enough permissions.",
     retryable: false,
@@ -28,11 +29,10 @@ export function wrapGoogleToolErrors(tools: Record<string, Tool>): Record<string
 }
 
 function wrapGoogleToolError(currentTool: Tool): Tool {
-  if (!currentTool.execute) {
+  const execute: Tool['execute'] = currentTool.execute;
+  if (!execute) {
     return currentTool;
   }
-
-  const execute = currentTool.execute as ToolExecuteFunction<unknown, unknown>;
 
   return {
     ...currentTool,
@@ -52,7 +52,7 @@ function wrapGoogleToolError(currentTool: Tool): Tool {
   };
 }
 
-export function classifyGoogleToolError(error: unknown): GoogleToolErrorResult | null {
+export function classifyGoogleToolError(error: unknown): ToolErrorResult | null {
   if (!(error instanceof GoogleApiError)) {
     return null;
   }
@@ -62,7 +62,7 @@ export function classifyGoogleToolError(error: unknown): GoogleToolErrorResult |
     return null;
   }
 
-  return { error: classifier.error, message: classifier.message, retryable: classifier.retryable };
+  return toolError(classifier.message, { code: classifier.code, retryable: classifier.retryable });
 }
 
 function isInsufficientScopeError(error: GoogleApiError): boolean {

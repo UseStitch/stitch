@@ -2,6 +2,12 @@ import { DOM_HELPERS_SCRIPT } from './dom-helpers.injected.js';
 
 import type { RefEntry } from '../types.js';
 
+/**
+ * Successful return value of the script built below. Coordinates are the viewport-relative
+ * center of the element; `result` is whatever the caller's `buildScript` returns.
+ */
+export type RefActionSuccess = { ok: true; result: unknown; x: number; y: number; width: number; height: number };
+
 export function buildRefActionScript(entry: RefEntry, buildScript: (element: string) => string): string {
   return `(() => {
     const target = ${JSON.stringify(entry)};

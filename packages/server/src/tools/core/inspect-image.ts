@@ -8,6 +8,7 @@ import type { StoredPart } from '@stitch/shared/chat/messages';
 import { createMessageId, createPartId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { LlmProviderId } from '@stitch/shared/providers/types';
+import { toolError } from '@stitch/shared/tools/types';
 
 import { createSession } from '@/chat/session-crud.js';
 import { getDb } from '@/db/client.js';
@@ -66,26 +67,20 @@ export function createInspectImageTool(context: ToolContext, deps: InspectImageT
     execute: async ({ imagePath, prompt }, { toolCallId }) => {
       const ext = path.extname(imagePath).toLowerCase();
       if (!SUPPORTED_EXTENSIONS.has(ext)) {
-        return {
-          childSessionId: null,
-          childSessionName: null,
-          summary: `Unsupported image format "${ext}". Supported: ${[...SUPPORTED_EXTENSIONS].join(', ')}`,
-        };
+        return toolError(`Unsupported image format "${ext}". Supported: ${[...SUPPORTED_EXTENSIONS].join(', ')}`);
       }
 
       let stat;
       try {
         stat = await fs.stat(imagePath);
       } catch {
-        return { childSessionId: null, childSessionName: null, summary: `Image file not found: ${imagePath}` };
+        return toolError(`Image file not found: ${imagePath}`);
       }
 
       if (stat.size > MAX_FILE_SIZE) {
-        return {
-          childSessionId: null,
-          childSessionName: null,
-          summary: `Image file too large (${(stat.size / 1024 / 1024).toFixed(1)}MB). Maximum supported size is 20MB.`,
-        };
+        return toolError(
+          `Image file too large (${(stat.size / 1024 / 1024).toFixed(1)}MB). Maximum supported size is 20MB.`,
+        );
       }
 
       const mime = MIME_MAP[ext] ?? 'application/octet-stream';
@@ -98,11 +93,7 @@ export function createInspectImageTool(context: ToolContext, deps: InspectImageT
 
       const sessionResult = await createSession({ title: sessionTitle, parentSessionId: deps.parentSessionId });
       if (sessionResult.error) {
-        return {
-          childSessionId: null,
-          childSessionName: null,
-          summary: `Failed to create inspection session: ${sessionResult.error.message}`,
-        };
+        return toolError(`Failed to create inspection session: ${sessionResult.error.message}`);
       }
       const childSession = sessionResult.data;
       const childSessionId = childSession.id;
@@ -204,11 +195,10 @@ export function createInspectImageTool(context: ToolContext, deps: InspectImageT
           'image inspection failed',
         );
 
-        return {
+        return toolError(`Image inspection failed: ${Error.isError(error) ? error.message : 'Unknown error'}`, {
           childSessionId,
           childSessionName: childSession.title,
-          summary: `Image inspection failed: ${Error.isError(error) ? error.message : 'Unknown error'}`,
-        };
+        });
       } finally {
         deps.parentAbortSignal.removeEventListener('abort', onParentAbort);
         AbortRegistry.cleanup(childSessionId);

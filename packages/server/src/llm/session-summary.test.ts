@@ -76,7 +76,7 @@ describe('isOverflow', () => {
     const usage = {
       inputTokens: 180_000,
       outputTokens: 15_000,
-      totalTokens: undefined as unknown as number,
+      totalTokens: undefined,
       inputTokenDetails: { noCacheTokens: 0, cacheReadTokens: 200, cacheWriteTokens: 300 },
       outputTokenDetails: { textTokens: 0, reasoningTokens: 0 },
     };

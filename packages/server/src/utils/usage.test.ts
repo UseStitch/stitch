@@ -37,13 +37,13 @@ describe('normalizeUsage', () => {
   });
 
   test('falls back to token details when total is absent', () => {
-    const usage = {
+    const usage: LanguageModelUsage = {
       inputTokens: 100,
       outputTokens: 50,
       totalTokens: undefined,
-      inputTokenDetails: { cacheReadTokens: 20, cacheWriteTokens: 10 },
-      outputTokenDetails: { reasoningTokens: 15 },
-    } as unknown as LanguageModelUsage;
+      inputTokenDetails: { noCacheTokens: undefined, cacheReadTokens: 20, cacheWriteTokens: 10 },
+      outputTokenDetails: { textTokens: undefined, reasoningTokens: 15 },
+    };
 
     expect(normalizeUsage(usage)).toEqual({
       inputTokens: 100,
@@ -57,13 +57,13 @@ describe('normalizeUsage', () => {
   });
 
   test('treats non-finite values as zero', () => {
-    const usage = {
+    const usage: LanguageModelUsage = {
       inputTokens: Number.NaN,
       outputTokens: Number.POSITIVE_INFINITY,
       totalTokens: Number.NaN,
-      inputTokenDetails: { cacheReadTokens: 5, cacheWriteTokens: Number.NEGATIVE_INFINITY },
-      outputTokenDetails: { reasoningTokens: 7 },
-    } as unknown as LanguageModelUsage;
+      inputTokenDetails: { noCacheTokens: undefined, cacheReadTokens: 5, cacheWriteTokens: Number.NEGATIVE_INFINITY },
+      outputTokenDetails: { textTokens: undefined, reasoningTokens: 7 },
+    };
 
     expect(normalizeUsage(usage)).toEqual({
       inputTokens: 0,

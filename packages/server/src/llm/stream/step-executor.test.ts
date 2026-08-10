@@ -9,6 +9,7 @@ import { internalBus } from '@/lib/internal-bus.js';
 import type { InternalEventMap, InternalEventName } from '@/lib/internal-bus.js';
 import { PermissionRejectedError, StreamAbortedError } from '@/llm/stream/errors.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
+import type { LanguageModelV3StreamPart, LanguageModelV3StreamResult } from '@ai-sdk/provider';
 
 type EmittedEvent = [InternalEventName, InternalEventMap[InternalEventName]];
 let emittedEvents: EmittedEvent[] = [];
@@ -47,8 +48,7 @@ function createMockModel(doStream: MockLanguageModelV3['doStream']): MockLanguag
   return new MockLanguageModelV3({ doStream });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function makeStreamResult(chunks: any[]) {
+function makeStreamResult(chunks: LanguageModelV3StreamPart[]): LanguageModelV3StreamResult {
   return { stream: simulateReadableStream({ chunks, initialDelayInMs: null, chunkDelayInMs: null }) };
 }
 
@@ -57,7 +57,7 @@ function getDefaultOpts(model: MockLanguageModelV3, overrides?: Partial<StepOpti
     sessionId: 'ses_1' as StepOptions['sessionId'],
     messageId: 'msg_1' as StepOptions['messageId'],
     step: 0,
-    model: model as unknown as StepOptions['model'],
+    model,
     conversation: [{ role: 'user', content: 'Hello' }],
     accumulatedParts: [],
     providerId: 'openai',
@@ -179,10 +179,7 @@ describe('executeStepWithRetry', () => {
     });
 
     const accumulatedParts: StoredPart[] = [];
-    const opts = getDefaultOpts(model, {
-      accumulatedParts,
-      tools: { read: readTool } as unknown as StepOptions['tools'],
-    });
+    const opts = getDefaultOpts(model, { accumulatedParts, tools: { read: readTool } });
     const result = await executeStepWithRetry(opts);
 
     expect(result.finishReason).toBe('tool-calls');
@@ -212,10 +209,7 @@ describe('executeStepWithRetry', () => {
     });
 
     const accumulatedParts: StoredPart[] = [];
-    const opts = getDefaultOpts(model, {
-      accumulatedParts,
-      tools: { webfetch: failingTool } as unknown as StepOptions['tools'],
-    });
+    const opts = getDefaultOpts(model, { accumulatedParts, tools: { webfetch: failingTool } });
 
     expect(executeStepWithRetry(opts)).rejects.toBeInstanceOf(PermissionRejectedError);
 
@@ -242,10 +236,7 @@ describe('executeStepWithRetry', () => {
     });
 
     const accumulatedParts: StoredPart[] = [];
-    const opts = getDefaultOpts(model, {
-      accumulatedParts,
-      tools: { bash: bashTool } as unknown as StepOptions['tools'],
-    });
+    const opts = getDefaultOpts(model, { accumulatedParts, tools: { bash: bashTool } });
 
     const result = await executeStepWithRetry(opts);
 

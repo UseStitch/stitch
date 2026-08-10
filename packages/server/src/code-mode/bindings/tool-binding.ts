@@ -1,5 +1,6 @@
 import type { ToolBinding } from '@stitch/sandbox';
 
+import type { ToolExecuteOptions } from '@/tools/runtime/runtime.js';
 import type { Tool } from 'ai';
 
 const EXTERNAL_PREFIX = 'external_';
@@ -27,10 +28,8 @@ function extractJsonSchema(schema: unknown): Record<string, unknown> {
 }
 
 function getToolSchema(tool: Tool): Record<string, unknown> {
-  return extractJsonSchema(
-    (tool as unknown as Record<string, unknown>)['parameters'] ??
-      (tool as unknown as Record<string, unknown>)['inputSchema'],
-  );
+  const carrier: { parameters?: unknown; inputSchema?: unknown } = tool;
+  return extractJsonSchema(carrier.parameters ?? carrier.inputSchema);
 }
 
 type ToolMeta = {
@@ -79,15 +78,13 @@ export function toolsToBindings(tools: Record<string, Tool>, abortSignal?: Abort
       inputSchema: schema,
       execute: async (input: unknown, signal?: AbortSignal) => {
         const effectiveSignal = signal ?? abortSignal;
-        return execute(
-          input as Parameters<typeof execute>[0],
-          {
-            toolCallId: `code-mode-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            messages: [],
-            skipTruncation: true,
-            abortSignal: effectiveSignal,
-          } as unknown as Parameters<typeof execute>[1],
-        );
+        const options: ToolExecuteOptions = {
+          toolCallId: `code-mode-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          messages: [],
+          skipTruncation: true,
+          abortSignal: effectiveSignal,
+        };
+        return execute(input as Parameters<typeof execute>[0], options);
       },
     };
   });

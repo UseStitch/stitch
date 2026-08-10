@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 
 import { createSkillSchema } from '@stitch/shared/skills/types';
+import { toolError } from '@stitch/shared/tools/types';
 
 import { createSkill } from '@/skills/service.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
@@ -11,7 +12,7 @@ const createSkillInputSchema = createSkillSchema.describe('A reusable skill to s
 export async function createSkillFromTool(input: z.input<typeof createSkillSchema>) {
   const result = await createSkill(createSkillSchema.parse(input));
   if (result.error) {
-    return { error: result.error.message };
+    return toolError(result.error.message);
   }
 
   return {

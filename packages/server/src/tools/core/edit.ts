@@ -87,19 +87,11 @@ Parameter sourcing:
   });
 }
 
-function getPatternTargets(input: unknown): string[] {
-  return getFilePathPatternTargets(input);
-}
-
-function getSuggestion(input: unknown) {
-  return getParentDirPermissionSuggestion(input);
-}
-
 export const definition: ToolDefinition = {
   name: 'edit',
   displayName: 'Edit',
   tool: createEditTool(),
-  permission: { getPatternTargets, getSuggestion },
+  permission: { getPatternTargets: getFilePathPatternTargets, getSuggestion: getParentDirPermissionSuggestion },
 };
 
 export { MULTIPLE_MATCHES_ERROR };

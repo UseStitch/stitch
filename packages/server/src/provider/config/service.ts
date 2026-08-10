@@ -8,9 +8,9 @@ import { localModels, providerConfig } from '@/db/schema/providers.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import { isAllowedProvider } from '@/models/llm/registry.js';
-import { ProviderCredentialsSchema } from '@/provider/config/schema.js';
+import { ProviderCredentialsSchema, type ProviderCredentials } from '@/provider/config/schema.js';
 
-export async function getProviderCredentials(providerId: string): Promise<ServiceResult<unknown>> {
+export async function getProviderCredentials(providerId: string): Promise<ServiceResult<ProviderCredentials>> {
   if (!isAllowedProvider(providerId)) {
     return err('Provider not found', 404);
   }

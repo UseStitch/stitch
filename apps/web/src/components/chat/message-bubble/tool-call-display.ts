@@ -2,6 +2,7 @@ import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { ToolCallStatus } from '@stitch/shared/chat/stream-events';
 import { LIQUID_UI_TOOL_NAME } from '@stitch/shared/liquid-ui/constants';
 import { parseMcpToolName } from '@stitch/shared/mcp/types';
+import { getToolFailureMessage } from '@stitch/shared/tools/types';
 
 import { formatToolDisplayName, truncateText } from './tool-call/card-primitives';
 
@@ -48,14 +49,13 @@ export function buildStoredToolCallDisplayItems(
 
     const result = resultsByCallId.get(part.toolCallId);
     const output = result && 'output' in result ? result.output : undefined;
-    const isError = isToolResultError(output);
+    const failureMessage = getToolFailureMessage(output);
     const missingResult = !result;
-    const status = missingResult || isError ? 'error' : 'completed';
+    const status = missingResult || failureMessage !== null ? 'error' : 'completed';
 
     let toolError: string | undefined;
-    if (isError) {
-      const rawError = (output as { error?: unknown }).error;
-      toolError = typeof rawError === 'string' ? rawError : String(rawError);
+    if (failureMessage !== null) {
+      toolError = failureMessage;
     } else if (missingResult) {
       toolError = wasAborted ? 'Interrupted' : 'Blocked or failed before completion';
     }
@@ -119,19 +119,15 @@ function isHiddenToolCall(toolName: string): boolean {
   return toolName === 'todo' || toolName === LIQUID_UI_TOOL_NAME;
 }
 
-function isToolResultError(output: unknown): boolean {
-  return (
-    output !== null &&
-    output !== undefined &&
-    typeof output === 'object' &&
-    ('error' in output || (output as { failed?: unknown }).failed === true)
-  );
-}
-
 export function getChildSessionId(result: unknown): string | null {
   if (!result || typeof result !== 'object') return null;
-  const id = (result as Record<string, unknown>).childSessionId;
-  return typeof id === 'string' ? id : null;
+  const record = result as Record<string, unknown>;
+  const id = record.childSessionId;
+  if (typeof id === 'string') return id;
+
+  if (!record.details || typeof record.details !== 'object') return null;
+  const detailsId = (record.details as Record<string, unknown>).childSessionId;
+  return typeof detailsId === 'string' ? detailsId : null;
 }
 
 function getToolKind(toolName: string): ToolIconKind {

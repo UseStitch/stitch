@@ -250,6 +250,21 @@ describe('StreamAccumulator', () => {
       expect(failedCalls.at(0)).toMatchObject({ toolName: 'webfetch', error: 'connection refused' });
     });
 
+    test('preserves structured tool error details in stored results', () => {
+      const parts: StoredPart[] = [];
+      const acc = createAccumulator(parts);
+      const error = Object.assign(new Error('permission denied'), {
+        details: { code: 'insufficient_permissions', retryable: false },
+      });
+
+      acc.handlePart(part({ type: 'tool-error', toolCallId: 'call_1', toolName: 'gmail_send', input: {}, error }));
+
+      expect(parts.at(0)).toMatchObject({
+        type: 'tool-result',
+        output: { error: 'permission denied', details: { code: 'insufficient_permissions', retryable: false } },
+      });
+    });
+
     test('captures PermissionRejectedError from tool-error', () => {
       const acc = createAccumulator();
       const permError = new PermissionRejectedError('webfetch');
@@ -328,7 +343,7 @@ describe('StreamAccumulator', () => {
       const acc = createAccumulator(parts);
 
       acc.handlePart(
-        part({ type: 'file', file: { uint8Array: new Uint8Array(), mediaType: 'image/png', base64: '' } as any }),
+        part({ type: 'file', file: { uint8Array: new Uint8Array(), mediaType: 'image/png', base64: '' } }),
       );
 
       expect(parts).toHaveLength(1);
@@ -343,18 +358,18 @@ describe('StreamAccumulator', () => {
       const parts: StoredPart[] = [];
       const acc = createAccumulator(parts);
 
-      acc.handlePart(part({ type: 'start-step', request: {} as any, warnings: [] }));
+      acc.handlePart(part({ type: 'start-step', request: {}, warnings: [] }));
       acc.handlePart(
         part({
           type: 'finish-step',
-          response: {} as any,
+          response: { id: 'resp_1', timestamp: new Date(0), modelId: 'test-model' },
           usage: {
             inputTokens: 0,
             outputTokens: 0,
             totalTokens: 0,
-            inputTokenDetails: {},
-            outputTokenDetails: {},
-          } as any,
+            inputTokenDetails: { noCacheTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
+            outputTokenDetails: { textTokens: 0, reasoningTokens: 0 },
+          },
           finishReason: 'stop',
           rawFinishReason: 'stop',
           providerMetadata: undefined,

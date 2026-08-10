@@ -2,7 +2,7 @@ import type { PartId, StoredPart } from '@stitch/shared/chat/messages';
 import type { PartDelta, PartUpdate } from '@stitch/shared/chat/stream-events';
 import type { PrefixedString } from '@stitch/shared/id';
 import { createPartId } from '@stitch/shared/id';
-import { isToolErrorResult } from '@stitch/shared/tools/types';
+import { getToolFailureMessage } from '@stitch/shared/tools/types';
 
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
@@ -240,21 +240,15 @@ export class StreamAccumulator {
         const partId = createPartId();
         const truncationMeta = this.getToolTruncationMeta(part.output);
         const sanitizedOutput = this.stripToolTruncationMeta(part.output);
-        const fallbackError = isToolErrorResult(sanitizedOutput) ? sanitizedOutput.error : undefined;
-        const isBashFailure =
-          !fallbackError &&
-          sanitizedOutput !== null &&
-          typeof sanitizedOutput === 'object' &&
-          (sanitizedOutput as { failed?: unknown }).failed === true;
-        const isError = Boolean(fallbackError) || isBashFailure;
+        const failureMessage = getToolFailureMessage(sanitizedOutput);
 
-        if (isError) {
+        if (failureMessage !== null) {
           internalBus.emit('tool.failed', {
             sessionId: this.sessionId,
             messageId: this.messageId,
             toolCallId: part.toolCallId,
             toolName: part.toolName,
-            error: fallbackError ?? 'Tool execution failed',
+            error: failureMessage,
           });
         } else {
           internalBus.emit('tool.completed', {
@@ -285,7 +279,11 @@ export class StreamAccumulator {
       case 'tool-error': {
         const now = Date.now();
         const partId = createPartId();
-        const errorText = String(part.error);
+        const errorText = Error.isError(part.error) ? part.error.message : String(part.error);
+        const errorDetails =
+          typeof part.error === 'object' && part.error !== null && 'details' in part.error
+            ? part.error.details
+            : undefined;
 
         internalBus.emit('tool.failed', {
           sessionId: this.sessionId,
@@ -314,7 +312,7 @@ export class StreamAccumulator {
           id: partId,
           toolCallId: part.toolCallId,
           toolName: part.toolName,
-          output: { error: errorText },
+          output: errorDetails === undefined ? { error: errorText } : { error: errorText, details: errorDetails },
           truncated: false,
           startedAt: now,
           endedAt: now,

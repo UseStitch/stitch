@@ -6,6 +6,7 @@ import { extractTextFromParts, type StoredPart } from '@stitch/shared/chat/messa
 import { createMessageId, createPartId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
 import type { LlmProviderId } from '@stitch/shared/providers/types';
+import { toolError } from '@stitch/shared/tools/types';
 
 import { cancelBackgroundTask, startBackgroundTask } from '@/background-tasks/service.js';
 import { createSession } from '@/chat/session-crud.js';
@@ -67,11 +68,7 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
     execute: async ({ title, task, background, toolsets: additionalToolsets }, { toolCallId }) => {
       const sessionResult = await createSession({ title, parentSessionId: deps.parentSessionId });
       if (sessionResult.error) {
-        return {
-          childSessionId: null,
-          childSessionName: null,
-          summary: `Task failed: could not create child session — ${sessionResult.error.message}`,
-        };
+        return toolError(`Task failed: could not create child session - ${sessionResult.error.message}`);
       }
       const childSession = sessionResult.data;
 
@@ -162,11 +159,10 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
             summary: 'Background task started. You will be notified automatically when it finishes.',
           };
         } catch (error) {
-          return {
+          return toolError(`Task failed: ${Error.isError(error) ? error.message : 'Unknown error'}`, {
             childSessionId,
             childSessionName: childSession.title,
-            summary: `Task failed: ${Error.isError(error) ? error.message : 'Unknown error'}`,
-          };
+          });
         }
       }
 
@@ -213,11 +209,10 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
           'child session task failed',
         );
 
-        return {
+        return toolError(`Task failed: ${Error.isError(error) ? error.message : 'Unknown error'}`, {
           childSessionId,
           childSessionName: childSession.title,
-          summary: `Task failed: ${Error.isError(error) ? error.message : 'Unknown error'}`,
-        };
+        });
       } finally {
         deps.parentAbortSignal.removeEventListener('abort', onParentAbort);
         AbortRegistry.cleanup(childSessionId);

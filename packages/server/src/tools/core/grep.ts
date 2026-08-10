@@ -5,6 +5,7 @@ import { z } from 'zod';
 import * as Glob from '@/lib/glob.js';
 import { ToolPathValidationError, ToolValidationError } from '@/tools/errors.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
+import type { ToolInput } from '@/tools/runtime/runtime.js';
 import { isTextFileBuffer, truncateLine, validateAbsoluteDirectoryPath } from '@/tools/runtime/shared.js';
 
 const MAX_MATCHES = 100;
@@ -162,8 +163,8 @@ function createGrepTool() {
   return tool({ description: DESCRIPTION, inputSchema: grepInputSchema, execute: async (input) => grepContent(input) });
 }
 
-function getPatternTargets(input: unknown): string[] {
-  const target = (input as { path?: unknown }).path;
+function getPatternTargets(input: ToolInput): string[] {
+  const target = input.path;
   return typeof target === 'string' && target.length > 0 ? [target] : [];
 }
 

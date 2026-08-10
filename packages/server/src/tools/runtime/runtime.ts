@@ -1,31 +1,34 @@
 import type { PrefixedString } from '@stitch/shared/id';
 import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
 
-import type { Tool } from 'ai';
+import type { Tool, ToolExecutionOptions } from 'ai';
 
 export type ToolContext = { sessionId: PrefixedString<'ses'>; messageId: PrefixedString<'msg'>; streamRunId: string };
 
 export type RuntimeToolSource = 'core' | 'toolset' | 'mcp' | 'meta' | 'task' | 'code-mode';
 
-type ToolPermissionBehavior = {
-  getPatternTargets: (input: unknown) => string[];
-  getSuggestion: (input: unknown) => PermissionSuggestion | null;
+export type ToolInput = Record<string, unknown>;
+export type ToolExecuteOptions = ToolExecutionOptions & { skipTruncation?: boolean };
+export type ToolTruncationLimits = { maxLines?: number; maxBytes?: number };
+
+export type ToolPermissionBehavior = {
+  getPatternTargets: (input: ToolInput) => string[];
+  getSuggestion: (input: ToolInput) => PermissionSuggestion | null;
 };
 
 export type RuntimeToolMetadata = {
   displayName?: string;
   source?: RuntimeToolSource;
   permission?: ToolPermissionBehavior;
-  truncation?: { maxLines?: number; maxBytes?: number };
-  data?: Record<string, unknown>;
+  truncation?: ToolTruncationLimits;
 };
 
 type RuntimeTool = RuntimeToolMetadata & { name: string; description: string; tool: Tool };
 
 export type ToolExecutionInput = {
   toolName: string;
-  args: unknown;
-  executeOptions: unknown;
+  args: ToolInput;
+  executeOptions: ToolExecuteOptions;
   tool: Tool;
   context: ToolContext;
   metadata: RuntimeToolMetadata;
@@ -58,17 +61,15 @@ export function createToolRuntime(context: ToolContext): ToolRuntime {
     },
 
     wrapTool<T extends Tool>(name: string, tool: T, metadata: RuntimeToolMetadata = {}) {
-      const originalExecute = tool.execute;
+      const originalExecute: Tool['execute'] = tool.execute;
       if (!originalExecute) return tool;
 
-      const executor = compose(middlewares, async (input) =>
-        originalExecute(input.args as never, input.executeOptions as never),
-      );
+      const executor = compose(middlewares, async (input) => originalExecute(input.args, input.executeOptions));
 
       return {
         ...tool,
-        execute: async (...args: Parameters<typeof originalExecute>) =>
-          executor({ toolName: name, args: args.at(0), executeOptions: args.at(1), tool, context, metadata }),
+        execute: async (args: ToolInput, executeOptions: ToolExecuteOptions) =>
+          executor({ toolName: name, args, executeOptions, tool, context, metadata }),
       } as T;
     },
 

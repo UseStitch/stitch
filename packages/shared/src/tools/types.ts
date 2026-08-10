@@ -14,29 +14,61 @@ export type ToolEnabledState = {
   updatedAt: number;
 };
 
-type ToolDataResult<T = unknown> = { data: T; error?: never; details?: never };
+type ToolDataResult = { data: unknown; error?: never; details?: never };
 
-type ToolErrorResult = { error: string; details?: unknown; data?: never };
+/**
+ * Cross-package protocol for a failed tool result. Packages that cannot import the server's
+ * ToolError class return this instead; resultNormalizationMiddleware converts it into a throw.
+ * `error` is the message shown to the model and the user, so it must be human-readable.
+ * Adding any key other than `details` makes isToolErrorResult reject the value and it will be
+ * treated as ordinary tool data.
+ */
+export type ToolErrorResult = { error: string; details?: unknown; data?: never };
+
+export function toolError(error: string, details?: unknown): ToolErrorResult {
+  return details === undefined ? { error } : { error, details };
+}
 
 export function isToolErrorResult(value: unknown): value is ToolErrorResult {
   if (!value || typeof value !== 'object') {
     return false;
   }
 
-  const candidate = value as { error?: unknown; details?: unknown };
-  if (typeof candidate.error !== 'string' || candidate.error.length === 0) {
+  if (!('error' in value) || typeof value.error !== 'string' || value.error.length === 0) {
     return false;
   }
 
-  const keys = Object.keys(value as Record<string, unknown>);
-  return keys.every((key) => key === 'error' || key === 'details');
+  return Object.keys(value).every((key) => key === 'error' || key === 'details');
 }
 
-export function isToolDataResult<T = unknown>(value: unknown): value is ToolDataResult<T> {
+export function isToolDataResult(value: unknown): value is ToolDataResult {
   if (!value || typeof value !== 'object') {
     return false;
   }
 
-  const candidate = value as { data?: unknown; error?: unknown };
-  return 'data' in candidate && !('error' in candidate);
+  return 'data' in value && !('error' in value);
+}
+
+const TOOL_FAILURE_FALLBACK_MESSAGE = 'Tool execution failed';
+
+/**
+ * Returns the message to report for a failed tool result, or null when the result is a success.
+ * Recognizes the ToolErrorResult protocol plus legacy results that report failure with `failed: true`.
+ */
+export function getToolFailureMessage(output: unknown): string | null {
+  if (isToolErrorResult(output)) {
+    return output.error;
+  }
+
+  if (!output || typeof output !== 'object') {
+    return null;
+  }
+
+  if (!('failed' in output) || output.failed !== true) {
+    return null;
+  }
+
+  return 'output' in output && typeof output.output === 'string' && output.output.trim().length > 0
+    ? output.output
+    : TOOL_FAILURE_FALLBACK_MESSAGE;
 }
