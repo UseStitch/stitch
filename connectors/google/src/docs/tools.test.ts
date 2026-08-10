@@ -1,18 +1,17 @@
 import { describe, expect, test } from 'bun:test';
 
+import { StubGoogleClient } from '../test-helpers.js';
 import { createDocsTools } from './tools.js';
 
-import type { GoogleClient } from '../client.js';
+type ExecutableTool = { execute: (input: Record<string, unknown>) => Promise<unknown> };
 
-type ExecutableTool = { execute: (input: unknown) => Promise<unknown> };
-
-function getToolExecutor(tools: Record<string, unknown>, name: string): ExecutableTool {
-  const candidate = tools[name];
-  if (!candidate || typeof candidate !== 'object' || !('execute' in candidate)) {
+function getToolExecutor(tools: ReturnType<typeof createDocsTools>, name: string): ExecutableTool {
+  const tool = tools[name] as { execute?: ExecutableTool['execute'] } | undefined;
+  if (!tool || typeof tool.execute !== 'function') {
     throw new Error(`Missing execute for tool: ${name}`);
   }
 
-  return candidate as ExecutableTool;
+  return tool as ExecutableTool;
 }
 
 function createDocsDocument(documentId: string, title: string, text: string) {
@@ -25,10 +24,10 @@ function createDocsDocument(documentId: string, title: string, text: string) {
 
 function createDocsClient(documentId: string, title: string, text: string) {
   const batchUpdates: unknown[] = [];
-  const client = {
-    request: async (url: string, options?: { body?: string }) => {
+  const client = new StubGoogleClient({
+    request: async (url: string, options?: RequestInit) => {
       if (url === `https://docs.googleapis.com/v1/documents/${documentId}:batchUpdate`) {
-        batchUpdates.push(JSON.parse(options?.body ?? '{}'));
+        batchUpdates.push(JSON.parse(typeof options?.body === 'string' ? options.body : '{}'));
         return {};
       }
 
@@ -38,7 +37,7 @@ function createDocsClient(documentId: string, title: string, text: string) {
 
       throw new Error(`Unexpected URL: ${url}`);
     },
-  } as unknown as GoogleClient;
+  });
 
   const resolveClient: Parameters<typeof createDocsTools>[0] = async () => ({
     client,

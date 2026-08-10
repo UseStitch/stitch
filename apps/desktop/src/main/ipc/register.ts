@@ -9,5 +9,7 @@ export function registerIpcHandler<TKey extends keyof IpcContract>(
     ...args: IpcContract[TKey]['args']
   ) => Promise<IpcContract[TKey]['return']> | IpcContract[TKey]['return'],
 ): void {
-  ipcMain.handle(channel, handler as any);
+  ipcMain.handle(channel, (event: Electron.IpcMainInvokeEvent, ...args: unknown[]) =>
+    handler(event, ...(args as IpcContract[TKey]['args'])),
+  );
 }

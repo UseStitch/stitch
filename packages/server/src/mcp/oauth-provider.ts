@@ -128,12 +128,12 @@ export class McpOAuthProvider implements OAuthClientProvider {
   }
 
   async saveDiscoveryState(state: OAuthDiscoveryState): Promise<void> {
-    await this.upsertSession({ discoveryState: state as unknown as Record<string, unknown> });
+    await this.upsertSession({ discoveryState: state });
   }
 
   async discoveryState(): Promise<OAuthDiscoveryState | undefined> {
     const session = await this.getSession();
-    return (session?.discoveryState as unknown as OAuthDiscoveryState | undefined) ?? undefined;
+    return session?.discoveryState ?? undefined;
   }
 
   async invalidateCredentials(scope: 'all' | 'client' | 'tokens' | 'verifier' | 'discovery'): Promise<void> {

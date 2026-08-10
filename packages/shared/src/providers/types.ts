@@ -94,6 +94,14 @@ export function isEmbeddingProviderId(providerId: string): providerId is Embeddi
   return hasProviderCapability(providerId, 'embedding');
 }
 
+export type ModelCost = {
+  input: number;
+  output: number;
+  cache_read?: number;
+  cache_write?: number;
+  context_over_200k?: { input: number; output: number; cache_read?: number; cache_write?: number };
+};
+
 export type ProviderMeta = {
   displayName: string;
   description?: string;

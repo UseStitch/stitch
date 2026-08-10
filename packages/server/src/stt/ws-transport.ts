@@ -25,8 +25,7 @@ export type WsMessageResult = { transcript?: TranscriptEvent; usage?: STTUsage; 
 
 /**
  * Creates an STTTransport backed by a WebSocket connection.
- * Encapsulates the open/message/close/error lifecycle and the `as unknown as string[]` cast
- * required by the WebSocket constructor for custom headers.
+ * Encapsulates the open/message/close/error lifecycle and per-connection headers.
  */
 export function createWsTransport(
   config: WsTransportConfig,
@@ -40,9 +39,7 @@ export function createWsTransport(
     const closeListeners: (() => void)[] = [];
     const pendingErrors: Error[] = [];
 
-    // The WebSocket constructor in Node does not have a typed overload for headers.
-    // This cast is isolated here so adapters don't repeat it.
-    const ws = new WebSocket(config.url, { headers: config.headers } as unknown as string[]);
+    const ws = new WebSocket(config.url, { headers: config.headers });
 
     let opened = false;
     let closed = false;

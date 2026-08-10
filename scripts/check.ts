@@ -4,13 +4,13 @@ import { spawnSync } from 'bun';
 const steps = [
   { name: 'design-system', cmd: ['bun', 'run', 'scripts/check-design-system.ts'] },
   { name: 'knip', cmd: ['bunx', 'knip', '--fix', '--allow-remove-files'] },
-  { name: 'typecheck', cmd: ['bun', 'run', 'typecheck'] },
-  { name: 'test', cmd: ['bun', 'run', 'test'] },
-  {
+    {
     name: 'lint',
     cmd: ['bunx', 'oxlint', '--config', 'oxlint.json', '--type-aware', '--fix', '--fix-suggestions', '.'],
   },
   { name: 'lint:check', cmd: ['bunx', 'oxlint', '--config', 'oxlint.json', '--type-aware', '--deny-warnings', '.'] },
+  { name: 'typecheck', cmd: ['bun', 'run', 'typecheck'] },
+  { name: 'test', cmd: ['bun', 'run', 'test'] },
   { name: 'catalogs', cmd: ['bun', 'run', 'scripts/check-catalogs.ts'] },
   { name: 'format:changed:check', cmd: ['bun', 'run', 'format:changed:check'] },
 ];
