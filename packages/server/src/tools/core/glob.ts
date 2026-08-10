@@ -5,6 +5,7 @@ import { z } from 'zod';
 import * as Glob from '@/lib/glob.js';
 import { ToolPathValidationError } from '@/tools/errors.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
+import type { ToolInput } from '@/tools/runtime/runtime.js';
 import { validateAbsoluteDirectoryPath } from '@/tools/runtime/shared.js';
 
 const MAX_RESULTS = 100;
@@ -70,8 +71,8 @@ function createGlobTool() {
   return tool({ description: DESCRIPTION, inputSchema: globInputSchema, execute: async (input) => globPaths(input) });
 }
 
-function getPatternTargets(input: unknown): string[] {
-  const target = (input as { path?: unknown }).path;
+function getPatternTargets(input: ToolInput): string[] {
+  const target = input.path;
   return typeof target === 'string' && target.length > 0 ? [target] : [];
 }
 

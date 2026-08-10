@@ -1,6 +1,7 @@
 import type { ToolBinding } from '@stitch/sandbox';
 
-import type { Tool, ToolExecutionOptions } from 'ai';
+import type { ToolExecuteOptions } from '@/tools/runtime/runtime.js';
+import type { Tool } from 'ai';
 
 const EXTERNAL_PREFIX = 'external_';
 
@@ -77,8 +78,7 @@ export function toolsToBindings(tools: Record<string, Tool>, abortSignal?: Abort
       inputSchema: schema,
       execute: async (input: unknown, signal?: AbortSignal) => {
         const effectiveSignal = signal ?? abortSignal;
-        // `skipTruncation` is a Stitch-specific flag read by truncationMiddleware.
-        const options: ToolExecutionOptions & { skipTruncation: true } = {
+        const options: ToolExecuteOptions = {
           toolCallId: `code-mode-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           messages: [],
           skipTruncation: true,

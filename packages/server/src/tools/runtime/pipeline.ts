@@ -1,12 +1,17 @@
-import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
-
 import {
   permissionMiddleware,
   resultNormalizationMiddleware,
   truncationMiddleware,
 } from '@/tools/runtime/middleware.js';
 import { createToolRuntime } from '@/tools/runtime/runtime.js';
-import type { RuntimeToolMetadata, RuntimeToolSource, ToolContext, ToolMiddleware } from '@/tools/runtime/runtime.js';
+import type {
+  RuntimeToolMetadata,
+  RuntimeToolSource,
+  ToolContext,
+  ToolMiddleware,
+  ToolPermissionBehavior,
+  ToolTruncationLimits,
+} from '@/tools/runtime/runtime.js';
 import type { Tool } from 'ai';
 
 export type ToolDefinition = {
@@ -14,11 +19,8 @@ export type ToolDefinition = {
   displayName: string;
   tool: Tool;
   source?: RuntimeToolSource;
-  permission?: {
-    getPatternTargets: (input: unknown) => string[];
-    getSuggestion: (input: unknown) => PermissionSuggestion | null;
-  };
-  truncation?: { maxLines?: number; maxBytes?: number };
+  permission?: ToolPermissionBehavior;
+  truncation?: ToolTruncationLimits;
   /** Extra middleware applied after the standard stack for this tool. */
   extraMiddleware?: ToolMiddleware[];
 };

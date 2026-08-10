@@ -101,17 +101,9 @@ function createReadTool() {
   });
 }
 
-function getPatternTargets(input: unknown): string[] {
-  return getFilePathPatternTargets(input);
-}
-
-function getSuggestion(input: unknown) {
-  return getParentDirPermissionSuggestion(input);
-}
-
 export const definition: ToolDefinition = {
   name: 'read',
   displayName: 'Read',
   tool: createReadTool(),
-  permission: { getPatternTargets, getSuggestion },
+  permission: { getPatternTargets: getFilePathPatternTargets, getSuggestion: getParentDirPermissionSuggestion },
 };
