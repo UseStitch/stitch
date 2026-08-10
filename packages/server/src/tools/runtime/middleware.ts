@@ -4,7 +4,7 @@ import * as Log from '@/lib/log.js';
 import { PermissionRejectedError, StreamProtocolViolationError } from '@/llm/stream/errors.js';
 import { getPermissionDecision, requestPermissionResponse } from '@/permission/service.js';
 import { ToolError } from '@/tools/errors.js';
-import type { ToolExecutionInput, ToolMiddleware } from '@/tools/runtime/runtime.js';
+import type { ToolExecutionInput, ToolMiddleware, ToolTruncationLimits } from '@/tools/runtime/runtime.js';
 import { truncateOutput } from '@/tools/runtime/truncation.js';
 
 const log = Log.create({ service: 'tools' });
@@ -21,13 +21,13 @@ function createPermissionDedupeKey(input: ToolExecutionInput, patternTargets: st
 
 type TruncationMeta = { __stitchToolResultMeta: { truncated: true; outputPath: string } };
 
+function hasStringOutput(result: unknown): result is { output: string } {
+  return typeof result === 'object' && result !== null && 'output' in result && typeof result.output === 'string';
+}
+
 function getTruncatableText(result: unknown): string {
   if (typeof result === 'string') return result;
-
-  if (result !== null && typeof result === 'object') {
-    const output = (result as { output?: unknown }).output;
-    if (typeof output === 'string') return output;
-  }
+  if (hasStringOutput(result)) return result.output;
 
   try {
     return JSON.stringify(result);
@@ -52,10 +52,9 @@ export function resultNormalizationMiddleware(): ToolMiddleware {
   };
 }
 
-export function truncationMiddleware(options?: { maxLines?: number; maxBytes?: number }): ToolMiddleware {
+export function truncationMiddleware(options?: ToolTruncationLimits): ToolMiddleware {
   return (next) => async (input) => {
-    const execOptions = input.executeOptions as Record<string, unknown> | undefined;
-    if (execOptions?.['skipTruncation'] === true) {
+    if (input.executeOptions.skipTruncation === true) {
       return next(input);
     }
 
@@ -68,11 +67,7 @@ export function truncationMiddleware(options?: { maxLines?: number; maxBytes?: n
 
     const meta: TruncationMeta = { __stitchToolResultMeta: { truncated: true, outputPath: truncated.outputPath } };
 
-    if (typeof result === 'string') {
-      return { output: truncated.content, ...meta };
-    }
-
-    if (result !== null && typeof result === 'object' && typeof (result as { output?: unknown }).output === 'string') {
+    if (hasStringOutput(result)) {
       return { ...result, output: truncated.content, ...meta };
     }
 
@@ -98,8 +93,7 @@ export function permissionMiddleware(): ToolMiddleware {
       throw new PermissionRejectedError(input.toolName);
     }
 
-    const meta = input.executeOptions as { toolCallId: string; abortSignal?: AbortSignal } | undefined;
-    const toolCallId = meta?.toolCallId;
+    const { toolCallId, abortSignal } = input.executeOptions;
     if (!toolCallId) {
       log.error(
         {
@@ -108,8 +102,7 @@ export function permissionMiddleware(): ToolMiddleware {
           sessionId: input.context.sessionId,
           messageId: input.context.messageId,
           streamRunId: input.context.streamRunId,
-          hasMeta: meta !== undefined,
-          metaKeys: meta ? Object.keys(meta) : [],
+          metaKeys: Object.keys(input.executeOptions),
         },
         'missing toolCallId in tool execute context',
       );
@@ -126,7 +119,7 @@ export function permissionMiddleware(): ToolMiddleware {
       systemReminder: 'Tool execution requires user approval',
       suggestion: behavior.getSuggestion(input.args),
       dedupeKey: createPermissionDedupeKey(input, patternTargets),
-      abortSignal: meta.abortSignal,
+      abortSignal,
     });
 
     if (decision.decision === 'allow') {

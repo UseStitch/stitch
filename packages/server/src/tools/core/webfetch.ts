@@ -2,8 +2,11 @@ import { tool } from 'ai';
 import TurndownService from 'turndown';
 import { z } from 'zod';
 
+import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
+
 import { WebFetchHttpError, WebFetchResponseTooLargeError, WebFetchUrlValidationError } from '@/tools/errors.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
+import type { ToolInput } from '@/tools/runtime/runtime.js';
 
 const MAX_RESPONSE_SIZE_BYTES = 5 * 1024 * 1024;
 const DEFAULT_TIMEOUT_SECONDS = 30;
@@ -214,15 +217,15 @@ Parameter sourcing:
   });
 }
 
-function getPatternTargets(input: unknown): string[] {
-  const url = (input as { url?: unknown }).url;
+function getPatternTargets(input: ToolInput): string[] {
+  const url = input.url;
   if (typeof url !== 'string' || url.length === 0) return [];
   const domain = extractDomainForPermission(url);
   return domain ? [domain] : [];
 }
 
-function getSuggestion(input: unknown) {
-  const url = (input as { url?: unknown }).url;
+function getSuggestion(input: ToolInput): PermissionSuggestion | null {
+  const url = input.url;
   if (typeof url !== 'string' || url.length === 0) return null;
   const domain = extractDomainForPermission(url);
   if (!domain) return null;

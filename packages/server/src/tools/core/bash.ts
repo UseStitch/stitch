@@ -9,6 +9,7 @@ import { resolvePreferredShell } from '@/lib/shell.js';
 import { ToolValidationError } from '@/tools/errors.js';
 import { deriveCommandFamilies, getCommandFamilySuggestion } from '@/tools/runtime/bash-families.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
+import type { ToolInput } from '@/tools/runtime/runtime.js';
 import { validateExistingDirectoryPath } from '@/tools/runtime/shared.js';
 
 const SIGKILL_TIMEOUT_MS = 200;
@@ -202,14 +203,14 @@ Parameter sourcing:
   });
 }
 
-function getPatternTargets(input: unknown): string[] {
-  const command = (input as { command?: unknown }).command;
+function getPatternTargets(input: ToolInput): string[] {
+  const command = input.command;
   if (typeof command !== 'string' || command.trim().length === 0) return [];
   return deriveCommandFamilies(command).map((family) => family.pattern);
 }
 
-function getSuggestion(input: unknown): PermissionSuggestion | null {
-  const command = (input as { command?: unknown }).command;
+function getSuggestion(input: ToolInput): PermissionSuggestion | null {
+  const command = input.command;
   if (typeof command !== 'string' || command.trim().length === 0) return null;
   return getCommandFamilySuggestion(command);
 }

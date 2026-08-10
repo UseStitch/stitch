@@ -38,17 +38,9 @@ Usage:
   });
 }
 
-function getPatternTargets(input: unknown): string[] {
-  return getFilePathPatternTargets(input);
-}
-
-function getSuggestion(input: unknown) {
-  return getParentDirPermissionSuggestion(input);
-}
-
 export const definition: ToolDefinition = {
   name: 'write',
   displayName: 'Write',
   tool: createWriteTool(),
-  permission: { getPatternTargets, getSuggestion },
+  permission: { getPatternTargets: getFilePathPatternTargets, getSuggestion: getParentDirPermissionSuggestion },
 };
