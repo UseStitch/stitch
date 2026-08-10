@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const SKILL_TYPES = ['stitch', 'custom', 'external'] as const;
+const SKILL_TYPES = ['stitch', 'custom', 'external'] as const;
 
 export type SkillType = (typeof SKILL_TYPES)[number];
 
