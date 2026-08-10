@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, mock, spyOn, test } from 'bun:test';
 
+import { isToolErrorResult } from '@stitch/shared/tools/types';
+
 import { GoogleApiError, GoogleClient } from './client.js';
 import { resetGoogleRateLimitCoordinatorForTests } from './rate-limit.js';
 import { classifyGoogleToolError } from './tool-error.js';
@@ -96,12 +98,7 @@ describe('GoogleClient', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(GoogleApiError);
       expect((error as GoogleApiError).reasons).toContain('ACCESS_TOKEN_SCOPE_INSUFFICIENT');
-      expect(classifyGoogleToolError(error)).toEqual({
-        error: 'insufficient_google_permissions',
-        message:
-          "You aren't allowed to perform this action because the connected Google account does not have enough permissions.",
-        retryable: false,
-      });
+      expect(isToolErrorResult(classifyGoogleToolError(error))).toBe(true);
     }
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
@@ -138,10 +135,9 @@ describe('GoogleClient', () => {
     const result = await tools?.drive_info.execute?.({ fileId: 'file-1' }, { toolCallId: 'call-1', messages: [] });
 
     expect(result).toEqual({
-      error: 'insufficient_google_permissions',
-      message:
+      error:
         "You aren't allowed to perform this action because the connected Google account does not have enough permissions.",
-      retryable: false,
+      details: { code: 'insufficient_google_permissions', retryable: false },
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });

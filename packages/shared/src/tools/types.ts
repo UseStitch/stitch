@@ -16,7 +16,14 @@ export type ToolEnabledState = {
 
 type ToolDataResult = { data: unknown; error?: never; details?: never };
 
-type ToolErrorResult = { error: string; details?: unknown; data?: never };
+/**
+ * Cross-package protocol for a failed tool result. Packages that cannot import the server's
+ * ToolError class return this instead; resultNormalizationMiddleware converts it into a throw.
+ * `error` is the message shown to the model and the user, so it must be human-readable.
+ * Adding any key other than `details` makes isToolErrorResult reject the value and it will be
+ * treated as ordinary tool data.
+ */
+export type ToolErrorResult = { error: string; details?: unknown; data?: never };
 
 export function isToolErrorResult(value: unknown): value is ToolErrorResult {
   if (!value || typeof value !== 'object') {
