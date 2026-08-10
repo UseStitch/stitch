@@ -86,6 +86,22 @@ export function useDeleteSkill() {
   });
 }
 
+export function useSetSkillEnabled() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ name, enabled }: { name: string; enabled: boolean }) =>
+      serverRequest<void>('/config/tools/enabled', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: 'skill', identifier: name, enabled }),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: skillKeys.all });
+    },
+    onError: (error: Error) => toast.error(error.message, { id: 'skill-enabled' }),
+  });
+}
+
 export function useImportSkill() {
   const queryClient = useQueryClient();
   return useMutation({
