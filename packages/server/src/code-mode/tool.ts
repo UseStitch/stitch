@@ -3,6 +3,8 @@ import { z } from 'zod';
 
 import { createProcessSandbox } from '@stitch/sandbox';
 import type { IsolateDriver, IsolateOptions } from '@stitch/sandbox';
+import { isToolErrorResult, toolError } from '@stitch/shared/tools/types';
+import type { ToolErrorResult } from '@stitch/shared/tools/types';
 
 import { toolsToBindings, toolsToTypeInfo } from '@/code-mode/bindings/tool-binding.js';
 import { SandboxExecPathMissingError } from '@/code-mode/errors.js';
@@ -114,10 +116,14 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
           description,
           durationMs,
           logCount: execResult.logs.length,
-          hasError: isErrorResult(execResult.result),
+          hasError: isToolErrorResult(execResult.result),
         },
         'code mode execution complete',
       );
+
+      if (isToolErrorResult(execResult.result)) {
+        return createSandboxErrorResult(execResult.result, execResult.logs);
+      }
 
       const resultText = serializeIsolateOutput(execResult.result, execResult.logs);
       const truncated = await truncateOutput(resultText);
@@ -152,8 +158,12 @@ function createCodeModeIsolateOptions(
   };
 }
 
-export function isErrorResult(result: unknown): result is { error: unknown } {
-  return result !== null && typeof result === 'object' && 'error' in result;
+function createSandboxErrorResult(result: ToolErrorResult, logs: string[]): ToolErrorResult {
+  if (logs.length === 0) {
+    return result;
+  }
+
+  return toolError(result.error, { logs });
 }
 
 export function serializeIsolateOutput(result: unknown, logs: string[]): string {
@@ -169,9 +179,8 @@ export function serializeIsolateOutput(result: unknown, logs: string[]): string 
 
   if (result === null || result === undefined) {
     parts.push('(no return value)');
-  } else if (isErrorResult(result)) {
-    const errMsg = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
-    parts.push(`Error: ${errMsg}`);
+  } else if (isToolErrorResult(result)) {
+    parts.push(`Error: ${result.error}`);
   } else {
     try {
       parts.push(JSON.stringify(result, null, 2));

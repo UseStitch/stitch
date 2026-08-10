@@ -1,6 +1,8 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
+import { toolError } from '@stitch/shared/tools/types';
+
 import { getMemoryConfig } from '@/memory/config.js';
 import { memoryFileStore } from '@/memory/file-store.js';
 import type { MemoryMutation } from '@/memory/types.js';
@@ -36,7 +38,7 @@ function createMemoryTool(context: ToolContext) {
     inputSchema: mutationSchema,
     execute: async (input) => {
       const config = await getMemoryConfig();
-      if (!config.enabled) return { output: 'Memory is disabled. Enable memory.enabled in settings.' };
+      if (!config.enabled) return toolError('Memory is disabled. Enable memory.enabled in settings.');
 
       const operations: MemoryMutation[] =
         input.action === 'batch'

@@ -41,7 +41,7 @@ export function resultNormalizationMiddleware(): ToolMiddleware {
     const result = await next(input);
 
     if (isToolErrorResult(result)) {
-      throw new ToolError(result.error);
+      throw new ToolError(result.error, input.toolName, result.details);
     }
 
     if (isToolDataResult(result)) {

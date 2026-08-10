@@ -1,3 +1,4 @@
+import { toolError } from '@stitch/shared/tools/types';
 import type { ToolErrorResult } from '@stitch/shared/tools/types';
 
 import { GoogleApiError } from './client.js';
@@ -61,7 +62,7 @@ export function classifyGoogleToolError(error: unknown): ToolErrorResult | null 
     return null;
   }
 
-  return { error: classifier.message, details: { code: classifier.code, retryable: classifier.retryable } };
+  return toolError(classifier.message, { code: classifier.code, retryable: classifier.retryable });
 }
 
 function isInsufficientScopeError(error: GoogleApiError): boolean {

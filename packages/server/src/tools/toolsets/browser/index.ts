@@ -1,6 +1,8 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
+import { toolError } from '@stitch/shared/tools/types';
+
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { summarizeOperationResult, withFreshSnapshot } from '@/tools/toolsets/browser/formatters.js';
@@ -256,6 +258,11 @@ function createBatchTool(context: ToolContext) {
         const outputText = resultLines.length > 0 ? `${summaryText}\n${resultLines.join('\n')}` : summaryText;
         const compactSnapshot = freshSnapshot ? serializeBrowserSnapshot(freshSnapshot) : null;
         const summary = compactSnapshot ? `${outputText}\n\n### Updated Snapshot\n${compactSnapshot.text}` : outputText;
+
+        const errorResults = results.filter((result) => result.status === 'error');
+        if (errorResults.length === results.length || stoppedReason?.startsWith('Stopped on error')) {
+          return toolError(summary, { results, stoppedReason, executed, skipped });
+        }
 
         return {
           output: summary,

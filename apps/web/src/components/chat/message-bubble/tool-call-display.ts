@@ -121,8 +121,13 @@ function isHiddenToolCall(toolName: string): boolean {
 
 export function getChildSessionId(result: unknown): string | null {
   if (!result || typeof result !== 'object') return null;
-  const id = (result as Record<string, unknown>).childSessionId;
-  return typeof id === 'string' ? id : null;
+  const record = result as Record<string, unknown>;
+  const id = record.childSessionId;
+  if (typeof id === 'string') return id;
+
+  if (!record.details || typeof record.details !== 'object') return null;
+  const detailsId = (record.details as Record<string, unknown>).childSessionId;
+  return typeof detailsId === 'string' ? detailsId : null;
 }
 
 function getToolKind(toolName: string): ToolIconKind {

@@ -1,9 +1,11 @@
 class ToolError extends Error {
   readonly toolName?: string;
-  constructor(message: string, toolName?: string) {
+  readonly details?: unknown;
+  constructor(message: string, toolName?: string, details?: unknown) {
     super(message);
     this.name = 'ToolError';
     this.toolName = toolName;
+    this.details = details;
   }
 }
 

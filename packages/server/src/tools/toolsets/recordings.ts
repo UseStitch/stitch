@@ -2,6 +2,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 import type { PrefixedString } from '@stitch/shared/id';
+import { toolError } from '@stitch/shared/tools/types';
 
 import { PATHS } from '@/lib/paths.js';
 import { getRecordingAnalysis, startRecordingAnalysis } from '@/recordings/analysis-service.js';
@@ -27,7 +28,7 @@ Returns status, file path, and Markdown meeting notes.`,
       const result = await getRecordingAnalysis(input.recordingId as PrefixedString<'rec'>);
 
       if (result.error) {
-        return { recordingId: input.recordingId, found: false, message: result.error.message };
+        return toolError(result.error.message, { recordingId: input.recordingId });
       }
 
       if (!result.data.analysis) {
@@ -83,7 +84,7 @@ Use this when analysis is missing or stale.`,
       });
 
       if (result.error) {
-        return { recordingId: input.recordingId, ok: false, message: result.error.message };
+        return toolError(result.error.message, { recordingId: input.recordingId });
       }
 
       return {

@@ -6,6 +6,8 @@ import { dynamicTool, jsonSchema } from 'ai';
 
 import type { PrefixedString } from '@stitch/shared/id';
 import type { McpAuthConfig } from '@stitch/shared/mcp/types';
+import { toolError } from '@stitch/shared/tools/types';
+import type { ToolErrorResult } from '@stitch/shared/tools/types';
 
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
@@ -34,6 +36,35 @@ const clientCache = new Map<string, Promise<Client>>();
  * discovery and break the exchange.
  */
 const pendingOAuthTransports = new Map<string, StreamableHTTPClientTransport>();
+
+export function normalizeMcpToolResult<T>(result: T): T | ToolErrorResult {
+  if (
+    typeof result !== 'object' ||
+    result === null ||
+    !('isError' in result) ||
+    result.isError !== true ||
+    !('content' in result) ||
+    !Array.isArray(result.content)
+  ) {
+    return result;
+  }
+
+  const error = result.content
+    .filter(
+      (content): content is { type: 'text'; text: string } =>
+        typeof content === 'object' &&
+        content !== null &&
+        'type' in content &&
+        content.type === 'text' &&
+        'text' in content &&
+        typeof content.text === 'string',
+    )
+    .map((content) => content.text.trim())
+    .filter(Boolean)
+    .join('\n');
+
+  return toolError(error || 'MCP tool call failed', result);
+}
 
 export function registerPendingOAuthTransport(serverId: string, transport: StreamableHTTPClientTransport): void {
   pendingOAuthTransports.set(serverId, transport);
@@ -66,14 +97,16 @@ function createAiTool(server: McpServerRef, tool: McpTool, sessionId: PrefixedSt
       withMcpClient(
         server,
         (client) =>
-          client.callTool(
-            {
-              name: tool.name,
-              arguments: input && typeof input === 'object' ? (input as Record<string, unknown>) : {},
-            },
-            undefined,
-            { signal: abortSignal },
-          ),
+          client
+            .callTool(
+              {
+                name: tool.name,
+                arguments: input && typeof input === 'object' ? (input as Record<string, unknown>) : {},
+              },
+              undefined,
+              { signal: abortSignal },
+            )
+            .then(normalizeMcpToolResult),
         sessionId,
       ),
   });
