@@ -46,6 +46,7 @@ import {
   renameSkillRegistration,
   setSkillType,
 } from '@/skills/registry.js';
+import { getDisabledToolIdentifiers } from '@/tools/enabled-service.js';
 
 const log = Log.create({ service: 'skills' });
 
@@ -382,9 +383,12 @@ export async function buildSkillsSystemPrompt(): Promise<string> {
   const result = await listSkills();
   if (result.error || result.data.length === 0) return '';
 
-  const disabledSkillNames = await getDisabledAppSkillNames();
+  const [disabledAppSkillNames, disabledSkillNames] = await Promise.all([
+    getDisabledAppSkillNames(),
+    getDisabledToolIdentifiers('skill'),
+  ]);
   const lines = result.data
-    .filter((skill) => !disabledSkillNames.has(skill.name))
+    .filter((skill) => !disabledAppSkillNames.has(skill.name) && !disabledSkillNames.has(skill.name))
     .map((skill) => `- ${skill.name}: ${skill.description}`);
   if (lines.length === 0) return '';
 
