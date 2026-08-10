@@ -1,11 +1,11 @@
+import type { ToolErrorResult } from '@stitch/shared/tools/types';
+
 import { GoogleApiError } from './client.js';
 
 import type { Tool } from 'ai';
 
-type GoogleToolErrorResult = { error: string; message: string; retryable: boolean };
-
 type GoogleToolErrorClassifier = {
-  error: string;
+  code: string;
   message: string;
   retryable: boolean;
   matches: (error: GoogleApiError) => boolean;
@@ -13,7 +13,7 @@ type GoogleToolErrorClassifier = {
 
 const GOOGLE_TOOL_ERROR_CLASSIFIERS: GoogleToolErrorClassifier[] = [
   {
-    error: 'insufficient_google_permissions',
+    code: 'insufficient_google_permissions',
     message:
       "You aren't allowed to perform this action because the connected Google account does not have enough permissions.",
     retryable: false,
@@ -51,7 +51,7 @@ function wrapGoogleToolError(currentTool: Tool): Tool {
   };
 }
 
-export function classifyGoogleToolError(error: unknown): GoogleToolErrorResult | null {
+export function classifyGoogleToolError(error: unknown): ToolErrorResult | null {
   if (!(error instanceof GoogleApiError)) {
     return null;
   }
@@ -61,7 +61,7 @@ export function classifyGoogleToolError(error: unknown): GoogleToolErrorResult |
     return null;
   }
 
-  return { error: classifier.error, message: classifier.message, retryable: classifier.retryable };
+  return { error: classifier.message, details: { code: classifier.code, retryable: classifier.retryable } };
 }
 
 function isInsufficientScopeError(error: GoogleApiError): boolean {
