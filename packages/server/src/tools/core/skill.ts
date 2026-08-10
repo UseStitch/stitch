@@ -3,6 +3,8 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { z } from 'zod';
 
+import { toolError } from '@stitch/shared/tools/types';
+
 import { isSkillEnabledByApp } from '@/apps/service.js';
 import { getSkillByName } from '@/skills/service.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
@@ -18,10 +20,10 @@ export const definition: ToolDefinition = {
     inputSchema: skillInputSchema,
     execute: async ({ name }) => {
       const enabled = await isSkillEnabledByApp(name);
-      if (!enabled) return { error: `Skill "${name}" is disabled.` };
+      if (!enabled) return toolError(`Skill "${name}" is disabled.`);
 
       const result = await getSkillByName(name);
-      if (result.error) return { error: result.error.message };
+      if (result.error) return toolError(result.error.message);
 
       const skill = result.data;
       const dir = path.dirname(skill.location);

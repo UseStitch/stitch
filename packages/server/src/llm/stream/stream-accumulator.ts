@@ -279,7 +279,11 @@ export class StreamAccumulator {
       case 'tool-error': {
         const now = Date.now();
         const partId = createPartId();
-        const errorText = String(part.error);
+        const errorText = Error.isError(part.error) ? part.error.message : String(part.error);
+        const errorDetails =
+          typeof part.error === 'object' && part.error !== null && 'details' in part.error
+            ? part.error.details
+            : undefined;
 
         internalBus.emit('tool.failed', {
           sessionId: this.sessionId,
@@ -308,7 +312,7 @@ export class StreamAccumulator {
           id: partId,
           toolCallId: part.toolCallId,
           toolName: part.toolName,
-          output: { error: errorText },
+          output: errorDetails === undefined ? { error: errorText } : { error: errorText, details: errorDetails },
           truncated: false,
           startedAt: now,
           endedAt: now,

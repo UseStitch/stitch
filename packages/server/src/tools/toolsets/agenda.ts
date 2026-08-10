@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { AGENDA_ITEM_PRIORITIES, AGENDA_ITEM_STATUSES } from '@stitch/shared/agenda/types';
 import type { PrefixedString } from '@stitch/shared/id';
+import { toolError } from '@stitch/shared/tools/types';
 
 import {
   createAgendaItem,
@@ -93,7 +94,7 @@ Use when the user asks to add a todo, task, or follow-up. Default priority is "m
     execute: async (input) => {
       const dueAt = input.dueAt ? parseDueDate(input.dueAt, userTimezone) : null;
       if (input.dueAt && dueAt === null) {
-        return { output: 'Invalid due date format. Use ISO 8601 (e.g. "2025-01-15T09:00:00Z").' };
+        return toolError('Invalid due date format. Use ISO 8601 (e.g. "2025-01-15T09:00:00Z").');
       }
 
       const result = createAgendaItem({
@@ -107,7 +108,7 @@ Use when the user asks to add a todo, task, or follow-up. Default priority is "m
       });
 
       if (result.error) {
-        return { output: `Failed to create item: ${result.error.message}` };
+        return toolError(`Failed to create item: ${result.error.message}`);
       }
 
       const item = result.data;
@@ -149,7 +150,7 @@ Use when the user asks to mark something as done, change priority, reschedule, o
       });
 
       if (result.error) {
-        return { output: `No agenda item found with id: ${input.itemId}` };
+        return toolError(`No agenda item found with id: ${input.itemId}`);
       }
 
       const item = result.data;
@@ -184,7 +185,7 @@ Use when the user asks about their tasks, what's pending, or what's due.`,
       });
 
       if (result.error) {
-        return { output: `Failed to list items: ${result.error.message}` };
+        return toolError(`Failed to list items: ${result.error.message}`);
       }
 
       const { items, total } = result.data;
@@ -210,7 +211,7 @@ Use when the user wants to see the complete information about a specific item.`,
     execute: async (input) => {
       const result = getAgendaItem(input.itemId as PrefixedString<'aitm'>);
       if (result.error) {
-        return { output: `No agenda item found with id: ${input.itemId}` };
+        return toolError(`No agenda item found with id: ${input.itemId}`);
       }
 
       const detail = result.data;
@@ -240,7 +241,7 @@ Use when the user wants to organize items into a new list/topic.`,
       const result = createAgendaList({ name: input.name, description: input.description });
 
       if (result.error) {
-        return { output: `Failed to create list: ${result.error.message}` };
+        return toolError(`Failed to create list: ${result.error.message}`);
       }
 
       const list = result.data;
@@ -256,7 +257,7 @@ Use when the user wants to see what lists exist or get an overview of their agen
     execute: async () => {
       const result = getAgendaLists();
       if (result.error) {
-        return { output: `Failed to list agenda lists: ${result.error.message}` };
+        return toolError(`Failed to list agenda lists: ${result.error.message}`);
       }
 
       const lists = result.data;

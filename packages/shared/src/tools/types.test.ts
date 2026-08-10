@@ -8,8 +8,9 @@ describe('getToolFailureMessage', () => {
     expect(getToolFailureMessage({ error: 'boom', details: { code: 'x' } })).toBe('boom');
   });
 
-  test('reports a failure for the failed flag, which carries no error message', () => {
-    expect(getToolFailureMessage({ failed: true, output: 'exit 1', title: 'ls' })).toBe('Tool execution failed');
+  test('reports the output from a legacy failed result', () => {
+    expect(getToolFailureMessage({ failed: true, output: 'exit 1', title: 'ls' })).toBe('exit 1');
+    expect(getToolFailureMessage({ failed: true, output: '' })).toBe('Tool execution failed');
   });
 
   test('returns null for successful results', () => {

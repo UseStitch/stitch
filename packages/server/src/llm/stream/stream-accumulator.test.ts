@@ -250,6 +250,21 @@ describe('StreamAccumulator', () => {
       expect(failedCalls.at(0)).toMatchObject({ toolName: 'webfetch', error: 'connection refused' });
     });
 
+    test('preserves structured tool error details in stored results', () => {
+      const parts: StoredPart[] = [];
+      const acc = createAccumulator(parts);
+      const error = Object.assign(new Error('permission denied'), {
+        details: { code: 'insufficient_permissions', retryable: false },
+      });
+
+      acc.handlePart(part({ type: 'tool-error', toolCallId: 'call_1', toolName: 'gmail_send', input: {}, error }));
+
+      expect(parts.at(0)).toMatchObject({
+        type: 'tool-result',
+        output: { error: 'permission denied', details: { code: 'insufficient_permissions', retryable: false } },
+      });
+    });
+
     test('captures PermissionRejectedError from tool-error', () => {
       const acc = createAccumulator();
       const permError = new PermissionRejectedError('webfetch');

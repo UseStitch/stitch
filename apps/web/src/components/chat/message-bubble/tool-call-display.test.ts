@@ -2,20 +2,15 @@ import { describe, expect, test } from 'bun:test';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 
-import { buildStoredToolCallDisplayItems } from '@/components/chat/message-bubble/tool-call-display.js';
+import {
+  buildStoredToolCallDisplayItems,
+  getChildSessionId,
+} from '@/components/chat/message-bubble/tool-call-display.js';
 
 type StoredToolResult = StoredPart & { type: 'tool-result' };
 
 function callPart(toolName: string): StoredPart {
-  return {
-    type: 'tool-call',
-    id: 'prt_1',
-    toolCallId: 'call-1',
-    toolName,
-    input: {},
-    startedAt: 0,
-    endedAt: 1,
-  };
+  return { type: 'tool-call', id: 'prt_1', toolCallId: 'call-1', toolName, input: {}, startedAt: 0, endedAt: 1 };
 }
 
 function resultsFor(output: unknown): Map<string, StoredToolResult> {
@@ -43,7 +38,7 @@ describe('buildStoredToolCallDisplayItems', () => {
     const item = buildOne('bash', { title: 'ls', output: 'no such file', failed: true });
 
     expect(item.status).toBe('error');
-    expect(item.error).toBe('Tool execution failed');
+    expect(item.error).toBe('no such file');
   });
 
   test('surfaces the message from a canonical error result', () => {
@@ -71,5 +66,11 @@ describe('buildStoredToolCallDisplayItems', () => {
     const item = buildStoredToolCallDisplayItems([callPart('bash')], new Map(), true)[0];
 
     expect(item.error).toBe('Interrupted');
+  });
+});
+
+describe('getChildSessionId', () => {
+  test('finds child sessions retained in canonical error details', () => {
+    expect(getChildSessionId({ error: 'Task failed', details: { childSessionId: 'ses_child' } })).toBe('ses_child');
   });
 });

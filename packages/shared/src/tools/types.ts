@@ -25,6 +25,10 @@ type ToolDataResult = { data: unknown; error?: never; details?: never };
  */
 export type ToolErrorResult = { error: string; details?: unknown; data?: never };
 
+export function toolError(error: string, details?: unknown): ToolErrorResult {
+  return details === undefined ? { error } : { error, details };
+}
+
 export function isToolErrorResult(value: unknown): value is ToolErrorResult {
   if (!value || typeof value !== 'object') {
     return false;
@@ -49,8 +53,7 @@ const TOOL_FAILURE_FALLBACK_MESSAGE = 'Tool execution failed';
 
 /**
  * Returns the message to report for a failed tool result, or null when the result is a success.
- * Recognizes the ToolErrorResult protocol plus the separate `failed: true` flag that bash sets to
- * report a non-zero exit code, since that shape carries its output in `output` rather than `error`.
+ * Recognizes the ToolErrorResult protocol plus legacy results that report failure with `failed: true`.
  */
 export function getToolFailureMessage(output: unknown): string | null {
   if (isToolErrorResult(output)) {
@@ -61,5 +64,11 @@ export function getToolFailureMessage(output: unknown): string | null {
     return null;
   }
 
-  return 'failed' in output && output.failed === true ? TOOL_FAILURE_FALLBACK_MESSAGE : null;
+  if (!('failed' in output) || output.failed !== true) {
+    return null;
+  }
+
+  return 'output' in output && typeof output.output === 'string' && output.output.trim().length > 0
+    ? output.output
+    : TOOL_FAILURE_FALLBACK_MESSAGE;
 }
