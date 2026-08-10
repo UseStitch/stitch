@@ -305,19 +305,19 @@ export function SkillsSettings() {
             {skills.map((skill) => (
               <div key={skill.name} className="flex items-center justify-between gap-space-xl py-space-l">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-space-s">
+                  <Stack direction="row" gap="s" align="center">
                     <Text variant="body-strong" truncate>
                       {skill.name}
                     </Text>
                     <Badge variant="soft" size="xs" className="capitalize">
                       {skill.type}
                     </Badge>
-                  </div>
+                  </Stack>
                   <Text variant="caption" tone="muted" lineClamp="2">
                     {skill.description}
                   </Text>
                 </div>
-                <div className="flex items-center gap-space-l">
+                <Stack direction="row" gap="l" align="center">
                   <Switch
                     checked={skill.enabled}
                     disabled={setSkillEnabled.isPending}
@@ -343,7 +343,7 @@ export function SkillsSettings() {
                       </SettingsIconButtonTooltip>
                     )}
                   </ButtonGroup>
-                </div>
+                </Stack>
               </div>
             ))}
           </SettingRows>
