@@ -1,6 +1,6 @@
 import { GoogleApiError } from './client.js';
 
-import type { Tool, ToolExecuteFunction } from 'ai';
+import type { Tool } from 'ai';
 
 type GoogleToolErrorResult = { error: string; message: string; retryable: boolean };
 
@@ -28,11 +28,10 @@ export function wrapGoogleToolErrors(tools: Record<string, Tool>): Record<string
 }
 
 function wrapGoogleToolError(currentTool: Tool): Tool {
-  if (!currentTool.execute) {
+  const execute: Tool['execute'] = currentTool.execute;
+  if (!execute) {
     return currentTool;
   }
-
-  const execute = currentTool.execute as ToolExecuteFunction<unknown, unknown>;
 
   return {
     ...currentTool,
