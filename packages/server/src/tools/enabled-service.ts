@@ -4,14 +4,28 @@ import type { ToolEnabledScope, ToolEnabledState } from '@stitch/shared/tools/ty
 
 import { getDb, isDbInitialized } from '@/db/client.js';
 import { toolEnabled } from '@/db/schema/permissions.js';
+import {
+  getDisabledSkillNames,
+  getSkillRegistration,
+  getSkillRegistrations,
+  setSkillEnabled,
+} from '@/skills/registry.js';
 
 export async function getToolEnabledStates(): Promise<ToolEnabledState[]> {
   if (!isDbInitialized()) {
     return [];
   }
 
-  const db = getDb();
-  return db.select().from(toolEnabled);
+  const [toolStates, skillRegistrations] = await Promise.all([
+    getDb().select().from(toolEnabled),
+    getSkillRegistrations(),
+  ]);
+  const skillStates: ToolEnabledState[] = Array.from(skillRegistrations, ([identifier, registration]) => ({
+    scope: 'skill',
+    identifier,
+    enabled: registration.enabled,
+  }));
+  return [...toolStates, ...skillStates];
 }
 
 export async function setToolEnabledState(opts: {
@@ -20,6 +34,11 @@ export async function setToolEnabledState(opts: {
   enabled: boolean;
 }): Promise<void> {
   if (!isDbInitialized()) {
+    return;
+  }
+
+  if (opts.scope === 'skill') {
+    await setSkillEnabled(opts.identifier, opts.enabled);
     return;
   }
 
@@ -40,6 +59,10 @@ export async function isToolEnabled(opts: { scope: ToolEnabledScope; identifier:
     return true;
   }
 
+  if (opts.scope === 'skill') {
+    return (await getSkillRegistration(opts.identifier))?.enabled ?? true;
+  }
+
   const db = getDb();
   const rows = await db
     .select({ enabled: toolEnabled.enabled })
@@ -54,6 +77,8 @@ export async function getDisabledToolIdentifiers(scope: ToolEnabledScope): Promi
   if (!isDbInitialized()) {
     return new Set();
   }
+
+  if (scope === 'skill') return getDisabledSkillNames();
 
   const db = getDb();
   const rows = await db
