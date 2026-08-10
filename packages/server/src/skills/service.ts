@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { z } from 'zod';
 
 import { createSkillSchema, importSkillSchema, updateSkillSchema } from '@stitch/shared/skills/types';
 import type {
@@ -33,11 +34,28 @@ import { parseSkillMarkdown } from '@/skills/parse-skill-markdown.js';
 
 const log = Log.create({ service: 'skills' });
 
-type SkillsSearchApiResponse = {
-  skills?: Array<{ id?: unknown; name?: unknown; installs?: unknown; source?: unknown }>;
-};
+function dropNulls<T>(values: Array<T | null>): T[] {
+  return values.filter((value): value is T => value !== null);
+}
 
-type SkillsDownloadResponse = { files?: Array<{ path?: unknown; contents?: unknown }>; hash?: unknown };
+/** A single skills.sh search hit. Hits that fail validation are dropped rather than failing the response. */
+const searchHitSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  source: z.string(),
+  installs: z.number().catch(0),
+});
+
+const searchResponseSchema = z.object({
+  skills: z.array(searchHitSchema.nullable().catch(null)).default([]).transform(dropNulls),
+});
+
+/** A single file in a skills.sh download. Files that fail validation are dropped rather than failing the response. */
+const downloadFileSchema = z.object({ path: z.string(), contents: z.string() });
+
+const downloadResponseSchema = z.object({
+  files: z.array(downloadFileSchema.nullable().catch(null)).default([]).transform(dropNulls),
+});
 
 const SKILLS_API_BASE = 'https://skills.sh';
 const FETCH_TIMEOUT_MS = 10_000;
@@ -191,23 +209,22 @@ export async function searchSkillsDirectory(query: string): Promise<ServiceResul
       return err('Failed to search skills directory', 500);
     }
 
-    const body = (await response.json()) as SkillsSearchApiResponse;
-    const results = (body.skills ?? [])
-      .flatMap((skill): SkillSearchResult[] => {
-        if (typeof skill.id !== 'string' || typeof skill.name !== 'string' || typeof skill.source !== 'string') {
-          return [];
-        }
+    const body = searchResponseSchema.safeParse(await response.json());
+    if (!body.success) {
+      log.error({ url, issues: body.error.issues }, 'skills.sh search response failed schema validation');
+      return err('Failed to search skills directory', 500);
+    }
 
-        return [
-          {
-            name: skill.name,
-            slug: skill.id,
-            source: skill.source,
-            installs: typeof skill.installs === 'number' ? skill.installs : 0,
-            isImported: false,
-          },
-        ];
-      })
+    const results = body.data.skills
+      .map(
+        (hit): SkillSearchResult => ({
+          name: hit.name,
+          slug: hit.id,
+          source: hit.source,
+          installs: hit.installs,
+          isImported: false,
+        }),
+      )
       .toSorted((a, b) => b.installs - a.installs);
 
     return ok(results);
@@ -234,15 +251,18 @@ export async function importSkillFromDirectory(input: SkillImportInput): Promise
       return err(new SkillImportError('Failed to download skill').message, 500);
     }
 
-    const body = (await response.json()) as SkillsDownloadResponse;
-    const downloadedFiles = body.files ?? [];
+    const body = downloadResponseSchema.safeParse(await response.json());
+    if (!body.success) {
+      log.error({ url, source, slug, issues: body.error.issues }, 'skills.sh download response failed validation');
+      return err(new SkillImportError('Failed to download skill').message, 500);
+    }
 
-    const skillFile = downloadedFiles.find(
-      (file) => typeof file.path === 'string' && file.path.toLowerCase().endsWith('skill.md'),
-    );
-    if (!skillFile || typeof skillFile.contents !== 'string') {
+    const downloadedFiles = body.data.files;
+
+    const skillFile = downloadedFiles.find((file) => file.path.toLowerCase().endsWith('skill.md'));
+    if (!skillFile) {
       log.error(
-        { source, slug, fileCount: downloadedFiles.length, filePaths: downloadedFiles.map((f) => f.path) },
+        { source, slug, fileCount: downloadedFiles.length, filePaths: downloadedFiles.map((file) => file.path) },
         'downloaded skill missing SKILL.md',
       );
       return err(new SkillImportError('Downloaded skill did not include a SKILL.md file').message, 422);
@@ -274,8 +294,6 @@ export async function importSkillFromDirectory(input: SkillImportInput): Promise
     await mkdir(skillDir, { recursive: true });
 
     for (const file of downloadedFiles) {
-      if (typeof file.path !== 'string' || typeof file.contents !== 'string') continue;
-
       const filePath = path.join(skillDir, file.path);
       const fileDir = path.dirname(filePath);
       if (!existsSync(fileDir)) {
