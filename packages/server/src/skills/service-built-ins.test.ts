@@ -32,7 +32,7 @@ describe('syncBuiltInSkills', () => {
     expect(content).toContain('Test instructions.');
   });
 
-  test('skips existing skill directories', async () => {
+  test('overwrites existing built-in skill instructions', async () => {
     const skill = {
       name: 'test-skill',
       description: 'Use this test skill.',
@@ -42,15 +42,13 @@ describe('syncBuiltInSkills', () => {
 
     await syncBuiltInSkills([skill]);
 
-    // Manually modify the file to simulate a user edit
     const mdPath = path.join(tempDir, 'test-skill', 'SKILL.md');
     await fs.writeFile(mdPath, 'user modified content', 'utf8');
 
     await syncBuiltInSkills([{ ...skill, content: 'New instructions.' }]);
 
-    // File should remain as the user left it
     const content = await fs.readFile(mdPath, 'utf8');
-    expect(content).toBe('user modified content');
+    expect(content).toContain('New instructions.');
   });
 
   test('syncs companion files for new skills', async () => {
@@ -76,7 +74,7 @@ describe('syncBuiltInSkills', () => {
     expect(await fs.readFile(scriptPath, 'utf8')).toBe('print("hello")');
   });
 
-  test('does not write companion files for existing skill directories', async () => {
+  test('overwrites companion files for existing built-in skills', async () => {
     const skill = {
       name: 'test-skill',
       description: 'A skill.',
@@ -89,7 +87,7 @@ describe('syncBuiltInSkills', () => {
     await syncBuiltInSkills([{ ...skill, files: [{ relativePath: 'references/guide.md', content: 'updated' }] }]);
 
     const guidePath = path.join(tempDir, 'test-skill', 'references', 'guide.md');
-    expect(await fs.readFile(guidePath, 'utf8')).toBe('original');
+    expect(await fs.readFile(guidePath, 'utf8')).toBe('updated');
   });
 });
 

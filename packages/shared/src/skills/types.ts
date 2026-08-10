@@ -1,6 +1,18 @@
 import { z } from 'zod';
 
-export type Skill = { name: string; description: string; content: string; location: string; files: string[] };
+export const SKILL_TYPES = ['stitch', 'custom', 'external'] as const;
+
+export type SkillType = (typeof SKILL_TYPES)[number];
+
+export type Skill = {
+  name: string;
+  type: SkillType;
+  enabled: boolean;
+  description: string;
+  content: string;
+  location: string;
+  files: string[];
+};
 
 export type SkillSearchResult = { name: string; slug: string; source: string; installs: number; isImported: boolean };
 

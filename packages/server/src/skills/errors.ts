@@ -26,6 +26,13 @@ export class SkillInvalidError extends SkillError {
   }
 }
 
+export class SkillReadOnlyError extends SkillError {
+  constructor(name: string) {
+    super(`Built-in skill "${name}" cannot be edited or deleted`);
+    this.name = 'SkillReadOnlyError';
+  }
+}
+
 export class SkillImportError extends SkillError {
   constructor(message: string) {
     super(message);
