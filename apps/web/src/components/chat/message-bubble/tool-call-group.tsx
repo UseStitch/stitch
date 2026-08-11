@@ -261,7 +261,7 @@ function ToolCallRowPreview() {
       size="inline"
       align="start"
       onClick={() => onViewErrorDetails(errorDetails)}
-      className="min-w-0 flex-1 truncate"
+      className="min-w-0 flex-1"
       title="View full error">
       <Text as="span" variant="caption" tone="muted" truncate>
         {summary.preview}
