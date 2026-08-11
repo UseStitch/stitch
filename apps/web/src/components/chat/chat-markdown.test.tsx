@@ -31,6 +31,16 @@ describe('ChatMarkdown', () => {
     expect(html).not.toContain('katex-error');
   });
 
+  test('renders single-letter variables as inline math', () => {
+    const html = renderToStaticMarkup(
+      <ChatMarkdown text={'The modified weight $W$ during inference.\n\n- **$r$ (Rank)**: Typically small.'} />,
+    );
+
+    expect(html.match(/class="katex"/g)).toHaveLength(2);
+    expect(html).not.toContain('$W$');
+    expect(html).not.toContain('$r$');
+  });
+
   test('renders escaped dollars inside single-dollar inline math', () => {
     const html = renderToStaticMarkup(<ChatMarkdown text={'Cost: $\\$0.02 \\text{ per 1M tokens}$.'} />);
 
