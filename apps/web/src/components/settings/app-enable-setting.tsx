@@ -16,7 +16,7 @@ export function AppEnableSetting({ appId, label }: { appId: AppId; label: string
   const toggleId = `${appId}-app-toggle`;
 
   function handleToggle(checked: boolean) {
-    void setAppEnabledState.mutateAsync({ appId, enabled: checked }).catch((error: unknown) => {
+    void setAppEnabledState.mutateAsync({ appId, enabled: checked }).catch((error: Error) => {
       toast.error(getErrorMessage(error, `Failed to update ${label}`), { id: 'app-enable' });
     });
   }

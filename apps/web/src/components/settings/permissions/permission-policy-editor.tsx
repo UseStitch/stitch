@@ -78,19 +78,19 @@ function ToolPermissionEditor({
   const isMutating = upsertPermission.isPending || deletePermission.isPending;
 
   const handleGlobalChange = (permission: ToolPermissionValue) => {
-    void upsertPermission.mutateAsync({ toolName, pattern: null, permission }).catch((error: unknown) => {
+    void upsertPermission.mutateAsync({ toolName, pattern: null, permission }).catch((error: Error) => {
       toast.error(getErrorMessage(error, 'Failed to update permission'), { id: 'permission-update' });
     });
   };
 
   const handlePatternPermissionChange = (rule: ToolPermission, permission: ToolPermissionValue) => {
-    void upsertPermission.mutateAsync({ toolName, pattern: rule.pattern, permission }).catch((error: unknown) => {
+    void upsertPermission.mutateAsync({ toolName, pattern: rule.pattern, permission }).catch((error: Error) => {
       toast.error(getErrorMessage(error, 'Failed to update permission'), { id: 'permission-update' });
     });
   };
 
   const handleDeleteRule = (rule: ToolPermission) => {
-    void deletePermission.mutateAsync(rule.id).catch((error: unknown) => {
+    void deletePermission.mutateAsync(rule.id).catch((error: Error) => {
       toast.error(getErrorMessage(error, 'Failed to delete rule'), { id: 'permission-delete' });
     });
   };
@@ -105,7 +105,7 @@ function ToolPermissionEditor({
         setNewPattern('');
         setNewPermission('ask');
       })
-      .catch((error: unknown) => {
+      .catch((error: Error) => {
         toast.error(getErrorMessage(error, 'Failed to add rule'), { id: 'permission-add-rule' });
       });
   };
@@ -210,7 +210,7 @@ function ToolPermissionEditor({
                       } else {
                         void upsertPermission
                           .mutateAsync({ toolName, pattern: preset.pattern, permission: 'allow' })
-                          .catch((error: unknown) => {
+                          .catch((error: Error) => {
                             toast.error(getErrorMessage(error, 'Failed to add rule'), { id: 'permission-add-preset' });
                           });
                       }

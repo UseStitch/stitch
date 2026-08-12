@@ -19,7 +19,7 @@ export function EligibleAccountsSection() {
   const enrollMutation = useEnrollMailAccount();
 
   function handleEnroll(connectorInstanceId: string) {
-    void enrollMutation.mutateAsync({ connectorInstanceId }).catch((caught: unknown) => {
+    void enrollMutation.mutateAsync({ connectorInstanceId }).catch((caught: Error) => {
       toast.error(getErrorMessage(caught, 'Failed to enroll mail account'), {
         id: `mail-enroll-${connectorInstanceId}`,
       });

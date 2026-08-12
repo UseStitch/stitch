@@ -194,7 +194,7 @@ export function ThreadView({ accountId, threadId, onClose }: ThreadViewProps) {
         });
         if (!currentThread.isTrashed) onClose();
       })
-      .catch((error: unknown) =>
+      .catch((error: Error) =>
         toast.error(getErrorMessage(error, 'Failed to update thread'), { id: 'mail-thread-trash' }),
       );
   }

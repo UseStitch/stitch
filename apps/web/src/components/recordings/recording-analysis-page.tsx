@@ -57,7 +57,7 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
         toast.success('Recording deleted', { id: 'analysis-recording-delete' });
         void navigate({ to: '/recordings' });
       },
-      (error: unknown) =>
+      (error: Error) =>
         toast.error(getErrorMessage(error, 'Failed to delete recording'), { id: 'analysis-recording-delete' }),
     );
   };
@@ -70,7 +70,7 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
 
     void startAnalysis.mutateAsync({ recordingId, force: true, templateId: selectedTemplate.id }).then(
       () => toast.success('Analysis started', { id: 'analysis-start' }),
-      (error: unknown) =>
+      (error: Error) =>
         toast.error(getErrorMessage(error, 'Failed to start recording analysis'), { id: 'analysis-start' }),
     );
   };
@@ -78,7 +78,7 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
   const handleCancelAnalysis = () => {
     void cancelAnalysis.mutateAsync(recordingId).then(
       () => toast.success('Analysis cancelled', { id: 'analysis-cancel' }),
-      (error: unknown) =>
+      (error: Error) =>
         toast.error(getErrorMessage(error, 'Failed to cancel recording analysis'), { id: 'analysis-cancel' }),
     );
   };
@@ -110,7 +110,7 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
           onStopRecording={() => {
             void stopRecording.mutateAsync().then(
               () => toast.success('Recording stopped', { id: 'analysis-recording-stop' }),
-              (error: unknown) =>
+              (error: Error) =>
                 toast.error(getErrorMessage(error, 'Failed to stop recording'), { id: 'analysis-recording-stop' }),
             );
           }}
