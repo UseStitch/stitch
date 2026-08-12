@@ -23,27 +23,28 @@ function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => v
 
   const connected = providersWithEnabledAuth.filter((p) => p.enabled);
   const unconnected = providersWithEnabledAuth.filter((p) => !p.enabled);
+  const sections = [
+    { title: 'Connected providers', providers: connected, className: 'mt-space-none' },
+    {
+      title: 'Popular providers',
+      providers: unconnected,
+      className: connected.length > 0 ? 'mt-space-2xl' : 'mt-space-none',
+    },
+  ];
 
   return (
     <Stack gap="2xl">
-      {connected.length > 0 && (
-        <SettingSection title="Connected providers" className="mt-space-none">
-          <Stack>
-            {connected.map((provider) => (
-              <ProviderRow key={provider.id} provider={provider} onSelect={() => onSelect(provider)} />
-            ))}
-          </Stack>
-        </SettingSection>
-      )}
-
-      {unconnected.length > 0 && (
-        <SettingSection title="Popular providers" className={connected.length > 0 ? 'mt-space-2xl' : 'mt-space-none'}>
-          <Stack>
-            {unconnected.map((provider) => (
-              <ProviderRow key={provider.id} provider={provider} onSelect={() => onSelect(provider)} />
-            ))}
-          </Stack>
-        </SettingSection>
+      {sections.map(
+        (section) =>
+          section.providers.length > 0 && (
+            <SettingSection key={section.title} title={section.title} className={section.className}>
+              <Stack>
+                {section.providers.map((provider) => (
+                  <ProviderRow key={provider.id} provider={provider} onSelect={() => onSelect(provider)} />
+                ))}
+              </Stack>
+            </SettingSection>
+          ),
       )}
     </Stack>
   );

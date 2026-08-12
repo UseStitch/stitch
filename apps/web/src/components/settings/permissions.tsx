@@ -98,7 +98,7 @@ function ToolsetActivationSettings() {
   );
 }
 
-function ToolsContent() {
+export function ToolsSettings() {
   const page = SETTINGS_PAGE_BY_ID.tools;
   const Icon = page.icon;
   const { data: knownTools } = useSuspenseQuery(knownToolsQueryOptions);
@@ -313,8 +313,4 @@ function ToolsContent() {
       </div>
     </SettingPage>
   );
-}
-
-export function ToolsSettings() {
-  return <ToolsContent />;
 }

@@ -29,26 +29,6 @@ const selectSidebarSessions = (data: InfiniteData<SessionsPage>) => ({
   })),
 });
 
-function SessionStatusIcon({ isStreaming, isUnread }: { isStreaming: boolean; isUnread: boolean }) {
-  if (isStreaming) {
-    return (
-      <div className="flex size-3.5 shrink-0 items-center justify-center">
-        <StatusDot color="primary" pulse />
-      </div>
-    );
-  }
-
-  if (isUnread) {
-    return (
-      <div className="flex size-3.5 shrink-0 items-center justify-center">
-        <StatusDot color="primary" />
-      </div>
-    );
-  }
-
-  return null;
-}
-
 export function ChatSidebarContent() {
   const [search, setSearch] = React.useState('');
   const [deletingSessionId, setDeletingSessionId] = React.useState<string | null>(null);
@@ -140,7 +120,11 @@ export function ChatSidebarContent() {
                         className="flex items-center gap-space-m truncate pr-space-3xl"
                       />
                     }>
-                    <SessionStatusIcon isStreaming={isStreaming} isUnread={isUnread} />
+                    {(isStreaming || isUnread) && (
+                      <div className="flex size-3.5 shrink-0 items-center justify-center">
+                        <StatusDot color="primary" pulse={isStreaming} />
+                      </div>
+                    )}
                     <Text as="span" variant={isUnread ? 'body-strong' : 'body'} truncate>
                       {session.title ?? 'New conversation'}
                     </Text>

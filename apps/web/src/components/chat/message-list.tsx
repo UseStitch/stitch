@@ -60,13 +60,7 @@ export function MessageList({
     return () => observer.disconnect();
   }, [hasMore, isFetchingMore, onLoadMore]);
 
-  const firstUnvirtualizedRowIndex = useMemo(() => {
-    const firstTailRowIndex = Math.max(rows.length - ALWAYS_UNVIRTUALIZED_TAIL_ROWS, 0);
-    if (!streamState.isStreaming) return firstTailRowIndex;
-
-    return firstTailRowIndex;
-  }, [rows.length, streamState.isStreaming]);
-
+  const firstUnvirtualizedRowIndex = Math.max(rows.length - ALWAYS_UNVIRTUALIZED_TAIL_ROWS, 0);
   const virtualizedRowCount = Math.min(firstUnvirtualizedRowIndex, rows.length);
 
   const rowVirtualizer = useVirtualizer({

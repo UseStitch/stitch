@@ -23,12 +23,9 @@ interface AnalysisHeaderProps {
   recording: Recording | undefined;
   templates: MeetingNoteTemplate[];
   selectedTemplateId: string;
-  isRunning: boolean;
-  isStarting: boolean;
-  isCancelling: boolean;
+  analysisState: 'idle' | 'starting' | 'running' | 'cancelling';
   isDeleting: boolean;
-  isRecording?: boolean;
-  isStopping?: boolean;
+  recordingState: 'idle' | 'recording' | 'stopping';
   onStartAnalysis: () => void;
   onTemplateChange: (templateId: string) => void;
   onCancelAnalysis: () => void;
@@ -42,18 +39,20 @@ export function AnalysisHeader({
   recording,
   templates,
   selectedTemplateId,
-  isRunning,
-  isStarting,
-  isCancelling,
+  analysisState,
   isDeleting,
-  isRecording,
-  isStopping,
+  recordingState,
   onStartAnalysis,
   onTemplateChange,
   onCancelAnalysis,
   onDelete,
   onStopRecording,
 }: AnalysisHeaderProps) {
+  const isStarting = analysisState === 'starting';
+  const isRunning = analysisState === 'running' || analysisState === 'cancelling';
+  const isCancelling = analysisState === 'cancelling';
+  const isRecording = recordingState === 'recording' || recordingState === 'stopping';
+  const isStopping = recordingState === 'stopping';
   const showRecordingControls = isRecording && onStopRecording;
   const hasCompletedAnalysis = analysis?.status === 'completed';
   const costLabel = formatCost(analysis?.costUsd ?? recording?.costUsd);

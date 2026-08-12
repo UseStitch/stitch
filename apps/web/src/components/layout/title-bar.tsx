@@ -1,6 +1,6 @@
 import { cn } from 'cnfast';
 import { Copy, Minus, PanelLeftClose, PanelLeftOpen, Square, X } from 'lucide-react';
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 
 import { ServerStatus } from '@/components/layout/server-status';
 import { Icon } from '@/components/primitives/icon';
@@ -11,50 +11,31 @@ import { useFullScreen } from '@/hooks/ui/use-fullscreen';
 export function TitleBar() {
   const isMac = window.electron?.platform === 'darwin';
   const isFullScreen = useFullScreen();
+  const { open, toggleSidebar } = useSidebar();
 
-  return (
-    <TitleBarShell>
-      <TitleBarSection className={cn(isMac && !isFullScreen && 'pl-space-2xl')}>
-        <SidebarToggleButton />
-      </TitleBarSection>
-      <TitleBarSection className={cn(isMac && 'pr-space-m')}>
-        <ServerStatus />
-        {!isMac && <WindowsControls />}
-      </TitleBarSection>
-    </TitleBarShell>
-  );
-}
-
-type TitleBarShellProps = { children: ReactNode };
-
-function TitleBarShell({ children }: TitleBarShellProps) {
   return (
     <div
       className="flex h-9 items-center justify-between bg-sidebar select-none"
       style={{ WebkitAppRegion: 'drag' } as CSSProperties}>
-      {children}
-    </div>
-  );
-}
-
-type TitleBarSectionProps = { children: ReactNode; className?: string };
-
-function TitleBarSection({ children, className }: TitleBarSectionProps) {
-  return (
-    <div className={cn('flex h-full items-center', className)} style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
-      {children}
-    </div>
-  );
-}
-
-function SidebarToggleButton() {
-  const { open, toggleSidebar } = useSidebar();
-
-  return (
-    <div className="flex h-full w-9 items-center justify-center">
-      <Button variant="ghost" size="icon" onClick={toggleSidebar}>
-        {open ? <Icon as={PanelLeftClose} size="m" tone="muted" /> : <Icon as={PanelLeftOpen} size="m" tone="muted" />}
-      </Button>
+      <div
+        className={cn('flex h-full items-center', isMac && !isFullScreen && 'pl-space-2xl')}
+        style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
+        <div className="flex h-full w-9 items-center justify-center">
+          <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+            {open ? (
+              <Icon as={PanelLeftClose} size="m" tone="muted" />
+            ) : (
+              <Icon as={PanelLeftOpen} size="m" tone="muted" />
+            )}
+          </Button>
+        </div>
+      </div>
+      <div
+        className={cn('flex h-full items-center', isMac && 'pr-space-m')}
+        style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
+        <ServerStatus />
+        {!isMac && <WindowsControls />}
+      </div>
     </div>
   );
 }

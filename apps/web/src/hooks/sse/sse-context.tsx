@@ -10,6 +10,8 @@ import {
 
 import { createSseConnection } from './sse-connection';
 
+import { getServerUrl } from '@/lib/api';
+
 type SessionScopedName = {
   [K in SseEventName]: SseEventPayloadMap[K] extends { sessionId: string }
     ? K
@@ -110,10 +112,7 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     const connection = createSseConnection({
-      getUrl: async () => {
-        const { getServerUrl } = await import('@/lib/api');
-        return getServerUrl();
-      },
+      getUrl: getServerUrl,
       onStatus: setStatus,
       onEvent: (eventName, raw) => {
         // Stamped on arrival rather than from the server's `ts`, so the value stays

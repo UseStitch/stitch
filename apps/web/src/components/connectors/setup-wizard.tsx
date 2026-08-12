@@ -1,5 +1,5 @@
 import { ExternalLinkIcon, CheckIcon, ArrowRightIcon, ArrowLeftIcon } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -128,7 +128,9 @@ export function SetupWizard({ definition, connectors, onClose }: Props) {
           });
           progress.connectorRefId = connector.id;
         }
-        progress.connectorRefId ??= values.selectedConnectorRefId;
+        if (progress.connectorRefId === undefined) {
+          progress.connectorRefId = values.selectedConnectorRefId;
+        }
 
         if (!progress.instanceId) {
           const instance = await createOAuthAccount.mutateAsync({
@@ -623,7 +625,7 @@ function ScopesStep({
   });
   const values = useSelector(form.store, (state) => state.values);
   const { selectedScopes, serviceAccess } = values;
-  const selectedScopeSet = useMemo(() => new Set(selectedScopes), [selectedScopes]);
+  const selectedScopeSet = new Set(selectedScopes);
   const computedScopes = getComputedScopes(config, values);
 
   const enableApisUrl = buildEnableApisUrl(config.scopeApiMap, computedScopes);

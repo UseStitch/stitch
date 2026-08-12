@@ -82,9 +82,8 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
       toast.success('Connection test successful', { id: 'connector-test' });
     } catch (e) {
       toast.error(getErrorMessage(e, 'Connection test failed'), { id: 'connector-test' });
-    } finally {
-      setTestingId(null);
     }
+    setTestingId(null);
   }
 
   async function handleDelete(instanceId: string, label: string) {

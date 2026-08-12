@@ -34,6 +34,13 @@ export function DesktopNotificationRoot() {
   );
   const [exiting, setExiting] = React.useState(false);
 
+  const handleDismissed = React.useEffectEvent((id: string) => {
+    if (!notification || notification.id !== id) return;
+
+    setExiting(true);
+    window.setTimeout(() => setNotification(null), EXIT_ANIMATION_MS);
+  });
+
   React.useEffect(() => {
     document.body.classList.add('desktop-notifications-window');
     return () => document.body.classList.remove('desktop-notifications-window');
@@ -55,15 +62,7 @@ export function DesktopNotificationRoot() {
   }, []);
 
   React.useEffect(() => {
-    return window.api.notifications.onDismissed((id) => {
-      setNotification((current) => {
-        if (!current || current.id !== id) return current;
-
-        setExiting(true);
-        window.setTimeout(() => setNotification(null), EXIT_ANIMATION_MS);
-        return current;
-      });
-    });
+    return window.api.notifications.onDismissed(handleDismissed);
   }, []);
 
   function dismiss(id: string): void {

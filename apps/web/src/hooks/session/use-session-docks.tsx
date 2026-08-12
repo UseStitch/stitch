@@ -136,6 +136,7 @@ export function useSessionDocks({
       variant: 'primary',
       children: (
         <McpElicitationDock
+          key={elicitation.id}
           request={elicitation}
           isPending={respondMcpElicitation.isPending}
           onRespond={async (action, content) => {
@@ -161,6 +162,7 @@ export function useSessionDocks({
       variant: 'primary',
       children: (
         <PermissionResponseDock
+          key={permissionResponse.id}
           permissionResponse={permissionResponse}
           toolLabel={toolLabel}
           isPending={

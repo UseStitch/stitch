@@ -2,7 +2,6 @@ import { cn } from 'cnfast';
 import * as React from 'react';
 
 import { Stack } from '@/components/primitives/stack';
-import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { SearchInput } from '@/components/ui/search-input';
 import {
@@ -24,14 +23,6 @@ function Header({ className, ...props }: React.ComponentProps<typeof SidebarHead
   return <SidebarHeader className={cn('pb-space-none', className)} {...props} />;
 }
 
-function Title({ className, children, ...props }: React.ComponentProps<'div'>) {
-  return (
-    <div className={cn('flex items-center gap-space-m px-space-m py-space-xs', className)} {...props}>
-      {typeof children === 'string' ? <Text variant="body-strong">{children}</Text> : children}
-    </div>
-  );
-}
-
 function Top({ className, ...props }: React.ComponentProps<'div'>) {
   return <div className={cn('flex h-8 items-center gap-space-m px-space-m', className)} {...props} />;
 }
@@ -39,7 +30,7 @@ function Top({ className, ...props }: React.ComponentProps<'div'>) {
 function TopTitle({ className, children, ...props }: React.ComponentProps<'div'>) {
   return (
     <div className={cn('flex min-w-0 flex-1 items-center gap-space-m', className)} {...props}>
-      {typeof children === 'string' ? <Text variant="body-strong">{children}</Text> : children}
+      {children}
     </div>
   );
 }
@@ -124,7 +115,6 @@ function SectionItem(props: React.ComponentProps<typeof Item>) {
 
 export const InternalSidebar = Object.assign(Root, {
   Header,
-  Title,
   Top,
   TopTitle,
   TopAction,

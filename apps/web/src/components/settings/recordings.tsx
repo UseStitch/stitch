@@ -74,6 +74,12 @@ const RECORDING_MODEL_PREFERENCES = [
 const SYSTEM_DEFAULT_VALUE = '__system_default__';
 
 const EMPTY_TEMPLATE_CONTENT = '# Meeting Notes\n\n## Summary\n- \n\n## Decisions\n- \n\n## Action Items\n- [ ] \n';
+const MARKDOWN_EXAMPLES = [
+  ['Headings', '# Title, ## Section'],
+  ['Lists', '- Bullet item'],
+  ['Tasks', '- [ ] Owner: action item'],
+  ['Emphasis', '**important** or _note_'],
+] as const;
 
 const meetingNoteTemplateSchema = z.object({
   name: z.string().trim().min(1, 'Title is required'),
@@ -105,9 +111,11 @@ function PermissionStatus() {
         }
       }
       setTimeout(() => void refetch(), 2000);
-    } finally {
+    } catch (error) {
       setRequesting(false);
+      throw error;
     }
+    setRequesting(false);
   };
 
   return (
@@ -337,30 +345,14 @@ function MarkdownHelpDialog() {
             <DialogDescription>Use Markdown to shape how the note template should be filled in.</DialogDescription>
           </DialogHeader>
           <Stack gap="l">
-            <div>
-              <Text variant="body-strong">Headings</Text>
-              <Text variant="code" tone="muted">
-                # Title, ## Section
-              </Text>
-            </div>
-            <div>
-              <Text variant="body-strong">Lists</Text>
-              <Text variant="code" tone="muted">
-                - Bullet item
-              </Text>
-            </div>
-            <div>
-              <Text variant="body-strong">Tasks</Text>
-              <Text variant="code" tone="muted">
-                - [ ] Owner: action item
-              </Text>
-            </div>
-            <div>
-              <Text variant="body-strong">Emphasis</Text>
-              <Text variant="code" tone="muted">
-                **important** or _note_
-              </Text>
-            </div>
+            {MARKDOWN_EXAMPLES.map(([label, example]) => (
+              <div key={label}>
+                <Text variant="body-strong">{label}</Text>
+                <Text variant="code" tone="muted">
+                  {example}
+                </Text>
+              </div>
+            ))}
           </Stack>
           <DialogFooter showCloseButton />
         </DialogContent>
@@ -374,7 +366,7 @@ function MeetingNoteTemplatesSettings() {
   const createMutation = useCreateMeetingNoteTemplate();
   const updateMutation = useUpdateMeetingNoteTemplate();
   const deleteMutation = useDeleteMeetingNoteTemplate();
-  const [selectedId, setSelectedId] = React.useState<string | null>(data.templates.at(0)?.id ?? null);
+  const [selectedId, setSelectedId] = React.useState<string | null>(() => data.templates.at(0)?.id ?? null);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
 
   const selectedTemplate = data.templates.find((template) => template.id === selectedId) ?? null;

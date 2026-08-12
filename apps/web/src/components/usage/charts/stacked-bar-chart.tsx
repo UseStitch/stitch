@@ -1,5 +1,3 @@
-import { useMemo } from 'react';
-
 import { barY, colorLegend, defineChart } from '@tanstack/charts';
 import { scaleBand } from '@tanstack/charts-scales/band';
 import { scaleLinear } from '@tanstack/charts-scales/linear';
@@ -23,37 +21,35 @@ type StackedBarChartProps = {
 
 export function StackedBarChart({ title, subtitle, emptyMessage, labels, datasets }: StackedBarChartProps) {
   const hasData = labels.length > 0;
-  const definition = useMemo(() => {
-    const rows = datasets.flatMap((dataset) =>
-      labels.map((label, index) => ({
-        id: `${label}:${dataset.label}`,
-        label,
-        series: dataset.label,
-        value: dataset.data[index] ?? 0,
-      })),
-    );
+  const rows = datasets.flatMap((dataset) =>
+    labels.map((label, index) => ({
+      id: `${label}:${dataset.label}`,
+      label,
+      series: dataset.label,
+      value: dataset.data[index] ?? 0,
+    })),
+  );
 
-    return defineChart({
-      marks: [barY(rows, { x: 'label', y: 'value', color: 'series', key: 'id' })],
-      x: { scale: () => scaleBand().padding(0.12) },
-      y: { scale: scaleLinear, nice: true, grid: true, axis: { ticks: { format: (value) => formatCost(value) } } },
-      color: {
-        domain: datasets.map((dataset) => dataset.label),
-        range: datasets.map((dataset) => dataset.color),
-        legend: colorLegend(),
-      },
-      theme: CHART_THEME,
-      focus: 'group-x',
-      tooltip: {
-        use: tooltip,
-        className: CHART_TOOLTIP_CLASS_NAME,
-        anchor: 'group-center',
-        placement: ['top', 'right', 'left', 'bottom'],
-        offset: 8,
-        items: ['x', { channel: 'y', text: (point) => formatCost(point.yValue) }, 'group'],
-      },
-    });
-  }, [datasets, labels]);
+  const definition = defineChart({
+    marks: [barY(rows, { x: 'label', y: 'value', color: 'series', key: 'id' })],
+    x: { scale: () => scaleBand().padding(0.12) },
+    y: { scale: scaleLinear, nice: true, grid: true, axis: { ticks: { format: (value) => formatCost(value) } } },
+    color: {
+      domain: datasets.map((dataset) => dataset.label),
+      range: datasets.map((dataset) => dataset.color),
+      legend: colorLegend(),
+    },
+    theme: CHART_THEME,
+    focus: 'group-x',
+    tooltip: {
+      use: tooltip,
+      className: CHART_TOOLTIP_CLASS_NAME,
+      anchor: 'group-center',
+      placement: ['top', 'right', 'left', 'bottom'],
+      offset: 8,
+      items: ['x', { channel: 'y', text: (point) => formatCost(point.yValue) }, 'group'],
+    },
+  });
 
   return (
     <div className="rounded-xl bg-surface-sunken p-space-xl">

@@ -128,7 +128,7 @@ export function AutomationsTable({
 }: AutomationsTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'updatedAt', desc: true }]);
 
-  const modelLabelByKey = React.useMemo(() => {
+  const modelLabelByKey = (() => {
     const map = new Map<string, string>();
     for (const provider of providerModels) {
       for (const model of provider.models) {
@@ -136,7 +136,7 @@ export function AutomationsTable({
       }
     }
     return map;
-  }, [providerModels]);
+  })();
 
   const table = useAppTable({
     data: automations,
@@ -147,7 +147,7 @@ export function AutomationsTable({
   });
 
   const currentPage = page - 1;
-  const pageNumbers = React.useMemo(() => {
+  const pageNumbers = (() => {
     if (totalPages <= 1) {
       return [] as number[];
     }
@@ -163,7 +163,7 @@ export function AutomationsTable({
     }
 
     return [...pages].toSorted((a, b) => a - b);
-  }, [currentPage, totalPages]);
+  })();
 
   return (
     <Table.Container>

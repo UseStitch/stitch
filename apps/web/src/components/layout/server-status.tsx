@@ -107,7 +107,16 @@ export function ServerStatus() {
             <StatusItem state={eventBusState} label="Event Bus" subtitle={formatEventBusSubtitle(lastHeartbeat)} />
           </TabsContent>
           <TabsContent value="info" className="bg-popover p-space-xl">
-            <InfoPanel />
+            <div className="cursor-default">
+              <Stack direction="row" align="center" justify="between">
+                <Text as="span" variant="body" tone="muted">
+                  Version
+                </Text>
+                <Text as="span" variant="body-strong">
+                  {__APP_VERSION__}
+                </Text>
+              </Stack>
+            </div>
           </TabsContent>
         </Tabs>
       </PopoverContent>
@@ -136,31 +145,6 @@ function StatusItem({ state, label, subtitle }: StatusItemProps) {
             )}
           </Stack>
         </Stack>
-      </Stack>
-    </div>
-  );
-}
-
-function InfoPanel() {
-  return (
-    <Stack gap="l">
-      <InfoRow label="Version" value={__APP_VERSION__} />
-    </Stack>
-  );
-}
-
-type InfoRowProps = { label: string; value: string };
-
-function InfoRow({ label, value }: InfoRowProps) {
-  return (
-    <div className="cursor-default">
-      <Stack direction="row" align="center" justify="between">
-        <Text as="span" variant="body" tone="muted">
-          {label}
-        </Text>
-        <Text as="span" variant="body-strong">
-          {value}
-        </Text>
       </Stack>
     </div>
   );

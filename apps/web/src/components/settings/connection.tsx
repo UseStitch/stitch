@@ -24,7 +24,7 @@ const MODE_OPTIONS: { mode: ServerMode; label: string; description: string }[] =
   },
 ];
 
-function ConnectionContent() {
+export function ConnectionSettings() {
   const page = SETTINGS_PAGE_BY_ID.connection;
   const Icon = page.icon;
   const { data: config } = useSuspenseQuery(serverConfigQueryOptions);
@@ -163,8 +163,4 @@ function ConnectionContent() {
       </SettingPage>
     </div>
   );
-}
-
-export function ConnectionSettings() {
-  return <ConnectionContent />;
 }
