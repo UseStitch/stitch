@@ -31,6 +31,16 @@ describe('ChatMarkdown', () => {
     expect(html).not.toContain('katex-error');
   });
 
+  test('renders single-letter variables as inline math', () => {
+    const html = renderToStaticMarkup(
+      <ChatMarkdown text={'The modified weight $W$ during inference.\n\n- **$r$ (Rank)**: Typically small.'} />,
+    );
+
+    expect(html.match(/class="katex"/g)).toHaveLength(2);
+    expect(html).not.toContain('$W$');
+    expect(html).not.toContain('$r$');
+  });
+
   test('renders escaped dollars inside single-dollar inline math', () => {
     const html = renderToStaticMarkup(<ChatMarkdown text={'Cost: $\\$0.02 \\text{ per 1M tokens}$.'} />);
 
@@ -128,6 +138,16 @@ describe('ChatMarkdown', () => {
 
     expect(html).toContain('class="katex-display"');
     expect(html).not.toContain('math-display');
+    expect(html).not.toContain('katex-error');
+  });
+
+  test('renders multiline display math whose delimiters share content lines', () => {
+    const text =
+      '$$\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}$$\n\nFollowing prose must remain outside the equation.';
+    const html = renderToStaticMarkup(<ChatMarkdown text={text} />);
+
+    expect(html).toContain('class="katex-display"');
+    expect(html).toContain('Following prose must remain outside the equation.');
     expect(html).not.toContain('katex-error');
   });
 

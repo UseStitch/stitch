@@ -10,6 +10,7 @@ import type {
   SkillImportInput,
   SkillSearchResult,
   SkillUpdateInput,
+  SkillType,
 } from '@stitch/shared/skills/types';
 
 import { getDisabledAppSkillNames } from '@/apps/service.js';
@@ -18,7 +19,13 @@ import * as Log from '@/lib/log.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 import type { BuiltInSkill } from '@/skills/built-in-skills.js';
-import { SkillImportError, SkillInvalidError, SkillNameCollisionError, SkillNotFoundError } from '@/skills/errors.js';
+import {
+  SkillImportError,
+  SkillInvalidError,
+  SkillNameCollisionError,
+  SkillNotFoundError,
+  SkillReadOnlyError,
+} from '@/skills/errors.js';
 import {
   buildSkillMd,
   ensureSkillsDir,
@@ -31,6 +38,15 @@ import {
   writeSkillMdFile,
 } from '@/skills/filesystem.js';
 import { parseSkillMarkdown } from '@/skills/parse-skill-markdown.js';
+import {
+  deleteSkillRegistration,
+  getSkillRegistration,
+  getSkillRegistrations,
+  listRetiredBuiltInSkillNames,
+  renameSkillRegistration,
+  setSkillType,
+} from '@/skills/registry.js';
+import { getDisabledToolIdentifiers } from '@/tools/enabled-service.js';
 
 const log = Log.create({ service: 'skills' });
 
@@ -60,7 +76,7 @@ const downloadResponseSchema = z.object({
 const SKILLS_API_BASE = 'https://skills.sh';
 const FETCH_TIMEOUT_MS = 10_000;
 
-async function readSkillFromDisk(name: string): Promise<Skill | null> {
+async function readSkillFromDisk(name: string, type: SkillType, enabled: boolean): Promise<Skill | null> {
   const markdown = await readSkillMdFile(name);
   if (!markdown) return null;
 
@@ -72,6 +88,8 @@ async function readSkillFromDisk(name: string): Promise<Skill | null> {
 
   return {
     name: parsed.name,
+    type,
+    enabled,
     description: parsed.description,
     content: parsed.content,
     location: getSkillMdPath(name),
@@ -88,10 +106,21 @@ export async function listSkills(): Promise<ServiceResult<Skill[]>> {
   const entries = await readdir(skillsDir, { withFileTypes: true });
   const dirs = entries.filter((entry) => entry.isDirectory());
 
+  const registrations = await getSkillRegistrations();
   const skills: Skill[] = [];
+  const registeredNames = new Set<string>();
   for (const dir of dirs) {
-    const skill = await readSkillFromDisk(dir.name);
-    if (skill) skills.push(skill);
+    const registration = registrations.get(dir.name) ?? { type: 'custom' as const, enabled: true };
+    const skill = await readSkillFromDisk(dir.name, registration.type, registration.enabled);
+    if (skill) {
+      skills.push(skill);
+      registeredNames.add(dir.name);
+      if (!registrations.has(dir.name)) await setSkillType(dir.name, registration.type);
+    }
+  }
+
+  for (const name of registrations.keys()) {
+    if (!registeredNames.has(name)) await deleteSkillRegistration(name);
   }
 
   skills.sort((a, b) => a.name.localeCompare(b.name));
@@ -100,7 +129,8 @@ export async function listSkills(): Promise<ServiceResult<Skill[]>> {
 
 export async function getSkillByName(name: string): Promise<ServiceResult<Skill>> {
   await ensureSkillsDir();
-  const skill = await readSkillFromDisk(name);
+  const registration = (await getSkillRegistration(name)) ?? { type: 'custom' as const, enabled: true };
+  const skill = await readSkillFromDisk(name, registration.type, registration.enabled);
   if (!skill) return err(`Skill "${name}" not found`, 404);
   return ok(skill);
 }
@@ -121,11 +151,15 @@ export async function createSkill(input: SkillCreateInput): Promise<ServiceResul
 
   const skill = {
     name: value.name,
+    type: 'custom' as const,
+    enabled: true,
     description: value.description.trim(),
     content: value.content.trim(),
     location: getSkillMdPath(value.name),
     files: [],
   };
+
+  await setSkillType(skill.name, skill.type);
 
   internalBus.emit('skill.created', { name: skill.name });
 
@@ -135,14 +169,21 @@ export async function createSkill(input: SkillCreateInput): Promise<ServiceResul
 export async function syncBuiltInSkills(builtInSkills: BuiltInSkill[]): Promise<void> {
   await ensureSkillsDir();
 
+  const builtInNames = builtInSkills.map((skill) => skill.name);
+  const retiredNames = await listRetiredBuiltInSkillNames(builtInNames);
+  for (const name of retiredNames) {
+    await rm(getSkillDir(name), { recursive: true, force: true });
+    await deleteSkillRegistration(name);
+  }
+
   for (const skill of builtInSkills) {
     const skillDir = getSkillDir(skill.name);
-
-    if (existsSync(skillDir)) continue;
-
     await writeSkillMdFile(skill.name, buildSkillMd(skill));
     await syncCompanionFiles(skillDir, skill.files);
+    await setSkillType(skill.name, 'stitch');
   }
+
+  await listSkills();
 }
 
 export async function updateSkill(name: string, input: SkillUpdateInput): Promise<ServiceResult<Skill>> {
@@ -151,6 +192,10 @@ export async function updateSkill(name: string, input: SkillUpdateInput): Promis
 
   const value = parsed.data;
   await ensureSkillsDir();
+
+  const registration = (await getSkillRegistration(name)) ?? { type: 'custom' as const, enabled: true };
+  const { type } = registration;
+  if (type === 'stitch') return err(new SkillReadOnlyError(name).message, 403);
 
   const currentDir = getSkillDir(name);
   if (!existsSync(currentDir)) {
@@ -163,6 +208,7 @@ export async function updateSkill(name: string, input: SkillUpdateInput): Promis
       return err(new SkillNameCollisionError(value.name).message, 409);
     }
     await rename(currentDir, newDir);
+    await renameSkillRegistration(name, value.name);
   }
 
   await writeSkillMdFile(value.name, buildSkillMd(value));
@@ -172,6 +218,8 @@ export async function updateSkill(name: string, input: SkillUpdateInput): Promis
 
   const skill = {
     name: value.name,
+    type,
+    enabled: registration.enabled,
     description: value.description.trim(),
     content: value.content.trim(),
     location: getSkillMdPath(value.name),
@@ -186,12 +234,15 @@ export async function updateSkill(name: string, input: SkillUpdateInput): Promis
 export async function deleteSkill(name: string): Promise<ServiceResult<null>> {
   await ensureSkillsDir();
 
+  if ((await getSkillRegistration(name))?.type === 'stitch') return err(new SkillReadOnlyError(name).message, 403);
+
   const skillDir = getSkillDir(name);
   if (!existsSync(skillDir)) {
     return err(new SkillNotFoundError(name).message, 404);
   }
 
   await rm(skillDir, { recursive: true, force: true });
+  await deleteSkillRegistration(name);
   internalBus.emit('skill.deleted', { name });
   return ok(null);
 }
@@ -306,11 +357,15 @@ export async function importSkillFromDirectory(input: SkillImportInput): Promise
 
     const skill = {
       name: value.name,
+      type: 'external' as const,
+      enabled: true,
       description: value.description.trim(),
       content: value.content.trim(),
       location: getSkillMdPath(value.name),
       files: skillFiles,
     };
+
+    await setSkillType(skill.name, skill.type);
 
     internalBus.emit('skill.created', { name: skill.name });
 
@@ -328,9 +383,12 @@ export async function buildSkillsSystemPrompt(): Promise<string> {
   const result = await listSkills();
   if (result.error || result.data.length === 0) return '';
 
-  const disabledSkillNames = await getDisabledAppSkillNames();
+  const [disabledAppSkillNames, disabledSkillNames] = await Promise.all([
+    getDisabledAppSkillNames(),
+    getDisabledToolIdentifiers('skill'),
+  ]);
   const lines = result.data
-    .filter((skill) => !disabledSkillNames.has(skill.name))
+    .filter((skill) => !disabledAppSkillNames.has(skill.name) && !disabledSkillNames.has(skill.name))
     .map((skill) => `- ${skill.name}: ${skill.description}`);
   if (lines.length === 0) return '';
 

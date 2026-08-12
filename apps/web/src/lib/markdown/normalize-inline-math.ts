@@ -10,6 +10,7 @@
  */
 
 const LATEX_COMMAND = /\\[a-zA-Z]{2,}|\\[%$&#_{}]|[\^_]\{/;
+const SINGLE_VARIABLE = /^[A-Za-z]$/;
 const BARE_FORMULA_SHAPED = /^[A-Za-z0-9\s+\-*/=<>^_(){}[\].,;:!'"\\]+$/;
 const BARE_FORMULA_OPERATOR = /[=<>^_\\]|\d\s*[+*/]\s*\d/;
 const PADDED_CONTENT = /^\s|\s$/;
@@ -20,6 +21,7 @@ const MAX_BARE_FORMULA_LENGTH = 40;
 function isMathLike(content: string): boolean {
   if (content === '' || content.includes('\n') || PADDED_CONTENT.test(content)) return false;
   if (LATEX_COMMAND.test(content)) return true;
+  if (SINGLE_VARIABLE.test(content)) return true;
   if (content.length > MAX_BARE_FORMULA_LENGTH) return false;
   return BARE_FORMULA_SHAPED.test(content) && BARE_FORMULA_OPERATOR.test(content);
 }
@@ -56,27 +58,26 @@ function findCodeSpanEnd(markdown: string, startIndex: number): number {
 export function normalizeInlineMath(markdown: string): string {
   if (!markdown.includes('$')) return markdown;
 
-  let out = '';
+  let parts: string[] | undefined;
+  let unchangedStart = 0;
   let index = 0;
+  let tickIndex = markdown.indexOf('`');
 
   while (index < markdown.length) {
-    const char = markdown[index];
+    const dollarIndex = markdown.indexOf('$', index);
+    if (dollarIndex === -1) break;
 
-    if (char === '`') {
-      const end = findCodeSpanEnd(markdown, index);
-      out += markdown.slice(index, end);
-      index = end;
+    if (tickIndex !== -1 && tickIndex < index) tickIndex = markdown.indexOf('`', index);
+
+    if (tickIndex !== -1 && tickIndex < dollarIndex) {
+      index = findCodeSpanEnd(markdown, tickIndex);
+      tickIndex = markdown.indexOf('`', index);
       continue;
     }
 
-    if (char === '\\' && markdown[index + 1] === '$') {
-      out += '\\$';
-      index += 2;
-      continue;
-    }
+    index = dollarIndex;
 
-    if (char !== '$') {
-      out += char;
+    if (markdown[index - 1] === '\\') {
       index++;
       continue;
     }
@@ -84,7 +85,27 @@ export function normalizeInlineMath(markdown: string): string {
     if (markdown[index + 1] === '$') {
       const closeIndex = markdown.indexOf('$$', index + 2);
       if (closeIndex !== -1) {
-        out += markdown.slice(index, closeIndex + 2);
+        const content = markdown.slice(index + 2, closeIndex);
+        const needsOpeningLineBreak =
+          content.includes('\n') && !content.startsWith('\n') && !content.startsWith('\r\n');
+        const needsClosingLineBreak = content.includes('\n') && !content.endsWith('\n');
+
+        if (needsOpeningLineBreak || needsClosingLineBreak) {
+          const lineBreak = content.includes('\r\n') ? '\r\n' : '\n';
+          parts ??= [];
+          parts.push(
+            markdown.slice(unchangedStart, index),
+            '$$',
+            needsOpeningLineBreak ? lineBreak : '',
+            content,
+            needsClosingLineBreak ? lineBreak : '',
+            '$$',
+          );
+          index = closeIndex + 2;
+          unchangedStart = index;
+          continue;
+        }
+
         index = closeIndex + 2;
         continue;
       }
@@ -92,15 +113,22 @@ export function normalizeInlineMath(markdown: string): string {
 
     const spanEnd = findSpanEnd(markdown, index);
     const content = spanEnd === -1 ? '' : markdown.slice(index + 1, spanEnd);
+    parts ??= [];
+    parts.push(markdown.slice(unchangedStart, index));
+
     if (isMathLike(content)) {
-      out += `$$${content}$$`;
+      parts.push('$$', content, '$$');
       index = spanEnd + 1;
+      unchangedStart = index;
       continue;
     }
 
-    out += '\\$';
+    parts.push('\\$');
     index++;
+    unchangedStart = index;
   }
 
-  return out;
+  if (!parts) return markdown;
+  parts.push(markdown.slice(unchangedStart));
+  return parts.join('');
 }
