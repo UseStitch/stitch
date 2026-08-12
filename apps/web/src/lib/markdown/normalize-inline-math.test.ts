@@ -7,6 +7,11 @@ describe('normalizeInlineMath', () => {
     expect(normalizeInlineMath('Plain **markdown** with `code`.')).toBe('Plain **markdown** with `code`.');
   });
 
+  test('handles long unchanged regions around math without altering them', () => {
+    const prose = 'ordinary markdown '.repeat(1_000);
+    expect(normalizeInlineMath(`${prose}$x=1$${prose}`)).toBe(`${prose}$$x=1$$${prose}`);
+  });
+
   test('promotes spans containing LaTeX commands to double-dollar math', () => {
     expect(normalizeInlineMath('$100,000 \\text{ LOC} \\approx 600,000 \\text{ tokens}$.')).toBe(
       '$$100,000 \\text{ LOC} \\approx 600,000 \\text{ tokens}$$.',
@@ -56,10 +61,27 @@ describe('normalizeInlineMath', () => {
     expect(normalizeInlineMath('Costs \\$20 per seat.')).toBe('Costs \\$20 per seat.');
   });
 
+  test('leaves escaped dollars unchanged next to normalized math', () => {
+    expect(normalizeInlineMath('Costs \\$20; equation $x=1$; then \\$30.')).toBe(
+      'Costs \\$20; equation $$x=1$$; then \\$30.',
+    );
+  });
+
   test('passes existing double-dollar math through unchanged', () => {
     expect(normalizeInlineMath('Inline $$x + y$$ and block\n\n$$\na = b\n$$\n')).toBe(
       'Inline $$x + y$$ and block\n\n$$\na = b\n$$\n',
     );
+  });
+
+  test('puts multiline double-dollar delimiters on their own lines', () => {
+    expect(normalizeInlineMath('Before\n\n$$\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}$$\n\nAfter')).toBe(
+      'Before\n\n$$\n\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}\n$$\n\nAfter',
+    );
+  });
+
+  test('adds only the missing display-math delimiter line break', () => {
+    expect(normalizeInlineMath('$$\na = b\n\\end{aligned}$$')).toBe('$$\na = b\n\\end{aligned}\n$$');
+    expect(normalizeInlineMath('$$\\begin{aligned}\na = b\n$$')).toBe('$$\n\\begin{aligned}\na = b\n$$');
   });
 
   test('escapes an unpaired double dollar', () => {
