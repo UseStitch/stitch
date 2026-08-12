@@ -141,6 +141,16 @@ describe('ChatMarkdown', () => {
     expect(html).not.toContain('katex-error');
   });
 
+  test('renders multiline display math whose delimiters share content lines', () => {
+    const text =
+      '$$\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}$$\n\nFollowing prose must remain outside the equation.';
+    const html = renderToStaticMarkup(<ChatMarkdown text={text} />);
+
+    expect(html).toContain('class="katex-display"');
+    expect(html).toContain('Following prose must remain outside the equation.');
+    expect(html).not.toContain('katex-error');
+  });
+
   test('uses the shared thin scrollbar for streaming code blocks', () => {
     const html = renderToStaticMarkup(<ChatMarkdown text={'```text\nlong code line\n```'} isStreaming />);
 

@@ -85,6 +85,27 @@ export function normalizeInlineMath(markdown: string): string {
     if (markdown[index + 1] === '$') {
       const closeIndex = markdown.indexOf('$$', index + 2);
       if (closeIndex !== -1) {
+        const content = markdown.slice(index + 2, closeIndex);
+        const needsOpeningLineBreak =
+          content.includes('\n') && !content.startsWith('\n') && !content.startsWith('\r\n');
+        const needsClosingLineBreak = content.includes('\n') && !content.endsWith('\n');
+
+        if (needsOpeningLineBreak || needsClosingLineBreak) {
+          const lineBreak = content.includes('\r\n') ? '\r\n' : '\n';
+          parts ??= [];
+          parts.push(
+            markdown.slice(unchangedStart, index),
+            '$$',
+            needsOpeningLineBreak ? lineBreak : '',
+            content,
+            needsClosingLineBreak ? lineBreak : '',
+            '$$',
+          );
+          index = closeIndex + 2;
+          unchangedStart = index;
+          continue;
+        }
+
         index = closeIndex + 2;
         continue;
       }

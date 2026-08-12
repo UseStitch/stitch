@@ -73,6 +73,17 @@ describe('normalizeInlineMath', () => {
     );
   });
 
+  test('puts multiline double-dollar delimiters on their own lines', () => {
+    expect(normalizeInlineMath('Before\n\n$$\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}$$\n\nAfter')).toBe(
+      'Before\n\n$$\n\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}\n$$\n\nAfter',
+    );
+  });
+
+  test('adds only the missing display-math delimiter line break', () => {
+    expect(normalizeInlineMath('$$\na = b\n\\end{aligned}$$')).toBe('$$\na = b\n\\end{aligned}\n$$');
+    expect(normalizeInlineMath('$$\\begin{aligned}\na = b\n$$')).toBe('$$\n\\begin{aligned}\na = b\n$$');
+  });
+
   test('escapes an unpaired double dollar', () => {
     expect(normalizeInlineMath('Price is $$20')).toBe('Price is \\$\\$20');
   });
