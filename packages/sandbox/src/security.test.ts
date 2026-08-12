@@ -29,7 +29,11 @@ describe('sandbox hardening', () => {
       };
     `);
 
-    expect(result.result).toEqual({ process: 'undefined', Bun: 'undefined', require: 'undefined', fetch: 'undefined' });
+    expect(result).toEqual({
+      ok: true,
+      result: { process: 'undefined', Bun: 'undefined', require: 'undefined', fetch: 'undefined' },
+      logs: [],
+    });
   });
 
   test('does not expose callable eval or Function', async () => {
@@ -42,11 +46,10 @@ describe('sandbox hardening', () => {
       };
     `);
 
-    expect(result.result).toEqual({
-      eval: 'undefined',
-      Function: 'undefined',
-      globalFunction: 'object',
-      canCallGlobalFunction: false,
+    expect(result).toEqual({
+      ok: true,
+      result: { eval: 'undefined', Function: 'undefined', globalFunction: 'object', canCallGlobalFunction: false },
+      logs: [],
     });
   });
 
@@ -59,7 +62,7 @@ describe('sandbox hardening', () => {
       };
     `);
 
-    expect(result.result).toEqual({});
+    expect(result).toEqual({ ok: true, result: {}, logs: [] });
   });
 
   test('allows node fs dynamic imports', async () => {
@@ -68,19 +71,27 @@ describe('sandbox hardening', () => {
       return { readFile: typeof fs.readFile };
     `);
 
-    expect(result.result).toEqual({ readFile: 'function' });
+    expect(result).toEqual({ ok: true, result: { readFile: 'function' }, logs: [] });
   });
 
   test('rejects non-fs dynamic imports', async () => {
     const result = await run('return await import("node:child_process");');
 
-    expect(result.result).toEqual({ error: 'dynamic import is only available for node:fs and node:fs/promises' });
+    expect(result).toEqual({
+      ok: false,
+      error: 'dynamic import is only available for node:fs and node:fs/promises',
+      logs: [],
+    });
   });
 
   test('rejects non-literal dynamic imports', async () => {
     const result = await run('const moduleName = "node:fs"; return await import(moduleName);');
 
-    expect(result.result).toEqual({ error: 'dynamic import is only available for node:fs and node:fs/promises' });
+    expect(result).toEqual({
+      ok: false,
+      error: 'dynamic import is only available for node:fs and node:fs/promises',
+      logs: [],
+    });
   });
 
   test('rejects unsafe library names', () => {

@@ -24,21 +24,25 @@ describe('process sandbox', () => {
   test('executes code and returns the result', async () => {
     const result = await execute('return [1, 2, 3].map((value) => value * 2);');
 
-    expect(result.result).toEqual([2, 4, 6]);
-    expect(result.logs).toEqual([]);
+    expect(result).toEqual({ ok: true, result: [2, 4, 6], logs: [] });
   });
 
   test('captures console output', async () => {
     const result = await execute('console.log("hello", { value: 42 }); return true;');
 
-    expect(result.result).toBe(true);
-    expect(result.logs).toEqual(['[log] hello {"value":42}']);
+    expect(result).toEqual({ ok: true, result: true, logs: ['[log] hello {"value":42}'] });
   });
 
   test('returns runtime errors as result errors', async () => {
     const result = await execute('throw new Error("boom");');
 
-    expect(result.result).toEqual({ error: 'boom' });
+    expect(result).toEqual({ ok: false, error: 'boom', logs: [] });
+  });
+
+  test('preserves returned error-shaped objects as successful data', async () => {
+    const result = await execute('return { error: "status text" };');
+
+    expect(result).toEqual({ ok: true, result: { error: 'status text' }, logs: [] });
   });
 
   test('calls host tool bindings', async () => {
@@ -47,6 +51,7 @@ describe('process sandbox', () => {
         name: 'external_sum',
         description: 'sum values',
         inputSchema: { type: 'object' },
+        validateInput: () => {},
         execute: async (input) => {
           const { values } = input as { values: number[] };
           return values.reduce((total, value) => total + value, 0);
@@ -56,7 +61,7 @@ describe('process sandbox', () => {
 
     const result = await execute('return await external_sum({ values: [1, 2, 3] });', bindings);
 
-    expect(result.result).toBe(6);
+    expect(result).toEqual({ ok: true, result: 6, logs: [] });
   });
 
   test('injects host-approved libraries', async () => {
@@ -87,13 +92,17 @@ describe('process sandbox', () => {
         };
       `);
 
-      expect(result.result).toEqual({
-        label: 'sample-library',
-        doubled: 42,
-        frozen: true,
-        canReadFunctionPrototype: true,
-        hasGlobalSampleWorker: true,
-        sampleGlobalType: 'object',
+      expect(result).toEqual({
+        ok: true,
+        result: {
+          label: 'sample-library',
+          doubled: 42,
+          frozen: true,
+          canReadFunctionPrototype: true,
+          hasGlobalSampleWorker: true,
+          sampleGlobalType: 'object',
+        },
+        logs: [],
       });
     } finally {
       context.dispose();
@@ -104,7 +113,7 @@ describe('process sandbox', () => {
     const context = await createDriver().createContext({}, { timeout: 200 });
     try {
       const result = await context.execute('while (true) {}');
-      expect(result.result).toEqual({ error: 'Execution timed out after 200ms' });
+      expect(result).toEqual({ ok: false, error: 'Execution timed out after 200ms', logs: [] });
     } finally {
       context.dispose();
     }
@@ -123,7 +132,7 @@ describe('process sandbox', () => {
           await new Promise(r => setTimeout(r, 5));
         }
       `);
-      expect(result.result).toEqual({ error: 'Sandbox memory limit exceeded (64MB)' });
+      expect(result).toEqual({ ok: false, error: 'Sandbox memory limit exceeded (64MB)', logs: [] });
     } finally {
       context.dispose();
     }

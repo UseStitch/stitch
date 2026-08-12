@@ -2,10 +2,13 @@ export type ToolBinding = {
   name: string;
   description: string;
   inputSchema: Record<string, unknown>;
+  validateInput: (input: unknown) => void | Promise<void>;
   execute: (input: unknown, abortSignal?: AbortSignal) => Promise<unknown>;
 };
 
-export type IsolateExecuteResult = { result: unknown; logs: string[] };
+export type IsolateExecuteResult =
+  | { ok: true; result: unknown; logs: string[] }
+  | { ok: false; error: string; logs: string[] };
 
 export type IsolateContext = { execute(code: string): Promise<IsolateExecuteResult>; dispose(): void };
 

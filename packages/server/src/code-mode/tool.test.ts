@@ -16,9 +16,9 @@ describe('serializeIsolateOutput', () => {
     expect(output).toContain('(no return value)');
   });
 
-  test('serializes error result with string error', () => {
+  test('serializes error-shaped data as successful JSON', () => {
     const output = serializeIsolateOutput({ error: 'something failed' }, []);
-    expect(output).toContain('Error: something failed');
+    expect(output).toContain('"error": "something failed"');
   });
 
   test('serializes an object with error data as successful JSON', () => {
@@ -74,7 +74,7 @@ describe('createCodeModeTool', () => {
   test('returns sandbox execution errors as canonical tool errors', async () => {
     const driver: IsolateDriver = {
       createContext: async () => ({
-        execute: async () => ({ result: { error: 'sandbox failed' }, logs: [] }),
+        execute: async () => ({ ok: false, error: 'sandbox failed', logs: [] }),
         dispose: () => {},
       }),
     };
@@ -91,7 +91,7 @@ describe('createCodeModeTool', () => {
   test('preserves sandbox logs in canonical tool error details', async () => {
     const driver: IsolateDriver = {
       createContext: async () => ({
-        execute: async () => ({ result: { error: 'sandbox failed' }, logs: ['[log] before failure'] }),
+        execute: async () => ({ ok: false, error: 'sandbox failed', logs: ['[log] before failure'] }),
         dispose: () => {},
       }),
     };
@@ -105,10 +105,10 @@ describe('createCodeModeTool', () => {
     expect(result).toEqual({ error: 'sandbox failed', details: { logs: ['[log] before failure'] } });
   });
 
-  test('keeps legitimate objects with error data on the success path', async () => {
+  test('keeps legitimate error-shaped objects on the success path', async () => {
     const driver: IsolateDriver = {
       createContext: async () => ({
-        execute: async () => ({ result: { error: 'partial failure', value: 42 }, logs: [] }),
+        execute: async () => ({ ok: true, result: { error: 'status text' }, logs: [] }),
         dispose: () => {},
       }),
     };
@@ -119,6 +119,6 @@ describe('createCodeModeTool', () => {
       { toolCallId: 'call-4', messages: [] },
     );
 
-    expect(result).toMatchObject({ output: expect.stringContaining('"value": 42'), truncated: false });
+    expect(result).toMatchObject({ output: expect.stringContaining('"error": "status text"'), truncated: false });
   });
 });
