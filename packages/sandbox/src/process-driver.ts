@@ -95,6 +95,7 @@ async function dispatchToolCall(
       `Tool call timed out after ${ctx.toolTimeoutMs}ms`,
     );
     try {
+      await binding.validateInput(message.args);
       const result = await Promise.race([binding.execute(message.args, ctx.abortSignal), timeoutRace.promise]);
 
       const response: HostMessage = { type: 'tool_result', id: message.id, result };
@@ -161,7 +162,13 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
         }
       };
 
-      proc.send({ type: 'init', toolNames, libraries, memoryReportIntervalMs: MEMORY_REPORT_INTERVAL_MS });
+      const initMessage: HostMessage = {
+        type: 'init',
+        toolNames,
+        libraries,
+        memoryReportIntervalMs: MEMORY_REPORT_INTERVAL_MS,
+      };
+      proc.send(initMessage);
 
       const toolCallCtx: ToolCallContext = {
         bindings,
@@ -176,7 +183,7 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
 
       return {
         async execute(code: string): Promise<IsolateExecuteResult> {
-          if (disposed) return { result: { error: 'Sandbox context is disposed' }, logs: [] };
+          if (disposed) return { ok: false, error: 'Sandbox context is disposed', logs: [] };
 
           const startedAt = Date.now();
           const timeoutRace = createExecutionTimeoutRace(timer, startedAt, timeoutMs, terminate);
@@ -200,20 +207,20 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
                 if (message.rss > memoryLimitBytes) {
                   cleanup();
                   terminate();
-                  settle({ result: { error: new SandboxMemoryError(memoryLimitMB).message }, logs: [] });
+                  settle({ ok: false, error: new SandboxMemoryError(memoryLimitMB).message, logs: [] });
                 }
                 return;
               }
 
               if (message.type === 'complete') {
                 cleanup();
-                settle({ result: message.result, logs: message.logs });
+                settle({ ok: true, result: message.result, logs: message.logs });
                 return;
               }
 
               if (message.type === 'error') {
                 cleanup();
-                settle({ result: { error: message.error }, logs: message.logs });
+                settle({ ok: false, error: message.error, logs: message.logs });
                 return;
               }
 
@@ -224,7 +231,7 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
               cleanup();
               if (settled) return;
               if (disposed) {
-                settle({ result: { error: 'Sandbox execution terminated' }, logs: [] });
+                settle({ ok: false, error: 'Sandbox execution terminated', logs: [] });
                 return;
               }
               reject(new Error('Sandbox process exited unexpectedly'));
@@ -240,9 +247,8 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
           } catch (err) {
             terminate();
             return {
-              result: {
-                error: timeoutRace.isTimedOut() ? new SandboxTimeoutError(timeoutMs).message : toErrorMessage(err),
-              },
+              ok: false,
+              error: timeoutRace.isTimedOut() ? new SandboxTimeoutError(timeoutMs).message : toErrorMessage(err),
               logs: [],
             };
           } finally {

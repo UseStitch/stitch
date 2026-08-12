@@ -1,9 +1,13 @@
+import { AjvJsonSchemaValidator } from '@modelcontextprotocol/sdk/validation/ajv';
+
 import type { ToolBinding } from '@stitch/sandbox';
 
+import { ToolValidationError } from '@/tools/errors.js';
 import type { ToolExecuteOptions } from '@/tools/runtime/runtime.js';
 import type { Tool } from 'ai';
 
 const EXTERNAL_PREFIX = 'external_';
+const validator = new AjvJsonSchemaValidator();
 
 export type ToolTypeInfo = { name: string; description: string; inputSchema: Record<string, unknown> };
 
@@ -72,10 +76,15 @@ export function toolsToTypeInfo(tools: Record<string, Tool>): Record<string, Too
 
 export function toolsToBindings(tools: Record<string, Tool>, abortSignal?: AbortSignal): Record<string, ToolBinding> {
   return mapExecutableTools(tools, ({ bindingName, description, schema, execute }) => {
+    const validate = validator.getValidator(schema);
     return {
       name: bindingName,
       description,
       inputSchema: schema,
+      validateInput: (input: unknown) => {
+        const result = validate(input);
+        if (!result.valid) throw new ToolValidationError(result.errorMessage, bindingName);
+      },
       execute: async (input: unknown, signal?: AbortSignal) => {
         const effectiveSignal = signal ?? abortSignal;
         const options: ToolExecuteOptions = {

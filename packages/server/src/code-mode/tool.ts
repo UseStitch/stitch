@@ -2,8 +2,8 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 import { createProcessSandbox } from '@stitch/sandbox';
-import type { IsolateDriver, IsolateOptions } from '@stitch/sandbox';
-import { isToolErrorResult, toolError } from '@stitch/shared/tools/types';
+import type { IsolateDriver, IsolateExecuteResult, IsolateOptions } from '@stitch/sandbox';
+import { toolError } from '@stitch/shared/tools/types';
 import type { ToolErrorResult } from '@stitch/shared/tools/types';
 
 import { toolsToBindings, toolsToTypeInfo } from '@/code-mode/bindings/tool-binding.js';
@@ -97,7 +97,7 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
 
       const context = await driver.createContext(bindings, createCodeModeIsolateOptions(isolateOptions, abortSignal));
 
-      let execResult: { result: unknown; logs: string[] };
+      let execResult: IsolateExecuteResult;
       try {
         execResult = await context.execute(stripped.code);
       } finally {
@@ -116,13 +116,13 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
           description,
           durationMs,
           logCount: execResult.logs.length,
-          hasError: isToolErrorResult(execResult.result),
+          hasError: !execResult.ok,
         },
         'code mode execution complete',
       );
 
-      if (isToolErrorResult(execResult.result)) {
-        return createSandboxErrorResult(execResult.result, execResult.logs);
+      if (!execResult.ok) {
+        return createSandboxErrorResult(execResult.error, execResult.logs);
       }
 
       const resultText = serializeIsolateOutput(execResult.result, execResult.logs);
@@ -158,12 +158,12 @@ function createCodeModeIsolateOptions(
   };
 }
 
-function createSandboxErrorResult(result: ToolErrorResult, logs: string[]): ToolErrorResult {
+function createSandboxErrorResult(error: string, logs: string[]): ToolErrorResult {
   if (logs.length === 0) {
-    return result;
+    return toolError(error);
   }
 
-  return toolError(result.error, { logs });
+  return toolError(error, { logs });
 }
 
 export function serializeIsolateOutput(result: unknown, logs: string[]): string {
@@ -179,8 +179,6 @@ export function serializeIsolateOutput(result: unknown, logs: string[]): string 
 
   if (result === null || result === undefined) {
     parts.push('(no return value)');
-  } else if (isToolErrorResult(result)) {
-    parts.push(`Error: ${result.error}`);
   } else {
     try {
       parts.push(JSON.stringify(result, null, 2));

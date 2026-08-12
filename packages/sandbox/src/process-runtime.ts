@@ -3,9 +3,6 @@ import { assertSafeCode, DANGEROUS_GLOBALS, harden } from './hardening.js';
 import { isHostMessage } from './protocol.js';
 
 import type { HostMessage, WorkerMessage } from './protocol.js';
-import type { SandboxLibrary } from './types.js';
-
-const CODE_ERROR_KEY = '__codeError';
 
 /** Global names shadowed as `undefined` in sandbox function params (includes 'Function'). */
 const HIDDEN_GLOBAL_NAMES: readonly string[] = [...DANGEROUS_GLOBALS, 'Function'];
@@ -13,7 +10,7 @@ const HIDDEN_GLOBAL_VALUES: readonly undefined[] = HIDDEN_GLOBAL_NAMES.map(() =>
 
 type PendingCall = { resolve: (value: unknown) => void; reject: (reason: Error) => void };
 
-type InitData = { toolNames?: string[]; libraries?: Record<string, SandboxLibrary>; memoryReportIntervalMs?: number };
+type InitMessage = Extract<HostMessage, { type: 'init' }>;
 
 /**
  * Starts the sandbox process runtime. Call this from a process entry file.
@@ -41,7 +38,7 @@ export function startProcessRuntime(preloadedModules: Record<string, Record<stri
   ) => Promise<Record<string, unknown>>;
   let injectedLibraries: Record<string, unknown> = {};
   let toolNames: string[] = [];
-  let libraries: Record<string, SandboxLibrary> = {};
+  let libraries: InitMessage['libraries'] = {};
 
   function post(message: WorkerMessage): void {
     ipcSend(message);
@@ -121,30 +118,20 @@ export function startProcessRuntime(preloadedModules: Record<string, Record<stri
         ...HIDDEN_GLOBAL_NAMES,
         ...libraryNames,
         `return (async () => {
-        try {
-          const __result = await (async () => {
-            ${code}
-          })();
-          return __result;
-        } catch (e) {
-          return { ${JSON.stringify(CODE_ERROR_KEY)}: e && e.message ? e.message : String(e) };
-        }
-      })();`,
+          ${code}
+        })();`,
       ) as (console: Console, ...args: unknown[]) => Promise<unknown>;
 
-      let result = await execute(sandboxConsole, ...HIDDEN_GLOBAL_VALUES, ...libraryValues);
-      if (result !== null && typeof result === 'object' && CODE_ERROR_KEY in result) {
-        result = { error: (result as Record<string, unknown>)[CODE_ERROR_KEY] };
-      }
+      const result = await execute(sandboxConsole, ...HIDDEN_GLOBAL_VALUES, ...libraryValues);
       post({ type: 'complete', result, logs });
     } catch (err) {
       post({ type: 'error', error: toErrorMessage(err), logs });
     }
   }
 
-  async function initialize(initData: InitData): Promise<void> {
-    toolNames = initData.toolNames ?? [];
-    libraries = initData.libraries ?? {};
+  async function initialize(initData: InitMessage): Promise<void> {
+    toolNames = initData.toolNames;
+    libraries = initData.libraries;
     injectedLibraries = await loadLibraries();
     // Pre-import allowed modules before hardening freezes globals.
     await importLibrary('node:fs');
@@ -164,7 +151,7 @@ export function startProcessRuntime(preloadedModules: Record<string, Record<stri
 
   let initialization: Promise<void> | null = null;
 
-  function handleInit(data: InitData): void {
+  function handleInit(data: InitMessage): void {
     initialization = initialize(data);
     initialization.catch((err) => {
       post({ type: 'error', error: toErrorMessage(err), logs });
@@ -191,18 +178,12 @@ export function startProcessRuntime(preloadedModules: Record<string, Record<stri
   }
 
   ipcOn('message', (message) => {
-    if (message === null || typeof message !== 'object') return;
-    const msg = message as { type?: string };
-
-    // Init message is not part of HostMessage protocol (sent only once before execution).
-    if (msg.type === 'init') {
-      handleInit(message as InitData);
-      return;
-    }
-
     if (!isHostMessage(message)) return;
 
     switch (message.type) {
+      case 'init':
+        handleInit(message);
+        break;
       case 'tool_result':
         handleToolResult(message);
         break;

@@ -15,6 +15,7 @@ const echoBinding: ToolBinding = {
   name: 'external_echo',
   description: 'echo input',
   inputSchema: { type: 'object' },
+  validateInput: () => {},
   execute: async (input) => input,
 };
 
@@ -25,6 +26,7 @@ describe('sandbox tools', () => {
         name: 'external_fail',
         description: 'fail',
         inputSchema: { type: 'object' },
+        validateInput: () => {},
         execute: async () => {
           throw new Error('tool failed');
         },
@@ -40,7 +42,42 @@ describe('sandbox tools', () => {
         }
       `);
 
-      expect(result.result).toBe('tool failed');
+      expect(result).toEqual({ ok: true, result: 'tool failed', logs: [] });
+    } finally {
+      context.dispose();
+    }
+  });
+
+  test('validates tool input before execution', async () => {
+    let executed = false;
+    const context = await createDriver().createContext({
+      external_validate: {
+        name: 'external_validate',
+        description: 'validate input',
+        inputSchema: { type: 'object' },
+        validateInput: (input) => {
+          if (typeof input !== 'object' || input === null || !('value' in input)) {
+            throw new Error('value is required');
+          }
+        },
+        execute: async () => {
+          executed = true;
+          return true;
+        },
+      },
+    });
+
+    try {
+      const result = await context.execute(`
+        try {
+          await external_validate({});
+        } catch (error) {
+          return error.message;
+        }
+      `);
+
+      expect(result).toEqual({ ok: true, result: 'value is required', logs: [] });
+      expect(executed).toBe(false);
     } finally {
       context.dispose();
     }
@@ -59,7 +96,7 @@ describe('sandbox tools', () => {
         }
       `);
 
-      expect(result.result).toBe('Exceeded maximum tool calls (1)');
+      expect(result).toEqual({ ok: true, result: 'Exceeded maximum tool calls (1)', logs: [] });
     } finally {
       context.dispose();
     }
