@@ -58,27 +58,26 @@ function findCodeSpanEnd(markdown: string, startIndex: number): number {
 export function normalizeInlineMath(markdown: string): string {
   if (!markdown.includes('$')) return markdown;
 
-  let out = '';
+  let parts: string[] | undefined;
+  let unchangedStart = 0;
   let index = 0;
+  let tickIndex = markdown.indexOf('`');
 
   while (index < markdown.length) {
-    const char = markdown[index];
+    const dollarIndex = markdown.indexOf('$', index);
+    if (dollarIndex === -1) break;
 
-    if (char === '`') {
-      const end = findCodeSpanEnd(markdown, index);
-      out += markdown.slice(index, end);
-      index = end;
+    if (tickIndex !== -1 && tickIndex < index) tickIndex = markdown.indexOf('`', index);
+
+    if (tickIndex !== -1 && tickIndex < dollarIndex) {
+      index = findCodeSpanEnd(markdown, tickIndex);
+      tickIndex = markdown.indexOf('`', index);
       continue;
     }
 
-    if (char === '\\' && markdown[index + 1] === '$') {
-      out += '\\$';
-      index += 2;
-      continue;
-    }
+    index = dollarIndex;
 
-    if (char !== '$') {
-      out += char;
+    if (markdown[index - 1] === '\\') {
       index++;
       continue;
     }
@@ -86,7 +85,6 @@ export function normalizeInlineMath(markdown: string): string {
     if (markdown[index + 1] === '$') {
       const closeIndex = markdown.indexOf('$$', index + 2);
       if (closeIndex !== -1) {
-        out += markdown.slice(index, closeIndex + 2);
         index = closeIndex + 2;
         continue;
       }
@@ -94,15 +92,22 @@ export function normalizeInlineMath(markdown: string): string {
 
     const spanEnd = findSpanEnd(markdown, index);
     const content = spanEnd === -1 ? '' : markdown.slice(index + 1, spanEnd);
+    parts ??= [];
+    parts.push(markdown.slice(unchangedStart, index));
+
     if (isMathLike(content)) {
-      out += `$$${content}$$`;
+      parts.push('$$', content, '$$');
       index = spanEnd + 1;
+      unchangedStart = index;
       continue;
     }
 
-    out += '\\$';
+    parts.push('\\$');
     index++;
+    unchangedStart = index;
   }
 
-  return out;
+  if (!parts) return markdown;
+  parts.push(markdown.slice(unchangedStart));
+  return parts.join('');
 }
