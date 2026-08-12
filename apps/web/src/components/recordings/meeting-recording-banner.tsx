@@ -212,7 +212,7 @@ export function MeetingRecordingBanner() {
                       requestDismissMeeting(detection.key);
                       toast.success('Recording started', { id: 'meeting-recording-start-3' });
                     },
-                    (error: unknown) => {
+                    (error: Error) => {
                       toast.error(getErrorMessage(error, 'Failed to start recording'), {
                         id: 'meeting-recording-start-3',
                       });
@@ -237,7 +237,7 @@ export function MeetingRecordingBanner() {
                         requestDismissMeeting(detection.key);
                         toast.success('Recording started', { id: 'meeting-recording-start-stt' });
                       },
-                      (error: unknown) => {
+                      (error: Error) => {
                         toast.error(getErrorMessage(error, 'Failed to start recording'), {
                           id: 'meeting-recording-start-stt',
                         });
@@ -266,7 +266,7 @@ export function MeetingRecordingBanner() {
                     requestDismissMeeting(detection.key);
                     toast.success('Recording started', { id: 'meeting-recording-start' });
                   },
-                  (error: unknown) => {
+                  (error: Error) => {
                     toast.error(getErrorMessage(error, 'Failed to start recording'), { id: 'meeting-recording-start' });
                   },
                 );

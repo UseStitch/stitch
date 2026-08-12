@@ -130,7 +130,7 @@ export function ToolsSettings() {
   };
 
   const updateEnabled = (kind: 'tool' | 'toolset' | 'mcp_tool', identifier: string, enabled: boolean) => {
-    void setToolEnabledState.mutateAsync({ scope: kind, identifier, enabled }).catch((error: unknown) => {
+    void setToolEnabledState.mutateAsync({ scope: kind, identifier, enabled }).catch((error: Error) => {
       toast.error(getErrorMessage(error, 'Failed to update tool state'), { id: 'tool-state' });
     });
   };

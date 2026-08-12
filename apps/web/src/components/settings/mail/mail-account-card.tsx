@@ -118,7 +118,7 @@ function AccountErrorBanner({ account, error }: { account: MailAccountView; erro
   const resyncMutation = useResyncMailAccount();
 
   function handleRetry() {
-    void resyncMutation.mutateAsync({ id: account.id, mode: 'incremental' }).catch((caught: unknown) => {
+    void resyncMutation.mutateAsync({ id: account.id, mode: 'incremental' }).catch((caught: Error) => {
       toast.error(getErrorMessage(caught, 'Failed to retry sync'), { id: `mail-retry-${account.id}` });
     });
   }
@@ -159,13 +159,13 @@ export function MailAccountCard({ account, status }: { account: MailAccountView;
   const controlsDisabled = updateMutation.isPending || removeMutation.isPending;
 
   function handleUpdate(input: { enabled?: boolean; syncFrequencySeconds?: number; backfillDays?: number }) {
-    void updateMutation.mutateAsync({ id: account.id, ...input }).catch((error: unknown) => {
+    void updateMutation.mutateAsync({ id: account.id, ...input }).catch((error: Error) => {
       toast.error(getErrorMessage(error, 'Failed to update mail account'), { id: `mail-update-${account.id}` });
     });
   }
 
   function handleResync(mode: 'full' | 'incremental') {
-    void resyncMutation.mutateAsync({ id: account.id, mode }).catch((error: unknown) => {
+    void resyncMutation.mutateAsync({ id: account.id, mode }).catch((error: Error) => {
       toast.error(getErrorMessage(error, 'Failed to start resync'), { id: `mail-resync-${account.id}` });
     });
   }
@@ -174,7 +174,7 @@ export function MailAccountCard({ account, status }: { account: MailAccountView;
     void removeMutation
       .mutateAsync(account.id)
       .then(() => setRemoveOpen(false))
-      .catch((error: unknown) => {
+      .catch((error: Error) => {
         toast.error(getErrorMessage(error, 'Failed to remove mail account'), { id: `mail-remove-${account.id}` });
       });
   }

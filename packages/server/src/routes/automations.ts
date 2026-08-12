@@ -78,7 +78,7 @@ automationsRouter.delete(
     const result = await deleteAutomation(id, body);
     if (result.error) return unwrapResult(c, result);
 
-    await unregisterAutomationSchedule(id).catch((error: unknown) => {
+    await unregisterAutomationSchedule(id).catch((error: Error) => {
       log.error({ error }, 'failed to unregister automation schedule');
     });
 
