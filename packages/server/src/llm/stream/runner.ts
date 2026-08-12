@@ -862,7 +862,7 @@ class StreamRunner {
     });
 
     await this.deps.markSessionUnread(this.ctx.sessionId);
-    void this.deps.pruneSession(this.ctx.sessionId).catch((error: unknown) => {
+    void this.deps.pruneSession(this.ctx.sessionId).catch((error: Error) => {
       log.warn({ sessionId: this.ctx.sessionId, error }, 'post-stream prune failed');
     });
 
