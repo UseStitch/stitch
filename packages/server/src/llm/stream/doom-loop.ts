@@ -39,11 +39,15 @@ export function isDoomLoop(history: ToolCallRecord[]): boolean {
  * Pause execution until the user responds via the API endpoint.
  * Automatically resolves with `'stop'` after `DECISION_TIMEOUT_MS`.
  */
-export function waitForUserDecision(sessionId: PrefixedString<'ses'>): Promise<DoomLoopResponse> {
+export function waitForUserDecision(
+  sessionId: PrefixedString<'ses'>,
+  payload?: { toolName: string; consecutiveCount: number },
+): Promise<DoomLoopResponse> {
   return interactionBroker.wait<DoomLoopResponse>({
     id: sessionId,
     kind: 'doom_loop',
     sessionId,
+    payload,
     timeoutMs: DECISION_TIMEOUT_MS,
     onTimeout: () => {
       log.warn({ sessionId }, 'doom loop decision timed out, auto-stopping');
@@ -106,7 +110,10 @@ export async function checkAndHandleDoomLoop(opts: {
     consecutiveCount: DOOM_LOOP_THRESHOLD,
   });
 
-  const decision = await waitForUserDecision(sessionId);
+  const decision = await waitForUserDecision(sessionId, {
+    toolName: repeatedTool,
+    consecutiveCount: DOOM_LOOP_THRESHOLD,
+  });
 
   if (decision === 'stop') {
     log.info({ sessionId }, 'user stopped doom loop');

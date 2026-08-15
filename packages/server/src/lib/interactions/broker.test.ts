@@ -87,4 +87,59 @@ describe('InteractionBroker', () => {
     expect(broker.resolve('doom_loop:ses_1', 'continue')).toBe(true);
     expect(second).resolves.toBe('continue');
   });
+
+  test('deduplicates in-flight waits with identical dedupeKey', async () => {
+    const first = broker.wait<string>({
+      id: 'permres_1',
+      kind: 'permission',
+      sessionId: 'ses_1',
+      dedupeKey: 'perm_read_file',
+    });
+
+    const second = broker.wait<string>({
+      id: 'permres_2',
+      kind: 'permission',
+      sessionId: 'ses_1',
+      dedupeKey: 'perm_read_file',
+    });
+
+    expect(broker.getDedupe('perm_read_file')).toBeDefined();
+
+    broker.resolve('permres_1', 'allow');
+
+    expect(first).resolves.toBe('allow');
+    expect(second).resolves.toBe('allow');
+  });
+
+  test('stores payload and supports list filtering and get', async () => {
+    void broker.wait<string, { toolName: string }>({
+      id: 'permres_1',
+      kind: 'permission',
+      sessionId: 'ses_1',
+      payload: { toolName: 'bash' },
+    });
+
+    void broker.wait<string, { toolName: string }>({
+      id: 'doom_1',
+      kind: 'doom_loop',
+      sessionId: 'ses_1',
+      payload: { toolName: 'read' },
+    });
+
+    void broker.wait<string>({ id: 'permres_2', kind: 'permission', sessionId: 'ses_2' });
+
+    expect(broker.has('permres_1')).toBe(true);
+    expect(broker.has('nonexistent')).toBe(false);
+
+    const snapshot = broker.get<{ toolName: string }>('permres_1');
+    expect(snapshot).toBeDefined();
+    expect(snapshot?.payload).toEqual({ toolName: 'bash' });
+    expect(typeof snapshot?.createdAt).toBe('number');
+
+    const session1Interactions = broker.list({ sessionId: 'ses_1' });
+    expect(session1Interactions.map((e) => e.id)).toEqual(['permres_1', 'doom_1']);
+
+    const permissionInteractions = broker.list({ kind: 'permission' });
+    expect(permissionInteractions.map((e) => e.id)).toEqual(['permres_1', 'permres_2']);
+  });
 });

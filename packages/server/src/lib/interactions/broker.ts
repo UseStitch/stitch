@@ -1,10 +1,12 @@
 import type {
   AbortSessionOptions,
   InteractionWaitOptions,
+  ListInteractionsFilter,
   PendingInteractionSnapshot,
 } from '@/lib/interactions/types.js';
 
-type PendingInteraction = PendingInteractionSnapshot & {
+type PendingInteraction<TPayload = unknown> = PendingInteractionSnapshot<TPayload> & {
+  dedupeKey?: string;
   resolve: (decision: unknown) => void;
   reject: (error: Error) => void;
   abortError: () => Error;
@@ -22,23 +24,34 @@ const defaultAbortError = () => new InteractionAbortedError();
 
 export class InteractionBroker {
   private readonly pending = new Map<string, PendingInteraction>();
+  private readonly byDedupeKey = new Map<string, Promise<unknown>>();
 
-  wait<TDecision>(opts: InteractionWaitOptions<TDecision>): Promise<TDecision> {
+  wait<TDecision, TPayload = unknown>(opts: InteractionWaitOptions<TDecision, TPayload>): Promise<TDecision> {
+    if (opts.dedupeKey) {
+      const inFlight = this.byDedupeKey.get(opts.dedupeKey);
+      if (inFlight) {
+        return inFlight as Promise<TDecision>;
+      }
+    }
+
     const existing = this.pending.get(opts.id);
     if (existing) {
       void this.resolveDuplicate(existing, opts.onDuplicate);
     }
 
-    return new Promise<TDecision>((resolve, reject) => {
-      let timeout: ReturnType<typeof setTimeout> | undefined;
-      const abortError = opts.abortError ?? defaultAbortError;
-      let pendingEntry: PendingInteraction;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const abortError = opts.abortError ?? defaultAbortError;
+    let pendingEntry: PendingInteraction<TPayload>;
 
+    const promise = new Promise<TDecision>((resolve, reject) => {
       const cleanup = () => {
         if (timeout) clearTimeout(timeout);
         opts.abortSignal?.removeEventListener('abort', abortHandler);
         if (this.pending.get(opts.id) === pendingEntry) {
           this.pending.delete(opts.id);
+        }
+        if (opts.dedupeKey && this.byDedupeKey.get(opts.dedupeKey) === promise) {
+          this.byDedupeKey.delete(opts.dedupeKey);
         }
       };
 
@@ -77,13 +90,22 @@ export class InteractionBroker {
         kind: opts.kind,
         sessionId: opts.sessionId,
         streamRunId: opts.streamRunId,
+        createdAt: Date.now(),
+        payload: opts.payload,
+        dedupeKey: opts.dedupeKey,
         resolve: settleResolve,
         reject: settleReject,
         abortError,
         cleanup,
       };
-      this.pending.set(opts.id, pendingEntry);
+      this.pending.set(opts.id, pendingEntry as PendingInteraction);
     });
+
+    if (opts.dedupeKey) {
+      this.byDedupeKey.set(opts.dedupeKey, promise);
+    }
+
+    return promise;
   }
 
   resolve<TDecision>(id: string, decision: TDecision): boolean {
@@ -114,9 +136,28 @@ export class InteractionBroker {
     return aborted.map(toSnapshot);
   }
 
-  get(id: string): PendingInteractionSnapshot | undefined {
+  get<TPayload = unknown>(id: string): PendingInteractionSnapshot<TPayload> | undefined {
     const entry = this.pending.get(id);
-    return entry ? toSnapshot(entry) : undefined;
+    return entry ? (toSnapshot(entry) as PendingInteractionSnapshot<TPayload>) : undefined;
+  }
+
+  getDedupe<TDecision>(dedupeKey: string): Promise<TDecision> | undefined {
+    return this.byDedupeKey.get(dedupeKey) as Promise<TDecision> | undefined;
+  }
+
+  has(id: string): boolean {
+    return this.pending.has(id);
+  }
+
+  list(filter?: ListInteractionsFilter): PendingInteractionSnapshot[] {
+    let entries = [...this.pending.values()];
+    if (filter?.sessionId) {
+      entries = entries.filter((e) => e.sessionId === filter.sessionId);
+    }
+    if (filter?.kind) {
+      entries = entries.filter((e) => e.kind === filter.kind);
+    }
+    return entries.map(toSnapshot);
   }
 
   clear(): void {
@@ -124,6 +165,7 @@ export class InteractionBroker {
       entry.cleanup();
     }
     this.pending.clear();
+    this.byDedupeKey.clear();
   }
 
   private async resolveDuplicate<TDecision>(
@@ -145,6 +187,13 @@ export class InteractionBroker {
 
 export const interactionBroker = new InteractionBroker();
 
-function toSnapshot(entry: PendingInteraction): PendingInteractionSnapshot {
-  return { id: entry.id, kind: entry.kind, sessionId: entry.sessionId, streamRunId: entry.streamRunId };
+function toSnapshot<TPayload>(entry: PendingInteraction<TPayload>): PendingInteractionSnapshot<TPayload> {
+  return {
+    id: entry.id,
+    kind: entry.kind,
+    sessionId: entry.sessionId,
+    streamRunId: entry.streamRunId,
+    createdAt: entry.createdAt,
+    payload: entry.payload,
+  };
 }

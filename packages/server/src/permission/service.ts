@@ -21,7 +21,6 @@ import { PermissionResponseAbortedError } from '@/llm/stream/errors.js';
 import { resolvePermissionFromRules } from '@/permission/policy.js';
 
 const log = Log.create({ service: 'permission-service' });
-const pendingPermissionRequests = new Map<string, Promise<PermissionDecisionResult>>();
 
 const permissionResponseStore = new Map<PrefixedString<'permres'>, PermissionResponse>();
 
@@ -93,7 +92,14 @@ type RequestPermissionResponseOptions = {
   abortSignal?: AbortSignal;
 };
 
-async function createPermissionResponse(opts: RequestPermissionResponseOptions): Promise<PermissionDecisionResult> {
+export async function requestPermissionResponse(
+  opts: RequestPermissionResponseOptions,
+): Promise<PermissionDecisionResult> {
+  if (opts.dedupeKey) {
+    const existing = interactionBroker.getDedupe<PermissionDecisionResult>(opts.dedupeKey);
+    if (existing) return existing;
+  }
+
   const id = createPermissionResponseId();
 
   const permissionResponse: PermissionResponse = {
@@ -124,32 +130,16 @@ async function createPermissionResponse(opts: RequestPermissionResponseOptions):
     'permission requested',
   );
 
-  return interactionBroker.wait<PermissionDecisionResult>({
+  return interactionBroker.wait<PermissionDecisionResult, PermissionResponse>({
     id,
     kind: 'permission',
     sessionId: opts.sessionId,
     streamRunId: opts.streamRunId,
+    payload: permissionResponse,
+    dedupeKey: opts.dedupeKey,
     abortSignal: opts.abortSignal,
     abortError: () => new PermissionResponseAbortedError(),
   });
-}
-
-export async function requestPermissionResponse(
-  opts: RequestPermissionResponseOptions,
-): Promise<PermissionDecisionResult> {
-  const dedupeKey = opts.dedupeKey;
-  if (!dedupeKey) {
-    return createPermissionResponse(opts);
-  }
-
-  const existing = pendingPermissionRequests.get(dedupeKey);
-  if (existing) return existing;
-
-  const promise = createPermissionResponse(opts).finally(() => {
-    pendingPermissionRequests.delete(dedupeKey);
-  });
-  pendingPermissionRequests.set(dedupeKey, promise);
-  return promise;
 }
 
 async function resolvePermissionResponse(opts: {
