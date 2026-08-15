@@ -5,8 +5,7 @@ import { z } from 'zod';
 import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
 
 import { WebFetchHttpError, WebFetchResponseTooLargeError, WebFetchUrlValidationError } from '@/tools/errors.js';
-import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
-import type { ToolInput } from '@/tools/runtime/runtime.js';
+import type { ToolDefinition, ToolInput } from '@/tools/runtime/runtime.js';
 
 const MAX_RESPONSE_SIZE_BYTES = 5 * 1024 * 1024;
 const DEFAULT_TIMEOUT_SECONDS = 30;

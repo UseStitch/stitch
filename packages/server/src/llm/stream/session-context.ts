@@ -14,9 +14,8 @@ import { buildSkillsSystemPrompt } from '@/skills/service.js';
 import { createInspectImageTool } from '@/tools/core/inspect-image.js';
 import { createTaskTool } from '@/tools/core/task.js';
 import { createToolsetTools } from '@/tools/core/toolset-management.js';
-import { ToolPipeline } from '@/tools/runtime/pipeline.js';
 import { createTools } from '@/tools/runtime/registry.js';
-import type { ToolContext } from '@/tools/runtime/runtime.js';
+import { bindTool, bindTools, type ToolContext } from '@/tools/runtime/runtime.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 import type { ModelMessage, Tool } from 'ai';
@@ -170,8 +169,8 @@ export class SessionContext {
   }
 
   private buildToolsetMetaTools(manager: ToolsetManager): Record<string, Tool> {
-    const pipeline = ToolPipeline.create(this.toolContext);
-    return pipeline.registerAll(
+    return bindTools(
+      this.toolContext,
       Object.entries(createToolsetTools(manager, this.toolContext.sessionId)).map(([name, tool]) => ({
         name,
         displayName: name,
@@ -185,8 +184,7 @@ export class SessionContext {
     const canUseTaskTool = this.opts.allowTaskTool ?? true;
     if (!canUseTaskTool) return null;
 
-    const pipeline = ToolPipeline.create(this.toolContext);
-    return pipeline.register({
+    return bindTool(this.toolContext, {
       name: 'task',
       displayName: 'Task',
       tool: createTaskTool(this.toolContext, {
@@ -202,8 +200,7 @@ export class SessionContext {
   }
 
   private buildInspectImageTool(): Tool {
-    const pipeline = ToolPipeline.create(this.toolContext);
-    return pipeline.register({
+    return bindTool(this.toolContext, {
       name: 'inspect_image',
       displayName: 'Inspect Image',
       tool: createInspectImageTool(this.toolContext, {

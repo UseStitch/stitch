@@ -3,7 +3,7 @@ import { tool } from 'ai';
 import { LIQUID_UI_TOOL_NAME } from '@stitch/shared/liquid-ui/constants';
 import { liquidUiSpecSchema } from '@stitch/shared/liquid-ui/schema';
 
-import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
+import type { ToolDefinition } from '@/tools/runtime/runtime.js';
 
 export const definition: ToolDefinition = {
   name: 'render_ui',

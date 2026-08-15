@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import { z } from 'zod';
 
 import { getFilePathPatternTargets, getParentDirPermissionSuggestion } from '@/tools/runtime/file-permissions.js';
-import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
+import type { ToolDefinition } from '@/tools/runtime/runtime.js';
 import { validateAbsoluteFilePath } from '@/tools/runtime/shared.js';
 
 const writeInputSchema = z.object({

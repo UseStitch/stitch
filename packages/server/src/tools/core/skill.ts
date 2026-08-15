@@ -8,7 +8,7 @@ import { toolError } from '@stitch/shared/tools/types';
 import { isSkillEnabledByApp } from '@/apps/service.js';
 import { getSkillByName } from '@/skills/service.js';
 import { isToolEnabled } from '@/tools/enabled-service.js';
-import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
+import type { ToolDefinition } from '@/tools/runtime/runtime.js';
 
 const skillInputSchema = z.object({ name: z.string().min(1).describe('The name of the skill from available_skills') });
 

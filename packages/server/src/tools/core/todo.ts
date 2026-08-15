@@ -6,8 +6,7 @@ import type { SessionTodo, TodoInput } from '@stitch/shared/todos/types';
 import { toolError } from '@stitch/shared/tools/types';
 
 import { listSessionTodos, replaceSessionTodos } from '@/todos/service.js';
-import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
-import type { ToolContext } from '@/tools/runtime/runtime.js';
+import type { ToolContext, ToolDefinition } from '@/tools/runtime/runtime.js';
 
 const todoItemSchema = z.object({
   content: z.string().trim().min(1).describe('Specific task description.'),

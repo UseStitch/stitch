@@ -4,8 +4,7 @@ import { z } from 'zod';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { askQuestion } from '@/question/service.js';
-import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
-import type { ToolContext } from '@/tools/runtime/runtime.js';
+import type { ToolContext, ToolDefinition } from '@/tools/runtime/runtime.js';
 
 const questionOptionSchema = z
   .object({

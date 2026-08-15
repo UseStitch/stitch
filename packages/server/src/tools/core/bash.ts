@@ -9,8 +9,7 @@ import { toolError } from '@stitch/shared/tools/types';
 import { resolvePreferredShell } from '@/lib/shell.js';
 import { ToolValidationError } from '@/tools/errors.js';
 import { deriveCommandFamilies, getCommandFamilySuggestion } from '@/tools/runtime/bash-families.js';
-import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
-import type { ToolInput } from '@/tools/runtime/runtime.js';
+import type { ToolDefinition, ToolInput } from '@/tools/runtime/runtime.js';
 import { validateExistingDirectoryPath } from '@/tools/runtime/shared.js';
 
 const SIGKILL_TIMEOUT_MS = 200;

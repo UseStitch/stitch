@@ -2,8 +2,7 @@ import { getDisabledAppToolsetIds, isToolsetEnabledByApp } from '@/apps/service.
 import * as Log from '@/lib/log.js';
 import type { SessionActiveToolset, SessionToolsetScope } from '@/llm/stream/session-toolsets.js';
 import { getDisabledToolIdentifiers, isToolEnabled } from '@/tools/enabled-service.js';
-import { ToolPipeline } from '@/tools/runtime/pipeline.js';
-import type { ToolContext } from '@/tools/runtime/runtime.js';
+import { bindTools, type ToolContext } from '@/tools/runtime/runtime.js';
 import { getToolset, listToolsets } from '@/tools/toolsets/registry.js';
 import { toToolsetView, type ToolsetView } from '@/tools/toolsets/view.js';
 import type { Tool } from 'ai';
@@ -74,10 +73,10 @@ export class ToolsetManager {
       return { status: 'disabled' };
     }
 
-    const pipeline = ToolPipeline.create(this.context);
     const toolsetTools = await toolset.activate(this.context);
     const toolSource = toolset.kind === 'mcp' ? 'mcp' : 'toolset';
-    const allTools = pipeline.registerAll(
+    const allTools = bindTools(
+      this.context,
       Object.entries(toolsetTools).map(([name, tool]) => ({
         name,
         displayName: name,

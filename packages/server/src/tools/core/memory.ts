@@ -6,8 +6,7 @@ import { toolError } from '@stitch/shared/tools/types';
 import { getMemoryConfig } from '@/memory/config.js';
 import { memoryFileStore } from '@/memory/file-store.js';
 import type { MemoryMutation } from '@/memory/types.js';
-import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
-import type { ToolContext } from '@/tools/runtime/runtime.js';
+import type { ToolContext, ToolDefinition } from '@/tools/runtime/runtime.js';
 
 const targetSchema = z.enum(['memory', 'user']);
 const operationSchema = z.discriminatedUnion('type', [

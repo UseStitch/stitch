@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { ToolEditMultipleMatchesError, ToolEditNoMatchError, ToolFileTypeError } from '@/tools/errors.js';
 import { getFilePathPatternTargets, getParentDirPermissionSuggestion } from '@/tools/runtime/file-permissions.js';
-import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
+import type { ToolDefinition } from '@/tools/runtime/runtime.js';
 import { isTextFileBuffer, validateAbsoluteFilePath } from '@/tools/runtime/shared.js';
 
 const MULTIPLE_MATCHES_ERROR =

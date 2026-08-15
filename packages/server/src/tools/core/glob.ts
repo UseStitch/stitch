@@ -4,8 +4,7 @@ import { z } from 'zod';
 
 import * as Glob from '@/lib/glob.js';
 import { ToolPathValidationError } from '@/tools/errors.js';
-import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
-import type { ToolInput } from '@/tools/runtime/runtime.js';
+import type { ToolDefinition, ToolInput } from '@/tools/runtime/runtime.js';
 import { validateAbsoluteDirectoryPath } from '@/tools/runtime/shared.js';
 
 const MAX_RESULTS = 100;

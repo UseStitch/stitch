@@ -17,8 +17,7 @@ import { definition as skill } from '@/tools/core/skill.js';
 import { createDefinition as createTodoDefinition } from '@/tools/core/todo.js';
 import { definition as webfetch } from '@/tools/core/webfetch.js';
 import { definition as write } from '@/tools/core/write.js';
-import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
-import type { ToolContext } from '@/tools/runtime/runtime.js';
+import type { ToolContext, ToolDefinition } from '@/tools/runtime/runtime.js';
 
 export type CatalogEntry =
   | { kind: 'static'; definition: ToolDefinition }

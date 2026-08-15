@@ -4,7 +4,7 @@ import { createSkillSchema } from '@stitch/shared/skills/types';
 import { toolError } from '@stitch/shared/tools/types';
 
 import { createSkill } from '@/skills/service.js';
-import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
+import type { ToolDefinition } from '@/tools/runtime/runtime.js';
 import type { z } from 'zod';
 
 const createSkillInputSchema = createSkillSchema.describe('A reusable skill to save for future use');
