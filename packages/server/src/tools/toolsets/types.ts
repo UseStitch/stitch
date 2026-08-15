@@ -16,6 +16,20 @@ export type ToolsetPrompt = {
 
 export type ToolsetKind = 'native' | 'provider' | 'connector' | 'mcp';
 
+export type SessionToolsetScope = 'current_run' | 'ttl_turns' | 'until_deactivated';
+
+export type SessionActiveToolset = { id: string; scope: SessionToolsetScope; expiresAtTurn?: number };
+
+export type SessionExpiredToolset = { id: string; expiredAtTurn: number; toolNames: string[] };
+
+export type SessionToolsetState = {
+  turnCounter: number;
+  active: SessionActiveToolset[];
+  expired: SessionExpiredToolset[];
+};
+
+export const EMPTY_SESSION_TOOLSET_STATE: SessionToolsetState = { turnCounter: 0, active: [], expired: [] };
+
 /**
  * A Toolset is a named group of related tools managed as a single unit.
  * Toolsets can be activated/deactivated dynamically during a session to

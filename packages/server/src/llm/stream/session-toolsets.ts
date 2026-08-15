@@ -1,37 +1,11 @@
-import { eq } from 'drizzle-orm';
-
 import type { PrefixedString } from '@stitch/shared/id';
 
-import { getDb } from '@/db/client.js';
-import { sessions } from '@/db/schema/sessions.js';
+import { ToolsetManager } from '@/tools/toolsets/manager.js';
+import type { SessionActiveToolset, SessionToolsetState } from '@/tools/toolsets/types.js';
 
-export type SessionToolsetScope = 'current_run' | 'ttl_turns' | 'until_deactivated';
-
-export type SessionActiveToolset = { id: string; scope: SessionToolsetScope; expiresAtTurn?: number };
-
-export type SessionExpiredToolset = { id: string; expiredAtTurn: number; toolNames: string[] };
-
-export type SessionToolsetState = {
-  turnCounter: number;
-  active: SessionActiveToolset[];
-  expired: SessionExpiredToolset[];
-};
-
-const EMPTY_SESSION_TOOLSET_STATE: SessionToolsetState = { turnCounter: 0, active: [], expired: [] };
+export { type SessionActiveToolset, type SessionToolsetState } from '@/tools/toolsets/types.js';
 
 type ExpiredToolsetInput = { id: string; toolNames: string[] };
-
-function cloneState(state: SessionToolsetState): SessionToolsetState {
-  return {
-    turnCounter: state.turnCounter,
-    active: state.active.map((entry) => ({ ...entry })),
-    expired: state.expired.map((entry) => ({ ...entry, toolNames: [...entry.toolNames] })),
-  };
-}
-
-export function getToolsetExpiresAtTurn(currentTurn: number, ttlTurns: number): number {
-  return currentTurn + ttlTurns - 1;
-}
 
 function partitionActiveToolsets(
   active: SessionActiveToolset[],
@@ -49,6 +23,10 @@ function partitionActiveToolsets(
   }
 
   return { active: nextActive, expired };
+}
+
+export function getToolsetExpiresAtTurn(currentTurn: number, ttlTurns: number): number {
+  return ToolsetManager.getToolsetExpiresAtTurn(currentTurn, ttlTurns);
 }
 
 export function getCurrentSessionToolsetState(
@@ -88,19 +66,9 @@ export function buildNextSessionToolsetState(input: {
 }
 
 export function getSessionToolsetState(sessionId: PrefixedString<'ses'>): SessionToolsetState {
-  const row = getDb()
-    .select({ toolsetState: sessions.toolsetState })
-    .from(sessions)
-    .where(eq(sessions.id, sessionId))
-    .get();
-
-  return cloneState(row?.toolsetState ?? EMPTY_SESSION_TOOLSET_STATE);
+  return ToolsetManager.getSessionState(sessionId);
 }
 
 export function setSessionToolsetState(sessionId: PrefixedString<'ses'>, state: SessionToolsetState): void {
-  getDb()
-    .update(sessions)
-    .set({ toolsetState: cloneState(state), updatedAt: Date.now() })
-    .where(eq(sessions.id, sessionId))
-    .run();
+  ToolsetManager.setSessionState(sessionId, state);
 }

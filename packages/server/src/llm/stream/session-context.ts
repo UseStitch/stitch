@@ -1,14 +1,8 @@
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { createCodeModeTool } from '@/code-mode/tool.js';
-import * as Log from '@/lib/log.js';
 import { PromptComposer } from '@/llm/prompt/composer.js';
 import { buildActiveToolsetInstructionsBlock } from '@/llm/session-summary.js';
-import {
-  getCurrentSessionToolsetState,
-  getSessionToolsetState,
-  type SessionExpiredToolset,
-} from '@/llm/stream/session-toolsets.js';
 import type { LlmProviderCredentials } from '@/provider/config/schema.js';
 import { buildSkillsSystemPrompt } from '@/skills/service.js';
 import { createInspectImageTool } from '@/tools/core/inspect-image.js';
@@ -19,9 +13,8 @@ import { createTools } from '@/tools/runtime/registry.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
+import type { SessionExpiredToolset } from '@/tools/toolsets/types.js';
 import type { ModelMessage, Tool } from 'ai';
-
-const log = Log.create({ service: 'session-context' });
 
 type SessionContextOptions = {
   sessionId: PrefixedString<'ses'>;
@@ -92,23 +85,11 @@ export class SessionContext {
   }
 
   async assemble(): Promise<AssembledResult> {
-    const sessionState = getSessionToolsetState(this.opts.sessionId);
-    const currentSessionState = getCurrentSessionToolsetState(sessionState, (toolsetId) =>
-      SessionContext.getToolNames(toolsetId),
-    );
-    const activeEntries = this.opts.activeToolsetIds
-      ? this.opts.activeToolsetIds.map((id) => ({ id, scope: 'until_deactivated' as const }))
-      : currentSessionState.active;
-    const expiredEntries = this.opts.activeToolsetIds ? [] : currentSessionState.expired;
-    const expiredPrompt = this.opts.activeToolsetIds ? '' : buildExpiredToolsetsPrompt(expiredEntries);
-
-    const toolsetManager = new ToolsetManager(this.toolContext, activeEntries, {
+    const toolsetManager = await ToolsetManager.forSession(this.toolContext, {
+      initialActiveToolsetIds: this.opts.activeToolsetIds,
       excludedToolsetIds: this.opts.excludedToolsetIds,
     });
-    await this.restoreToolsets(
-      toolsetManager,
-      activeEntries.map((entry) => entry.id),
-    );
+    const expiredPrompt = buildExpiredToolsetsPrompt(toolsetManager.getExpiredToolsets());
 
     const coreTools = await createTools(this.toolContext);
     const metaTools = this.buildToolsetMetaTools(toolsetManager);
@@ -145,34 +126,10 @@ export class SessionContext {
     return { messages: composer.compose(this.opts.llmMessages), tools, toolsetManager };
   }
 
-  private static getToolNames(toolsetId: string): string[] {
-    return (
-      getToolset(toolsetId)
-        ?.tools()
-        .map((tool) => tool.name) ?? []
-    );
-  }
-
-  private async restoreToolsets(manager: ToolsetManager, toolsetIds: string[]): Promise<void> {
-    if (toolsetIds.length === 0) return;
-
-    await Promise.all(
-      toolsetIds.map(async (id) => {
-        const result = await manager.activate(id);
-        if (result.status === 'not_found' || result.status === 'disabled') {
-          log.warn(
-            { event: 'toolset.restore.failed', toolsetId: id, reason: result.status },
-            'failed to restore previously active toolset — skipping',
-          );
-        }
-      }),
-    );
-  }
-
   private buildToolsetMetaTools(manager: ToolsetManager): Record<string, Tool> {
     const pipeline = ToolPipeline.create(this.toolContext);
     return pipeline.registerAll(
-      Object.entries(createToolsetTools(manager, this.toolContext.sessionId)).map(([name, tool]) => ({
+      Object.entries(createToolsetTools(manager)).map(([name, tool]) => ({
         name,
         displayName: name,
         tool,

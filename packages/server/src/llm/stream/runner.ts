@@ -22,17 +22,10 @@ import {
   isStreamAbortedError,
 } from '@/llm/stream/errors.js';
 import { SessionContext } from '@/llm/stream/session-context.js';
-import {
-  buildNextSessionToolsetState,
-  getSessionToolsetState,
-  getToolsetExpiresAtTurn,
-  setSessionToolsetState,
-} from '@/llm/stream/session-toolsets.js';
 import { executeStepWithRetry, type StepOptions } from '@/llm/stream/step-executor.js';
 import type { LlmProviderCredentials } from '@/provider/config/schema.js';
 import { MAX_STEPS, MAX_STEPS_WARNING } from '@/tools/runtime/registry.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
-import { getToolset } from '@/tools/toolsets/registry.js';
 import { getToolsetSettings } from '@/tools/toolsets/settings.js';
 import * as Usage from '@/utils/usage.js';
 import type { ModelMessage, LanguageModelUsage, Tool } from 'ai';
@@ -866,19 +859,7 @@ class StreamRunner {
       log.warn({ sessionId: this.ctx.sessionId, error }, 'post-stream prune failed');
     });
 
-    const currentToolsetState = getSessionToolsetState(this.ctx.sessionId);
-    setSessionToolsetState(
-      this.ctx.sessionId,
-      buildNextSessionToolsetState({
-        currentState: currentToolsetState,
-        active: this.ctx.toolsetManager.getPersistableActivationState(),
-        expiredRunToolsets: this.ctx.toolsetManager.getExpiredRunToolsets(),
-        getToolNames: (toolsetId) =>
-          getToolset(toolsetId)
-            ?.tools()
-            .map((tool) => tool.name) ?? [],
-      }),
-    );
+    this.ctx.toolsetManager.advanceTurn();
 
     const toolCallCount = this.state.accumulatedParts.filter((p) => p.type === 'tool-call').length;
     const toolErrorCount = this.state.accumulatedParts.filter(
@@ -915,11 +896,8 @@ class StreamRunner {
 
   private async renewToolsetActivity(toolCalls: ToolCallRecord[]): Promise<void> {
     const settings = await getToolsetSettings();
-    const currentTurn = getSessionToolsetState(this.ctx.sessionId).turnCounter;
-    const expiresAtTurn = getToolsetExpiresAtTurn(currentTurn, settings.ttlTurns);
-
     for (const call of toolCalls) {
-      this.ctx.toolsetManager.renewTtlForTool(call.toolName, expiresAtTurn);
+      this.ctx.toolsetManager.renewTtlForTool(call.toolName, settings.ttlTurns);
     }
   }
 

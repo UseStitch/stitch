@@ -1,6 +1,6 @@
 import { isDbInitialized } from '@/db/client.js';
-import type { SessionToolsetScope } from '@/llm/stream/session-toolsets.js';
 import { getSettings } from '@/settings/service.js';
+import type { SessionToolsetScope } from '@/tools/toolsets/types.js';
 
 type ToolsetSettings = { defaultScope: SessionToolsetScope; ttlTurns: number };
 

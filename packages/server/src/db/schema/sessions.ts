@@ -5,7 +5,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 import type { TodoPriority, TodoStatus } from '@stitch/shared/todos/types';
 
 import { automations } from '@/db/schema/automations.js';
-import type { SessionToolsetState } from '@/llm/stream/session-toolsets.js';
+import type { SessionToolsetState } from '@/tools/toolsets/types.js';
 import type { LanguageModelUsage } from 'ai';
 
 export const sessions = sqliteTable('sessions', {

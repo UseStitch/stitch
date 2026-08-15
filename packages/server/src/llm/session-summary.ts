@@ -19,13 +19,13 @@ import { getProviderOptions } from '@/llm/provider-options.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
-import { getSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { getToolPruneProtectOverrides } from '@/llm/tool-prune-policy.js';
 import * as LocalModels from '@/models/llm/local.js';
 import * as Models from '@/models/llm/registry.js';
 import type { LlmProviderCredentials } from '@/provider/config/schema.js';
 import { getSettings } from '@/settings/service.js';
 import { getSessionTodosPromptBlock } from '@/todos/service.js';
+import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
 import { estimate } from '@/utils/token.js';
@@ -445,7 +445,7 @@ export async function compact(input: {
 }
 
 export function buildActiveToolsetInstructionsBlock(sessionId: PrefixedString<'ses'>): string {
-  const activeIds = getSessionToolsetState(sessionId).active.map((entry) => entry.id);
+  const activeIds = ToolsetManager.getSessionState(sessionId).active.map((entry) => entry.id);
   const instructionBlocks = activeIds
     .map((id) => getToolset(id))
     .filter((ts): ts is NonNullable<ReturnType<typeof getToolset>> => !!ts?.instructions)

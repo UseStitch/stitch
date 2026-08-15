@@ -4,33 +4,19 @@ import { z } from 'zod';
 import type { PrefixedString } from '@stitch/shared/id';
 import { humanizeToolName } from '@stitch/shared/tools/display';
 
-import {
-  getToolsetExpiresAtTurn,
-  getSessionToolsetState,
-  setSessionToolsetState,
-  type SessionToolsetScope,
-} from '@/llm/stream/session-toolsets.js';
 import { isToolEnabled } from '@/tools/enabled-service.js';
 import { ToolsetDisabledError, ToolsetNotFoundError, ToolsetNotInCatalogError } from '@/tools/errors.js';
-import type { ToolsetManager } from '@/tools/toolsets/manager.js';
+import { ToolsetManager } from '@/tools/toolsets/manager.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 import { getToolsetSettings } from '@/tools/toolsets/settings.js';
+import type { SessionToolsetScope } from '@/tools/toolsets/types.js';
 import { toToolsetView } from '@/tools/toolsets/view.js';
 
 /**
  * Create the three toolset management meta-tools bound to a specific ToolsetManager instance.
  * These are always-active tools that let the LLM discover, activate, and deactivate toolsets.
  */
-export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedString<'ses'>) {
-  const persistManagerState = () => {
-    const current = getSessionToolsetState(sessionId);
-    setSessionToolsetState(sessionId, {
-      ...current,
-      active: manager.getPersistableActivationState(),
-      expired: current.expired.filter((entry) => !manager.isActive(entry.id)),
-    });
-  };
-
+export function createToolsetTools(manager: ToolsetManager, _sessionId?: PrefixedString<'ses'>) {
   const resolveActivationState = async (input: { persist?: boolean; scope?: SessionToolsetScope }) => {
     if (input.persist === true) {
       return { scope: 'until_deactivated' as const };
@@ -39,10 +25,7 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
     const settings = await getToolsetSettings();
     const scope = input.scope ?? settings.defaultScope;
     return scope === 'ttl_turns'
-      ? {
-          scope,
-          expiresAtTurn: getToolsetExpiresAtTurn(getSessionToolsetState(sessionId).turnCounter, settings.ttlTurns),
-        }
+      ? { scope, expiresAtTurn: ToolsetManager.getToolsetExpiresAtTurn(manager.getTurnCounter(), settings.ttlTurns) }
       : { scope };
   };
 
@@ -135,7 +118,6 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
         const wasPersisted = manager.isPersisted(toolsetId);
         const toolsetName = getToolset(toolsetId)?.name ?? toolsetId;
         manager.setActivationState(toolsetId, activationState);
-        persistManagerState();
 
         return {
           toolsetId,
@@ -157,8 +139,6 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
       if (result.status === 'disabled') {
         throw new ToolsetDisabledError(toolsetId);
       }
-
-      persistManagerState();
 
       const { toolNames, collisions } = result;
       const toolset = getToolset(toolsetId);
@@ -212,8 +192,6 @@ export function createToolsetTools(manager: ToolsetManager, sessionId: PrefixedS
           message: `Toolset "${toolsetName}" was not active.`,
         };
       }
-
-      persistManagerState();
 
       return {
         toolsetId,
