@@ -27,8 +27,14 @@ const Toaster = ({ ...props }: ToasterProps) => {
         classNames: {
           toast: 'cn-toast',
           description: '!text-popover-foreground/70',
+          actionButton:
+            '!bg-primary !text-primary-foreground hover:!bg-primary/80 !font-medium !rounded-md !h-7 !px-2.5 !text-xs !transition-colors focus-visible:!ring-2 focus-visible:!ring-ring',
+          cancelButton:
+            '!bg-secondary !text-secondary-foreground hover:!bg-secondary/80 !font-medium !rounded-md !h-7 !px-2.5 !text-xs !transition-colors focus-visible:!ring-2 focus-visible:!ring-ring',
           closeButton:
             '!border-border !bg-popover !text-popover-foreground hover:!bg-accent hover:!text-accent-foreground focus-visible:!ring-ring',
+          error:
+            '[&_[data-action]]:!bg-destructive/10 hover:[&_[data-action]]:!bg-destructive/20 dark:[&_[data-action]]:!bg-destructive/20 dark:hover:[&_[data-action]]:!bg-destructive/30 [&_[data-action]]:!text-destructive',
         },
       }}
       {...props}
