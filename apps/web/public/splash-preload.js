@@ -10,9 +10,7 @@
   var FALLBACK_LIGHT = 'oklch(1 0 0)';
   var FALLBACK_DARK = 'oklch(0.145 0 0)';
 
-  var mode = localStorage.getItem('stitch.appearance.mode') || 'system';
-  var prefersDark = matchMedia('(prefers-color-scheme: dark)').matches;
-  var isDark = mode === 'dark' || (mode === 'system' && prefersDark);
+  var isDark = localStorage.getItem('stitch.appearance.mode') === 'dark';
 
   var light = localStorage.getItem('stitch.splash.bg.light') || FALLBACK_LIGHT;
   var dark = localStorage.getItem('stitch.splash.bg.dark') || FALLBACK_DARK;

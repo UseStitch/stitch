@@ -1,4 +1,4 @@
-import { APPEARANCE_THEMES } from '@stitch/shared/appearance/types';
+import { APPEARANCE_MODES, APPEARANCE_THEMES } from '@stitch/shared/appearance/types';
 import type { AppearanceMode, AppearanceTheme } from '@stitch/shared/appearance/types';
 
 /** Shiki bundled theme ids for each appearance mode. */
@@ -8,17 +8,21 @@ type ThemeDefinition = { name: AppearanceTheme; code: CodeTheme };
 
 const THEME_CODE = {
   default: { light: 'github-light', dark: 'github-dark' },
-  solarized: { light: 'solarized-light', dark: 'solarized-light' },
-  tokyonight: { light: 'tokyo-night', dark: 'tokyo-night' },
-  dracula: { light: 'dracula', dark: 'dracula' },
+  solarized: { light: 'solarized-light', dark: 'solarized-dark' },
+  tokyonight: { light: 'light-plus', dark: 'tokyo-night' },
+  dracula: { light: 'solarized-light', dark: 'dracula' },
 } satisfies Record<AppearanceTheme, CodeTheme>;
 
 export const DEFAULT_THEME: AppearanceTheme = 'default';
-export const DEFAULT_MODE: AppearanceMode = 'system';
+export const DEFAULT_MODE: AppearanceMode = 'light';
 
 export function getTheme(name: string): ThemeDefinition {
   const resolvedName = APPEARANCE_THEMES.find((theme) => theme === name) ?? DEFAULT_THEME;
   return { name: resolvedName, code: THEME_CODE[resolvedName] };
+}
+
+export function getAppearanceMode(mode: string | undefined): AppearanceMode {
+  return APPEARANCE_MODES.find((candidate) => candidate === mode) ?? DEFAULT_MODE;
 }
 
 const SPLASH_MODE_KEY = 'stitch.appearance.mode';
@@ -64,9 +68,7 @@ export function subscribeCodeTheme(listener: () => void): () => void {
 
 export function applyAppearanceMode(mode: AppearanceMode): void {
   const root = document.documentElement;
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const isDark = mode === 'dark' || (mode === 'system' && prefersDark);
-  root.classList.toggle('dark', isDark);
+  root.classList.toggle('dark', mode === 'dark');
   localStorage.setItem(SPLASH_MODE_KEY, mode);
 }
 

@@ -6,7 +6,6 @@ import { Spinner } from '@/components/ui/spinner';
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
-      theme="system"
       className="toaster group"
       closeButton
       icons={{
