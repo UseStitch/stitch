@@ -3,8 +3,6 @@ import * as React from 'react';
 import type { QueryClient } from '@tanstack/react-query';
 import { createRootRouteWithContext, Outlet, useRouter } from '@tanstack/react-router';
 
-import type { AppearanceMode } from '@stitch/shared/appearance/types';
-
 import { TitleBar } from '@/components/layout/title-bar';
 import { ActivityBar } from '@/components/navigation/activity-bar';
 import { AppSidebar } from '@/components/navigation/app-sidebar';
@@ -24,7 +22,7 @@ import { useActions } from '@/hooks/use-actions';
 import { resetServerUrlCache } from '@/lib/api';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 import { shortcutsQueryOptions } from '@/lib/queries/shortcuts';
-import { applyAppearanceMode, applyTheme, DEFAULT_MODE, DEFAULT_THEME, getTheme, removeSplash } from '@/lib/theme';
+import { applyAppearanceMode, applyTheme, DEFAULT_THEME, getAppearanceMode, getTheme, removeSplash } from '@/lib/theme';
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -42,7 +40,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 function RootLayout() {
   const actions = useActions();
   useGlobalHotkeys(actions);
-  useTheme();
+  const { mode } = useTheme();
 
   React.useEffect(() => {
     // Wait two frames so the themed first paint lands before the splash fades,
@@ -84,7 +82,7 @@ function RootLayout() {
       <CommandPalette actions={actions} />
       <OnboardingDialog />
       <RenameSessionDialog />
-      <Toaster position="bottom-right" />
+      <Toaster position="bottom-right" theme={mode} />
     </SidebarProvider>
   );
 }
@@ -100,7 +98,7 @@ function ServerConnectionSync() {
         router.options.context.queryClient.clear();
         const settings = await router.options.context.queryClient.ensureQueryData(settingsQueryOptions);
         applyTheme(getTheme(settings['appearance.theme'] ?? DEFAULT_THEME));
-        applyAppearanceMode((settings['appearance.mode'] as AppearanceMode | undefined) ?? DEFAULT_MODE);
+        applyAppearanceMode(getAppearanceMode(settings['appearance.mode']));
         void router.invalidate();
       });
 

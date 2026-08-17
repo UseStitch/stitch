@@ -8,16 +8,25 @@ import { SettingPage, SettingSection } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/ui/use-theme';
 
-type AppearanceOption = { mode: Exclude<AppearanceMode, 'system'>; label: string };
+type AppearanceOption = { mode: AppearanceMode; label: string };
 
 const APPEARANCE_OPTIONS_BY_THEME = {
   default: [
-    { mode: 'light', label: 'Default Light' },
-    { mode: 'dark', label: 'Default Dark' },
+    { mode: 'light', label: 'Light' },
+    { mode: 'dark', label: 'Dark' },
   ],
-  solarized: [{ mode: 'light', label: 'Solarized Light' }],
-  tokyonight: [{ mode: 'dark', label: 'Tokyo Night' }],
-  dracula: [{ mode: 'dark', label: 'Dracula' }],
+  solarized: [
+    { mode: 'light', label: 'Solarized Light' },
+    { mode: 'dark', label: 'Solarized Dark' },
+  ],
+  tokyonight: [
+    { mode: 'light', label: 'Tokyo Day' },
+    { mode: 'dark', label: 'Tokyo Night' },
+  ],
+  dracula: [
+    { mode: 'light', label: 'Alucard' },
+    { mode: 'dark', label: 'Dracula' },
+  ],
 } satisfies Record<AppearanceTheme, AppearanceOption[]>;
 
 const APPEARANCE_OPTIONS = APPEARANCE_THEMES.flatMap((theme) =>

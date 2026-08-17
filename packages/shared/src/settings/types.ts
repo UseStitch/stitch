@@ -66,8 +66,8 @@ const SETTINGS_REGISTRY = {
   },
   'appearance.mode': {
     schema: z.enum(APPEARANCE_MODES),
-    default: 'system',
-    description: 'Preferred appearance mode: light, dark, or system.',
+    default: 'light',
+    description: 'Preferred appearance mode: light or dark.',
   },
   'appearance.theme': {
     schema: z.enum(APPEARANCE_THEMES),

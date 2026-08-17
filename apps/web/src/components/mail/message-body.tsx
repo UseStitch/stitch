@@ -274,21 +274,7 @@ function repairLowContrastText(doc: Document) {
 
 function useIsDarkMode(): boolean {
   const { mode } = useTheme();
-  const [systemIsDark, setSystemIsDark] = React.useState(
-    () => window.matchMedia('(prefers-color-scheme: dark)').matches,
-  );
-
-  React.useEffect(() => {
-    if (mode !== 'system') return;
-
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const update = () => setSystemIsDark(media.matches);
-    update();
-    media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
-  }, [mode]);
-
-  return mode === 'dark' || (mode === 'system' && systemIsDark);
+  return mode === 'dark';
 }
 
 function getFrameHeight(contentHeight: number): number {

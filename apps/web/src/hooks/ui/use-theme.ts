@@ -5,13 +5,13 @@ import { useSuspenseQuery, useQueryClient, useMutation } from '@tanstack/react-q
 import type { AppearanceMode } from '@stitch/shared/appearance/types';
 
 import { settingsQueryOptions, saveSettingMutationOptions } from '@/lib/queries/settings';
-import { getTheme, applyTheme, applyAppearanceMode, DEFAULT_THEME, DEFAULT_MODE } from '@/lib/theme';
+import { getTheme, getAppearanceMode, applyTheme, applyAppearanceMode, DEFAULT_THEME } from '@/lib/theme';
 
 export function useTheme() {
   const queryClient = useQueryClient();
   const { data: settings } = useSuspenseQuery(settingsQueryOptions);
 
-  const mode = (settings['appearance.mode'] as AppearanceMode | undefined) ?? DEFAULT_MODE;
+  const mode = getAppearanceMode(settings['appearance.mode']);
   const themeName = settings['appearance.theme'] ?? DEFAULT_THEME;
 
   React.useEffect(() => {
@@ -20,13 +20,6 @@ export function useTheme() {
 
   React.useEffect(() => {
     applyAppearanceMode(mode);
-
-    if (mode !== 'system') return;
-
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = () => applyAppearanceMode('system');
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
   }, [mode]);
 
   const saveModeMutation = useMutation(saveSettingMutationOptions('appearance.mode', queryClient, { silent: true }));
