@@ -52,7 +52,7 @@ export async function serverFetch(path: string, init?: RequestInit): Promise<Res
 
 type QueryParams = Record<string, string | number | undefined>;
 
-export class ServerRequestError extends Error {
+class ServerRequestError extends Error {
   constructor(
     message: string,
     readonly status: number,
