@@ -1,6 +1,9 @@
+import { CheckIcon } from 'lucide-react';
+
 import { APPEARANCE_THEMES } from '@stitch/shared/appearance/types';
 import type { AppearanceMode, AppearanceTheme } from '@stitch/shared/appearance/types';
 
+import { Icon } from '@/components/primitives/icon';
 import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
@@ -35,10 +38,10 @@ const APPEARANCE_OPTIONS = APPEARANCE_THEMES.flatMap((theme) =>
 
 export function AppearanceSettings() {
   const page = SETTINGS_PAGE_BY_ID.appearance;
-  const Icon = page.icon;
+  const PageIcon = page.icon;
 
   return (
-    <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
+    <SettingPage title={page.title} description={page.description} icon={<Icon as={PageIcon} size="l" />}>
       <AppearanceSelector />
     </SettingPage>
   );
@@ -57,19 +60,23 @@ export function AppearanceSelector() {
             <Button
               key={`${option.theme}-${option.mode}`}
               type="button"
-              variant={selected ? 'secondary' : 'outline'}
+              variant={selected ? 'selected' : 'outline'}
               size="inline"
               width="full"
               align="start"
+              aria-pressed={selected}
               onClick={() => {
                 setMode(option.mode);
                 setTheme(option.theme);
               }}>
               <Stack width="full" gap="m" padding="m">
                 <ThemePreview theme={option.theme} mode={option.mode} />
-                <Text as="span" variant="body-strong">
-                  {option.label}
-                </Text>
+                <div className="flex w-full items-center justify-between gap-space-s">
+                  <Text as="span" variant="body-strong">
+                    {option.label}
+                  </Text>
+                  {selected && <Icon as={CheckIcon} size="m" tone="primary" />}
+                </div>
               </Stack>
             </Button>
           );
