@@ -116,7 +116,6 @@ export function ChatSidebarContent() {
                       <Link
                         to="/session/$id"
                         params={{ id: session.id }}
-                        viewTransition
                         className="flex items-center gap-space-m truncate pr-space-3xl"
                       />
                     }>
