@@ -3,8 +3,8 @@ import * as React from 'react';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { ConsolidationLog } from '@/components/memories/consolidation-log';
 import { CuratedFile } from '@/components/memories/curated-file';
-import { DailyFile } from '@/components/memories/daily-file';
 import { MemoryDetailSheet } from '@/components/memories/memory-detail-sheet';
 import { Icon } from '@/components/primitives/icon';
 import { Stack } from '@/components/primitives/stack';
@@ -12,7 +12,6 @@ import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Empty, EmptyDescription, EmptyTitle } from '@/components/ui/empty';
 import {
   Page,
   PageContent,
@@ -27,14 +26,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { ManagedMemoryEntry, MemoryFileSnapshot } from '@/lib/queries/memories';
 import {
   consolidateMemoryMutationOptions,
-  dailyMemoryQueryOptions,
   memoryFilesQueryOptions,
   memorySearchQueryOptions,
   openMemoryFolderMutationOptions,
   resetMemoriesMutationOptions,
 } from '@/lib/queries/memories';
 
-type Tab = 'memory' | 'user' | 'daily' | 'dreams';
+type Tab = 'memory' | 'user' | 'dreams';
 
 export function MemoriesPage() {
   const queryClient = useQueryClient();
@@ -43,7 +41,6 @@ export function MemoriesPage() {
   const [selected, setSelected] = React.useState<{ entry: ManagedMemoryEntry; file: MemoryFileSnapshot } | null>(null);
   const [resetOpen, setResetOpen] = React.useState(false);
   const overview = useQuery(memoryFilesQueryOptions);
-  const daily = useQuery(dailyMemoryQueryOptions());
   const searchQuery = useQuery(memorySearchQueryOptions(search.trim()));
   const consolidate = useMutation(consolidateMemoryMutationOptions(queryClient));
   const reset = useMutation(resetMemoriesMutationOptions(queryClient));
@@ -59,7 +56,6 @@ export function MemoriesPage() {
 
   function openSearchResult(filePath: string) {
     if (filePath === 'USER.md') setTab('user');
-    else if (filePath.startsWith('daily/')) setTab('daily');
     else setTab('memory');
     setSearch('');
   }
@@ -143,7 +139,6 @@ export function MemoriesPage() {
           <TabsList variant="line" className="max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto">
             <TabsTrigger value="memory">Long-term</TabsTrigger>
             <TabsTrigger value="user">User profile</TabsTrigger>
-            <TabsTrigger value="daily">Daily notes</TabsTrigger>
             <TabsTrigger value="dreams">Consolidation log</TabsTrigger>
           </TabsList>
           <TabsContent value="memory" className="mt-space-xl">
@@ -160,23 +155,8 @@ export function MemoriesPage() {
               <CuratedFile target="user" file={data.user} onEdit={(entry) => setSelected({ entry, file: data.user })} />
             ) : null}
           </TabsContent>
-          <TabsContent value="daily" className="mt-space-xl space-y-space-l">
-            {daily.data?.files.map((file) => (
-              <DailyFile key={file.name} file={file} processedIds={new Set(data?.processedCandidateIds ?? [])} />
-            ))}
-            {daily.data?.files.length === 0 ? (
-              <Empty>
-                <EmptyTitle>No daily candidates</EmptyTitle>
-                <EmptyDescription>Automatic capture will append durable candidates here.</EmptyDescription>
-              </Empty>
-            ) : null}
-          </TabsContent>
           <TabsContent value="dreams" className="mt-space-xl">
-            <Card>
-              <CardContent>
-                <pre className="overflow-x-auto text-sm whitespace-pre-wrap">{data?.dreams.rawContent}</pre>
-              </CardContent>
-            </Card>
+            <ConsolidationLog markdown={data?.dreams.rawContent ?? ''} />
           </TabsContent>
         </Tabs>
       </PageContent>

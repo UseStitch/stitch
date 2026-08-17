@@ -71,11 +71,3 @@ export type MemoryFilesOverview = {
   processedCandidateIds: string[];
   consolidation: MemoryConsolidationStatus;
 };
-
-export type DailyMemoryFilesResponse = {
-  files: MemoryFileSnapshot[];
-  page: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
-};
