@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { APPEARANCE_MODES, APPEARANCE_THEMES } from '../appearance/types.js';
+
 const booleanSetting = z.enum(['true', 'false']).transform((value) => value === 'true');
 
 /**
@@ -63,12 +65,12 @@ const SETTINGS_REGISTRY = {
     description: 'Turns of inactivity before a TTL-scoped toolset expires.',
   },
   'appearance.mode': {
-    schema: z.enum(['light', 'dark', 'system']),
+    schema: z.enum(APPEARANCE_MODES),
     default: 'system',
     description: 'Preferred appearance mode: light, dark, or system.',
   },
   'appearance.theme': {
-    schema: z.enum(['default', 'dracula', 'solarized', 'tokyonight']),
+    schema: z.enum(APPEARANCE_THEMES),
     default: 'default',
     description: 'Selected application theme name.',
   },

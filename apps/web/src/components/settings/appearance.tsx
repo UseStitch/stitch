@@ -1,4 +1,5 @@
-import type { AppearanceMode } from '@stitch/shared/appearance/types';
+import { APPEARANCE_THEMES } from '@stitch/shared/appearance/types';
+import type { AppearanceMode, AppearanceTheme } from '@stitch/shared/appearance/types';
 
 import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
@@ -7,14 +8,21 @@ import { SettingPage, SettingSection } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/ui/use-theme';
 
-const APPEARANCE_OPTIONS: { theme: string; mode: AppearanceMode; label: string }[] = [
-  { theme: 'default', mode: 'system', label: 'Default System' },
-  { theme: 'default', mode: 'light', label: 'Default Light' },
-  { theme: 'default', mode: 'dark', label: 'Default Dark' },
-  { theme: 'solarized', mode: 'light', label: 'Solarized Light' },
-  { theme: 'tokyonight', mode: 'dark', label: 'Tokyo Night' },
-  { theme: 'dracula', mode: 'dark', label: 'Dracula' },
-];
+type AppearanceOption = { mode: Exclude<AppearanceMode, 'system'>; label: string };
+
+const APPEARANCE_OPTIONS_BY_THEME = {
+  default: [
+    { mode: 'light', label: 'Default Light' },
+    { mode: 'dark', label: 'Default Dark' },
+  ],
+  solarized: [{ mode: 'light', label: 'Solarized Light' }],
+  tokyonight: [{ mode: 'dark', label: 'Tokyo Night' }],
+  dracula: [{ mode: 'dark', label: 'Dracula' }],
+} satisfies Record<AppearanceTheme, AppearanceOption[]>;
+
+const APPEARANCE_OPTIONS = APPEARANCE_THEMES.flatMap((theme) =>
+  APPEARANCE_OPTIONS_BY_THEME[theme].map((option) => ({ theme, ...option })),
+);
 
 export function AppearanceSettings() {
   const page = SETTINGS_PAGE_BY_ID.appearance;
@@ -34,12 +42,6 @@ export function AppearanceSelector() {
     <SettingSection title="Appearance">
       <div className="grid grid-cols-1 gap-space-m sm:grid-cols-2 lg:grid-cols-3">
         {APPEARANCE_OPTIONS.map((option) => {
-          const previewMode =
-            option.mode === 'system'
-              ? window.matchMedia('(prefers-color-scheme: dark)').matches
-                ? 'dark'
-                : 'light'
-              : option.mode;
           const selected = mode === option.mode && themeName === option.theme;
 
           return (
@@ -55,7 +57,7 @@ export function AppearanceSelector() {
                 setTheme(option.theme);
               }}>
               <Stack width="full" gap="m" padding="m">
-                <ThemePreview theme={option.theme} mode={previewMode} />
+                <ThemePreview theme={option.theme} mode={option.mode} />
                 <Text as="span" variant="body-strong">
                   {option.label}
                 </Text>

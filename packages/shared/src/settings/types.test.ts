@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
+import { APPEARANCE_THEMES } from '../appearance/types.js';
 import { SETTINGS_SCHEMAS, isValidLeaderKeyHotkey } from './types';
 
 describe('SETTINGS_SCHEMAS', () => {
@@ -7,6 +8,12 @@ describe('SETTINGS_SCHEMAS', () => {
     expect(SETTINGS_SCHEMAS['recordings.autoAnalyze'].parse('true')).toBe(true);
     expect(SETTINGS_SCHEMAS['recordings.autoAnalyze'].parse('false')).toBe(false);
     expect(SETTINGS_SCHEMAS['mail.alwaysLoadRemoteImages'].parse('true')).toBe(true);
+  });
+
+  test('accepts every available appearance theme', () => {
+    for (const theme of APPEARANCE_THEMES) {
+      expect(SETTINGS_SCHEMAS['appearance.theme'].parse(theme)).toBe(theme);
+    }
   });
 });
 
