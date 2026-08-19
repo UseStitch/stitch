@@ -1,6 +1,6 @@
 import { toast } from 'sonner';
 
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import type {
   AgendaItemPriority,
@@ -57,6 +57,7 @@ export function agendaItemsQueryOptions(input: {
           priority: input.priority,
         },
       }),
+    placeholderData: keepPreviousData,
   });
 }
 

@@ -1,48 +1,27 @@
-import {
-  ActivityIcon,
-  CheckCircleIcon,
-  CircleAlertIcon,
-  InboxIcon,
-  ListTodoIcon,
-  PencilIcon,
-  PlusIcon,
-  Trash2Icon,
-} from 'lucide-react';
+import { ActivityIcon, CircleAlertIcon, InboxIcon, ListTodoIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
+import type { ColumnFiltersState } from '@tanstack/react-table';
 
 import type { AgendaItem, AgendaItemPriority, AgendaItemStatus } from '@stitch/shared/agenda/types';
 import { AGENDA_ITEM_PRIORITIES, AGENDA_ITEM_STATUSES } from '@stitch/shared/agenda/types';
 
 import { AgendaItemDetailSheet } from '@/components/agenda/agenda-item-detail';
-import { PRIORITY_LABELS, PRIORITY_VARIANTS, STATUS_LABELS, STATUS_VARIANTS } from '@/components/agenda/constants';
-import { formatDateInTz, useUserTimezone } from '@/components/agenda/utils';
+import { AgendaItemsTable } from '@/components/agenda/agenda-items-table';
+import { PRIORITY_LABELS, STATUS_LABELS } from '@/components/agenda/constants';
+import { useUserTimezone } from '@/components/agenda/utils';
 import { Icon } from '@/components/primitives/icon';
 import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Checkbox } from '@/components/ui/checkbox';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { MetricCard } from '@/components/ui/metric-card';
 import { Page, PageContent, PageDescription, PageHeader, PageHeaderContent, PageIcon } from '@/components/ui/page';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
-import { Table } from '@/components/ui/table';
 import {
   agendaItemsQueryOptions,
   agendaListsQueryOptions,
@@ -52,20 +31,15 @@ import {
   useUpdateAgendaItem,
   useUpdateAgendaList,
 } from '@/lib/queries/agenda';
-type FilterStatus = AgendaItemStatus | 'all';
-type FilterPriority = AgendaItemPriority | 'all';
-
 export function AgendaPage({ listId }: { listId?: string }) {
   const navigate = useNavigate();
   const timeZone = useUserTimezone();
   const [page, setPage] = React.useState(1);
   const pageSize = 20;
-  const [filterStatus, setFilterStatus] = React.useState<FilterStatus>('all');
-  const [filterPriority, setFilterPriority] = React.useState<FilterPriority>('all');
-  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [sheetItem, setSheetItem] = React.useState<AgendaItem | null>(null);
   const [sheetOpen, setSheetOpen] = React.useState(false);
-  const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
+  const [itemToDelete, setItemToDelete] = React.useState<AgendaItem | null>(null);
   const [deleteListOpen, setDeleteListOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [newTitle, setNewTitle] = React.useState('');
@@ -74,15 +48,13 @@ export function AgendaPage({ listId }: { listId?: string }) {
   const lists = listsData?.lists ?? [];
 
   const currentList = listId ? lists.find((l) => l.id === listId) : null;
+  const filterStatus = columnFilters.find((filter) => filter.id === 'status')?.value as AgendaItemStatus | undefined;
+  const filterPriority = columnFilters.find((filter) => filter.id === 'priority')?.value as
+    | AgendaItemPriority
+    | undefined;
 
   const { data: itemsData, isLoading } = useQuery(
-    agendaItemsQueryOptions({
-      page,
-      pageSize,
-      listId,
-      status: filterStatus === 'all' ? undefined : filterStatus,
-      priority: filterPriority === 'all' ? undefined : filterPriority,
-    }),
+    agendaItemsQueryOptions({ page, pageSize, listId, status: filterStatus, priority: filterPriority }),
   );
 
   const all = itemsData?.items ?? [];
@@ -92,18 +64,12 @@ export function AgendaPage({ listId }: { listId?: string }) {
   const totalPages = itemsData?.totalPages ?? 0;
   const total = itemsData?.total ?? 0;
 
-  // Adjust paging/selection during render when the filters or the loaded page change
-  const viewKey = `${listId ?? ''}|${filterStatus}|${filterPriority}`;
-  const resultKey = `${viewKey}|${itemsData?.page ?? 0}|${itemsData?.total ?? 0}`;
+  // Adjust paging during render when the selected list changes
+  const viewKey = listId ?? '';
   const [prevViewKey, setPrevViewKey] = React.useState(viewKey);
-  const [prevResultKey, setPrevResultKey] = React.useState(resultKey);
   if (prevViewKey !== viewKey) {
     setPrevViewKey(viewKey);
     setPage(1);
-  }
-  if (prevResultKey !== resultKey) {
-    setPrevResultKey(resultKey);
-    setSelectedIds(new Set());
   }
 
   const createMutation = useCreateAgendaItem();
@@ -116,21 +82,9 @@ export function AgendaPage({ listId }: { listId?: string }) {
   const [editTitleValue, setEditTitleValue] = React.useState('');
   const titleInputRef = React.useRef<HTMLInputElement>(null);
 
-  function toggleSelect(id: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function toggleSelectAll() {
-    if (selectedIds.size === items.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(items.map((i) => i.id)));
-    }
+  function handleToggleDone(item: AgendaItem) {
+    const nextStatus: AgendaItemStatus = item.status === 'done' ? 'open' : 'done';
+    updateMutation.mutate({ id: item.id, updates: { status: nextStatus } });
   }
 
   function openItem(item: AgendaItem) {
@@ -138,25 +92,25 @@ export function AgendaPage({ listId }: { listId?: string }) {
     setSheetOpen(true);
   }
 
-  function handleBulkDelete() {
-    const ids = Array.from(selectedIds);
-    void Promise.allSettled(ids.map((id) => deleteMutation.mutateAsync(id))).then(() => {
-      setSelectedIds(new Set());
-      setBulkDeleteOpen(false);
-    });
-  }
-
-  function handleBulkMarkDone() {
-    const ids = Array.from(selectedIds);
-    void Promise.allSettled(ids.map((id) => updateMutation.mutateAsync({ id, updates: { status: 'done' } }))).then(
-      () => {
-        setSelectedIds(new Set());
+  function handleDeleteItem() {
+    if (!itemToDelete) return;
+    deleteMutation.mutate(itemToDelete.id, {
+      onSuccess: () => {
+        setItemToDelete(null);
       },
-    );
+    });
   }
 
   function handleDateChange(itemId: string, dueAt: number | null) {
     updateMutation.mutate({ id: itemId, updates: { dueAt } });
+  }
+
+  function setFilter(id: 'status' | 'priority', value: string | null) {
+    setColumnFilters((current) => [
+      ...current.filter((filter) => filter.id !== id),
+      ...(!value || value === 'all' ? [] : [{ id, value }]),
+    ]);
+    setPage(1);
   }
 
   function handleCreate() {
@@ -199,24 +153,6 @@ export function AgendaPage({ listId }: { listId?: string }) {
   }
 
   const currentPage = (itemsData?.page ?? page) - 1;
-  let pageNumbers: number[];
-  if (totalPages <= 1) {
-    pageNumbers = [];
-  } else {
-    const firstPage = 0;
-    const lastPage = totalPages - 1;
-    const start = Math.max(firstPage, currentPage - 1);
-    const end = Math.min(lastPage, currentPage + 1);
-    const pages = new Set<number>([firstPage, lastPage]);
-    for (let index = start; index <= end; index += 1) {
-      pages.add(index);
-    }
-    pageNumbers = [...pages].toSorted((a, b) => a - b);
-  }
-
-  const allSelected = items.length > 0 && selectedIds.size === items.length;
-  const someSelected = selectedIds.size > 0 && selectedIds.size < items.length;
-
   const totalOpen = lists.reduce((sum, l) => sum + l.itemCounts.open, 0);
   const totalInProgress = lists.reduce((sum, l) => sum + l.itemCounts.in_progress, 0);
   const totalOverdue = lists.reduce((sum, l) => sum + l.itemCounts.overdue, 0);
@@ -302,13 +238,13 @@ export function AgendaPage({ listId }: { listId?: string }) {
 
         {/* Toolbar */}
         <Stack direction="row" wrap align="center" gap="m">
-          <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as FilterStatus)}>
+          <Select value={filterStatus ?? 'all'} onValueChange={(value) => setFilter('status', value)}>
             <SelectTrigger className="w-40 bg-background">
               <Text as="span" variant="body" truncate>
                 <Text as="span" variant="body" tone="muted">
                   Status:{' '}
                 </Text>
-                {filterStatus === 'all' ? 'All' : STATUS_LABELS[filterStatus]}
+                {filterStatus ? STATUS_LABELS[filterStatus] : 'All'}
               </Text>
             </SelectTrigger>
             <SelectContent>
@@ -321,13 +257,13 @@ export function AgendaPage({ listId }: { listId?: string }) {
             </SelectContent>
           </Select>
 
-          <Select value={filterPriority} onValueChange={(v) => setFilterPriority(v as FilterPriority)}>
+          <Select value={filterPriority ?? 'all'} onValueChange={(value) => setFilter('priority', value)}>
             <SelectTrigger className="w-40 bg-background">
               <Text as="span" variant="body" truncate>
                 <Text as="span" variant="body" tone="muted">
                   Priority:{' '}
                 </Text>
-                {filterPriority === 'all' ? 'All' : PRIORITY_LABELS[filterPriority]}
+                {filterPriority ? PRIORITY_LABELS[filterPriority] : 'All'}
               </Text>
             </SelectTrigger>
             <SelectContent>
@@ -339,137 +275,23 @@ export function AgendaPage({ listId }: { listId?: string }) {
               ))}
             </SelectContent>
           </Select>
-
-          {selectedIds.size > 0 && (
-            <div className="ml-auto flex items-center gap-space-m">
-              <Button variant="outline" size="sm" onClick={handleBulkMarkDone} disabled={updateMutation.isPending}>
-                <CheckCircleIcon />
-                Mark Done {selectedIds.size}
-              </Button>
-              <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
-                <Trash2Icon />
-                Delete {selectedIds.size}
-              </Button>
-            </div>
-          )}
         </Stack>
 
-        {/* Table */}
-        <Table.Container>
-          <Table.Scroller>
-            <Table.Root className="min-w-175 table-fixed">
-              <Table.Header>
-                <Table.Row className="hover:bg-transparent">
-                  <Table.Head className="w-10 text-center">
-                    <Checkbox
-                      checked={allSelected}
-                      data-indeterminate={someSelected || undefined}
-                      onCheckedChange={toggleSelectAll}
-                      aria-label="Select all"
-                    />
-                  </Table.Head>
-                  <Table.Head className="w-full min-w-0">Title</Table.Head>
-                  <Table.Head className="w-24 text-center">Status</Table.Head>
-                  <Table.Head className="w-20 text-center">Priority</Table.Head>
-                  {!listId && <Table.Head className="w-24 text-center">List</Table.Head>}
-                  <Table.Head className="w-24 text-right">Due</Table.Head>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {isLoading ? (
-                  <Table.SkeletonRows
-                    columns={[
-                      { className: 'w-10' },
-                      { className: 'w-full max-w-0 min-w-0 overflow-hidden', skeletonClassName: 'h-4' },
-                      { className: 'w-24', skeletonClassName: 'mx-auto h-5 w-16 rounded-full' },
-                      { className: 'w-20', skeletonClassName: 'mx-auto h-5 w-14 rounded-full' },
-                      ...(!listId ? [{ className: 'w-24' }] : []),
-                      { className: 'w-24', skeletonClassName: 'ml-auto h-4 w-16' },
-                    ]}
-                  />
-                ) : items.length === 0 ? (
-                  <Table.EmptyRow colSpan={listId ? 5 : 6}>
-                    <Empty>
-                      <EmptyMedia variant="icon">
-                        <Icon as={ListTodoIcon} size="m" />
-                      </EmptyMedia>
-                      <EmptyTitle>No agenda items</EmptyTitle>
-                      <EmptyDescription>Create items from chat or click "New Item" to get started.</EmptyDescription>
-                    </Empty>
-                  </Table.EmptyRow>
-                ) : (
-                  <>
-                    {items.map((item) => (
-                      <AgendaItemRow
-                        key={item.id}
-                        item={item}
-                        selected={selectedIds.has(item.id)}
-                        showListColumn={!listId}
-                        timeZone={timeZone}
-                        onToggleSelect={() => toggleSelect(item.id)}
-                        onClick={() => openItem(item)}
-                        onDateChange={handleDateChange}
-                      />
-                    ))}
-                  </>
-                )}
-              </Table.Body>
-            </Table.Root>
-          </Table.Scroller>
-
-          {totalPages > 1 ? (
-            <div className="border-t border-border px-space-l py-space-l">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      href="#"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        if (page > 1) setPage((c) => c - 1);
-                      }}
-                      className={page <= 1 ? 'pointer-events-none opacity-50' : undefined}
-                    />
-                  </PaginationItem>
-                  {pageNumbers.map((pageNumber, index) => {
-                    const previousPage = pageNumbers[index - 1];
-                    const showGap = pageNumber - previousPage > 1;
-                    return (
-                      <React.Fragment key={`page-${pageNumber}`}>
-                        {showGap ? (
-                          <PaginationItem>
-                            <PaginationEllipsis />
-                          </PaginationItem>
-                        ) : null}
-                        <PaginationItem>
-                          <PaginationLink
-                            href="#"
-                            isActive={pageNumber === currentPage}
-                            onClick={(event) => {
-                              event.preventDefault();
-                              setPage(pageNumber + 1);
-                            }}>
-                            {pageNumber + 1}
-                          </PaginationLink>
-                        </PaginationItem>
-                      </React.Fragment>
-                    );
-                  })}
-                  <PaginationItem>
-                    <PaginationNext
-                      href="#"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        if (page < totalPages) setPage((c) => c + 1);
-                      }}
-                      className={page >= totalPages ? 'pointer-events-none opacity-50' : undefined}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          ) : null}
-        </Table.Container>
+        <AgendaItemsTable
+          items={items}
+          isLoading={isLoading}
+          showListColumn={!listId}
+          timeZone={timeZone}
+          page={page}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          deletingItemId={deleteMutation.isPending ? deleteMutation.variables : undefined}
+          onPageChange={setPage}
+          onToggleDone={handleToggleDone}
+          onEdit={openItem}
+          onDelete={setItemToDelete}
+          onDateChange={handleDateChange}
+        />
       </PageContent>
 
       {/* Detail sheet */}
@@ -505,13 +327,16 @@ export function AgendaPage({ listId }: { listId?: string }) {
         </DialogContent>
       </Dialog>
 
-      {/* Bulk delete confirmation */}
+      {/* Delete item confirmation */}
       <ConfirmDialog
-        open={bulkDeleteOpen}
-        onOpenChange={setBulkDeleteOpen}
-        title={`Delete ${selectedIds.size} item${selectedIds.size === 1 ? '' : 's'}?`}
-        description="These items will be permanently removed."
-        onConfirm={handleBulkDelete}
+        open={itemToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setItemToDelete(null);
+        }}
+        title={`Delete "${itemToDelete?.title}"?`}
+        description="This agenda item will be permanently removed."
+        onConfirm={handleDeleteItem}
+        confirmLabel="Delete"
         isPending={deleteMutation.isPending}
       />
 
@@ -526,96 +351,5 @@ export function AgendaPage({ listId }: { listId?: string }) {
         isPending={deleteListMutation.isPending}
       />
     </Page>
-  );
-}
-
-type AgendaItemRowProps = {
-  item: AgendaItem;
-  selected: boolean;
-  showListColumn: boolean;
-  timeZone: string;
-  onToggleSelect: () => void;
-  onClick: () => void;
-  onDateChange: (itemId: string, dueAt: number | null) => void;
-};
-
-function AgendaItemRow({
-  item,
-  selected,
-  showListColumn,
-  timeZone,
-  onToggleSelect,
-  onClick,
-  onDateChange,
-}: AgendaItemRowProps) {
-  const [dateOpen, setDateOpen] = React.useState(false);
-  const [nowMs] = React.useState(() => Date.now());
-  const isDone = item.status === 'done' || item.status === 'cancelled';
-  const isOverdue = item.dueAt && item.dueAt < nowMs && item.status !== 'done' && item.status !== 'cancelled';
-
-  return (
-    <Table.Row className={`cursor-pointer ${isDone ? 'opacity-50' : ''}`} onClick={onClick}>
-      <Table.Cell
-        className="w-10 text-center"
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleSelect();
-        }}>
-        <Checkbox checked={selected || isDone} onCheckedChange={onToggleSelect} aria-label="Select item" />
-      </Table.Cell>
-
-      <Table.Cell className="w-full max-w-0 min-w-0 overflow-hidden">
-        <Table.Title className={`block ${isDone ? 'text-muted-foreground line-through' : ''}`}>
-          {item.title}
-        </Table.Title>
-        {item.description && (
-          <Table.Text className={`block truncate ${isDone ? 'line-through' : ''}`}>{item.description}</Table.Text>
-        )}
-      </Table.Cell>
-
-      <Table.Cell className="w-24 text-center">
-        <Table.Badge variant={STATUS_VARIANTS[item.status]} size="xs">
-          {STATUS_LABELS[item.status]}
-        </Table.Badge>
-      </Table.Cell>
-
-      <Table.Cell className="w-20 text-center">
-        <Table.Badge variant={PRIORITY_VARIANTS[item.priority]} size="xs">
-          {PRIORITY_LABELS[item.priority]}
-        </Table.Badge>
-      </Table.Cell>
-
-      {showListColumn && (
-        <Table.Cell className="w-24 text-center text-xs text-muted-foreground">{item.listName ?? '—'}</Table.Cell>
-      )}
-
-      <Table.Cell className="w-24 text-right" onClick={(e) => e.stopPropagation()}>
-        <Popover open={dateOpen} onOpenChange={setDateOpen}>
-          <PopoverTrigger
-            className={`inline-flex cursor-pointer rounded-sm px-space-xs py-space-2xs text-xs transition-colors hover:bg-muted ${isOverdue ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
-            {item.dueAt ? formatDateInTz(item.dueAt, timeZone) : '—'}
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-auto p-space-none">
-            <Calendar
-              mode="single"
-              selected={item.dueAt ? new Date(item.dueAt) : undefined}
-              onSelect={(date) => {
-                if (date) {
-                  const y = date.getFullYear();
-                  const m = date.getMonth();
-                  const d = date.getDate();
-                  const noon = new Date(y, m, d, 12, 0, 0);
-                  onDateChange(item.id, noon.getTime());
-                } else {
-                  onDateChange(item.id, null);
-                }
-                setDateOpen(false);
-              }}
-              defaultMonth={item.dueAt ? new Date(item.dueAt) : undefined}
-            />
-          </PopoverContent>
-        </Popover>
-      </Table.Cell>
-    </Table.Row>
   );
 }
