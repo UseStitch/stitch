@@ -1,13 +1,4 @@
-import {
-  ActivityIcon,
-  CheckCircleIcon,
-  CircleAlertIcon,
-  InboxIcon,
-  ListTodoIcon,
-  PencilIcon,
-  PlusIcon,
-  Trash2Icon,
-} from 'lucide-react';
+import { ActivityIcon, CircleAlertIcon, InboxIcon, ListTodoIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
 
 import { useQuery } from '@tanstack/react-query';
@@ -62,10 +53,9 @@ export function AgendaPage({ listId }: { listId?: string }) {
   const pageSize = 20;
   const [filterStatus, setFilterStatus] = React.useState<FilterStatus>('all');
   const [filterPriority, setFilterPriority] = React.useState<FilterPriority>('all');
-  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
   const [sheetItem, setSheetItem] = React.useState<AgendaItem | null>(null);
   const [sheetOpen, setSheetOpen] = React.useState(false);
-  const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
+  const [itemToDelete, setItemToDelete] = React.useState<AgendaItem | null>(null);
   const [deleteListOpen, setDeleteListOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [newTitle, setNewTitle] = React.useState('');
@@ -92,18 +82,12 @@ export function AgendaPage({ listId }: { listId?: string }) {
   const totalPages = itemsData?.totalPages ?? 0;
   const total = itemsData?.total ?? 0;
 
-  // Adjust paging/selection during render when the filters or the loaded page change
+  // Adjust paging during render when the filters change
   const viewKey = `${listId ?? ''}|${filterStatus}|${filterPriority}`;
-  const resultKey = `${viewKey}|${itemsData?.page ?? 0}|${itemsData?.total ?? 0}`;
   const [prevViewKey, setPrevViewKey] = React.useState(viewKey);
-  const [prevResultKey, setPrevResultKey] = React.useState(resultKey);
   if (prevViewKey !== viewKey) {
     setPrevViewKey(viewKey);
     setPage(1);
-  }
-  if (prevResultKey !== resultKey) {
-    setPrevResultKey(resultKey);
-    setSelectedIds(new Set());
   }
 
   const createMutation = useCreateAgendaItem();
@@ -116,21 +100,9 @@ export function AgendaPage({ listId }: { listId?: string }) {
   const [editTitleValue, setEditTitleValue] = React.useState('');
   const titleInputRef = React.useRef<HTMLInputElement>(null);
 
-  function toggleSelect(id: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function toggleSelectAll() {
-    if (selectedIds.size === items.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(items.map((i) => i.id)));
-    }
+  function handleToggleDone(item: AgendaItem) {
+    const nextStatus: AgendaItemStatus = item.status === 'done' ? 'open' : 'done';
+    updateMutation.mutate({ id: item.id, updates: { status: nextStatus } });
   }
 
   function openItem(item: AgendaItem) {
@@ -138,21 +110,13 @@ export function AgendaPage({ listId }: { listId?: string }) {
     setSheetOpen(true);
   }
 
-  function handleBulkDelete() {
-    const ids = Array.from(selectedIds);
-    void Promise.allSettled(ids.map((id) => deleteMutation.mutateAsync(id))).then(() => {
-      setSelectedIds(new Set());
-      setBulkDeleteOpen(false);
-    });
-  }
-
-  function handleBulkMarkDone() {
-    const ids = Array.from(selectedIds);
-    void Promise.allSettled(ids.map((id) => updateMutation.mutateAsync({ id, updates: { status: 'done' } }))).then(
-      () => {
-        setSelectedIds(new Set());
+  function handleDeleteItem() {
+    if (!itemToDelete) return;
+    deleteMutation.mutate(itemToDelete.id, {
+      onSuccess: () => {
+        setItemToDelete(null);
       },
-    );
+    });
   }
 
   function handleDateChange(itemId: string, dueAt: number | null) {
@@ -213,9 +177,6 @@ export function AgendaPage({ listId }: { listId?: string }) {
     }
     pageNumbers = [...pages].toSorted((a, b) => a - b);
   }
-
-  const allSelected = items.length > 0 && selectedIds.size === items.length;
-  const someSelected = selectedIds.size > 0 && selectedIds.size < items.length;
 
   const totalOpen = lists.reduce((sum, l) => sum + l.itemCounts.open, 0);
   const totalInProgress = lists.reduce((sum, l) => sum + l.itemCounts.in_progress, 0);
@@ -339,19 +300,6 @@ export function AgendaPage({ listId }: { listId?: string }) {
               ))}
             </SelectContent>
           </Select>
-
-          {selectedIds.size > 0 && (
-            <div className="ml-auto flex items-center gap-space-m">
-              <Button variant="outline" size="sm" onClick={handleBulkMarkDone} disabled={updateMutation.isPending}>
-                <CheckCircleIcon />
-                Mark Done {selectedIds.size}
-              </Button>
-              <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
-                <Trash2Icon />
-                Delete {selectedIds.size}
-              </Button>
-            </div>
-          )}
         </Stack>
 
         {/* Table */}
@@ -360,19 +308,13 @@ export function AgendaPage({ listId }: { listId?: string }) {
             <Table.Root className="min-w-175 table-fixed">
               <Table.Header>
                 <Table.Row className="hover:bg-transparent">
-                  <Table.Head className="w-10 text-center">
-                    <Checkbox
-                      checked={allSelected}
-                      data-indeterminate={someSelected || undefined}
-                      onCheckedChange={toggleSelectAll}
-                      aria-label="Select all"
-                    />
-                  </Table.Head>
+                  <Table.Head className="w-10 text-center" />
                   <Table.Head className="w-full min-w-0">Title</Table.Head>
                   <Table.Head className="w-24 text-center">Status</Table.Head>
                   <Table.Head className="w-20 text-center">Priority</Table.Head>
                   {!listId && <Table.Head className="w-24 text-center">List</Table.Head>}
-                  <Table.Head className="w-24 text-right">Due</Table.Head>
+                  <Table.Head className="w-28">Due</Table.Head>
+                  <Table.Head className="w-24" />
                 </Table.Row>
               </Table.Header>
               <Table.Body>
@@ -384,11 +326,12 @@ export function AgendaPage({ listId }: { listId?: string }) {
                       { className: 'w-24', skeletonClassName: 'mx-auto h-5 w-16 rounded-full' },
                       { className: 'w-20', skeletonClassName: 'mx-auto h-5 w-14 rounded-full' },
                       ...(!listId ? [{ className: 'w-24' }] : []),
-                      { className: 'w-24', skeletonClassName: 'ml-auto h-4 w-16' },
+                      { className: 'w-28', skeletonClassName: 'h-4 w-16' },
+                      { className: 'w-24', skeletonClassName: 'ml-auto h-7 w-16 rounded-lg' },
                     ]}
                   />
                 ) : items.length === 0 ? (
-                  <Table.EmptyRow colSpan={listId ? 5 : 6}>
+                  <Table.EmptyRow colSpan={listId ? 6 : 7}>
                     <Empty>
                       <EmptyMedia variant="icon">
                         <Icon as={ListTodoIcon} size="m" />
@@ -403,11 +346,12 @@ export function AgendaPage({ listId }: { listId?: string }) {
                       <AgendaItemRow
                         key={item.id}
                         item={item}
-                        selected={selectedIds.has(item.id)}
                         showListColumn={!listId}
                         timeZone={timeZone}
-                        onToggleSelect={() => toggleSelect(item.id)}
-                        onClick={() => openItem(item)}
+                        deletePending={deleteMutation.isPending && deleteMutation.variables === item.id}
+                        onToggleDone={() => handleToggleDone(item)}
+                        onEdit={() => openItem(item)}
+                        onDelete={() => setItemToDelete(item)}
                         onDateChange={handleDateChange}
                       />
                     ))}
@@ -505,13 +449,16 @@ export function AgendaPage({ listId }: { listId?: string }) {
         </DialogContent>
       </Dialog>
 
-      {/* Bulk delete confirmation */}
+      {/* Delete item confirmation */}
       <ConfirmDialog
-        open={bulkDeleteOpen}
-        onOpenChange={setBulkDeleteOpen}
-        title={`Delete ${selectedIds.size} item${selectedIds.size === 1 ? '' : 's'}?`}
-        description="These items will be permanently removed."
-        onConfirm={handleBulkDelete}
+        open={itemToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setItemToDelete(null);
+        }}
+        title={`Delete "${itemToDelete?.title}"?`}
+        description="This agenda item will be permanently removed."
+        onConfirm={handleDeleteItem}
+        confirmLabel="Delete"
         isPending={deleteMutation.isPending}
       />
 
@@ -531,21 +478,23 @@ export function AgendaPage({ listId }: { listId?: string }) {
 
 type AgendaItemRowProps = {
   item: AgendaItem;
-  selected: boolean;
   showListColumn: boolean;
   timeZone: string;
-  onToggleSelect: () => void;
-  onClick: () => void;
+  deletePending?: boolean;
+  onToggleDone: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
   onDateChange: (itemId: string, dueAt: number | null) => void;
 };
 
 function AgendaItemRow({
   item,
-  selected,
   showListColumn,
   timeZone,
-  onToggleSelect,
-  onClick,
+  deletePending,
+  onToggleDone,
+  onEdit,
+  onDelete,
   onDateChange,
 }: AgendaItemRowProps) {
   const [dateOpen, setDateOpen] = React.useState(false);
@@ -554,14 +503,13 @@ function AgendaItemRow({
   const isOverdue = item.dueAt && item.dueAt < nowMs && item.status !== 'done' && item.status !== 'cancelled';
 
   return (
-    <Table.Row className={`cursor-pointer ${isDone ? 'opacity-50' : ''}`} onClick={onClick}>
-      <Table.Cell
-        className="w-10 text-center"
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleSelect();
-        }}>
-        <Checkbox checked={selected || isDone} onCheckedChange={onToggleSelect} aria-label="Select item" />
+    <Table.Row className={isDone ? 'opacity-50' : undefined}>
+      <Table.Cell className="w-10 text-center">
+        <Checkbox
+          checked={item.status === 'done'}
+          onCheckedChange={onToggleDone}
+          aria-label={item.status === 'done' ? 'Mark as open' : 'Mark as done'}
+        />
       </Table.Cell>
 
       <Table.Cell className="w-full max-w-0 min-w-0 overflow-hidden">
@@ -589,13 +537,13 @@ function AgendaItemRow({
         <Table.Cell className="w-24 text-center text-xs text-muted-foreground">{item.listName ?? '—'}</Table.Cell>
       )}
 
-      <Table.Cell className="w-24 text-right" onClick={(e) => e.stopPropagation()}>
+      <Table.Cell className="w-28">
         <Popover open={dateOpen} onOpenChange={setDateOpen}>
           <PopoverTrigger
             className={`inline-flex cursor-pointer rounded-sm px-space-xs py-space-2xs text-xs transition-colors hover:bg-muted ${isOverdue ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
             {item.dueAt ? formatDateInTz(item.dueAt, timeZone) : '—'}
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-auto p-space-none">
+          <PopoverContent align="start" className="w-auto p-space-none">
             <Calendar
               mode="single"
               selected={item.dueAt ? new Date(item.dueAt) : undefined}
@@ -615,6 +563,23 @@ function AgendaItemRow({
             />
           </PopoverContent>
         </Popover>
+      </Table.Cell>
+
+      <Table.Cell className="w-24">
+        <Table.Actions>
+          <Button type="button" variant="ghost" size="icon-sm" onClick={onEdit} aria-label={`Edit ${item.title}`}>
+            <Icon as={PencilIcon} size="s" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={onDelete}
+            disabled={deletePending}
+            aria-label={`Delete ${item.title}`}>
+            <Icon as={Trash2Icon} size="s" tone="destructive" />
+          </Button>
+        </Table.Actions>
       </Table.Cell>
     </Table.Row>
   );
