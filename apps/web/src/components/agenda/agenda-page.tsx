@@ -3,6 +3,7 @@ import * as React from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
+import type { ColumnFiltersState } from '@tanstack/react-table';
 
 import type { AgendaItem, AgendaItemPriority, AgendaItemStatus } from '@stitch/shared/agenda/types';
 import { AGENDA_ITEM_PRIORITIES, AGENDA_ITEM_STATUSES } from '@stitch/shared/agenda/types';
@@ -34,6 +35,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { Table } from '@/components/ui/table';
+import { createAppColumnHelper, useAppTable } from '@/hooks/table-hook';
 import {
   agendaItemsQueryOptions,
   agendaListsQueryOptions,
@@ -43,16 +45,19 @@ import {
   useUpdateAgendaItem,
   useUpdateAgendaList,
 } from '@/lib/queries/agenda';
-type FilterStatus = AgendaItemStatus | 'all';
-type FilterPriority = AgendaItemPriority | 'all';
+const columnHelper = createAppColumnHelper<AgendaItem>();
+
+const agendaFilterColumns = columnHelper.columns([
+  columnHelper.accessor('status', {}),
+  columnHelper.accessor('priority', {}),
+]);
 
 export function AgendaPage({ listId }: { listId?: string }) {
   const navigate = useNavigate();
   const timeZone = useUserTimezone();
   const [page, setPage] = React.useState(1);
   const pageSize = 20;
-  const [filterStatus, setFilterStatus] = React.useState<FilterStatus>('all');
-  const [filterPriority, setFilterPriority] = React.useState<FilterPriority>('all');
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [sheetItem, setSheetItem] = React.useState<AgendaItem | null>(null);
   const [sheetOpen, setSheetOpen] = React.useState(false);
   const [itemToDelete, setItemToDelete] = React.useState<AgendaItem | null>(null);
@@ -64,26 +69,35 @@ export function AgendaPage({ listId }: { listId?: string }) {
   const lists = listsData?.lists ?? [];
 
   const currentList = listId ? lists.find((l) => l.id === listId) : null;
+  const filterStatus = columnFilters.find((filter) => filter.id === 'status')?.value as AgendaItemStatus | undefined;
+  const filterPriority = columnFilters.find((filter) => filter.id === 'priority')?.value as
+    | AgendaItemPriority
+    | undefined;
 
   const { data: itemsData, isLoading } = useQuery(
-    agendaItemsQueryOptions({
-      page,
-      pageSize,
-      listId,
-      status: filterStatus === 'all' ? undefined : filterStatus,
-      priority: filterPriority === 'all' ? undefined : filterPriority,
-    }),
+    agendaItemsQueryOptions({ page, pageSize, listId, status: filterStatus, priority: filterPriority }),
   );
 
   const all = itemsData?.items ?? [];
   const active = all.filter((i) => i.status !== 'done' && i.status !== 'cancelled');
   const completed = all.filter((i) => i.status === 'done' || i.status === 'cancelled');
   const items = [...active, ...completed];
+  const table = useAppTable({
+    data: items,
+    columns: agendaFilterColumns,
+    getRowId: (item) => item.id,
+    state: { columnFilters },
+    onColumnFiltersChange: (updater) => {
+      setColumnFilters(updater);
+      setPage(1);
+    },
+    manualFiltering: true,
+  });
   const totalPages = itemsData?.totalPages ?? 0;
   const total = itemsData?.total ?? 0;
 
-  // Adjust paging during render when the filters change
-  const viewKey = `${listId ?? ''}|${filterStatus}|${filterPriority}`;
+  // Adjust paging during render when the selected list changes
+  const viewKey = listId ?? '';
   const [prevViewKey, setPrevViewKey] = React.useState(viewKey);
   if (prevViewKey !== viewKey) {
     setPrevViewKey(viewKey);
@@ -263,13 +277,15 @@ export function AgendaPage({ listId }: { listId?: string }) {
 
         {/* Toolbar */}
         <Stack direction="row" wrap align="center" gap="m">
-          <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as FilterStatus)}>
+          <Select
+            value={filterStatus ?? 'all'}
+            onValueChange={(value) => table.getColumn('status')?.setFilterValue(value === 'all' ? undefined : value)}>
             <SelectTrigger className="w-40 bg-background">
               <Text as="span" variant="body" truncate>
                 <Text as="span" variant="body" tone="muted">
                   Status:{' '}
                 </Text>
-                {filterStatus === 'all' ? 'All' : STATUS_LABELS[filterStatus]}
+                {filterStatus ? STATUS_LABELS[filterStatus] : 'All'}
               </Text>
             </SelectTrigger>
             <SelectContent>
@@ -282,13 +298,15 @@ export function AgendaPage({ listId }: { listId?: string }) {
             </SelectContent>
           </Select>
 
-          <Select value={filterPriority} onValueChange={(v) => setFilterPriority(v as FilterPriority)}>
+          <Select
+            value={filterPriority ?? 'all'}
+            onValueChange={(value) => table.getColumn('priority')?.setFilterValue(value === 'all' ? undefined : value)}>
             <SelectTrigger className="w-40 bg-background">
               <Text as="span" variant="body" truncate>
                 <Text as="span" variant="body" tone="muted">
                   Priority:{' '}
                 </Text>
-                {filterPriority === 'all' ? 'All' : PRIORITY_LABELS[filterPriority]}
+                {filterPriority ? PRIORITY_LABELS[filterPriority] : 'All'}
               </Text>
             </SelectTrigger>
             <SelectContent>
@@ -330,7 +348,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
                       { className: 'w-24', skeletonClassName: 'ml-auto h-7 w-16 rounded-lg' },
                     ]}
                   />
-                ) : items.length === 0 ? (
+                ) : table.getRowModel().rows.length === 0 ? (
                   <Table.EmptyRow colSpan={listId ? 6 : 7}>
                     <Empty>
                       <EmptyMedia variant="icon">
@@ -342,7 +360,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
                   </Table.EmptyRow>
                 ) : (
                   <>
-                    {items.map((item) => (
+                    {table.getRowModel().rows.map(({ original: item }) => (
                       <AgendaItemRow
                         key={item.id}
                         item={item}

@@ -1,4 +1,5 @@
 import {
+  columnFilteringFeature,
   createSortedRowModel,
   createTableHook,
   createTableHookContexts,
@@ -14,6 +15,7 @@ import { Table } from '@/components/ui/table';
 // --- Shared features ---
 
 const features = tableFeatures({
+  columnFilteringFeature,
   rowSortingFeature,
   sortedRowModel: createSortedRowModel(),
   sortFns: { alphanumeric: sortFn_alphanumeric, text: sortFn_text },
@@ -21,8 +23,7 @@ const features = tableFeatures({
 
 // --- Scoped contexts (created before cell components so they can call useCellContext) ---
 
-const { tableContext, cellContext, headerContext, useCellContext } =
-  createTableHookContexts<typeof features>();
+const { tableContext, cellContext, headerContext, useCellContext } = createTableHookContexts<typeof features>();
 
 // --- Cell Components ---
 // These use useCellContext() internally via the createTableHook pattern.
@@ -84,13 +85,7 @@ function SkeletonCell() {
 
 // --- createTableHook ---
 
-export const {
-  useAppTable,
-  createAppColumnHelper,
-  
-  
-  
-} = createTableHook({
+export const { useAppTable, createAppColumnHelper } = createTableHook({
   features,
   tableContext,
   cellContext,
@@ -109,5 +104,3 @@ export const {
     SkeletonCell,
   },
 });
-
-;
