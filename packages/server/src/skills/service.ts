@@ -14,7 +14,7 @@ import type {
   SkillType,
 } from '@stitch/shared/skills/types';
 
-import { getDisabledAppSkillNames } from '@/apps/service.js';
+import { getDisabledAppFields } from '@/apps/service.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import type { BuiltInSkill } from '@/skills/built-in-skills.js';
@@ -389,7 +389,7 @@ export async function buildSkillsSystemPrompt(): Promise<string> {
   if (skills.length === 0) return '';
 
   const [disabledAppSkillNames, disabledSkillNames] = await Promise.all([
-    getDisabledAppSkillNames(),
+    getDisabledAppFields('skillNames'),
     getDisabledToolIdentifiers('skill'),
   ]);
   const lines = skills

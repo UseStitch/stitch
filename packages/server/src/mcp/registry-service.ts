@@ -3,8 +3,9 @@ import z from 'zod';
 
 import type { McpRegistryPayload, McpRegistryServer } from '@stitch/shared/mcp/types';
 
+import type { FetchLike } from '@/lib/icon-cache.js';
 import { PATHS } from '@/lib/paths.js';
-import { createRegistryCache, getStitchRegistryUserAgent, type FetchLike } from '@/lib/registry-cache.js';
+import { createRegistryCache, getStitchRegistryUserAgent } from '@/lib/registry-cache.js';
 
 const DEFAULT_MCP_REGISTRY_URL = 'https://usestitch.ai/mcp-registry.json';
 

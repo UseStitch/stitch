@@ -179,18 +179,19 @@ export async function getAgendaItems(input: {
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-  return paginatedQuery({
+  const result = await paginatedQuery({
     dataQuery: db
       .select({ item: agendaItems, listName: agendaLists.name })
       .from(agendaItems)
       .leftJoin(agendaLists, eq(agendaItems.listId, agendaLists.id))
       .where(where)
       .orderBy(asc(agendaItems.position), desc(agendaItems.createdAt)),
-    countQuery: db.$count(agendaItems, where),
+    count: db.$count(agendaItems, where),
     page: input.page,
     pageSize: input.pageSize,
-    transform: (r) => toAgendaItem(r.item, r.listName ?? undefined),
   });
+
+  return { ...result, items: result.items.map((r) => toAgendaItem(r.item, r.listName ?? undefined)) };
 }
 
 export function getAgendaItem(id: PrefixedString<'aitm'>): AgendaItem {

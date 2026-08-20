@@ -66,13 +66,18 @@ export async function listAutomations(input: { page: number; pageSize: number })
 
   const result = await paginatedQuery({
     dataQuery: db.select().from(automations).orderBy(asc(automations.createdAt)),
-    countQuery: db.$count(automations),
+    count: db.$count(automations),
     page: input.page,
     pageSize: input.pageSize,
-    transform: toAutomationRow,
   });
 
-  return { automations: result.items, ...result };
+  return {
+    automations: result.items.map(toAutomationRow),
+    page: result.page,
+    pageSize: result.pageSize,
+    total: result.total,
+    totalPages: result.totalPages,
+  };
 }
 
 export async function getAutomation(automationId: string): Promise<Automation> {

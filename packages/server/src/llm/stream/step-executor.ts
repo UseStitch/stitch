@@ -9,11 +9,12 @@ import { StreamAccumulator } from './stream-accumulator.js';
 import type { ToolCallRecord } from './doom-loop.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
-import { MAX_RETRIES, sleep, delay, extractErrorInfo, isRetryable } from '@/lib/retry.js';
+import { MAX_RETRIES, sleep, delay, isRetryable } from '@/lib/retry.js';
 import { addCacheControlToMessages, addCacheControlToTools } from '@/llm/cache-control.js';
 import { getProviderOptions } from '@/llm/provider-options.js';
 import { sanitizeToolSchemasForProvider } from '@/llm/provider-schema.js';
 import { createProvider } from '@/llm/provider/provider.js';
+import { mapAIError } from '@/llm/stream/ai-error-mapper.js';
 import {
   ContextOverflowError,
   getErrorCode,
@@ -253,7 +254,7 @@ export async function executeStepWithRetry(opts: StepOptions): Promise<StepResul
       if (isPermissionRejectedError(error)) throw error;
 
       attempt++;
-      const errorInfo = extractErrorInfo(error, opts.providerId);
+      const errorInfo = mapAIError(error, opts.providerId);
 
       log.error(
         {

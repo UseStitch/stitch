@@ -5,7 +5,7 @@ import type {
   ElectronBrowserSearchPageResult,
 } from '@stitch/shared/browser/electron';
 
-import { getBrowserManager } from '@/lib/browser/browser-manager.js';
+import { sendBrowserCommand } from '@/lib/browser/browser-manager.js';
 import type { BrowserTab } from '@/lib/browser/types.js';
 import {
   serializeBrowserSnapshot,
@@ -110,8 +110,7 @@ export async function withFreshSnapshot(
   result: Record<string, unknown>,
   signal?: AbortSignal,
 ): Promise<Record<string, unknown>> {
-  const browser = getBrowserManager();
-  const snapshot = await browser.snapshot(signal);
+  const snapshot = await sendBrowserCommand({ action: 'snapshot' }, signal);
   const compactSnapshot = serializeBrowserSnapshot(snapshot);
   const output = typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2);
   return {

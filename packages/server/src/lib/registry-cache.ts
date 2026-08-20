@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import type { FetchLike } from '@/lib/icon-cache.js';
 import * as Log from '@/lib/log.js';
 
 class RegistryCacheHttpError extends Error {
@@ -17,9 +18,6 @@ const DEFAULT_TIMEOUT_MS = 10_000;
 const DEFAULT_VERSION = '0.0.0';
 
 type BunGlobal = typeof globalThis & { Bun?: { version?: string } };
-
-export type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
-
 type RegistryCacheOptions<T> = {
   /** Absolute path to the disk cache file. */
   cacheFilePath: string;

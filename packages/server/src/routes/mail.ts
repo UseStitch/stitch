@@ -1,5 +1,5 @@
 import { zValidator } from '@hono/zod-validator';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, type SQL } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
@@ -69,8 +69,8 @@ function errorResponse(c: Context, error: unknown, status: 400 | 404 | 500 = 500
   return c.json({ error: Error.isError(error) ? error.message : String(error) }, status);
 }
 
-async function connectorInstanceById(connectorInstanceId: string) {
-  const [instance] = await getDb()
+function getConnectorInstances(where: SQL | undefined) {
+  return getDb()
     .select({
       id: connectorInstances.id,
       connectorId: connectorInstances.connectorId,
@@ -79,7 +79,11 @@ async function connectorInstanceById(connectorInstanceId: string) {
       accountEmail: connectorInstances.accountEmail,
     })
     .from(connectorInstances)
-    .where(eq(connectorInstances.id, connectorInstanceId as ConnectorInstanceId));
+    .where(where);
+}
+
+async function connectorInstanceById(connectorInstanceId: string) {
+  const [instance] = await getConnectorInstances(eq(connectorInstances.id, connectorInstanceId as ConnectorInstanceId));
   return instance;
 }
 
@@ -87,16 +91,7 @@ mailRouter.get('/accounts', async (c) => c.json(await listAccounts()));
 
 mailRouter.get('/eligible-accounts', async (c) => {
   const [instances, accounts] = await Promise.all([
-    getDb()
-      .select({
-        id: connectorInstances.id,
-        connectorId: connectorInstances.connectorId,
-        status: connectorInstances.status,
-        scopes: connectorInstances.scopes,
-        accountEmail: connectorInstances.accountEmail,
-      })
-      .from(connectorInstances)
-      .where(eq(connectorInstances.connectorId, 'google')),
+    getConnectorInstances(eq(connectorInstances.connectorId, 'google')),
     getMailDb().select({ connectorInstanceId: mailAccounts.connectorInstanceId }).from(mailAccounts),
   ]);
 

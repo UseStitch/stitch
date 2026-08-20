@@ -1,4 +1,4 @@
-import { getDisabledAppToolsetIds, isToolsetEnabledByApp } from '@/apps/service.js';
+import { getDisabledAppFields, isToolsetEnabledByApp } from '@/apps/service.js';
 import * as Log from '@/lib/log.js';
 import type { SessionActiveToolset, SessionToolsetScope } from '@/llm/stream/session-toolsets.js';
 import { getDisabledToolIdentifiers, isToolEnabled } from '@/tools/enabled-service.js';
@@ -209,7 +209,7 @@ export class ToolsetManager {
   async getCatalogWithState(options?: { includeTools?: boolean }): Promise<ToolsetView[]> {
     const [disabledIds, disabledAppToolsetIds] = await Promise.all([
       getDisabledToolIdentifiers('toolset'),
-      getDisabledAppToolsetIds(),
+      getDisabledAppFields('toolsetIds'),
     ]);
     return listToolsets()
       .filter(

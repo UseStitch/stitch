@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { toolError } from '@stitch/shared/tools/types';
 
-import { getBrowserManager } from '@/lib/browser/browser-manager.js';
+import { sendBrowserCommand } from '@/lib/browser/browser-manager.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { snapshotFields, summarizeOperationResult, withFreshSnapshot } from '@/tools/toolsets/browser/formatters.js';
 import {
@@ -133,7 +133,6 @@ function createBatchTool(context: ToolContext) {
     inputSchema: browserBatchInputSchema,
     execute: async (input, execContext) => {
       return runBrowserTool(execContext.abortSignal, context.sessionId, async (signal) => {
-        const browser = getBrowserManager();
         const results: Array<{
           index: number;
           tool: string;
@@ -153,7 +152,7 @@ function createBatchTool(context: ToolContext) {
 
           let beforeState: string | null = null;
           try {
-            beforeState = await browser.getExecutionState(signal);
+            beforeState = JSON.stringify(await sendBrowserCommand({ action: 'executionState' }, signal));
           } catch {
             beforeState = null;
           }
@@ -197,28 +196,28 @@ function createBatchTool(context: ToolContext) {
 
           if (op && actionTerminatesSequence(action, op)) {
             stoppedReason = `Stopped after ${action.tool}.${op}: terminates sequence.`;
-            freshSnapshot = await browser.snapshot(signal);
+            freshSnapshot = await sendBrowserCommand({ action: 'snapshot' }, signal);
             break;
           }
 
           if (input.stopOnPageChange) {
             let afterState: string | null = null;
             try {
-              afterState = await browser.getExecutionState(signal);
+              afterState = JSON.stringify(await sendBrowserCommand({ action: 'executionState' }, signal));
             } catch {
               afterState = null;
             }
 
             if (beforeState && afterState && beforeState !== afterState) {
               stoppedReason = `Stopped after action ${i + 1}: page state changed.`;
-              freshSnapshot = await browser.snapshot(signal);
+              freshSnapshot = await sendBrowserCommand({ action: 'snapshot' }, signal);
               break;
             }
           }
         }
 
         if (!freshSnapshot && lastSuccessfulAction && shouldReturnFreshSnapshot(lastSuccessfulAction)) {
-          freshSnapshot = await browser.snapshot(signal);
+          freshSnapshot = await sendBrowserCommand({ action: 'snapshot' }, signal);
         }
 
         const executed = results.length;

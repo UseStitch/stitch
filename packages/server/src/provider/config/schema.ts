@@ -35,11 +35,6 @@ const AnthropicCredentialsSchema = z.object({
   ]),
 });
 
-const GoogleCredentialsSchema = z.object({
-  providerId: z.literal('google'),
-  auth: z.object({ method: z.literal('api-key'), apiKey: z.string() }),
-});
-
 const GoogleVertexCredentialsSchema = z.object({
   providerId: z.literal('google-vertex'),
   project: z.string().optional(),
@@ -58,26 +53,6 @@ const OpenAICredentialsSchema = z.object({
   auth: z.object({ method: z.literal('api-key'), apiKey: z.string() }),
 });
 
-const OpenRouterCredentialsSchema = z.object({
-  providerId: z.literal('openrouter'),
-  auth: z.object({ method: z.literal('api-key'), apiKey: z.string() }),
-});
-
-const VercelCredentialsSchema = z.object({
-  providerId: z.literal('vercel'),
-  auth: z.object({ method: z.literal('api-key'), apiKey: z.string() }),
-});
-
-const NvidiaCredentialsSchema = z.object({
-  providerId: z.literal('nvidia'),
-  auth: z.object({ method: z.literal('api-key'), apiKey: z.string() }),
-});
-
-const ElevenLabsCredentialsSchema = z.object({
-  providerId: z.literal('elevenlabs'),
-  auth: z.object({ method: z.literal('api-key'), apiKey: z.string() }),
-});
-
 const OllamaCredentialsSchema = z.object({
   providerId: z.literal('ollama_local'),
   baseURL: baseURLSchema,
@@ -90,24 +65,31 @@ const LmStudioCredentialsSchema = z.object({
   auth: z.object({ method: z.literal('none') }),
 });
 
-const AssemblyAICredentialsSchema = z.object({
-  providerId: z.literal('assemblyai'),
-  auth: z.object({ method: z.literal('api-key'), apiKey: z.string() }),
-});
+const apiKeyAuthSchema = z.object({ method: z.literal('api-key'), apiKey: z.string() });
+
+const API_KEY_ONLY_PROVIDERS = ['google', 'openrouter', 'vercel', 'nvidia', 'elevenlabs', 'assemblyai'] as const;
+
+type ApiKeyProviderSchemas = [
+  z.ZodObject<{ providerId: z.ZodLiteral<'google'>; auth: typeof apiKeyAuthSchema }>,
+  z.ZodObject<{ providerId: z.ZodLiteral<'openrouter'>; auth: typeof apiKeyAuthSchema }>,
+  z.ZodObject<{ providerId: z.ZodLiteral<'vercel'>; auth: typeof apiKeyAuthSchema }>,
+  z.ZodObject<{ providerId: z.ZodLiteral<'nvidia'>; auth: typeof apiKeyAuthSchema }>,
+  z.ZodObject<{ providerId: z.ZodLiteral<'elevenlabs'>; auth: typeof apiKeyAuthSchema }>,
+  z.ZodObject<{ providerId: z.ZodLiteral<'assemblyai'>; auth: typeof apiKeyAuthSchema }>,
+];
+
+const apiKeyProviderSchemas = API_KEY_ONLY_PROVIDERS.map((id) =>
+  z.object({ providerId: z.literal(id), auth: apiKeyAuthSchema }),
+) as unknown as ApiKeyProviderSchemas;
 
 export const ProviderCredentialsSchema = z.discriminatedUnion('providerId', [
-  AssemblyAICredentialsSchema,
   BedrockCredentialsSchema,
   AnthropicCredentialsSchema,
-  ElevenLabsCredentialsSchema,
-  GoogleCredentialsSchema,
   GoogleVertexCredentialsSchema,
-  LmStudioCredentialsSchema,
-  NvidiaCredentialsSchema,
   OpenAICredentialsSchema,
-  OpenRouterCredentialsSchema,
-  VercelCredentialsSchema,
+  LmStudioCredentialsSchema,
   OllamaCredentialsSchema,
+  ...apiKeyProviderSchemas,
 ]);
 
 export type ProviderCredentials = z.infer<typeof ProviderCredentialsSchema>;
