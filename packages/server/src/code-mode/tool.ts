@@ -43,7 +43,7 @@ type CodeModeToolResult = { tool: Tool; getSystemPrompt: () => string };
 export function createCodeModeTool(options: CodeModeOptions): CodeModeToolResult {
   const driver = options.driver ?? getDefaultDriver();
   const filter = options.filter ?? {};
-  const isolateOptions = options.isolateOptions ?? {};
+  const isolateOptions = options.isolateOptions ?? {}; // TODO: Bun1.4 Upgrade allows these now, use sensible defaults
 
   const getFilteredTools = () => applyToolFilter(options.getTools(), filter);
 
