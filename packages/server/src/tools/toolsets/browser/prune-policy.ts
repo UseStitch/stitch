@@ -1,10 +1,13 @@
-import type { ToolPrunePolicy } from '@/llm/tool-prune-policy.js';
+import type { StoredPart } from '@stitch/shared/chat/messages';
+import type { PrefixedString } from '@stitch/shared/id';
 
 const BROWSER_PRUNE_PROTECT = 10_000;
 
-export const browserPrunePolicy: ToolPrunePolicy = {
+export type PrunePolicyMessage = { id: PrefixedString<'msg'>; parts: StoredPart[] };
+
+export const browserPrunePolicy = {
   name: 'browser',
-  findProtectOverrides(messages) {
+  findProtectOverrides(messages: PrunePolicyMessage[]): Map<string, { protectTokens: number; reason: string }> {
     const overrides = new Map<string, { protectTokens: number; reason: string }>();
 
     for (const msg of messages) {

@@ -37,37 +37,15 @@ describe('applyToolFilter', () => {
     clearToolsets();
   });
 
-  test('excludes tools from excluded toolset IDs', () => {
-    registerTestToolset('browser', ['browser']);
-    registerTestToolset('mcp:mcp_abcdefghijklmnopqrstuvwxyz', ['mcp_abcdefghijklmnopqrstuvwxyz_search'], 'mcp');
+  test('excludes tools from always excluded toolsets', () => {
+    registerTestToolset('browser', ['browser_open']);
+    registerTestToolset('agenda', ['agenda_list']);
+    registerTestToolset('custom', ['custom_action']);
 
-    const input = buildTools(['browser', 'mcp_abcdefghijklmnopqrstuvwxyz_search', 'read']);
-    const result = applyToolFilter(input, { excludeToolsets: ['mcp:mcp_abcdefghijklmnopqrstuvwxyz'] });
+    const input = buildTools(['browser_open', 'agenda_list', 'custom_action', 'read']);
+    const result = applyToolFilter(input);
 
-    expect(Object.keys(result)).toEqual(['read']);
-  });
-
-  test('supports trailing-colon toolset IDs for compatibility', () => {
-    registerTestToolset('browser', ['browser']);
-
-    const input = buildTools(['browser', 'glob']);
-    const result = applyToolFilter(input, { excludeToolsets: ['browser:'] });
-
-    expect(Object.keys(result)).toEqual(['glob']);
-  });
-
-  test('excludes only named tools for excludeToolsInToolset', () => {
-    registerTestToolset('mcp:mcp_abcdefghijklmnopqrstuvwxyz', [
-      'mcp_abcdefghijklmnopqrstuvwxyz_search',
-      'mcp_abcdefghijklmnopqrstuvwxyz_fetch',
-    ]);
-
-    const input = buildTools(['mcp_abcdefghijklmnopqrstuvwxyz_search', 'mcp_abcdefghijklmnopqrstuvwxyz_fetch', 'read']);
-    const result = applyToolFilter(input, {
-      excludeToolsInToolset: { 'mcp:mcp_abcdefghijklmnopqrstuvwxyz': ['mcp_abcdefghijklmnopqrstuvwxyz_search'] },
-    });
-
-    expect(Object.keys(result)).toEqual(['mcp_abcdefghijklmnopqrstuvwxyz_fetch', 'read']);
+    expect(Object.keys(result)).toEqual(['custom_action', 'read']);
   });
 
   test('always excludes tools without a code-mode surface', () => {

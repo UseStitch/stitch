@@ -20,12 +20,12 @@ import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import { getSessionToolsetState } from '@/llm/stream/session-toolsets.js';
-import { getToolPruneProtectOverrides } from '@/llm/tool-prune-policy.js';
 import * as LocalModels from '@/models/llm/local.js';
 import * as Models from '@/models/llm/registry.js';
 import type { LlmProviderCredentials } from '@/provider/config/schema.js';
 import { getSettings } from '@/settings/service.js';
 import { getSessionTodosPromptBlock } from '@/todos/service.js';
+import { browserPrunePolicy } from '@/tools/toolsets/browser/prune-policy.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
 import { estimate } from '@/utils/token.js';
@@ -72,7 +72,7 @@ async function prune(msgs: StoredMessage[]): Promise<number> {
   let pruned = 0;
   const toPrune: Array<{ messageId: PrefixedString<'msg'>; partIndex: number }> = [];
   let turns = 0;
-  const protectOverrides = getToolPruneProtectOverrides(msgs);
+  const protectOverrides = browserPrunePolicy.findProtectOverrides(msgs);
 
   outer: for (let msgIndex = msgs.length - 1; msgIndex >= 0; msgIndex--) {
     const msg = msgs[msgIndex];

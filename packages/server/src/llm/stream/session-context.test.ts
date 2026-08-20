@@ -5,7 +5,7 @@ import { getDb } from '@/db/client.js';
 import { sessions } from '@/db/schema/sessions.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
-import { buildExpiredToolsetsPrompt, SessionContext } from '@/llm/stream/session-context.js';
+import { assembleSessionContext, buildExpiredToolsetsPrompt } from '@/llm/stream/session-context.js';
 import { getSessionToolsetState, setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { listToolsets, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
@@ -55,7 +55,7 @@ describe('buildExpiredToolsetsPrompt', () => {
   });
 });
 
-describe('SessionContext expired toolset handling', () => {
+describe('assembleSessionContext expired toolset handling', () => {
   beforeEach(() => {
     clearToolsets();
   });
@@ -78,7 +78,7 @@ describe('SessionContext expired toolset handling', () => {
       expired: [{ id: 'browser', expiredAtTurn: 1, toolNames: ['browser_open'] }],
     });
 
-    const assembled = await SessionContext.create({
+    const assembled = await assembleSessionContext({
       sessionId,
       messageId: 'msg_expired_toolsets' as never,
       streamRunId: 'run_expired_toolsets',
@@ -86,7 +86,7 @@ describe('SessionContext expired toolset handling', () => {
       modelId: 'openai/gpt-5.3-codex',
       abortSignal: new AbortController().signal,
       llmMessages: STUB_MESSAGES,
-    }).assemble();
+    });
 
     const semiStaticContent = assembled.messages
       .filter((m) => m.role === 'system')
@@ -117,7 +117,7 @@ describe('SessionContext expired toolset handling', () => {
       expired: [],
     });
 
-    const restored = await SessionContext.create({
+    const restored = await assembleSessionContext({
       sessionId,
       messageId: 'msg_ttl_restore' as never,
       streamRunId: 'run_ttl_restore',
@@ -125,7 +125,7 @@ describe('SessionContext expired toolset handling', () => {
       modelId: 'openai/gpt-5.3-codex',
       abortSignal: new AbortController().signal,
       llmMessages: STUB_MESSAGES,
-    }).assemble();
+    });
 
     expect(restored.toolsetManager.getActiveTools()).toHaveProperty('browser_open');
 
@@ -135,7 +135,7 @@ describe('SessionContext expired toolset handling', () => {
       expired: [],
     });
 
-    const expired = await SessionContext.create({
+    const expired = await assembleSessionContext({
       sessionId,
       messageId: 'msg_ttl_expire' as never,
       streamRunId: 'run_ttl_expire',
@@ -143,7 +143,7 @@ describe('SessionContext expired toolset handling', () => {
       modelId: 'openai/gpt-5.3-codex',
       abortSignal: new AbortController().signal,
       llmMessages: STUB_MESSAGES,
-    }).assemble();
+    });
 
     const semiStaticContent = expired.messages
       .filter((m) => m.role === 'system')
@@ -166,7 +166,7 @@ describe('SessionContext expired toolset handling', () => {
       activate: async () => ({ browser_open: makeTool('open') }),
     } satisfies Toolset);
 
-    const assembled = await SessionContext.create({
+    const assembled = await assembleSessionContext({
       sessionId,
       messageId: 'msg_excluded_toolsets' as never,
       streamRunId: 'run_excluded_toolsets',
@@ -176,7 +176,7 @@ describe('SessionContext expired toolset handling', () => {
       llmMessages: STUB_MESSAGES,
       activeToolsetIds: ['browser'],
       excludedToolsetIds: ['browser'],
-    }).assemble();
+    });
 
     expect(assembled.toolsetManager.getActiveTools()).not.toHaveProperty('browser_open');
   });
