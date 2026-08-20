@@ -191,8 +191,6 @@ Be very concise. The context window is critically full.
 Only include: current goal, active files, and immediate next steps.
 Keep under 800 words.`;
 
-type CompactionSeverity = 'normal' | 'overflow';
-
 async function resolveCompactionModel(
   fallbackProviderId: string,
   fallbackModelId: string,
@@ -225,11 +223,10 @@ export async function compact(input: {
   modelId: string;
   auto: boolean;
   overflow?: boolean;
-  severity?: CompactionSeverity;
   compactionSettings?: CompactionSettings;
 }): Promise<'continue' | 'error'> {
   const { sessionId } = input;
-  const severity: CompactionSeverity = input.severity ?? (input.overflow ? 'overflow' : 'normal');
+  const severity = input.overflow ? 'overflow' : 'normal';
 
   if (activeCompactions.has(sessionId)) {
     log.warn({ sessionId }, 'compaction already in progress');

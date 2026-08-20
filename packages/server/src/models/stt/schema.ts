@@ -22,7 +22,6 @@ const BufferConfigSchema = z.object({
   maxChunkBytes: z.number().int().positive(),
   flushIntervalMs: z.number().int().positive(),
   maxBufferedMs: z.number().int().positive(),
-  paceRealtime: z.boolean(),
 });
 
 const ReconnectConfigSchema = z.object({

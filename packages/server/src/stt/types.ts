@@ -4,7 +4,6 @@ export type BufferConfig = {
   maxChunkBytes: number;
   flushIntervalMs: number;
   maxBufferedMs: number;
-  paceRealtime: boolean;
 };
 
 export type ReconnectConfig = {

@@ -25,11 +25,6 @@ type ResolveModelInput = {
    * Useful for dynamic discovery of "cheap" or task-specific models.
    */
   priorityModelIds?: readonly string[] | string[];
-  /**
-   * Optional filter to restrict which models are acceptable.
-   * E.g., filter for audio-capable models only.
-   */
-  modelFilter?: (model: Models.RawModel) => boolean;
 };
 
 /**
@@ -38,8 +33,7 @@ type ResolveModelInput = {
  * 2. If settings are empty, searching for `priorityModelIds` across all enabled providers
  * 3. Falling back to provided defaults if nothing else matches
  * 4. Validating the provider is allowed and the model exists
- * 5. Optionally filtering by model capabilities
- * 6. Looking up provider credentials from the database
+ * 5. Looking up provider credentials from the database
  *
  * Returns a ServiceResult with the resolved provider, model, and credentials.
  */
@@ -98,10 +92,6 @@ export async function resolveModel(input: ResolveModelInput): Promise<ServiceRes
 
   const model = provider.models[targetModelId] as Models.RawModel | undefined;
   if (!model) return err('Model not found for provider', 400);
-
-  if (input.modelFilter && !input.modelFilter(model)) {
-    return err('Model does not meet required capabilities', 400);
-  }
 
   const config = configs.find((c) => c.providerId === targetProviderId);
   if (!config) return err('Provider is not configured', 400);

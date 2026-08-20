@@ -115,19 +115,6 @@ describe('generateTypeStubs', () => {
     expect(result).toContain('string | number');
   });
 
-  test('excludes descriptions when includeDescriptions is false', () => {
-    const bindings: Record<string, ToolTypeInfo> = {
-      external_tool: {
-        name: 'external_tool',
-        description: 'A tool description',
-        inputSchema: { type: 'object', properties: {} },
-      },
-    };
-
-    const result = generateTypeStubs(bindings, { includeDescriptions: false });
-    expect(result).not.toContain('/** A tool description */');
-  });
-
   test('handles empty bindings', () => {
     const result = generateTypeStubs({});
     expect(result).toBe('');

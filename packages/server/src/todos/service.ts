@@ -23,7 +23,6 @@ export async function listSessionTodos(sessionId: PrefixedString<'ses'>): Promis
 export async function replaceSessionTodos(input: {
   sessionId: PrefixedString<'ses'>;
   todos: TodoInput[];
-  broadcastUpdate?: boolean;
 }): Promise<ServiceResult<SessionTodo[]>> {
   const db = getDb();
   const session = (
@@ -49,9 +48,7 @@ export async function replaceSessionTodos(input: {
     return tx.insert(sessionTodos).values(rows).returning();
   });
 
-  if (input.broadcastUpdate ?? true) {
-    internalBus.emit('session.todos.updated', { sessionId: input.sessionId });
-  }
+  internalBus.emit('session.todos.updated', { sessionId: input.sessionId });
 
   return ok(updated);
 }

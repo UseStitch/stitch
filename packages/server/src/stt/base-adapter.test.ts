@@ -77,7 +77,6 @@ const baseBuffer: BufferConfig = {
   maxChunkBytes: 1, // flush every chunk immediately so order is deterministic
   flushIntervalMs: 5,
   maxBufferedMs: 10 * 60 * 1000, // large so nothing is dropped in tests
-  paceRealtime: false,
 };
 
 const baseReconnect: ReconnectConfig = {
