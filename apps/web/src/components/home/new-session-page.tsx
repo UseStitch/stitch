@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { useQueryClient } from '@tanstack/react-query';
 import type { InfiniteData } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, useRouter } from '@tanstack/react-router';
 
 import type { MessagesPage, Session } from '@stitch/shared/chat/messages';
 import { createMessageId } from '@stitch/shared/id';
@@ -19,6 +19,7 @@ import { useStreamStore } from '@/stores/stream-store';
 
 export function NewSessionPage() {
   const navigate = useNavigate();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const createSession = useCreateSession();
   const sendMessage = useSendMessage();
@@ -27,6 +28,10 @@ export function NewSessionPage() {
   const [value, setValue] = React.useState('');
 
   const { selectedModel, handleModelChange } = useChatModel();
+
+  React.useEffect(() => {
+    void router.loadRouteChunk(router.routesByPath['/session/$id']);
+  }, [router]);
 
   const isSubmitting = createSession.isPending || sendMessage.isPending;
 
