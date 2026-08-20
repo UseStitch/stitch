@@ -80,12 +80,14 @@ async function resolveSttConfig(override?: { providerId: string; modelId: string
 }
 
 function defaultTitle(): string {
-  const now = new Date();
-  const month = now.toLocaleDateString(undefined, { month: 'short' });
-  const day = now.getDate();
-  const year = now.getFullYear();
-  const timePart = now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
-  return `${month} ${day} ${year} ${timePart}`;
+  return new Date().toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  });
 }
 
 function toRecording(
