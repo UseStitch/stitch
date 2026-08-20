@@ -64,7 +64,6 @@ export async function createManagedConnection(config: ManagedConnectionConfig): 
   let accumulatedPartial = '';
   let nextChunkStartMs = 0;
   let lastConfirmedFinalMs = 0;
-  const finalizedTranscriptIds: string[] = [];
   const finalizedTranscriptIdSet = new Set<string>();
 
   let transport: STTTransport | null = null;
@@ -178,12 +177,10 @@ export async function createManagedConnection(config: ManagedConnectionConfig): 
    * Resets on final events.
    */
   function rememberFinal(id: string): void {
-    finalizedTranscriptIds.push(id);
     finalizedTranscriptIdSet.add(id);
-
-    while (finalizedTranscriptIds.length > 1000) {
-      const oldId = finalizedTranscriptIds.shift();
-      if (oldId) finalizedTranscriptIdSet.delete(oldId);
+    if (finalizedTranscriptIdSet.size > 1000) {
+      const oldestId = finalizedTranscriptIdSet.values().next().value;
+      if (oldestId !== undefined) finalizedTranscriptIdSet.delete(oldestId);
     }
   }
 

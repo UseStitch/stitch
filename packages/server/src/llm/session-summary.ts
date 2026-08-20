@@ -294,13 +294,10 @@ export async function compact(input: {
     const markerIndex = allMsgs.findIndex((m) => m.id === compactionMarkerId);
     const historyMsgs = allMsgs.slice(0, markerIndex);
 
-    let startIndex = 0;
-    for (let i = historyMsgs.length - 1; i >= 0; i--) {
-      if (historyMsgs[i].isSummary) {
-        startIndex = i;
-        break;
-      }
-    }
+    const startIndex = Math.max(
+      0,
+      historyMsgs.findLastIndex((message) => message.isSummary),
+    );
     const relevantMsgs = historyMsgs.slice(startIndex);
 
     const historyMessages = buildHistoryMessages(relevantMsgs, {

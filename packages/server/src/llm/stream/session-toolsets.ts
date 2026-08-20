@@ -21,14 +21,6 @@ const EMPTY_SESSION_TOOLSET_STATE: SessionToolsetState = { turnCounter: 0, activ
 
 type ExpiredToolsetInput = { id: string; toolNames: string[] };
 
-function cloneState(state: SessionToolsetState): SessionToolsetState {
-  return {
-    turnCounter: state.turnCounter,
-    active: state.active.map((entry) => ({ ...entry })),
-    expired: state.expired.map((entry) => ({ ...entry, toolNames: [...entry.toolNames] })),
-  };
-}
-
 export function getToolsetExpiresAtTurn(currentTurn: number, ttlTurns: number): number {
   return currentTurn + ttlTurns - 1;
 }
@@ -94,13 +86,13 @@ export function getSessionToolsetState(sessionId: PrefixedString<'ses'>): Sessio
     .where(eq(sessions.id, sessionId))
     .get();
 
-  return cloneState(row?.toolsetState ?? EMPTY_SESSION_TOOLSET_STATE);
+  return structuredClone(row?.toolsetState ?? EMPTY_SESSION_TOOLSET_STATE);
 }
 
 export function setSessionToolsetState(sessionId: PrefixedString<'ses'>, state: SessionToolsetState): void {
   getDb()
     .update(sessions)
-    .set({ toolsetState: cloneState(state), updatedAt: Date.now() })
+    .set({ toolsetState: structuredClone(state), updatedAt: Date.now() })
     .where(eq(sessions.id, sessionId))
     .run();
 }

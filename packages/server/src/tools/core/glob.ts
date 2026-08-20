@@ -2,7 +2,6 @@ import { tool } from 'ai';
 import fs from 'node:fs/promises';
 import { z } from 'zod';
 
-import * as Glob from '@/lib/glob.js';
 import { ToolPathValidationError } from '@/tools/errors.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import type { ToolInput } from '@/tools/runtime/runtime.js';
@@ -39,7 +38,15 @@ export async function globPaths(input: z.infer<typeof globInputSchema>): Promise
     throw new ToolPathValidationError(parsed.path, 'path must point to a directory');
   }
 
-  const matches = await Glob.scan(parsed.pattern, { cwd: searchPath, absolute: true, dot: true });
+  const matches = await Array.fromAsync(
+    new Bun.Glob(parsed.pattern).scan({
+      cwd: searchPath,
+      absolute: true,
+      dot: true,
+      onlyFiles: true,
+      followSymlinks: false,
+    }),
+  );
 
   const withMtime = await Promise.all(
     matches.map(async (filePath) => {

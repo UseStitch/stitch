@@ -26,9 +26,7 @@ export function getSkillMdPath(name: string): string {
 
 export async function ensureSkillsDir(): Promise<void> {
   const dir = getSkillsDir();
-  if (!existsSync(dir)) {
-    await mkdir(dir, { recursive: true });
-  }
+  await mkdir(dir, { recursive: true });
 }
 
 export function buildSkillMd(input: { name: string; description: string; content: string }): string {
@@ -50,9 +48,7 @@ export async function listSkillFiles(skillDir: string): Promise<string[]> {
 
 export async function writeSkillMdFile(name: string, content: string): Promise<void> {
   const skillDir = getSkillDir(name);
-  if (!existsSync(skillDir)) {
-    await mkdir(skillDir, { recursive: true });
-  }
+  await mkdir(skillDir, { recursive: true });
   await writeFile(getSkillMdPath(name), content, 'utf8');
 }
 
@@ -66,9 +62,7 @@ export async function syncCompanionFiles(
   skillDir: string,
   sourceFiles: Array<{ relativePath: string; content: string }>,
 ): Promise<boolean> {
-  if (!existsSync(skillDir)) {
-    await mkdir(skillDir, { recursive: true });
-  }
+  await mkdir(skillDir, { recursive: true });
 
   let changed = false;
 
@@ -85,9 +79,7 @@ export async function syncCompanionFiles(
 
     if (existingContent === file.content) continue;
 
-    if (!existsSync(targetDir)) {
-      await mkdir(targetDir, { recursive: true });
-    }
+    await mkdir(targetDir, { recursive: true });
     await writeFile(targetPath, file.content, 'utf8');
     changed = true;
   }

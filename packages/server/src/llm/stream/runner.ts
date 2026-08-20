@@ -930,27 +930,10 @@ class StreamRunner {
   }
 
   private hasTrailingUserFacingTextAfterLastToolResult(): boolean {
-    let lastToolResultIndex = -1;
-
-    for (let i = this.state.accumulatedParts.length - 1; i >= 0; i--) {
-      if (this.state.accumulatedParts[i]?.type === 'tool-result') {
-        lastToolResultIndex = i;
-        break;
-      }
-    }
-
-    if (lastToolResultIndex === -1) {
-      return this.hasUserFacingTextPart();
-    }
-
-    for (let i = lastToolResultIndex + 1; i < this.state.accumulatedParts.length; i++) {
-      const part = this.state.accumulatedParts[i];
-      if (part.type === 'text-delta' && typeof part.text === 'string' && part.text.trim().length > 0) {
-        return true;
-      }
-    }
-
-    return false;
+    const lastToolResultIndex = this.state.accumulatedParts.findLastIndex((part) => part.type === 'tool-result');
+    return this.state.accumulatedParts
+      .slice(lastToolResultIndex + 1)
+      .some((part) => part.type === 'text-delta' && typeof part.text === 'string' && part.text.trim().length > 0);
   }
 
   private hasToolResultPart(): boolean {

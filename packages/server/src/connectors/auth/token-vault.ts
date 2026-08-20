@@ -1,4 +1,5 @@
 import { and, eq, isNotNull, lt } from 'drizzle-orm';
+import { scheduler } from 'node:timers/promises';
 
 import type { OAuthConfig } from '@stitch/shared/connectors/types';
 
@@ -26,11 +27,6 @@ const BASE_RETRY_DELAY_MS = 1_000;
 export type TokenRefreshDeps = {
   refreshAccessToken?: typeof RefreshAccessTokenFn;
   sleep?: (ms: number) => Promise<void>;
-};
-
-const DEFAULT_DEPS: Required<TokenRefreshDeps> = {
-  refreshAccessToken: refreshAccessTokenDefault,
-  sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 };
 
 /**
@@ -96,8 +92,8 @@ async function refreshConnectorToken(row: ConnectorInstanceRow, deps: TokenRefre
   if (!credentials) return null;
 
   const config = definition.authConfig as OAuthConfig;
-  const refreshFn = deps.refreshAccessToken ?? DEFAULT_DEPS.refreshAccessToken;
-  const sleepFn = deps.sleep ?? DEFAULT_DEPS.sleep;
+  const refreshFn = deps.refreshAccessToken ?? refreshAccessTokenDefault;
+  const sleepFn = deps.sleep ?? ((ms: number) => scheduler.wait(ms));
 
   try {
     const tokens = await withRefreshLock(row.id, () =>
@@ -136,11 +132,7 @@ export type TokenRefreshOpts = { forceRefresh?: boolean };
  * no token can be obtained (missing instance, missing refresh token, or a
  * refresh failure — which is thrown).
  */
-export async function ensureFreshAccessToken(
-  instanceId: string,
-  opts: TokenRefreshOpts = {},
-  deps: TokenRefreshDeps = {},
-): Promise<string | null> {
+export async function ensureFreshAccessToken(instanceId: string, opts: TokenRefreshOpts = {}): Promise<string | null> {
   const db = getDb();
   const [row] = await db
     .select()
@@ -155,7 +147,7 @@ export async function ensureFreshAccessToken(
       (row.tokenExpiresAt !== null && row.tokenExpiresAt <= now + REFRESH_BUFFER_MS));
 
   if (!shouldRefresh) return row.accessToken ?? null;
-  return refreshConnectorToken(row, deps);
+  return refreshConnectorToken(row);
 }
 
 /**

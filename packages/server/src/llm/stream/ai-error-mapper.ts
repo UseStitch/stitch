@@ -88,25 +88,7 @@ const NAME_TO_CATEGORY: Record<string, StreamErrorCategory> = {
 };
 
 function normalizeHeaders(input: unknown): Record<string, string> | undefined {
-  if (!input) return undefined;
-
-  if (input instanceof Headers) {
-    const headers: Record<string, string> = {};
-    for (const [key, value] of input) {
-      headers[key.toLowerCase()] = value;
-    }
-    return headers;
-  }
-
-  if (typeof input === 'object') {
-    const headers: Record<string, string> = {};
-    for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
-      headers[key.toLowerCase()] = String(value);
-    }
-    return Object.keys(headers).length > 0 ? headers : undefined;
-  }
-
-  return undefined;
+  return input ? Object.fromEntries(new Headers(input as ConstructorParameters<typeof Headers>[0])) : undefined;
 }
 
 function isOpenAiErrorRetryable(error: APICallError): boolean {

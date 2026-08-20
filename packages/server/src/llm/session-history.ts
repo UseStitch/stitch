@@ -33,13 +33,10 @@ export async function buildSessionLlmMessages(
     readMemoryPromptContext(),
   ]);
 
-  let startIndex = 0;
-  for (let i = msgs.length - 1; i >= 0; i--) {
-    if (msgs[i].isSummary) {
-      startIndex = i;
-      break;
-    }
-  }
+  const startIndex = Math.max(
+    0,
+    msgs.findLastIndex((message) => message.isSummary),
+  );
 
   return buildHistoryMessages(msgs.slice(startIndex), {
     useBasePrompt: promptConfig.useBasePrompt,
