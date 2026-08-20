@@ -12,13 +12,12 @@ import {
   readRecordingTranscript,
 } from '@/recordings/file-store.js';
 import { getSettings } from '@/settings/service.js';
-import type { ToolContext } from '@/tools/runtime/runtime.js';
-import { TOOLSET_SUMMARY_CONTEXT, summarizeTools, type Toolset } from '@/tools/toolsets/types.js';
+import { summarizeTools, type Toolset } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
 
 const RECORDINGS_TOOLSET_ID = 'recordings';
 
-function createRecordingsTools(_context: ToolContext): Record<string, Tool> {
+function createRecordingsTools(): Record<string, Tool> {
   const recordings_get_analysis = tool({
     description: `Get recording analysis for one recording ID.
 
@@ -112,9 +111,7 @@ export function createRecordingsToolset(): Toolset {
       'Use recordings_get_transcript for transcript entries for one recording.',
       'Use recordings_start_analysis when a completed recording has no analysis or needs a forced refresh.',
     ].join('\n'),
-    tools: () => summarizeTools(createRecordingsTools(TOOLSET_SUMMARY_CONTEXT)),
-    activate: async (context: ToolContext) => {
-      return createRecordingsTools(context);
-    },
+    tools: () => summarizeTools(createRecordingsTools()),
+    activate: async () => createRecordingsTools(),
   };
 }

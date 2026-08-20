@@ -92,18 +92,6 @@ export async function toRecordingAnalysis(row: typeof recordingAnalyses.$inferSe
   };
 }
 
-function broadcastRecordingAnalysisUpdated(input: {
-  recordingId: PrefixedString<'rec'>;
-  status: RecordingAnalysis['status'];
-  title: string | null;
-}): void {
-  internalBus.emit('recording.analysis.updated', {
-    recordingId: input.recordingId,
-    status: input.status,
-    title: input.title,
-  });
-}
-
 export async function getRecordingAnalysis(
   recordingId: PrefixedString<'rec'>,
 ): Promise<ServiceResult<RecordingAnalysisResponse>> {
@@ -214,7 +202,7 @@ export async function startRecordingAnalysis(
       });
   }
 
-  broadcastRecordingAnalysisUpdated({ recordingId, status: 'pending', title: null });
+  internalBus.emit('recording.analysis.updated', { recordingId, status: 'pending', title: null });
 
   void runRecordingAnalysis(
     id,
@@ -265,7 +253,11 @@ export async function cancelRecordingAnalysis(recordingId: PrefixedString<'rec'>
   activeRun?.controller.abort();
 
   if (activeRun?.preserveExistingUntilComplete) {
-    broadcastRecordingAnalysisUpdated({ recordingId, status: existing.status, title: existing.title || null });
+    internalBus.emit('recording.analysis.updated', {
+      recordingId,
+      status: existing.status,
+      title: existing.title || null,
+    });
 
     return ok(null);
   }
@@ -324,7 +316,11 @@ async function runRecordingAnalysis(
         .where(and(eq(recordingAnalyses.id, analysisId), eq(recordingAnalyses.recordingId, input.recordingId)));
     }
 
-    broadcastRecordingAnalysisUpdated({ recordingId: input.recordingId, status: 'processing', title: null });
+    internalBus.emit('recording.analysis.updated', {
+      recordingId: input.recordingId,
+      status: 'processing',
+      title: null,
+    });
 
     const analysisModel = deps.createProvider(input.analysisCredentials)(input.analysisModelId);
     const analysisStart = Date.now();

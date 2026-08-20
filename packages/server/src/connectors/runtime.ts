@@ -9,7 +9,7 @@ const log = Log.create({ service: 'connector-runtime' });
 
 const modulesById = new Map<string, ConnectorModule>();
 
-async function refreshConnectorToolsets(connectorId: string): Promise<void> {
+export async function refreshConnectorToolsets(connectorId: string): Promise<void> {
   if (!(connectorId === 'google')) {
     return;
   }
@@ -69,8 +69,4 @@ export async function shutdownConnectorRuntime(): Promise<void> {
   }
   modulesById.clear();
   log.info({ event: 'connector-runtime.stopped' }, 'connector runtime stopped');
-}
-
-export async function refreshConnectorToolsetsFor(connectorId: string): Promise<void> {
-  await refreshConnectorToolsets(connectorId);
 }

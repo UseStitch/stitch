@@ -11,14 +11,10 @@ import {
   type MailDraftId,
   type MailMessageId,
 } from '@stitch/mail/db/schema';
-import type { MailAddressView, MailDraftView, MailLabelView, MailMessageView } from '@stitch/shared/mail/types';
+import type { MailAddressView, MailDraftView, MailMessageView } from '@stitch/shared/mail/types';
 
 function parseJson<T>(value: string): T {
   return JSON.parse(value) as T;
-}
-
-function toLabelView(label: typeof mailLabels.$inferSelect): MailLabelView {
-  return label;
 }
 
 function toDraftView(draft: typeof mailDrafts.$inferSelect): MailDraftView {
@@ -99,7 +95,7 @@ export async function getMessageView(messageId: string): Promise<MailMessageView
     bodyHtml: message.bodyHtml,
     rfcMessageId: message.rfcMessageId,
     inReplyTo: message.inReplyTo,
-    labels: labelRows.map((row) => toLabelView(row.label)),
+    labels: labelRows.map((row) => row.label),
     attachments: attachments.map((attachment) => ({
       id: attachment.id,
       messageId: attachment.messageId,

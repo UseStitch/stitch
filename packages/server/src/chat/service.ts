@@ -362,10 +362,6 @@ export async function abortSessionRun(sessionId: PrefixedString<'ses'>): Promise
   return ok(null);
 }
 
-function getSplitTitle(baseTitle: string, n: number): string {
-  return `${baseTitle} Split #${n}`;
-}
-
 function parseSplitTitle(title: string): { base: string; n: number } | null {
   const match = title.match(/^(.+) Split #(\d+)$/);
   if (!match) return null;
@@ -414,7 +410,7 @@ export async function splitSession(
     if (p && p.base === lookupBase && p.n > maxN) maxN = p.n;
   }
 
-  const newTitle = getSplitTitle(lookupBase, maxN + 1);
+  const newTitle = `${lookupBase} Split #${maxN + 1}`;
   const newSessionId = createSessionId();
   const now = Date.now();
 

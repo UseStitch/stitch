@@ -21,21 +21,7 @@ import { paginatedQuery } from '@/lib/paginated-query.js';
 import { ok, err } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
 
-type AgendaListRow = typeof agendaLists.$inferSelect;
 type AgendaItemRow = typeof agendaItems.$inferSelect;
-
-function toAgendaList(row: AgendaListRow): AgendaList {
-  return {
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    color: row.color,
-    position: row.position,
-    isArchived: row.isArchived,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-  };
-}
 
 function toAgendaItem(row: AgendaItemRow, listName?: string): AgendaItem {
   return {
@@ -83,7 +69,7 @@ export function getAgendaLists(input?: { includeArchived?: boolean }): ServiceRe
   const listsWithCounts = lists.map((row) => {
     const itemCounts: Counts = { open: 0, in_progress: 0, done: 0, cancelled: 0, total: 0, overdue: 0, dueSoon: 0 };
     countMap.set(row.id, itemCounts);
-    return { ...toAgendaList(row), itemCounts };
+    return { ...row, itemCounts };
   });
 
   for (const item of allItems) {
@@ -110,7 +96,7 @@ export function getAgendaListByName(name: string): ServiceResult<AgendaList | nu
     .from(agendaLists)
     .where(sql`lower(${agendaLists.name}) = lower(${name})`)
     .get();
-  return ok(row ? toAgendaList(row) : null);
+  return ok(row ?? null);
 }
 
 export function createAgendaList(input: CreateAgendaListInput): ServiceResult<AgendaList> {
@@ -136,7 +122,7 @@ export function createAgendaList(input: CreateAgendaListInput): ServiceResult<Ag
 
   db.insert(agendaLists).values(row).run();
 
-  return ok(toAgendaList(row as AgendaListRow));
+  return ok(row);
 }
 
 export function updateAgendaList(id: PrefixedString<'alist'>, input: UpdateAgendaListInput): ServiceResult<AgendaList> {
@@ -144,7 +130,7 @@ export function updateAgendaList(id: PrefixedString<'alist'>, input: UpdateAgend
   const existing = db.select().from(agendaLists).where(eq(agendaLists.id, id)).get();
   if (!existing) return err('List not found', 404);
 
-  const updates: Partial<AgendaListRow> = { updatedAt: Date.now() };
+  const updates: Partial<typeof agendaLists.$inferInsert> = { updatedAt: Date.now() };
   if (input.name !== undefined) updates.name = input.name;
   if (input.description !== undefined) updates.description = input.description;
   if (input.color !== undefined) updates.color = input.color;
@@ -152,7 +138,7 @@ export function updateAgendaList(id: PrefixedString<'alist'>, input: UpdateAgend
 
   db.update(agendaLists).set(updates).where(eq(agendaLists.id, id)).run();
 
-  return ok(toAgendaList({ ...existing, ...updates } as AgendaListRow));
+  return ok({ ...existing, ...updates });
 }
 
 export function deleteAgendaList(id: PrefixedString<'alist'>): ServiceResult<null> {
@@ -171,13 +157,13 @@ export function mergeAgendaLists(
   const source = db.select().from(agendaLists).where(eq(agendaLists.id, sourceId)).get();
   if (!target) return err('Target list not found', 404);
   if (!source) return err('Source list not found', 404);
-  if (targetId === sourceId) return ok(toAgendaList(target));
+  if (targetId === sourceId) return ok(target);
 
   db.update(agendaItems).set({ listId: targetId, updatedAt: Date.now() }).where(eq(agendaItems.listId, sourceId)).run();
 
   db.delete(agendaLists).where(eq(agendaLists.id, sourceId)).run();
 
-  return ok(toAgendaList(target));
+  return ok(target);
 }
 
 // --- Items ---

@@ -1,20 +1,12 @@
 import { eq } from 'drizzle-orm';
 
 import { SHORTCUT_ACTION_IDS, SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
-import type { ShortcutActionId, ShortcutCategory } from '@stitch/shared/shortcuts/types';
+import type { ShortcutActionId } from '@stitch/shared/shortcuts/types';
 
 import { getDb } from '@/db/client.js';
 import { keyboardShortcuts } from '@/db/schema/settings.js';
 import { err, ok } from '@/lib/service-result.js';
 import type { ServiceResult } from '@/lib/service-result.js';
-
-interface ShortcutRow {
-  actionId: string;
-  hotkey: string | null;
-  isSequence: boolean;
-  label: string;
-  category: ShortcutCategory;
-}
 
 const ALLOWED_ACTION_IDS: ReadonlySet<string> = new Set(SHORTCUT_ACTION_IDS);
 
@@ -22,18 +14,10 @@ function isAllowedActionId(actionId: string): boolean {
   return ALLOWED_ACTION_IDS.has(actionId);
 }
 
-export async function listShortcuts(): Promise<ServiceResult<ShortcutRow[]>> {
+export async function listShortcuts(): Promise<ServiceResult<Array<typeof keyboardShortcuts.$inferSelect>>> {
   const db = getDb();
   const rows = await db.select().from(keyboardShortcuts);
-  return ok(
-    rows.map((row) => ({
-      actionId: row.actionId,
-      hotkey: row.hotkey,
-      isSequence: row.isSequence,
-      label: row.label,
-      category: row.category,
-    })),
-  );
+  return ok(rows);
 }
 
 export async function saveShortcut(actionId: string, hotkeyValue: unknown): Promise<ServiceResult<null>> {

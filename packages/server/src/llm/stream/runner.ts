@@ -193,7 +193,11 @@ class StreamRunner {
 
     try {
       await this.runStepLoop();
-      await this.maybeRunFinalSynthesis();
+      this.runFinalSynthesis({
+        triggerEvent: 'stream.final_synthesis.triggered',
+        triggerReason: 'step-loop-complete',
+        syntheticReason: 'missing-user-facing-text-after-tools',
+      });
       await this.evaluateCompactionTrigger();
     } catch (error) {
       await this.handleError(error);
@@ -512,14 +516,6 @@ class StreamRunner {
     return compactConversationForStep(this.state.conversation, {
       preserveRecentToolResults: PRESERVE_RECENT_TOOL_RESULTS,
       compactToolResults: true,
-    });
-  }
-
-  private async maybeRunFinalSynthesis(): Promise<void> {
-    this.runFinalSynthesis({
-      triggerEvent: 'stream.final_synthesis.triggered',
-      triggerReason: 'step-loop-complete',
-      syntheticReason: 'missing-user-facing-text-after-tools',
     });
   }
 

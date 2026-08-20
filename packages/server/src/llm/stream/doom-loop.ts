@@ -61,14 +61,6 @@ export function resolveDecision(sessionId: PrefixedString<'ses'>, response: Doom
   return interactionBroker.resolve(sessionId, response);
 }
 
-/**
- * Cancel a pending doom-loop decision by resolving it with 'stop'.
- * Called when the session is aborted.
- */
-export function cancelDecision(sessionId: PrefixedString<'ses'>): void {
-  resolveDecision(sessionId, 'stop');
-}
-
 type DoomLoopState = {
   totalUsage: LanguageModelUsage;
   finalFinishReason: string;
