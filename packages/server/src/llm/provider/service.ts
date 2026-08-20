@@ -67,6 +67,14 @@ const LOCAL_PROVIDER_META: Record<LocalProviderId, { name: string }> = {
   lmstudio_local: { name: 'LM Studio' },
 };
 
+async function isProviderEnabled(providerId: string): Promise<boolean> {
+  const rows = await getDb()
+    .select({ providerId: providerConfig.providerId })
+    .from(providerConfig)
+    .where(eq(providerConfig.providerId, providerId));
+  return rows.length > 0;
+}
+
 export async function getProvider(providerId: string): Promise<ServiceResult<ProviderSummary>> {
   if (isLocalProviderId(providerId)) {
     const meta = LOCAL_PROVIDER_META[providerId];
@@ -90,18 +98,12 @@ export async function getProvider(providerId: string): Promise<ServiceResult<Pro
   }
 
   if (providerId === 'elevenlabs') {
-    const db = getDb();
-    const configRows = await db
-      .select({ providerId: providerConfig.providerId })
-      .from(providerConfig)
-      .where(eq(providerConfig.providerId, 'elevenlabs'));
-    const config = configRows.at(0);
     return ok({
       id: 'elevenlabs',
       name: 'ElevenLabs',
       api: 'https://api.elevenlabs.io',
       model_count: 0,
-      enabled: config !== undefined,
+      enabled: await isProviderEnabled('elevenlabs'),
     });
   }
 
@@ -110,14 +112,7 @@ export async function getProvider(providerId: string): Promise<ServiceResult<Pro
     return providerResult;
   }
 
-  const db = getDb();
-  const configRows = await db
-    .select({ providerId: providerConfig.providerId })
-    .from(providerConfig)
-    .where(eq(providerConfig.providerId, providerId));
-  const config = configRows.at(0);
-
-  return ok(toProviderSummary(providerResult.data, config !== undefined));
+  return ok(toProviderSummary(providerResult.data, await isProviderEnabled(providerId)));
 }
 
 function localModelToSummary(m: LocalModels.LocalModel): ModelSummary {

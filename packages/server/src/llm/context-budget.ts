@@ -107,29 +107,17 @@ function toToolResultOutput(value: unknown): { type: 'text'; value: string } | {
   return typeof value === 'string' ? { type: 'text', value } : { type: 'json', value };
 }
 
-function countToolResults(conversation: ModelMessage[]): number {
+function countToolResults(
+  conversation: ModelMessage[],
+  predicate: (part: ToolResultContentPart) => boolean = () => true,
+): number {
   let count = 0;
   for (const message of conversation) {
     if (message.role !== 'tool' || !Array.isArray(message.content)) {
       continue;
     }
 
-    count += message.content.filter(isToolResultContentPart).length;
-  }
-
-  return count;
-}
-
-function countBrowserToolResults(conversation: ModelMessage[]): number {
-  let count = 0;
-  for (const message of conversation) {
-    if (message.role !== 'tool' || !Array.isArray(message.content)) {
-      continue;
-    }
-
-    count += message.content.filter(
-      (part) => isToolResultContentPart(part) && part.toolName.startsWith('browser_'),
-    ).length;
+    count += message.content.filter((part) => isToolResultContentPart(part) && predicate(part)).length;
   }
 
   return count;
@@ -144,7 +132,7 @@ export function compactConversationForStep(
   const lastUserMessageIndex = conversation.findLastIndex((message) => message.role === 'user');
   let remainingProtectedToolResults = preserveRecentToolResults;
   let remainingToolResults = countToolResults(conversation);
-  let remainingBrowserToolResults = countBrowserToolResults(conversation);
+  let remainingBrowserToolResults = countToolResults(conversation, (part) => part.toolName.startsWith('browser_'));
 
   const compacted = conversation.map((message, messageIndex): ModelMessage => {
     if (message.role === 'user' && Array.isArray(message.content) && messageIndex !== lastUserMessageIndex) {

@@ -555,6 +555,29 @@ class StreamRunner {
     await this.handleUnknownError(error);
   }
 
+  private getUnresolvedToolCalls(): (StoredPart & { type: 'tool-call' })[] {
+    const resolvedToolCallIds = new Set(
+      this.state.accumulatedParts
+        .filter((p): p is StoredPart & { type: 'tool-result' } => p.type === 'tool-result')
+        .map((p) => p.toolCallId),
+    );
+    return this.state.accumulatedParts.filter(
+      (p): p is StoredPart & { type: 'tool-call' } => p.type === 'tool-call' && !resolvedToolCallIds.has(p.toolCallId),
+    );
+  }
+
+  private emitToolFailures(calls: (StoredPart & { type: 'tool-call' })[], error: string): void {
+    for (const call of calls) {
+      internalBus.emit('tool.failed', {
+        sessionId: this.ctx.sessionId,
+        messageId: this.ctx.assistantMessageId,
+        toolCallId: call.toolCallId,
+        toolName: call.toolName,
+        error,
+      });
+    }
+  }
+
   private async handleAbort(error: unknown): Promise<void> {
     this.state.wasAborted = true;
     this.setFinishReason('aborted', 'abort-signal');
@@ -571,17 +594,8 @@ class StreamRunner {
       'stream.abort.handled',
     );
 
-    const toolCallIds = new Set(
-      this.state.accumulatedParts
-        .filter((p): p is StoredPart & { type: 'tool-result' } => p.type === 'tool-result')
-        .map((p) => p.toolCallId),
-    );
-
+    const unresolvedParts = this.getUnresolvedToolCalls();
     const now = this.deps.now();
-    const unresolvedParts = this.state.accumulatedParts.filter(
-      (part): part is StoredPart & { type: 'tool-call' } =>
-        part.type === 'tool-call' && !toolCallIds.has(part.toolCallId),
-    );
 
     for (const part of unresolvedParts) {
       this.state.accumulatedParts.push({
@@ -596,15 +610,7 @@ class StreamRunner {
       } as StoredPart);
     }
 
-    for (const part of unresolvedParts) {
-      internalBus.emit('tool.failed', {
-        sessionId: this.ctx.sessionId,
-        messageId: this.ctx.assistantMessageId,
-        toolCallId: part.toolCallId,
-        toolName: part.toolName,
-        error: 'Aborted',
-      });
-    }
+    this.emitToolFailures(unresolvedParts, 'Aborted');
   }
 
   private async handlePermissionRejected(error: unknown): Promise<void> {
@@ -631,25 +637,7 @@ class StreamRunner {
       'stream.permission.rejected',
     );
 
-    const resolvedToolCallIds = new Set(
-      this.state.accumulatedParts
-        .filter((p): p is StoredPart & { type: 'tool-result' } => p.type === 'tool-result')
-        .map((p) => p.toolCallId),
-    );
-
-    const unresolvedToolCalls = this.state.accumulatedParts.filter(
-      (p): p is StoredPart & { type: 'tool-call' } => p.type === 'tool-call' && !resolvedToolCallIds.has(p.toolCallId),
-    );
-
-    for (const call of unresolvedToolCalls) {
-      internalBus.emit('tool.failed', {
-        sessionId: this.ctx.sessionId,
-        messageId: this.ctx.assistantMessageId,
-        toolCallId: call.toolCallId,
-        toolName: call.toolName,
-        error: 'Blocked before completion',
-      });
-    }
+    this.emitToolFailures(this.getUnresolvedToolCalls(), 'Blocked before completion');
   }
 
   private handleContextOverflow(): void {
@@ -925,16 +913,7 @@ class StreamRunner {
   }
 
   private ensureTerminalToolResults(): void {
-    const resolvedToolCallIds = new Set(
-      this.state.accumulatedParts
-        .filter((p): p is StoredPart & { type: 'tool-result' } => p.type === 'tool-result')
-        .map((p) => p.toolCallId),
-    );
-
-    const missingToolCalls = this.state.accumulatedParts.filter(
-      (p): p is StoredPart & { type: 'tool-call' } => p.type === 'tool-call' && !resolvedToolCallIds.has(p.toolCallId),
-    );
-
+    const missingToolCalls = this.getUnresolvedToolCalls();
     if (missingToolCalls.length === 0) {
       return;
     }
@@ -1035,12 +1014,7 @@ class StreamRunner {
     return text.length > 0 ? text : null;
   }
 
-  private setFinishReason(next: string, reason: string): void {
-    const current = this.state.finalFinishReason;
-    if (current === next) {
-      return;
-    }
-
+  private logTransition(field: string, from: unknown, to: unknown, reason: string): void {
     log.info(
       {
         event: 'stream.state.transition',
@@ -1048,36 +1022,24 @@ class StreamRunner {
         streamRunId: this.ctx.streamRunId,
         sessionId: this.ctx.sessionId,
         messageId: this.ctx.assistantMessageId,
-        field: 'finalFinishReason',
-        from: current,
-        to: next,
+        field,
+        from,
+        to,
         reason,
       },
       'stream.state.transition',
     );
+  }
+
+  private setFinishReason(next: string, reason: string): void {
+    if (this.state.finalFinishReason === next) return;
+    this.logTransition('finalFinishReason', this.state.finalFinishReason, next, reason);
     this.state.finalFinishReason = next;
   }
 
   private setNeedsCompaction(next: boolean, reason: string): void {
-    const current = this.state.needsCompaction;
-    if (current === next) {
-      return;
-    }
-
-    log.info(
-      {
-        event: 'stream.state.transition',
-        phase: 'state',
-        streamRunId: this.ctx.streamRunId,
-        sessionId: this.ctx.sessionId,
-        messageId: this.ctx.assistantMessageId,
-        field: 'needsCompaction',
-        from: current,
-        to: next,
-        reason,
-      },
-      'stream.state.transition',
-    );
+    if (this.state.needsCompaction === next) return;
+    this.logTransition('needsCompaction', this.state.needsCompaction, next, reason);
     this.state.needsCompaction = next;
   }
 

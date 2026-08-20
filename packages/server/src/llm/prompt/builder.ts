@@ -43,31 +43,29 @@ const BASE_SYSTEM_PROMPT = readFileSync(
   'utf8',
 ).trim();
 
-function buildLiquidUiPromptSection(): string {
-  return `## Liquid UI / render_ui Tool
+const LIQUID_UI_SECTION = `## Liquid UI / render_ui Tool
 
 Use the liquid-ui skill before calling render_ui unless the user explicitly asks for plain text only.
 The skill contains the component catalog, schema rules, examples, and guidance for when render_ui is appropriate.`;
-}
 
-function buildEnforcementGuidance(): string {
-  return `## Enforcement Guidance
+const ENFORCEMENT_GUIDANCE = `## Enforcement Guidance
 
 - Mandatory tool use: never answer from memory when a tool can produce the fact, including calculations, current data, file contents, system state, or financial/market data.
 - Tool persistence: keep using tools until the task is complete and verified. If a tool returns empty or partial data, try a different query or strategy before giving up.
 - Anti-fabrication: if you cannot produce a result with tools, state the blocker honestly instead of filling gaps with plausible output.
 - Act, don't ask: act immediately when the request has an obvious safe default. Ask at most one focused question only when truly blocked.`;
-}
 
 export function buildSystemPromptLayers(input: PromptConfig): SystemPromptLayers {
   const userPrompt = input.systemPrompt?.trim() ?? '';
 
-  let staticContent: string;
-  if (input.useBasePrompt) {
-    staticContent = `${identity(input.userName)}\n\n${BASE_SYSTEM_PROMPT}\n\n${buildEnforcementGuidance()}\n\n${buildLiquidUiPromptSection()}`;
-  } else {
-    staticContent = `${identity(input.userName)}\n\n${buildEnforcementGuidance()}\n\n${buildLiquidUiPromptSection()}`;
-  }
+  const staticContent = [
+    identity(input.userName),
+    input.useBasePrompt ? BASE_SYSTEM_PROMPT : '',
+    ENFORCEMENT_GUIDANCE,
+    LIQUID_UI_SECTION,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 
   const envBlock = buildPromptEnvironment({ userTimezone: input.userTimezone });
   const semiStaticParts = [envBlock];

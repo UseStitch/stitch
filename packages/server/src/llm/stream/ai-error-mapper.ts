@@ -200,24 +200,25 @@ function inferCategoryFromPayload(input: {
   return 'api_error';
 }
 
-function isRetryableCategory(category: StreamErrorCategory, statusCode?: number): boolean {
-  if (category === 'context_overflow') return false;
-  if (category === 'auth') return false;
-  if (category === 'quota') return false;
-  if (category === 'invalid_prompt') return false;
-  if (category === 'invalid_input') return false;
-  if (category === 'invalid_response') return false;
-  if (category === 'model_not_found') return false;
-  if (category === 'provider_not_found') return false;
-  if (category === 'tool_not_found') return false;
-  if (category === 'unsupported') return false;
-  if (category === 'retry_exhausted') return false;
-  if (category === 'no_output') return false;
-  if (category === 'download_error') return false;
-  if (category === 'rate_limited') return true;
+const NON_RETRYABLE = new Set<StreamErrorCategory>([
+  'context_overflow',
+  'auth',
+  'quota',
+  'invalid_prompt',
+  'invalid_input',
+  'invalid_response',
+  'model_not_found',
+  'provider_not_found',
+  'tool_not_found',
+  'unsupported',
+  'retry_exhausted',
+  'no_output',
+  'download_error',
+]);
 
-  if (statusCode && statusCode >= 500) return true;
-  return category === 'api_error';
+function isRetryableCategory(category: StreamErrorCategory, statusCode?: number): boolean {
+  if (NON_RETRYABLE.has(category)) return false;
+  return category === 'rate_limited' || category === 'api_error' || (statusCode ?? 0) >= 500;
 }
 
 export function mapAIError(error: unknown, providerId?: string): MappedAIError {
