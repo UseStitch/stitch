@@ -127,6 +127,10 @@ function waitForPendingStarts(): Promise<void> {
   });
 }
 
+function isAcceptingTasks(): boolean {
+  return acceptingTasks;
+}
+
 export async function initializeBackgroundTaskService(): Promise<void> {
   acceptingTasks = false;
   const interrupted = await interruptStaleBackgroundTasks();
@@ -153,7 +157,7 @@ export async function startBackgroundTask(
   input: StartBackgroundTaskInput,
   dependencies: BackgroundTaskServiceDependencies = defaultDependencies,
 ): Promise<void> {
-  if (!acceptingTasks) throw new Error('Background task service is shutting down');
+  if (!isAcceptingTasks()) throw new Error('Background task service is shutting down');
 
   pendingStarts++;
   try {
@@ -169,7 +173,7 @@ export async function startBackgroundTask(
       activeToolsetIds: input.activeToolsetIds,
     });
 
-    if (!acceptingTasks) {
+    if (!isAcceptingTasks()) {
       await markBackgroundTaskCancelled(input.taskId);
       throw new Error('Background task service is shutting down');
     }

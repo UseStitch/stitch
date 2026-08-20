@@ -71,6 +71,5 @@ export const SttRegistryPayloadSchema = z.object({
   providers: z.array(SttProviderSchema).min(1),
 });
 
-export type SttModel = z.infer<typeof SttModelSchema>;
 export type SttProvider = z.infer<typeof SttProviderSchema>;
 export type SttRegistryPayload = z.infer<typeof SttRegistryPayloadSchema>;
