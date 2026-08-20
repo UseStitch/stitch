@@ -13,7 +13,6 @@ import { deletePerm, getPerms, upsertPerm } from '@/permission/service.js';
 import { listKnownTools } from '@/tools/catalog.js';
 import { getToolEnabledStates, setToolEnabledState } from '@/tools/enabled-service.js';
 import { listToolsets } from '@/tools/toolsets/registry.js';
-import type { ToolsetKind } from '@/tools/toolsets/types.js';
 import { toToolsetView } from '@/tools/toolsets/view.js';
 
 const upsertPermissionSchema = z.object({
@@ -29,10 +28,6 @@ const upsertToolEnabledSchema = z.object({
 });
 
 export const configRouter = new Hono();
-
-function getToolsetSource(toolset: { kind: ToolsetKind }): ToolsetKind {
-  return toolset.kind;
-}
 
 configRouter.get('/tools', (c) => {
   return c.json({ tools: listKnownTools() });
@@ -69,7 +64,7 @@ configRouter.get('/toolsets', async (c) => {
         name: view.name,
         description: view.description,
         icon: view.icon,
-        source: getToolsetSource(toolset),
+        source: toolset.kind,
         toolCount: view.tools?.length ?? 0,
         hasInstructions: view.hasInstructions,
         promptCount: view.promptCount,

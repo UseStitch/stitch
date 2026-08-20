@@ -22,7 +22,6 @@ const BufferConfigSchema = z.object({
   maxChunkBytes: z.number().int().positive(),
   flushIntervalMs: z.number().int().positive(),
   maxBufferedMs: z.number().int().positive(),
-  paceRealtime: z.boolean(),
 });
 
 const ReconnectConfigSchema = z.object({
@@ -72,6 +71,5 @@ export const SttRegistryPayloadSchema = z.object({
   providers: z.array(SttProviderSchema).min(1),
 });
 
-export type SttModel = z.infer<typeof SttModelSchema>;
 export type SttProvider = z.infer<typeof SttProviderSchema>;
 export type SttRegistryPayload = z.infer<typeof SttRegistryPayloadSchema>;

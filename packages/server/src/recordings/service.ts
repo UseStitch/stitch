@@ -1,4 +1,5 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 
 import { createRecordingAnalysisId, createRecordingId, type PrefixedString } from '@stitch/shared/id';
 import type {
@@ -17,9 +18,7 @@ import { providerConfig } from '@/db/schema/providers.js';
 import { recordingAnalyses, recordings } from '@/db/schema/recordings.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
-import { computeTotalPages } from '@/lib/paginated-query.js';
-import { err, ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
+import { paginatedQuery } from '@/lib/paginated-query.js';
 import { getModelDescriptor } from '@/models/stt/service.js';
 import { startRecordingAnalysis, toRecordingAnalysis } from '@/recordings/analysis-service.js';
 import { deleteRecordingFiles } from '@/recordings/file-store.js';
@@ -80,12 +79,14 @@ async function resolveSttConfig(override?: { providerId: string; modelId: string
 }
 
 function defaultTitle(): string {
-  const now = new Date();
-  const month = now.toLocaleDateString(undefined, { month: 'short' });
-  const day = now.getDate();
-  const year = now.getFullYear();
-  const timePart = now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
-  return `${month} ${day} ${year} ${timePart}`;
+  return new Date().toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  });
 }
 
 function toRecording(
@@ -110,14 +111,10 @@ function toRecording(
   };
 }
 
-export async function listRecordings(input: {
-  page: number;
-  pageSize: number;
-}): Promise<ServiceResult<ListRecordingsResponse>> {
+export async function listRecordings(input: { page: number; pageSize: number }): Promise<ListRecordingsResponse> {
   const db = getDb();
-  const offset = (input.page - 1) * input.pageSize;
-  const [rows, countRows] = await Promise.all([
-    db
+  const result = await paginatedQuery({
+    dataQuery: db
       .select({
         recording: recordings,
         analysisTitle: recordingAnalyses.title,
@@ -125,27 +122,25 @@ export async function listRecordings(input: {
       })
       .from(recordings)
       .leftJoin(recordingAnalyses, eq(recordingAnalyses.recordingId, recordings.id))
-      .orderBy(desc(recordings.createdAt))
-      .limit(input.pageSize)
-      .offset(offset),
-    db.select({ total: sql<number>`count(*)` }).from(recordings),
-  ]);
-  const total = Number(countRows.at(0)?.total ?? 0);
-  const totalPages = computeTotalPages(total, input.pageSize);
-
-  return ok({
-    recordings: rows.map((row) => toRecording(row.recording, row.analysisTitle || null, row.analysisCostUsd ?? null)),
-    activeRecordingId: activeRecording?.id ?? null,
+      .orderBy(desc(recordings.createdAt)),
+    count: db.$count(recordings),
     page: input.page,
     pageSize: input.pageSize,
-    total,
-    totalPages,
   });
+
+  return {
+    recordings: result.items.map((row) =>
+      toRecording(row.recording, row.analysisTitle || null, row.analysisCostUsd ?? null),
+    ),
+    activeRecordingId: activeRecording?.id ?? null,
+    page: result.page,
+    pageSize: result.pageSize,
+    total: result.total,
+    totalPages: result.totalPages,
+  };
 }
 
-export async function getRecordingDetails(
-  recordingId: Recording['id'],
-): Promise<ServiceResult<RecordingDetailsResponse>> {
+export async function getRecordingDetails(recordingId: Recording['id']): Promise<RecordingDetailsResponse> {
   const db = getDb();
   const row = (
     await db
@@ -161,23 +156,23 @@ export async function getRecordingDetails(
   ).at(0);
 
   if (!row) {
-    return err('Recording not found', 404);
+    throw new HTTPException(404, { message: 'Recording not found' });
   }
 
-  return ok({
+  return {
     recording: toRecording(row.recording, row.analysisTitle || null, row.analysisCostUsd ?? null),
     analysis: row.analysis ? await toRecordingAnalysis(row.analysis) : null,
     activeRecordingId: activeRecording?.id ?? null,
-  });
+  };
 }
 
-export function getActiveRecording(): ServiceResult<ActiveRecordingResponse> {
-  return ok({ activeRecordingId: activeRecording?.id ?? null });
+export function getActiveRecording(): ActiveRecordingResponse {
+  return { activeRecordingId: activeRecording?.id ?? null };
 }
 
-export async function startRecording(input: StartRecordingInput): Promise<ServiceResult<StartRecordingResponse>> {
+export async function startRecording(input: StartRecordingInput): Promise<StartRecordingResponse> {
   if (activeRecording !== null) {
-    return err('Recording already in progress', 400);
+    throw new HTTPException(400, { message: 'Recording already in progress' });
   }
 
   const db = getDb();
@@ -198,7 +193,7 @@ export async function startRecording(input: StartRecordingInput): Promise<Servic
     ]);
 
     if (!resolvedSttConfig) {
-      return err('STT provider not configured for recordings', 400);
+      throw new HTTPException(400, { message: 'STT provider not configured for recordings' });
     }
 
     settings = resolvedSettings;
@@ -249,31 +244,32 @@ export async function startRecording(input: StartRecordingInput): Promise<Servic
       'recording started',
     );
   } catch (error) {
+    if (error instanceof HTTPException) throw error;
     const message = Error.isError(error) ? error.message : 'Failed to start recording';
-    return err(message, 400);
+    throw new HTTPException(400, { message });
   }
 
   const row = (await db.select().from(recordings).where(eq(recordings.id, id))).at(0);
   if (!row) {
-    return err('Recording not found', 404);
+    throw new HTTPException(404, { message: 'Recording not found' });
   }
 
   internalBus.emit('recording.started', { recordingId: id });
 
-  return ok({
+  return {
     recording: toRecording(row),
     recordingId: id,
     micDeviceId: settings.inputDeviceId,
     speakerDeviceId: settings.outputDeviceId,
     audioChunkConfig: { encoding: sttConfig.encoding, sampleRateHz: sttConfig.sampleRateHz },
     stt: { providerId: sttConfig.providerId, modelId: sttConfig.modelId },
-  });
+  };
 }
 
-export async function stopRecording(input: StopRecordingInput): Promise<ServiceResult<StopRecordingResponse>> {
+export async function stopRecording(input: StopRecordingInput): Promise<StopRecordingResponse> {
   const current = activeRecording;
   if (!current) {
-    return err('No active recording', 400);
+    throw new HTTPException(400, { message: 'No active recording' });
   }
 
   const db = getDb();
@@ -302,11 +298,10 @@ export async function stopRecording(input: StopRecordingInput): Promise<ServiceR
       await getSettings(['recordings.autoAnalyze', 'recordings.analysis.defaultTemplateId'] as const);
 
     if (autoAnalyze) {
-      void startRecordingAnalysis(current.id, { templateId: defaultTemplateId as PrefixedString<'mnt'> }).then(
-        (result) => {
-          if (result.error) {
-            log.warn({ recordingId: current.id, error: result.error.message }, 'auto analysis skipped');
-          }
+      void startRecordingAnalysis(current.id, { templateId: defaultTemplateId as PrefixedString<'mnt'> }).catch(
+        (err) => {
+          const message = Error.isError(err) ? err.message : String(err);
+          log.warn({ recordingId: current.id, error: message }, 'auto analysis skipped');
         },
       );
     }
@@ -317,33 +312,31 @@ export async function stopRecording(input: StopRecordingInput): Promise<ServiceR
       .set({ status: 'failed', error: message, endedAt: Date.now(), updatedAt: Date.now() })
       .where(eq(recordings.id, current.id));
 
-    return err(message, 400);
+    throw new HTTPException(400, { message });
   }
 
   const row = (await db.select().from(recordings).where(eq(recordings.id, current.id))).at(0);
   if (!row) {
-    return err('Recording not found', 404);
+    throw new HTTPException(404, { message: 'Recording not found' });
   }
 
   internalBus.emit('recording.stopped', { recordingId: current.id });
 
-  return ok({ recording: toRecording(row) });
+  return { recording: toRecording(row) };
 }
 
-export async function deleteRecording(recordingId: Recording['id']): Promise<ServiceResult<null>> {
+export async function deleteRecording(recordingId: Recording['id']): Promise<void> {
   if (activeRecording?.id === recordingId) {
-    return err('Cannot delete an active recording', 400);
+    throw new HTTPException(400, { message: 'Cannot delete an active recording' });
   }
 
   const db = getDb();
   const row = (await db.select().from(recordings).where(eq(recordings.id, recordingId))).at(0);
 
   if (!row) {
-    return err('Recording not found', 404);
+    throw new HTTPException(404, { message: 'Recording not found' });
   }
 
   await db.delete(recordings).where(eq(recordings.id, recordingId));
   await deleteRecordingFiles(recordingId);
-
-  return ok(null);
 }

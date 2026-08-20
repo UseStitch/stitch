@@ -1,30 +1,16 @@
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
 import { ToolError } from '@/tools/errors.js';
 
-let queueTail: Promise<void> = Promise.resolve();
+let queueTail: Promise<unknown> = Promise.resolve();
 
 function runSerialized<T>(fn: () => Promise<T>): Promise<T> {
-  const previous = queueTail.catch(() => {});
-  let release: () => void = () => {};
-  queueTail = previous.then(
-    () =>
-      new Promise<void>((resolve) => {
-        release = resolve;
-      }),
-  );
-
-  return previous.then(async () => {
-    try {
-      return await fn();
-    } finally {
-      release();
-    }
-  });
+  const r = queueTail.then(fn, fn);
+  queueTail = r.catch(() => {});
+  return r;
 }
 
-export async function runBrowserTool<TInput>(
-  input: TInput,
-  execContext: { toolCallId: string; abortSignal?: AbortSignal },
+export async function runBrowserTool(
+  abortSignal: AbortSignal | undefined,
   sessionId: string,
   execute: (signal?: AbortSignal) => Promise<unknown>,
 ): Promise<unknown> {
@@ -32,7 +18,7 @@ export async function runBrowserTool<TInput>(
     try {
       const browser = getBrowserManager(sessionId);
       await browser.launch();
-      return await execute(execContext.abortSignal);
+      return await execute(abortSignal);
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') throw error;
       const message = Error.isError(error) ? error.message : String(error);

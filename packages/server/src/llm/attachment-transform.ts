@@ -13,23 +13,6 @@ function mimeToModality(mime: string): Modality | null {
 
 type UserPart = TextPart | ImagePart | FilePart;
 
-function getPartMime(part: UserPart): string | null {
-  if (part.type === 'image') {
-    return part.mediaType ?? 'image/unknown';
-  }
-  if (part.type === 'file') {
-    return part.mediaType;
-  }
-  return null;
-}
-
-function getPartFilename(part: UserPart): string | null {
-  if (part.type === 'file') {
-    return part.filename ?? null;
-  }
-  return null;
-}
-
 function makeUnsupportedText(modality: Modality, filename: string | null): TextPart {
   const label = filename ? `"${filename}"` : modality;
   return {
@@ -53,7 +36,7 @@ export async function transformAttachmentsForModel(
     const transformed = (msg.content as UserPart[]).map((part): UserPart => {
       if (part.type !== 'image' && part.type !== 'file') return part;
 
-      const mime = getPartMime(part);
+      const mime = part.type === 'image' ? (part.mediaType ?? 'image/unknown') : part.mediaType;
       if (!mime) return part;
 
       const modality = mimeToModality(mime);
@@ -61,7 +44,7 @@ export async function transformAttachmentsForModel(
 
       if (supportedInputModalities.includes(modality)) return part;
 
-      return makeUnsupportedText(modality, getPartFilename(part));
+      return makeUnsupportedText(modality, part.type === 'file' ? (part.filename ?? null) : null);
     });
 
     return { ...msg, content: transformed };

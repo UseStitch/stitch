@@ -3,12 +3,12 @@ import { Hono } from 'hono';
 import { execFile } from 'node:child_process';
 import { z } from 'zod';
 
+import type { MemoryConsolidationStatus } from '@stitch/shared/memory/types';
+
 import { PATHS } from '@/lib/paths.js';
-import { unwrapResult } from '@/lib/route-helpers.js';
 import { getMemoryConfig } from '@/memory/config.js';
 import { MemoryCapacityError, MemoryConflictError, MemoryPathError, memoryFileStore } from '@/memory/file-store.js';
 import { runMemoryMaintenance } from '@/memory/maintenance.js';
-import type { MemoryConsolidationStatus } from '@/memory/types.js';
 import type { Context } from 'hono';
 
 const fileNames = { memory: 'MEMORY.md', user: 'USER.md', dreams: 'DREAMS.md' } as const;
@@ -149,7 +149,8 @@ memoryRouter.get('/search', zValidator('query', searchSchema), async (c) => {
 memoryRouter.post('/consolidate', async (c) => {
   const inactive = await ensureMemoryEnabled(c);
   if (inactive) return inactive;
-  return unwrapResult(c, await runMemoryMaintenance());
+  const result = await runMemoryMaintenance();
+  return c.json(result);
 });
 
 memoryRouter.post('/reset', zValidator('json', z.object({ confirm: z.literal(true) })), async (c) => {

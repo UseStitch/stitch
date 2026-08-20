@@ -35,10 +35,6 @@ export function listToolsets(): Toolset[] {
   return [...toolsets.values()];
 }
 
-export function listToolsetIds(): string[] {
-  return [...toolsets.keys()];
-}
-
 export function unregisterToolset(toolsetId: string): boolean {
   const removed = toolsets.delete(toolsetId);
   if (removed) {

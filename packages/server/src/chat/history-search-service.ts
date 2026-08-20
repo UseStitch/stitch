@@ -1,5 +1,6 @@
 import { and, desc, eq, inArray } from 'drizzle-orm';
 
+import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
@@ -51,44 +52,26 @@ function toSearchTokens(query: string): string[] {
     .filter((token) => token.length > 1);
 }
 
-function extractMessageText(parts: unknown): string {
-  if (!Array.isArray(parts)) {
-    return '';
-  }
-
+function extractMessageText(parts: StoredPart[]): string {
   const chunks: string[] = [];
   for (const part of parts) {
-    if (!part || typeof part !== 'object') {
-      continue;
-    }
-
-    const typed = part as { type?: unknown; text?: unknown };
-    if (typed.type === 'text-delta' && typeof typed.text === 'string') {
-      chunks.push(typed.text);
+    if (part.type === 'text-delta') {
+      chunks.push(part.text);
     }
   }
 
   return normalizeText(chunks.join(''));
 }
 
-function extractToolResultPreviews(parts: unknown): Array<{ toolName: string; output: string }> {
-  if (!Array.isArray(parts)) {
-    return [];
-  }
-
+function extractToolResultPreviews(parts: StoredPart[]): Array<{ toolName: string; output: string }> {
   const rows: Array<{ toolName: string; output: string }> = [];
   for (const part of parts) {
-    if (!part || typeof part !== 'object') {
+    if (part.type !== 'tool-result') {
       continue;
     }
 
-    const typed = part as { type?: unknown; toolName?: unknown; output?: unknown };
-    if (typed.type !== 'tool-result' || typeof typed.toolName !== 'string') {
-      continue;
-    }
-
-    const outputText = typeof typed.output === 'string' ? typed.output : JSON.stringify(typed.output ?? null);
-    rows.push({ toolName: typed.toolName, output: normalizeText(outputText).slice(0, MAX_TOOL_RESULT_PREVIEW_CHARS) });
+    const outputText = typeof part.output === 'string' ? part.output : JSON.stringify(part.output ?? null);
+    rows.push({ toolName: part.toolName, output: normalizeText(outputText).slice(0, MAX_TOOL_RESULT_PREVIEW_CHARS) });
   }
 
   return rows;
@@ -150,8 +133,6 @@ export async function searchSessionHistory(
   }
 
   const sessionIds = sessionRows.map((row) => row.id);
-  const roleCondition =
-    input.roleFilter === 'all' ? undefined : eq(messages.role, input.roleFilter === 'user' ? 'user' : 'assistant');
 
   const messageRows = await db
     .select({
@@ -163,9 +144,10 @@ export async function searchSessionHistory(
     })
     .from(messages)
     .where(
-      roleCondition
-        ? and(inArray(messages.sessionId, sessionIds), roleCondition)
-        : inArray(messages.sessionId, sessionIds),
+      and(
+        inArray(messages.sessionId, sessionIds),
+        input.roleFilter === 'all' ? undefined : eq(messages.role, input.roleFilter),
+      ),
     )
     .orderBy(desc(messages.createdAt));
 
@@ -192,7 +174,7 @@ export async function searchSessionHistory(
     }
 
     if (!query) {
-      const firstText = extractMessageText(sessionMessages.at(0)?.parts);
+      const firstText = extractMessageText(sessionMessages.at(0)?.parts ?? []);
       hits.push({
         sessionId: sessionRow.id,
         title: sessionRow.title,

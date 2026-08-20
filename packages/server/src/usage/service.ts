@@ -14,8 +14,6 @@ import { getDb } from '@/db/client.js';
 import { recordingAnalyses } from '@/db/schema/recordings.js';
 import { sessions } from '@/db/schema/sessions.js';
 import { llmUsageEvents, sttUsageEvents } from '@/db/schema/usage.js';
-import { ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
 import { normalizeUsage } from '@/utils/usage.js';
 import type { LanguageModelUsage } from 'ai';
 
@@ -33,6 +31,67 @@ type BucketRange = { start: number; end: number };
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
+
+const GRANULARITY = {
+  hour: {
+    ms: HOUR_MS,
+    floor: (timestamp: number) => {
+      const date = new Date(timestamp);
+      date.setMinutes(0, 0, 0);
+      return date.getTime();
+    },
+    add: (timestamp: number) => {
+      const date = new Date(timestamp);
+      date.setHours(date.getHours() + 1);
+      return date.getTime();
+    },
+  },
+  day: {
+    ms: DAY_MS,
+    floor: (timestamp: number) => {
+      const date = new Date(timestamp);
+      date.setHours(0, 0, 0, 0);
+      return date.getTime();
+    },
+    add: (timestamp: number) => {
+      const date = new Date(timestamp);
+      date.setDate(date.getDate() + 1);
+      return date.getTime();
+    },
+  },
+  week: {
+    ms: 7 * DAY_MS,
+    floor: (timestamp: number) => {
+      const date = new Date(timestamp);
+      date.setHours(0, 0, 0, 0);
+      const day = date.getDay();
+      date.setDate(date.getDate() - (day === 0 ? 6 : day - 1));
+      return date.getTime();
+    },
+    add: (timestamp: number) => {
+      const date = new Date(timestamp);
+      date.setDate(date.getDate() + 7);
+      return date.getTime();
+    },
+  },
+  month: {
+    ms: 30 * DAY_MS,
+    floor: (timestamp: number) => {
+      const date = new Date(timestamp);
+      date.setDate(1);
+      date.setHours(0, 0, 0, 0);
+      return date.getTime();
+    },
+    add: (timestamp: number) => {
+      const date = new Date(timestamp);
+      date.setMonth(date.getMonth() + 1);
+      return date.getTime();
+    },
+  },
+} satisfies Record<
+  UsageBucketGranularity,
+  { ms: number; floor: (timestamp: number) => number; add: (timestamp: number) => number }
+>;
 
 const EMPTY_TOKEN_METRICS: UsageTokenMetrics = {
   inputTokens: 0,
@@ -64,96 +123,17 @@ function isValidTimestamp(value: number | undefined): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value > 0;
 }
 
-function startOfHour(timestamp: number): number {
-  const date = new Date(timestamp);
-  date.setMinutes(0, 0, 0);
-  return date.getTime();
-}
-
-function startOfDay(timestamp: number): number {
-  const date = new Date(timestamp);
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
-}
-
-function startOfWeek(timestamp: number): number {
-  const date = new Date(timestamp);
-  date.setHours(0, 0, 0, 0);
-  const day = date.getDay();
-  const offset = day === 0 ? 6 : day - 1;
-  date.setDate(date.getDate() - offset);
-  return date.getTime();
-}
-
-function startOfMonth(timestamp: number): number {
-  const date = new Date(timestamp);
-  date.setDate(1);
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
-}
-
-function addHour(timestamp: number): number {
-  const date = new Date(timestamp);
-  date.setHours(date.getHours() + 1);
-  return date.getTime();
-}
-
-function addDay(timestamp: number): number {
-  const date = new Date(timestamp);
-  date.setDate(date.getDate() + 1);
-  return date.getTime();
-}
-
-function addWeek(timestamp: number): number {
-  const date = new Date(timestamp);
-  date.setDate(date.getDate() + 7);
-  return date.getTime();
-}
-
-function addMonth(timestamp: number): number {
-  const date = new Date(timestamp);
-  date.setMonth(date.getMonth() + 1);
-  return date.getTime();
-}
-
 function floorToGranularity(timestamp: number, granularity: UsageBucketGranularity): number {
-  switch (granularity) {
-    case 'hour':
-      return startOfHour(timestamp);
-    case 'day':
-      return startOfDay(timestamp);
-    case 'week':
-      return startOfWeek(timestamp);
-    case 'month':
-      return startOfMonth(timestamp);
-  }
+  return GRANULARITY[granularity].floor(timestamp);
 }
 
 function addGranularity(timestamp: number, granularity: UsageBucketGranularity): number {
-  switch (granularity) {
-    case 'hour':
-      return addHour(timestamp);
-    case 'day':
-      return addDay(timestamp);
-    case 'week':
-      return addWeek(timestamp);
-    case 'month':
-      return addMonth(timestamp);
-  }
+  return GRANULARITY[granularity].add(timestamp);
 }
 
 function estimateBucketCount(window: TimeWindow, granularity: UsageBucketGranularity): number {
   const duration = Math.max(1, window.to - window.from);
-  switch (granularity) {
-    case 'hour':
-      return Math.ceil(duration / HOUR_MS);
-    case 'day':
-      return Math.ceil(duration / DAY_MS);
-    case 'week':
-      return Math.ceil(duration / (7 * DAY_MS));
-    case 'month':
-      return Math.max(1, Math.ceil(duration / (30 * DAY_MS)));
-  }
+  return Math.ceil(duration / GRANULARITY[granularity].ms);
 }
 
 function inferGranularity(window: TimeWindow): UsageBucketGranularity {
@@ -256,6 +236,23 @@ async function resolveWindow(input: GetUsageDashboardInput): Promise<TimeWindow>
   return { from, to };
 }
 
+async function buildDashboardFrame(input: GetUsageDashboardInput) {
+  const window = await resolveWindow(input);
+  const granularity = inferGranularity(window);
+  const bucketRanges = buildBucketRanges(window, granularity);
+  const bucketIndexByStart = new Map(bucketRanges.map((range, index) => [range.start, index]));
+  return { window, granularity, bucketRanges, bucketIndexByStart };
+}
+
+function splitModelKeys(keys: Set<string>): Array<{ providerId: string; modelId: string }> {
+  return Array.from(keys)
+    .map((key) => {
+      const separator = key.indexOf('::');
+      return { providerId: key.slice(0, separator), modelId: key.slice(separator + 2) };
+    })
+    .toSorted((a, b) => a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId));
+}
+
 function normalizeEventSource(source: string, sessionType: 'chat' | 'automation' | null): UsageSource | null {
   if (source === 'title_generation') {
     return 'title_generation';
@@ -280,11 +277,9 @@ function normalizeEventSource(source: string, sessionType: 'chat' | 'automation'
   return 'chat';
 }
 
-export async function getUsageDashboard(input: GetUsageDashboardInput): Promise<ServiceResult<UsageDashboardResponse>> {
+export async function getUsageDashboard(input: GetUsageDashboardInput): Promise<UsageDashboardResponse> {
   const db = getDb();
-  const window = await resolveWindow(input);
-  const granularity = inferGranularity(window);
-  const bucketRanges = buildBucketRanges(window, granularity);
+  const { window, granularity, bucketRanges, bucketIndexByStart } = await buildDashboardFrame(input);
 
   const buckets = bucketRanges.map((range) => ({
     start: range.start,
@@ -292,8 +287,6 @@ export async function getUsageDashboard(input: GetUsageDashboardInput): Promise<
     label: formatBucketLabel(range, granularity),
     costUsdBySource: {} as Record<string, number>,
   }));
-
-  const bucketIndexByStart = new Map(bucketRanges.map((range, index) => [range.start, index]));
 
   const totalsByCostSource: Record<string, number> = {};
   const totalTokenMetrics = cloneEmptyTokenMetrics();
@@ -381,29 +374,20 @@ export async function getUsageDashboard(input: GetUsageDashboardInput): Promise<
 
   const totalCostUsd = Object.values(totalsByCostSource).reduce((sum, cost) => sum + cost, 0);
 
-  return ok({
+  return {
     range: { from: window.from, to: window.to, granularity, bucketCount: buckets.length },
     filters: { providerId: input.providerId ?? null, modelId: input.modelId ?? null },
     usedProviders: Array.from(usedProviderIds).toSorted((a, b) => a.localeCompare(b)),
-    usedModels: Array.from(usedModelKeys)
-      .map((key) => {
-        const separator = key.indexOf('::');
-        return { providerId: key.slice(0, separator), modelId: key.slice(separator + 2) };
-      })
-      .toSorted((a, b) => a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId)),
+    usedModels: splitModelKeys(usedModelKeys),
     sources,
     totals: { costUsd: totalCostUsd, tokenMetrics: totalTokenMetrics },
     buckets,
-  });
+  };
 }
 
-export async function getSttUsageDashboard(
-  input: GetUsageDashboardInput,
-): Promise<ServiceResult<SttUsageDashboardResponse>> {
+export async function getSttUsageDashboard(input: GetUsageDashboardInput): Promise<SttUsageDashboardResponse> {
   const db = getDb();
-  const window = await resolveWindow(input);
-  const granularity = inferGranularity(window);
-  const bucketRanges = buildBucketRanges(window, granularity);
+  const { window, granularity, bucketRanges, bucketIndexByStart } = await buildDashboardFrame(input);
 
   const buckets = bucketRanges.map((range) => ({
     start: range.start,
@@ -412,8 +396,6 @@ export async function getSttUsageDashboard(
     costUsdByService: {} as Record<string, number>,
     durationMsByService: {} as Record<string, number>,
   }));
-
-  const bucketIndexByStart = new Map(bucketRanges.map((range, index) => [range.start, index]));
 
   const serviceSet = new Set<string>();
   let totalCostUsd = 0;
@@ -466,20 +448,15 @@ export async function getSttUsageDashboard(
 
   const services = Array.from(serviceSet).toSorted((a, b) => a.localeCompare(b));
 
-  return ok({
+  return {
     range: { from: window.from, to: window.to, granularity, bucketCount: buckets.length },
     filters: { providerId: input.providerId ?? null, modelId: input.modelId ?? null },
     usedProviders: Array.from(usedProviderIds).toSorted((a, b) => a.localeCompare(b)),
-    usedModels: Array.from(usedModelKeys)
-      .map((key) => {
-        const separator = key.indexOf('::');
-        return { providerId: key.slice(0, separator), modelId: key.slice(separator + 2) };
-      })
-      .toSorted((a, b) => a.providerId.localeCompare(b.providerId) || a.modelId.localeCompare(b.modelId)),
+    usedModels: splitModelKeys(usedModelKeys),
     services,
     totals: { costUsd: totalCostUsd, durationMs: totalDurationMs },
     buckets,
-  });
+  };
 }
 
 export const usageServiceInternals = { inferGranularity, buildBucketRanges, floorToGranularity };

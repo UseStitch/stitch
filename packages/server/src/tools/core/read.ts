@@ -93,17 +93,13 @@ export async function readPathContent(input: z.infer<typeof readInputSchema>): P
   return { output: formatNumberedContent(content, offset, limit), filePath: targetPath };
 }
 
-function createReadTool() {
-  return tool({
-    description: DESCRIPTION,
-    inputSchema: readInputSchema,
-    execute: async (input) => readPathContent(input),
-  });
-}
-
 export const definition: ToolDefinition = {
   name: 'read',
   displayName: 'Read',
-  tool: createReadTool(),
+  tool: tool({
+    description: DESCRIPTION,
+    inputSchema: readInputSchema,
+    execute: async (input) => readPathContent(input),
+  }),
   permission: { getPatternTargets: getFilePathPatternTargets, getSuggestion: getParentDirPermissionSuggestion },
 };

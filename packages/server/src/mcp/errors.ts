@@ -11,12 +11,3 @@ export class McpOAuthMissingVerifierError extends McpError {
     this.name = 'McpOAuthMissingVerifierError';
   }
 }
-
-export class McpRegistryFetchError extends McpError {
-  readonly statusCode: number;
-  constructor(statusCode: number) {
-    super(`HTTP ${statusCode}`);
-    this.name = 'McpRegistryFetchError';
-    this.statusCode = statusCode;
-  }
-}

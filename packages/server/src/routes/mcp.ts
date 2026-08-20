@@ -6,7 +6,6 @@ import { MCP_TRANSPORT_TYPES } from '@stitch/shared/mcp/types';
 
 import { ICON_CACHE_CONTROL, SVG_CONTENT_TYPE } from '@/lib/icon-cache.js';
 import * as Log from '@/lib/log.js';
-import { unwrapResult } from '@/lib/route-helpers.js';
 import { evictMcpClient } from '@/mcp/client.js';
 import * as OAuthCallback from '@/mcp/oauth-callback.js';
 import { getMcpInstalledServerRegistryLogo, getMcpRegistryLogo } from '@/mcp/registry-logos.js';
@@ -51,7 +50,7 @@ export const mcpRouter = new Hono();
 
 mcpRouter.get('/', async (c) => {
   const result = await listMcpServers();
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 mcpRouter.post('/', zValidator('json', createMcpServerSchema), async (c) => {
@@ -62,19 +61,18 @@ mcpRouter.post('/', zValidator('json', createMcpServerSchema), async (c) => {
     url: body.url,
     authConfig: body.authConfig,
   });
-  if (result.error) return unwrapResult(c, result);
-  await refreshMcpToolsets({ serverIds: [result.data.id], refreshTools: true });
-  return unwrapResult(c, result, 201);
+  await refreshMcpToolsets({ serverIds: [result.id], refreshTools: true });
+  return c.json(result, 201);
 });
 
 mcpRouter.get('/registry', async (c) => {
   const result = await listMcpRegistryServers();
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 mcpRouter.post('/registry/refresh', async (c) => {
-  const result = await reloadMcpRegistryCacheFromDisk();
-  return unwrapResult(c, result, 204);
+  await reloadMcpRegistryCacheFromDisk();
+  return c.body(null, 204);
 });
 
 mcpRouter.get('/registry/:registryId/logo', async (c) => {
@@ -92,9 +90,8 @@ mcpRouter.get('/registry/:registryId/logo', async (c) => {
 mcpRouter.get('/:id/tools', async (c) => {
   const id = c.req.param('id');
   const result = await fetchMcpTools(id);
-  if (result.error) return unwrapResult(c, result);
   await refreshMcpToolsets({ serverIds: [id], refreshTools: false });
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 mcpRouter.get('/:id/logo', async (c) => {
@@ -122,39 +119,36 @@ mcpRouter.post('/:id/refresh', async (c) => {
 
 mcpRouter.delete('/:id', async (c) => {
   const id = c.req.param('id');
-  const result = await deleteMcpServer(id);
-  if (result.error) return unwrapResult(c, result);
+  await deleteMcpServer(id);
   OAuthCallback.cancelPending(id);
   evictMcpClient(id);
   await refreshMcpToolsets({ refreshTools: false });
-  return unwrapResult(c, result, 204);
+  return c.body(null, 204);
 });
 
 mcpRouter.post('/:id/auth', async (c) => {
   const id = c.req.param('id');
   const result = await startMcpAuth(id);
-  if (result.error) return unwrapResult(c, result);
 
-  const { waitForTokens } = result.data;
+  const { waitForTokens } = result;
   void waitForTokens().catch((error) => {
     const message = Error.isError(error) ? error.message : String(error);
     log.warn({ event: 'mcp.auth.background_failed', id, error: message }, 'background MCP authorization failed');
   });
 
-  return c.json({ authUrl: result.data.authUrl });
+  return c.json({ authUrl: result.authUrl });
 });
 
 mcpRouter.get('/:id/auth/status', async (c) => {
   const id = c.req.param('id');
   const result = await getMcpAuthStatus(id);
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 mcpRouter.post('/:id/auth/logout', async (c) => {
   const id = c.req.param('id');
-  const result = await logoutMcpAuth(id);
-  if (result.error) return unwrapResult(c, result);
+  await logoutMcpAuth(id);
   evictMcpClient(id);
   await refreshMcpToolsets({ serverIds: [id], refreshTools: false });
-  return unwrapResult(c, result, 204);
+  return c.body(null, 204);
 });

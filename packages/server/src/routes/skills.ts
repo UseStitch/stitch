@@ -4,7 +4,6 @@ import { z } from 'zod';
 
 import { createSkillSchema, importSkillSchema, updateSkillSchema } from '@stitch/shared/skills/types';
 
-import { unwrapResult } from '@/lib/route-helpers.js';
 import {
   createSkill,
   deleteSkill,
@@ -21,33 +20,33 @@ export const skillsRouter = new Hono();
 
 skillsRouter.get('/', async (c) => {
   const result = await listSkills();
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 skillsRouter.get('/search', zValidator('query', searchSkillsSchema), async (c) => {
   const { q } = c.req.valid('query');
   const result = await searchSkillsDirectory(q);
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 skillsRouter.post('/', zValidator('json', createSkillSchema), async (c) => {
   const result = await createSkill(c.req.valid('json'));
-  return unwrapResult(c, result, 201);
+  return c.json(result, 201);
 });
 
 skillsRouter.post('/import', zValidator('json', importSkillSchema), async (c) => {
   const result = await importSkillFromDirectory(c.req.valid('json'));
-  return unwrapResult(c, result, 201);
+  return c.json(result, 201);
 });
 
 skillsRouter.put('/:name', zValidator('param', skillNameSchema), zValidator('json', updateSkillSchema), async (c) => {
   const { name } = c.req.valid('param');
   const result = await updateSkill(name, c.req.valid('json'));
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 skillsRouter.delete('/:name', zValidator('param', skillNameSchema), async (c) => {
   const { name } = c.req.valid('param');
-  const result = await deleteSkill(name);
-  return unwrapResult(c, result, 204);
+  await deleteSkill(name);
+  return c.body(null, 204);
 });

@@ -3,7 +3,6 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 
 import { getSessionById } from '@/chat/session-crud.js';
-import { unwrapResult } from '@/lib/route-helpers.js';
 import { routeSchemas } from '@/lib/route-schemas.js';
 import {
   allowPermissionResponse,
@@ -31,11 +30,9 @@ export const permissionsRouter = new Hono();
 permissionsRouter.get('/sessions/:id/permission-responses', zValidator('param', sessionParamSchema), async (c) => {
   const { id: sessionId } = c.req.valid('param');
 
-  const sessionResult = await getSessionById(sessionId);
-  if (sessionResult.error) return unwrapResult(c, sessionResult);
-
+  await getSessionById(sessionId);
   const result = await getPendingPermissionResponses(sessionId);
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 permissionsRouter.post(
@@ -46,8 +43,8 @@ permissionsRouter.post(
     const { permissionResponseId } = c.req.valid('param');
     const { setPermission } = c.req.valid('json');
 
-    const result = await allowPermissionResponse(permissionResponseId, setPermission);
-    return unwrapResult(c, result);
+    await allowPermissionResponse(permissionResponseId, setPermission);
+    return c.json({ ok: true });
   },
 );
 
@@ -59,8 +56,8 @@ permissionsRouter.post(
     const { permissionResponseId } = c.req.valid('param');
     const { setPermission } = c.req.valid('json');
 
-    const result = await rejectPermissionResponse(permissionResponseId, setPermission);
-    return unwrapResult(c, result);
+    await rejectPermissionResponse(permissionResponseId, setPermission);
+    return c.json({ ok: true });
   },
 );
 
@@ -72,7 +69,7 @@ permissionsRouter.post(
     const { permissionResponseId } = c.req.valid('param');
     const { entry } = c.req.valid('json');
 
-    const result = await alternativePermissionResponse(permissionResponseId, entry.trim());
-    return unwrapResult(c, result);
+    await alternativePermissionResponse(permissionResponseId, entry.trim());
+    return c.json({ ok: true });
   },
 );

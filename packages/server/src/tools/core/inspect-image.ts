@@ -1,29 +1,14 @@
 import { tool } from 'ai';
-import { and, eq } from 'drizzle-orm';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
-import { createMessageId, createPartId } from '@stitch/shared/id';
-import type { PrefixedString } from '@stitch/shared/id';
-import type { LlmProviderId } from '@stitch/shared/providers/types';
+import { createPartId } from '@stitch/shared/id';
 import { toolError } from '@stitch/shared/tools/types';
 
-import { createSession } from '@/chat/session-crud.js';
-import { getDb } from '@/db/client.js';
-import { messages } from '@/db/schema/sessions.js';
-import * as AbortRegistry from '@/lib/abort-registry.js';
-import { internalBus } from '@/lib/internal-bus.js';
-import * as Log from '@/lib/log.js';
-import { buildSessionLlmMessages } from '@/llm/session-history.js';
-import { runStream } from '@/llm/stream/runner.js';
-import type { LlmProviderCredentials } from '@/provider/config/schema.js';
+import { runChildSession, type ChildSessionDeps } from '@/tools/core/child-session.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
-
-const log = Log.create({ service: 'inspect-image-tool' });
-
-const SUPPORTED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp']);
 
 const MIME_MAP: Record<string, string> = {
   '.png': 'image/png',
@@ -49,15 +34,7 @@ The image is sent to a child session with vision capabilities. Returns the LLM's
 
 Supported formats: PNG, JPG, JPEG, GIF, WEBP, SVG, BMP.`;
 
-type InspectImageToolDeps = {
-  parentSessionId: PrefixedString<'ses'>;
-  parentAbortSignal: AbortSignal;
-  credentials: LlmProviderCredentials;
-  modelId: string;
-  providerId: LlmProviderId;
-};
-
-export function createInspectImageTool(context: ToolContext, deps: InspectImageToolDeps) {
+export function createInspectImageTool(context: ToolContext, deps: ChildSessionDeps) {
   return tool({
     description: DESCRIPTION,
     inputSchema: z.object({
@@ -66,8 +43,9 @@ export function createInspectImageTool(context: ToolContext, deps: InspectImageT
     }),
     execute: async ({ imagePath, prompt }, { toolCallId }) => {
       const ext = path.extname(imagePath).toLowerCase();
-      if (!SUPPORTED_EXTENSIONS.has(ext)) {
-        return toolError(`Unsupported image format "${ext}". Supported: ${[...SUPPORTED_EXTENSIONS].join(', ')}`);
+      const mime = MIME_MAP[ext];
+      if (!mime) {
+        return toolError(`Unsupported image format "${ext}". Supported: ${Object.keys(MIME_MAP).join(', ')}`);
       }
 
       let stat;
@@ -83,126 +61,20 @@ export function createInspectImageTool(context: ToolContext, deps: InspectImageT
         );
       }
 
-      const mime = MIME_MAP[ext] ?? 'application/octet-stream';
       const buffer = await fs.readFile(imagePath);
       const base64 = buffer.toString('base64');
       const dataUrl = `data:${mime};base64,${base64}`;
 
       const filename = path.basename(imagePath);
       const sessionTitle = `Inspect: ${filename}`.slice(0, 50);
-
-      const sessionResult = await createSession({ title: sessionTitle, parentSessionId: deps.parentSessionId });
-      if (sessionResult.error) {
-        return toolError(`Failed to create inspection session: ${sessionResult.error.message}`);
-      }
-      const childSession = sessionResult.data;
-      const childSessionId = childSession.id;
-
-      internalBus.emit('tool.progress', {
-        sessionId: context.sessionId,
-        messageId: context.messageId,
-        toolCallId,
-        toolName: 'inspect_image',
-        output: { childSessionId, childSessionName: childSession.title },
-      });
-
-      log.info(
-        {
-          event: 'inspect_image.child_session.created',
-          parentSessionId: deps.parentSessionId,
-          childSessionId,
-          imagePath,
-          promptPreview: prompt.slice(0, 200),
-        },
-        'child session created for image inspection',
-      );
-
       const now = Date.now();
-      const userMessageId = createMessageId();
 
       const parts: StoredPart[] = [
         { type: 'text-delta', id: createPartId(), text: prompt, startedAt: now, endedAt: now },
         { type: 'user-image', id: createPartId(), dataUrl, mime, filename, startedAt: now, endedAt: now },
       ];
 
-      const db = getDb();
-      await db
-        .insert(messages)
-        .values({
-          id: userMessageId,
-          sessionId: childSessionId,
-          role: 'user',
-          parts,
-          modelId: deps.modelId,
-          providerId: deps.providerId,
-          costUsd: 0,
-          createdAt: now,
-          updatedAt: now,
-          startedAt: now,
-          duration: null,
-        });
-
-      const llmMessages = await buildSessionLlmMessages(childSessionId, { useBasePrompt: true, systemPrompt: null });
-      const assistantMessageId = createMessageId();
-
-      const childAbortSignal = AbortRegistry.register(childSessionId);
-      const onParentAbort = () => {
-        AbortRegistry.abort(childSessionId);
-      };
-      deps.parentAbortSignal.addEventListener('abort', onParentAbort, { once: true });
-
-      try {
-        await runStream({
-          sessionId: childSessionId,
-          assistantMessageId,
-          modelId: deps.modelId,
-          llmMessages,
-          credentials: deps.credentials,
-          abortSignal: childAbortSignal,
-          activeToolsetIds: [],
-          allowTaskTool: false,
-        });
-
-        log.info(
-          { event: 'inspect_image.child_session.completed', parentSessionId: deps.parentSessionId, childSessionId },
-          'image inspection completed',
-        );
-
-        const childMessages = await db
-          .select()
-          .from(messages)
-          .where(and(eq(messages.sessionId, childSessionId), eq(messages.id, assistantMessageId)));
-
-        const assistantMessage = childMessages.at(0);
-        let summary = 'Image inspection completed.';
-
-        if (assistantMessage?.parts) {
-          const textParts = assistantMessage.parts
-            .filter(
-              (p: StoredPart): p is StoredPart & { type: 'text-delta'; text: string } =>
-                p.type === 'text-delta' && typeof (p as { text?: unknown }).text === 'string',
-            )
-            .map((p: { text: string }) => p.text);
-          if (textParts.length > 0) {
-            summary = textParts.join('');
-          }
-        }
-
-        return { childSessionId, childSessionName: childSession.title, summary };
-      } catch (error) {
-        log.error(
-          { event: 'inspect_image.child_session.failed', parentSessionId: deps.parentSessionId, childSessionId, error },
-          'image inspection failed',
-        );
-
-        return toolError(`Image inspection failed: ${Error.isError(error) ? error.message : 'Unknown error'}`, {
-          childSessionId,
-          childSessionName: childSession.title,
-        });
-      } finally {
-        deps.parentAbortSignal.removeEventListener('abort', onParentAbort);
-        AbortRegistry.cleanup(childSessionId);
-      }
+      return runChildSession(context, deps, { toolCallId, toolName: 'inspect_image', title: sessionTitle, parts });
     },
   });
 }

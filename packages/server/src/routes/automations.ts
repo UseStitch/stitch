@@ -19,7 +19,6 @@ import {
   updateAutomationAndSync,
 } from '@/automations/service.js';
 import * as Log from '@/lib/log.js';
-import { unwrapResult } from '@/lib/route-helpers.js';
 import { paginationQuerySchema, routeSchemas } from '@/lib/route-schemas.js';
 
 const log = Log.create({ service: 'automations' });
@@ -47,13 +46,13 @@ export const automationsRouter = new Hono();
 automationsRouter.get('/', zValidator('query', paginationQuerySchema({ pageSize: 10 })), async (c) => {
   const { page, pageSize } = c.req.valid('query');
   const result = await listAutomations({ page, pageSize });
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 automationsRouter.post('/', zValidator('json', createAutomationSchema), async (c) => {
   const body = c.req.valid('json') as CreateAutomationInput;
   const result = await createAutomationAndSync(body, syncAutomationSchedule);
-  return unwrapResult(c, result, 201);
+  return c.json(result, 201);
 });
 
 automationsRouter.patch(
@@ -64,7 +63,7 @@ automationsRouter.patch(
     const { id } = c.req.valid('param');
     const body = c.req.valid('json') as UpdateAutomationInput;
     const result = await updateAutomationAndSync(id, body, syncAutomationSchedule);
-    return unwrapResult(c, result);
+    return c.json(result);
   },
 );
 
@@ -75,31 +74,30 @@ automationsRouter.delete(
   async (c) => {
     const { id } = c.req.valid('param');
     const body = c.req.valid('json') as DeleteAutomationInput;
-    const result = await deleteAutomation(id, body);
-    if (result.error) return unwrapResult(c, result);
+    await deleteAutomation(id, body);
 
     await unregisterAutomationSchedule(id).catch((error: Error) => {
       log.error({ error }, 'failed to unregister automation schedule');
     });
 
-    return unwrapResult(c, result, 204);
+    return c.body(null, 204);
   },
 );
 
 automationsRouter.get('/:id', zValidator('param', automationIdParamSchema), async (c) => {
   const { id } = c.req.valid('param');
   const result = await getAutomation(id);
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 automationsRouter.get('/:id/sessions', zValidator('param', automationIdParamSchema), async (c) => {
   const { id } = c.req.valid('param');
   const result = await listAutomationSessions(id);
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 automationsRouter.post('/:id/run', zValidator('param', automationIdParamSchema), async (c) => {
   const { id } = c.req.valid('param');
   const result = await runAutomation(id);
-  return unwrapResult(c, result, 201);
+  return c.json(result, 201);
 });

@@ -3,7 +3,8 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { createRegistryCache, type FetchLike } from '@/lib/registry-cache.js';
+import type { FetchLike } from '@/lib/icon-cache.js';
+import { createRegistryCache } from '@/lib/registry-cache.js';
 
 const tempDirs: string[] = [];
 

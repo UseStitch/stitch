@@ -68,13 +68,7 @@ function jsonSchemaToTypeScript(schema: JsonSchema, indent = 0): string {
   }
 }
 
-type TypeStubOptions = {
-  /** Include JSDoc description comments above each function (default: true) */
-  includeDescriptions?: boolean;
-};
-
-export function generateTypeStubs(bindings: Record<string, ToolTypeInfo>, options: TypeStubOptions = {}): string {
-  const includeDescriptions = options.includeDescriptions ?? true;
+export function generateTypeStubs(bindings: Record<string, ToolTypeInfo>): string {
   const lines: string[] = [];
 
   for (const [name, binding] of Object.entries(bindings)) {
@@ -85,7 +79,7 @@ export function generateTypeStubs(bindings: Record<string, ToolTypeInfo>, option
     lines.push(`type ${inputTypeName} = ${inputType};`);
     lines.push('');
 
-    if (includeDescriptions && binding.description) {
+    if (binding.description) {
       lines.push(`/** ${binding.description} */`);
     }
     lines.push(`declare function ${name}(input: ${inputTypeName}): Promise<unknown>;`);

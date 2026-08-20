@@ -26,33 +26,35 @@ export const definition: ToolDefinition = {
       ]);
       if (!enabledByApp || !enabledBySkill) return toolError(`Skill "${name}" is disabled.`);
 
-      const result = await getSkillByName(name);
-      if (result.error) return toolError(result.error.message);
+      try {
+        const skill = await getSkillByName(name);
+        const dir = path.dirname(skill.location);
+        const base = pathToFileURL(dir).href;
 
-      const skill = result.data;
-      const dir = path.dirname(skill.location);
-      const base = pathToFileURL(dir).href;
+        const fileList = skill.files.map((file) => `<file>${path.resolve(dir, file)}</file>`).join('\n');
 
-      const fileList = skill.files.map((file) => `<file>${path.resolve(dir, file)}</file>`).join('\n');
+        const output = [
+          `<skill_content name="${skill.name}">`,
+          `# Skill: ${skill.name}`,
+          '',
+          skill.content.trim(),
+          '',
+          `Base directory for this skill: ${base}`,
+          'Relative paths in this skill (e.g., scripts/, references/, agents/, assets/) are relative to this base directory.',
+          'Use the Read tool to access any file listed below when needed.',
+          'Files in the agents/ directory are sub-agent definitions — execute them using the Task tool (sub task).',
+          '',
+          '<skill_files>',
+          fileList,
+          '</skill_files>',
+          '</skill_content>',
+        ].join('\n');
 
-      const output = [
-        `<skill_content name="${skill.name}">`,
-        `# Skill: ${skill.name}`,
-        '',
-        skill.content.trim(),
-        '',
-        `Base directory for this skill: ${base}`,
-        'Relative paths in this skill (e.g., scripts/, references/, agents/, assets/) are relative to this base directory.',
-        'Use the Read tool to access any file listed below when needed.',
-        'Files in the agents/ directory are sub-agent definitions — execute them using the Task tool (sub task).',
-        '',
-        '<skill_files>',
-        fileList,
-        '</skill_files>',
-        '</skill_content>',
-      ].join('\n');
-
-      return { name: skill.name, description: skill.description, content: output };
+        return { name: skill.name, description: skill.description, content: output };
+      } catch (error) {
+        const message = Error.isError(error) ? error.message : String(error);
+        return toolError(message);
+      }
     },
   }),
 };

@@ -1,8 +1,8 @@
 import type { ToolType } from '@stitch/shared/tools/types';
 
-import { CORE_TOOL_CATALOG, entryMeta, type CatalogEntry } from '@/tools/core/catalog.js';
+import { CORE_TOOL_CATALOG } from '@/tools/core/catalog.js';
 import { getDisabledToolIdentifiers } from '@/tools/enabled-service.js';
-import { ToolPipeline, type ToolDefinition } from '@/tools/runtime/pipeline.js';
+import { wrapTool, type ToolDefinition } from '@/tools/runtime/pipeline.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 
 export const MAX_STEPS = 25;
@@ -14,33 +14,26 @@ type KnownTool = { toolType: ToolType; toolName: string; displayName: string };
 
 const ALWAYS_ACTIVE = new Set(['render_ui', 'skill']);
 
-export const STITCH_KNOWN_TOOLS: KnownTool[] = CORE_TOOL_CATALOG.map((entry) => {
-  const { name, displayName } = entryMeta(entry);
-  return { toolType: 'stitch', toolName: name, displayName };
-});
-
-function resolveEntry(entry: CatalogEntry, context: ToolContext): ToolDefinition {
-  if (entry.kind === 'static') return entry.definition;
-  return entry.create(context);
-}
+export const STITCH_KNOWN_TOOLS: KnownTool[] = CORE_TOOL_CATALOG.map((entry) => ({
+  toolType: 'stitch',
+  toolName: entry.name,
+  displayName: entry.displayName,
+}));
 
 export async function createTools(context: ToolContext) {
   const disabledTools = await getDisabledToolIdentifiers('tool');
 
   const definitions: ToolDefinition[] = [];
   for (const entry of CORE_TOOL_CATALOG) {
-    const { name } = entryMeta(entry);
+    if (!ALWAYS_ACTIVE.has(entry.name) && disabledTools.has(entry.name)) continue;
 
-    if (!ALWAYS_ACTIVE.has(name) && disabledTools.has(name)) continue;
-
-    if (entry.kind === 'contextual' && entry.enabled) {
+    if (entry.enabled) {
       const enabled = await entry.enabled();
       if (!enabled) continue;
     }
 
-    definitions.push(resolveEntry(entry, context));
+    definitions.push(entry.create(context));
   }
 
-  const pipeline = ToolPipeline.create(context);
-  return pipeline.registerAll(definitions);
+  return Object.fromEntries(definitions.map((def) => [def.name, wrapTool(context, def)]));
 }

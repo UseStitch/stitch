@@ -4,7 +4,12 @@ import { fileURLToPath } from 'node:url';
 
 import { initMailDb } from '@stitch/mail/db/client';
 
-import { registerAdapters } from '@/adapters/index.js';
+import { registerAutomationsAdapter } from '@/adapters/automations.js';
+import { registerConnectorEventsAdapter } from '@/adapters/connectors.js';
+import { registerMemoryAdapter } from '@/adapters/memory.js';
+import { registerSseAdapter } from '@/adapters/sse.js';
+import { registerTitleGenerationAdapter } from '@/adapters/title-generation.js';
+import { registerUsageAdapter } from '@/adapters/usage.js';
 import { syncAllAutomationSchedules } from '@/automations/scheduler.js';
 import { initializeBackgroundTaskService } from '@/background-tasks/service.js';
 import { registerAllConnectors } from '@/connectors/definitions/index.js';
@@ -33,7 +38,14 @@ function resolveMailMigrationsDir(): string {
 
 export async function init() {
   await Log.init({});
-  registerAdapters();
+
+  // Register Adapters
+  registerSseAdapter();
+  registerAutomationsAdapter();
+  registerConnectorEventsAdapter();
+  registerUsageAdapter();
+  registerTitleGenerationAdapter();
+  registerMemoryAdapter();
 
   await initDb();
   await initializeBackgroundTaskService();

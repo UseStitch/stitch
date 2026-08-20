@@ -1,9 +1,19 @@
 import { describe, expect, test } from 'bun:test';
 import path from 'node:path';
 
-import { getFilePathPatternTargets, getParentDirPermissionSuggestion } from '@/tools/runtime/file-permissions.js';
+import {
+  getFilePathPatternTargets,
+  getParentDirPermissionSuggestion,
+  getPathPatternTargets,
+} from '@/tools/runtime/file-permissions.js';
 
 describe('file permission helpers', () => {
+  test('derives pattern targets from path', () => {
+    expect(getPathPatternTargets({ path: '/some/dir' })).toEqual(['/some/dir']);
+    expect(getPathPatternTargets({ path: '' })).toEqual([]);
+    expect(getPathPatternTargets({})).toEqual([]);
+  });
+
   test('derives pattern targets from absolute filePath', () => {
     const absolutePath = path.join(process.cwd(), 'packages', 'server', 'README.md');
 

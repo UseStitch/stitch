@@ -1,19 +1,13 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
+import { HTTPException } from 'hono/http-exception';
 import z from 'zod';
 
 import type { McpRegistryPayload, McpRegistryServer } from '@stitch/shared/mcp/types';
 
-import * as Log from '@/lib/log.js';
+import type { FetchLike } from '@/lib/icon-cache.js';
 import { PATHS } from '@/lib/paths.js';
-import { getStitchRegistryUserAgent } from '@/lib/registry-cache.js';
-import { err, ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
-import { McpRegistryFetchError } from '@/mcp/errors.js';
+import { createRegistryCache, getStitchRegistryUserAgent } from '@/lib/registry-cache.js';
 
-const log = Log.create({ service: 'mcp-registry' });
 const DEFAULT_MCP_REGISTRY_URL = 'https://usestitch.ai/mcp-registry.json';
-const FETCH_TIMEOUT_MS = 10_000;
 
 const noneAuthConfigSchema = z.object({ type: z.literal('none') });
 const apiKeyAuthConfigSchema = z.object({ type: z.literal('api_key'), apiKey: z.string().min(1) });
@@ -56,33 +50,7 @@ const mcpRegistryPayloadSchema = z.object({
 });
 
 type ListRegistryOptions = { cacheFilePath?: string; fetchImpl?: FetchLike };
-
 type RefreshRegistryOptions = ListRegistryOptions & { force?: boolean };
-
-let inMemoryRegistry: McpRegistryPayload | null = null;
-
-type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
-
-function parseRegistryPayload(raw: unknown): McpRegistryPayload {
-  return mcpRegistryPayloadSchema.parse(raw);
-}
-
-async function readRegistryFromDisk(cacheFilePath: string): Promise<McpRegistryPayload | null> {
-  const text = await fs.readFile(cacheFilePath, 'utf8').catch(() => null);
-  if (!text) return null;
-
-  try {
-    return parseRegistryPayload(JSON.parse(text));
-  } catch (error) {
-    log.warn({ event: 'mcp_registry.cache_read_failed', error }, 'failed to read registry cache');
-    return null;
-  }
-}
-
-async function writeRegistryToDisk(cacheFilePath: string, payload: McpRegistryPayload): Promise<void> {
-  await fs.mkdir(path.dirname(cacheFilePath), { recursive: true });
-  await fs.writeFile(cacheFilePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
-}
 
 function getRegistryUrl(): string {
   return process.env['STITCH_MCP_REGISTRY_URL']?.trim() || DEFAULT_MCP_REGISTRY_URL;
@@ -92,95 +60,72 @@ function normalizeServers(payload: McpRegistryPayload): McpRegistryServer[] {
   return payload.servers.toSorted((a, b) => a.name.localeCompare(b.name));
 }
 
-async function fetchRegistryPayload(fetchImpl: FetchLike): Promise<McpRegistryPayload> {
-  const response = await fetchImpl(getRegistryUrl(), {
-    headers: { 'User-Agent': getStitchRegistryUserAgent() },
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+function createMcpRegistryCache(cacheFilePath = PATHS.filePaths.mcpRegistry) {
+  return createRegistryCache<McpRegistryPayload>({
+    cacheFilePath,
+    get url() {
+      return getRegistryUrl();
+    },
+    parse: (raw) => mcpRegistryPayloadSchema.parse(raw),
+    userAgent: getStitchRegistryUserAgent,
   });
-  if (!response.ok) {
-    throw new McpRegistryFetchError(response.status);
-  }
-  const text = await response.text();
-  return parseRegistryPayload(JSON.parse(text));
 }
 
-export async function refreshMcpRegistryCache(
-  options: RefreshRegistryOptions = {},
-): Promise<ServiceResult<McpRegistryPayload>> {
-  const cacheFilePath = options.cacheFilePath ?? PATHS.filePaths.mcpRegistry;
-  const fetchImpl: FetchLike = options.fetchImpl ?? fetch;
+const mcpRegistryCache = createMcpRegistryCache();
 
-  if (!options.force && inMemoryRegistry) {
-    return ok(inMemoryRegistry);
-  }
-
+export async function refreshMcpRegistryCache(options: RefreshRegistryOptions = {}): Promise<McpRegistryPayload> {
+  const cache = options.cacheFilePath ? createMcpRegistryCache(options.cacheFilePath) : mcpRegistryCache;
   try {
-    const payload = await fetchRegistryPayload(fetchImpl);
-    await writeRegistryToDisk(cacheFilePath, payload);
-    inMemoryRegistry = payload;
-    return ok(payload);
+    await cache.refresh(options.fetchImpl);
+    return await cache.get(options.fetchImpl);
   } catch (error) {
     const message = Error.isError(error) ? error.message : String(error);
-    log.warn({ event: 'mcp_registry.refresh_failed', error: message }, 'failed to refresh MCP registry');
-    return err(`Failed to refresh MCP registry: ${message}`, 500);
+    throw new HTTPException(500, { message: `Failed to refresh MCP registry: ${message}` });
   }
 }
 
 export async function reloadMcpRegistryCacheFromDisk(
   options: { cacheFilePath?: string } = {},
-): Promise<ServiceResult<McpRegistryPayload>> {
-  const cacheFilePath = options.cacheFilePath ?? PATHS.filePaths.mcpRegistry;
-
-  const fromDisk = await readRegistryFromDisk(cacheFilePath);
+): Promise<McpRegistryPayload> {
+  const cache = options.cacheFilePath ? createMcpRegistryCache(options.cacheFilePath) : mcpRegistryCache;
+  const fromDisk = await cache.reloadFromDisk();
   if (!fromDisk) {
-    return err('No registry cache found on disk', 404);
+    throw new HTTPException(404, { message: 'No registry cache found on disk' });
   }
-
-  inMemoryRegistry = fromDisk;
-  return ok(fromDisk);
+  return fromDisk;
 }
 
-export async function listMcpRegistryServers(
-  options: ListRegistryOptions = {},
-): Promise<ServiceResult<McpRegistryServer[]>> {
-  const cacheFilePath = options.cacheFilePath ?? PATHS.filePaths.mcpRegistry;
-
-  if (inMemoryRegistry) {
-    return ok(normalizeServers(inMemoryRegistry));
+export async function listMcpRegistryServers(options: ListRegistryOptions = {}): Promise<McpRegistryServer[]> {
+  const cache = options.cacheFilePath ? createMcpRegistryCache(options.cacheFilePath) : mcpRegistryCache;
+  try {
+    const payload = await cache.get(options.fetchImpl);
+    return normalizeServers(payload);
+  } catch (error) {
+    const message = Error.isError(error) ? error.message : String(error);
+    throw new HTTPException(500, { message: `Failed to load MCP registry: ${message}` });
   }
-
-  const fromDisk = await readRegistryFromDisk(cacheFilePath);
-  if (fromDisk) {
-    inMemoryRegistry = fromDisk;
-    return ok(normalizeServers(fromDisk));
-  }
-
-  const refreshed = await refreshMcpRegistryCache({ cacheFilePath, fetchImpl: options.fetchImpl, force: true });
-  if (refreshed.error) {
-    return refreshed;
-  }
-
-  return ok(normalizeServers(refreshed.data));
 }
 
 export async function findMcpRegistryServerForInstall(input: {
   name: string;
   url: string;
 }): Promise<McpRegistryServer | null> {
-  const result = await listMcpRegistryServers();
-  if (result.error) return null;
+  try {
+    const servers = await listMcpRegistryServers();
+    const normalizedUrl = input.url.trim().toLowerCase();
+    const normalizedName = input.name.trim().toLowerCase();
 
-  const normalizedUrl = input.url.trim().toLowerCase();
-  const normalizedName = input.name.trim().toLowerCase();
-
-  return (
-    result.data.find((server) => server.install.url.trim().toLowerCase() === normalizedUrl) ??
-    result.data.find((server) => server.install.name.trim().toLowerCase() === normalizedName) ??
-    result.data.find((server) => server.name.trim().toLowerCase() === normalizedName) ??
-    null
-  );
+    return (
+      servers.find((server) => server.install.url.trim().toLowerCase() === normalizedUrl) ??
+      servers.find((server) => server.install.name.trim().toLowerCase() === normalizedName) ??
+      servers.find((server) => server.name.trim().toLowerCase() === normalizedName) ??
+      null
+    );
+  } catch {
+    return null;
+  }
 }
 
 export function clearMcpRegistryCacheForTests(): void {
-  inMemoryRegistry = null;
+  mcpRegistryCache.reset();
 }

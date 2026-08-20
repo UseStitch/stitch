@@ -1,11 +1,11 @@
-import { refreshConnectorToolsetsFor } from '@/connectors/runtime.js';
+import { refreshConnectorToolsets } from '@/connectors/runtime.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'connector-events-adapter' });
 
 function refreshToolsets(connectorId: string): void {
-  void refreshConnectorToolsetsFor(connectorId).catch((error) => {
+  void refreshConnectorToolsets(connectorId).catch((error) => {
     log.error({ connectorId, error }, 'failed to refresh connector toolsets after connector event');
   });
 }

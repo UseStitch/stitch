@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, gte, inArray, isNull, like, lt } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -15,8 +16,6 @@ import { providerConfig } from '@/db/schema/providers.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
-import { err, ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
 import { buildSessionLlmMessages } from '@/llm/session-history.js';
 import { compact } from '@/llm/session-summary.js';
 import { resolveDecision, type DoomLoopResponse } from '@/llm/stream/doom-loop.js';
@@ -30,7 +29,7 @@ import {
 import * as LocalModels from '@/models/llm/local.js';
 import * as Models from '@/models/llm/registry.js';
 import { isLlmProviderCredentials, type LlmProviderCredentials } from '@/provider/config/schema.js';
-import { listProvidersWithCapabilities, type ProviderWithCapabilities } from '@/provider/service.js';
+import { listProvidersWithCapabilities } from '@/provider/service.js';
 import { normalizeUsage } from '@/utils/usage.js';
 
 const log = Log.create({ service: 'chat-service' });
@@ -157,24 +156,24 @@ async function maybeGenerateTitle(input: {
 async function loadTurnContext(
   sessionId: PrefixedString<'ses'>,
   providerId: string,
-): Promise<ServiceResult<{ session: TurnSession; config: LlmTurnConfig }>> {
+): Promise<{ session: TurnSession; config: LlmTurnConfig }> {
   const db = getDb();
 
   const session = (await db.select().from(sessions).where(eq(sessions.id, sessionId))).at(0);
   if (!session) {
-    return err('Session not found', 404);
+    throw new HTTPException(404, { message: 'Session not found' });
   }
 
   const config = (await db.select().from(providerConfig).where(eq(providerConfig.providerId, providerId))).at(0);
   if (!config) {
-    return err(`Provider "${providerId}" is not configured`, 400);
+    throw new HTTPException(400, { message: `Provider "${providerId}" is not configured` });
   }
 
   if (config.credentials.providerId !== providerId || !isLlmProviderCredentials(config.credentials)) {
-    return err(`Provider "${providerId}" is not configured for LLM usage`, 400);
+    throw new HTTPException(400, { message: `Provider "${providerId}" is not configured for LLM usage` });
   }
 
-  return ok({ session, config: config as LlmTurnConfig });
+  return { session, config: config as LlmTurnConfig };
 }
 
 function runTurn(input: {
@@ -206,13 +205,10 @@ function runTurn(input: {
   });
 }
 
-export async function sendMessage(
-  input: SendMessageInput,
-): Promise<ServiceResult<{ messageId: string; userMessageId: string }>> {
+export async function sendMessage(input: SendMessageInput): Promise<{ messageId: string; userMessageId: string }> {
   const db = getDb();
 
   const context = await loadTurnContext(input.sessionId, input.providerId);
-  if (context.error) return context;
 
   await maybeGenerateTitle({
     sessionId: input.sessionId,
@@ -247,21 +243,18 @@ export async function sendMessage(
   runTurn({
     sessionId: input.sessionId,
     assistantMessageId: input.assistantMessageId,
-    session: context.data.session,
-    config: context.data.config,
+    session: context.session,
+    config: context.config,
     modelId: input.modelId,
   });
 
-  return ok({ messageId: input.assistantMessageId, userMessageId });
+  return { messageId: input.assistantMessageId, userMessageId };
 }
 
-export async function redoMessage(
-  input: RedoMessageInput,
-): Promise<ServiceResult<{ messageId: string; userMessageId: string }>> {
+export async function redoMessage(input: RedoMessageInput): Promise<{ messageId: string; userMessageId: string }> {
   const db = getDb();
 
   const context = await loadTurnContext(input.sessionId, input.providerId);
-  if (context.error) return context;
 
   const editedMessage = (
     await db
@@ -275,8 +268,8 @@ export async function redoMessage(
         ),
       )
   ).at(0);
-  if (!editedMessage) return err('Message not found', 404);
-  if (editedMessage.role !== 'user') return err('Can only redo from user messages', 400);
+  if (!editedMessage) throw new HTTPException(404, { message: 'Message not found' });
+  if (editedMessage.role !== 'user') throw new HTTPException(400, { message: 'Can only redo from user messages' });
 
   const now = Date.now();
   const userMessageId = createMessageId();
@@ -322,27 +315,24 @@ export async function redoMessage(
   runTurn({
     sessionId: input.sessionId,
     assistantMessageId: input.assistantMessageId,
-    session: context.data.session,
-    config: context.data.config,
+    session: context.session,
+    config: context.config,
     modelId: input.modelId,
   });
 
-  return ok({ messageId: input.assistantMessageId, userMessageId });
+  return { messageId: input.assistantMessageId, userMessageId };
 }
 
-export function resolveDoomLoop(
-  sessionId: PrefixedString<'ses'>,
-  response: DoomLoopResponse,
-): ServiceResult<{ ok: true }> {
+export function resolveDoomLoop(sessionId: PrefixedString<'ses'>, response: DoomLoopResponse): { ok: true } {
   const resolved = resolveDecision(sessionId, response);
   if (!resolved) {
-    return err('No pending doom loop prompt for this session', 404);
+    throw new HTTPException(404, { message: 'No pending doom loop prompt for this session' });
   }
 
-  return ok({ ok: true });
+  return { ok: true };
 }
 
-export async function abortSessionRun(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<null>> {
+export async function abortSessionRun(sessionId: PrefixedString<'ses'>): Promise<void> {
   log.info({ event: 'stream.abort.requested', sessionId }, 'stream abort requested');
   abortActiveSessionRun(sessionId);
   cancelQueuedSessionRuns(sessionId);
@@ -358,12 +348,6 @@ export async function abortSessionRun(sessionId: PrefixedString<'ses'>): Promise
     abortSessionInteractions(sessionId),
     ...childSessions.map((child) => abortSessionInteractions(child.id)),
   ]);
-
-  return ok(null);
-}
-
-function getSplitTitle(baseTitle: string, n: number): string {
-  return `${baseTitle} Split #${n}`;
 }
 
 function parseSplitTitle(title: string): { base: string; n: number } | null {
@@ -375,11 +359,11 @@ function parseSplitTitle(title: string): { base: string; n: number } | null {
 export async function splitSession(
   sessionId: PrefixedString<'ses'>,
   msgId: PrefixedString<'msg'>,
-): Promise<ServiceResult<{ session: typeof sessions.$inferSelect; prefillText: string }>> {
+): Promise<{ session: typeof sessions.$inferSelect; prefillText: string }> {
   const db = getDb();
 
   const session = (await db.select().from(sessions).where(eq(sessions.id, sessionId))).at(0);
-  if (!session) return err('Session not found', 404);
+  if (!session) throw new HTTPException(404, { message: 'Session not found' });
 
   const splitMsg = (
     await db
@@ -387,8 +371,8 @@ export async function splitSession(
       .from(messages)
       .where(and(eq(messages.id, msgId), eq(messages.sessionId, sessionId), isNull(messages.archivedAt)))
   ).at(0);
-  if (!splitMsg) return err('Message not found', 404);
-  if (splitMsg.role !== 'user') return err('Can only split from user messages', 400);
+  if (!splitMsg) throw new HTTPException(404, { message: 'Message not found' });
+  if (splitMsg.role !== 'user') throw new HTTPException(400, { message: 'Can only split from user messages' });
 
   const priorMessages = await db
     .select()
@@ -414,7 +398,7 @@ export async function splitSession(
     if (p && p.base === lookupBase && p.n > maxN) maxN = p.n;
   }
 
-  const newTitle = getSplitTitle(lookupBase, maxN + 1);
+  const newTitle = `${lookupBase} Split #${maxN + 1}`;
   const newSessionId = createSessionId();
   const now = Date.now();
 
@@ -444,15 +428,15 @@ export async function splitSession(
     .map((p) => p.text)
     .join('');
 
-  return ok({ session: newSession, prefillText });
+  return { session: newSession, prefillText };
 }
 
-export async function requestCompaction(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<{ ok: true }>> {
+export async function requestCompaction(sessionId: PrefixedString<'ses'>): Promise<{ ok: true }> {
   const db = getDb();
 
   const session = (await db.select().from(sessions).where(eq(sessions.id, sessionId))).at(0);
   if (!session) {
-    return err('Session not found', 404);
+    throw new HTTPException(404, { message: 'Session not found' });
   }
 
   const lastMessage = await db
@@ -464,15 +448,15 @@ export async function requestCompaction(sessionId: PrefixedString<'ses'>): Promi
     .then((rows) => rows.at(0));
 
   if (!lastMessage) {
-    return err('Session has no messages to compact', 400);
+    throw new HTTPException(400, { message: 'Session has no messages to compact' });
   }
 
   void compact({ sessionId, providerId: lastMessage.providerId, modelId: lastMessage.modelId, auto: false });
 
-  return ok({ ok: true });
+  return { ok: true };
 }
 
-export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<SessionStats>> {
+export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise<SessionStats> {
   const db = getDb();
 
   const getMessageTokens = (usage: (typeof messages.$inferSelect)['usage']): number =>
@@ -480,7 +464,7 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
 
   const session = (await db.select().from(sessions).where(eq(sessions.id, sessionId))).at(0);
   if (!session) {
-    return err('Session not found', 404);
+    throw new HTTPException(404, { message: 'Session not found' });
   }
 
   const [sessionMessages, childSessions] = await Promise.all([
@@ -541,8 +525,7 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
     return isAssistantMessage && !isBackgroundMessage;
   });
 
-  const [providersResult, modelCatalog] = await Promise.all([listProvidersWithCapabilities(), Models.get()]);
-  const providers: ProviderWithCapabilities[] = providersResult.error ? [] : providersResult.data;
+  const [providers, modelCatalog] = await Promise.all([listProvidersWithCapabilities(), Models.get()]);
 
   let providerLabel = '-';
   let modelLabel = '-';
@@ -553,8 +536,10 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
     providerLabel = provider?.name ?? latestRealMessage.providerId;
 
     if (isLocalProviderId(latestRealMessage.providerId)) {
-      const localModel = await LocalModels.getLocalModel(latestRealMessage.providerId, latestRealMessage.modelId);
-      modelLabel = localModel.error ? latestRealMessage.modelId : localModel.data.name;
+      const localModel = await LocalModels.getLocalModel(latestRealMessage.providerId, latestRealMessage.modelId).catch(
+        () => null,
+      );
+      modelLabel = localModel ? localModel.name : latestRealMessage.modelId;
     } else {
       const providerModels = modelCatalog[latestRealMessage.providerId];
       const model = providerModels.models[latestRealMessage.modelId];
@@ -567,8 +552,8 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
       const localModel = await LocalModels.getLocalModel(
         latestAssistantWithTokens.providerId,
         latestAssistantWithTokens.modelId,
-      );
-      contextLimit = localModel.error ? null : localModel.data.contextWindow;
+      ).catch(() => null);
+      contextLimit = localModel ? localModel.contextWindow : null;
     } else {
       const providerModels = modelCatalog[latestAssistantWithTokens.providerId];
       const model = providerModels.models[latestAssistantWithTokens.modelId];
@@ -579,7 +564,7 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
   const usagePercent =
     contextLimit && contextLimit > 0 ? `${Math.min(100, Math.round((totalTokens / contextLimit) * 100))}%` : '-';
 
-  return ok({
+  return {
     sessionTitle: session.title ?? 'New conversation',
     providerLabel,
     modelLabel,
@@ -601,5 +586,5 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
     childSessionsCostUsd,
     sessionCreatedAt: session.createdAt,
     lastActivityAt: session.updatedAt,
-  });
+  };
 }

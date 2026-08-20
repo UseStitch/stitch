@@ -3,12 +3,13 @@ import {
   resultNormalizationMiddleware,
   truncationMiddleware,
 } from '@/tools/runtime/middleware.js';
-import { createToolRuntime } from '@/tools/runtime/runtime.js';
 import type {
   RuntimeToolMetadata,
   RuntimeToolSource,
   ToolContext,
-  ToolMiddleware,
+  ToolExecuteOptions,
+  ToolExecutionInput,
+  ToolInput,
   ToolPermissionBehavior,
   ToolTruncationLimits,
 } from '@/tools/runtime/runtime.js';
@@ -21,48 +22,29 @@ export type ToolDefinition = {
   source?: RuntimeToolSource;
   permission?: ToolPermissionBehavior;
   truncation?: ToolTruncationLimits;
-  /** Extra middleware applied after the standard stack for this tool. */
-  extraMiddleware?: ToolMiddleware[];
 };
-export class ToolPipeline {
-  private constructor(private readonly context: ToolContext) {}
 
-  static create(context: ToolContext): ToolPipeline {
-    return new ToolPipeline(context);
+export function wrapTool(context: ToolContext, def: ToolDefinition): Tool {
+  const originalExecute = def.tool.execute;
+  if (!originalExecute) return def.tool;
+
+  const metadata: RuntimeToolMetadata = {
+    displayName: def.displayName,
+    source: def.source ?? 'core',
+    permission: def.permission,
+    truncation: def.truncation,
+  };
+
+  let executor = (input: ToolExecutionInput) => originalExecute(input.args, input.executeOptions);
+  executor = truncationMiddleware(def.truncation)(executor);
+  if (def.permission) {
+    executor = permissionMiddleware()(executor);
   }
+  executor = resultNormalizationMiddleware()(executor);
 
-  register(def: ToolDefinition): Tool {
-    const middlewares = this.buildMiddlewareStack(def);
-    const runtime = createToolRuntime(this.context);
-    for (const mw of middlewares) {
-      runtime.use(mw);
-    }
-    const metadata: RuntimeToolMetadata = {
-      displayName: def.displayName,
-      source: def.source ?? 'core',
-      permission: def.permission,
-      truncation: def.truncation,
-    };
-    return runtime.wrapTool(def.name, def.tool, metadata);
-  }
-
-  registerAll(defs: ToolDefinition[]): Record<string, Tool> {
-    return Object.fromEntries(defs.map((def) => [def.name, this.register(def)]));
-  }
-
-  private buildMiddlewareStack(def: ToolDefinition): ToolMiddleware[] {
-    const stack: ToolMiddleware[] = [resultNormalizationMiddleware()];
-
-    if (def.permission) {
-      stack.push(permissionMiddleware());
-    }
-
-    stack.push(truncationMiddleware(def.truncation));
-
-    if (def.extraMiddleware) {
-      stack.push(...def.extraMiddleware);
-    }
-
-    return stack;
-  }
+  return {
+    ...def.tool,
+    execute: async (args: ToolInput, executeOptions: ToolExecuteOptions) =>
+      executor({ toolName: def.name, args, executeOptions, tool: def.tool, context, metadata }),
+  };
 }

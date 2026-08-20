@@ -104,48 +104,19 @@ export const browserContentInputSchema = z.object({
   outputSchema: outputSchemaField,
 });
 
-const browserBatchActionSchema = z.object({
-  tool: z
-    .enum(['snapshot', 'navigate', 'interact', 'wait', 'screenshot', 'dialog', 'content'])
-    .describe('Tool group to execute for this batch action.'),
-  op: z.string().optional().describe('Operation name within the selected tool group.'),
-  url: z.string().optional().describe('URL for navigate/tab_new operations.'),
-  query: z.string().optional().describe('Query for search or extract operations.'),
-  engine: z.string().optional().describe('Search engine for search operation.'),
-  tabId: z.string().optional().describe('Tab ID for tab_focus/tab_close operations.'),
-  ref: z.string().optional().describe('Element ref from latest snapshot.'),
-  text: z.string().optional().describe('Text for type operation.'),
-  key: z.string().optional().describe('Key for press operation.'),
-  values: z.array(z.string()).optional().describe('Values for select operation.'),
-  submit: z.boolean().optional().describe('Submit after typing.'),
-  slowly: z.boolean().optional().describe('Type character by character.'),
-  clear: z.boolean().optional().describe('Clear field before typing.'),
-  doubleClick: z.boolean().optional().describe('Double-click for click operation.'),
-  button: z.string().optional().describe('Mouse button for click operation.'),
-  modifiers: z.array(z.string()).optional().describe('Modifier keys for click operation.'),
-  direction: z.enum(['up', 'down', 'left', 'right']).optional().describe('Scroll direction.'),
-  fn: z.string().optional().describe('Expression for evaluate operation.'),
-  mode: z.enum(['time', 'selector']).optional().describe('Mode for wait tool.'),
-  timeMs: z.number().optional().describe('Duration in ms for wait time mode.'),
-  selector: z.string().optional().describe('CSS selector for wait/find/extract scope.'),
-  timeoutMs: timeoutField,
-  format: z.enum(['png', 'jpeg']).optional().describe('Screenshot format.'),
-  quality: z.number().optional().describe('Screenshot quality for jpeg.'),
-  fullPage: z.boolean().optional().describe('Full-page screenshot mode.'),
-  dialogAction: z.enum(['accept', 'dismiss']).optional().describe('Dialog handling action.'),
-  promptText: z.string().optional().describe('Prompt text when accepting prompt dialogs.'),
-  pattern: z.string().optional().describe('Pattern for search_page operation.'),
-  regex: z.boolean().optional().describe('Regex mode for search_page operation.'),
-  caseSensitive: z.boolean().optional().describe('Case-sensitive mode for search_page operation.'),
-  contextChars: z.number().optional().describe('Context chars for search_page operation.'),
-  cssScope: z.string().optional().describe('CSS scope for search_page operation.'),
-  maxResults: z.number().optional().describe('Max results for search_page/find_elements.'),
-  attributes: z.array(z.string()).optional().describe('Attributes to return for find_elements.'),
-  includeText: z.boolean().optional().describe('Whether find_elements should include text content.'),
-  includeLinks: z.boolean().optional().describe('Include links for extract operation.'),
-  includeImages: z.boolean().optional().describe('Include images for extract operation.'),
-  outputSchema: outputSchemaField,
-});
+const browserBatchActionSchema = z
+  .object({
+    tool: z
+      .enum(['snapshot', 'navigate', 'interact', 'wait', 'screenshot', 'dialog', 'content'])
+      .describe('Tool group to execute for this batch action.'),
+    op: z.string().optional().describe('Operation name within the selected tool group.'),
+  })
+  .extend(browserNavigateInputSchema.omit({ description: true, action: true }).partial().shape)
+  .extend(browserInteractInputSchema.omit({ description: true, action: true }).partial().shape)
+  .extend(browserWaitInputSchema.omit({ description: true }).partial().shape)
+  .extend(browserScreenshotInputSchema.omit({ description: true }).partial().shape)
+  .extend(browserDialogInputSchema.omit({ description: true, action: true }).partial().shape)
+  .extend(browserContentInputSchema.omit({ description: true, action: true }).partial().shape);
 
 export const browserBatchInputSchema = z.object({
   description: descriptionField,

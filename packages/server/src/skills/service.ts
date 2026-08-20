@@ -1,3 +1,4 @@
+import { HTTPException } from 'hono/http-exception';
 import { existsSync } from 'node:fs';
 import { mkdir, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -13,11 +14,9 @@ import type {
   SkillType,
 } from '@stitch/shared/skills/types';
 
-import { getDisabledAppSkillNames } from '@/apps/service.js';
+import { getDisabledAppFields } from '@/apps/service.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
-import { err, ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
 import type { BuiltInSkill } from '@/skills/built-in-skills.js';
 import {
   SkillImportError,
@@ -76,6 +75,15 @@ const downloadResponseSchema = z.object({
 const SKILLS_API_BASE = 'https://skills.sh';
 const FETCH_TIMEOUT_MS = 10_000;
 
+function toSkill(input: Omit<Skill, 'location'>): Skill {
+  return {
+    ...input,
+    description: input.description.trim(),
+    content: input.content.trim(),
+    location: getSkillMdPath(input.name),
+  };
+}
+
 async function readSkillFromDisk(name: string, type: SkillType, enabled: boolean): Promise<Skill | null> {
   const markdown = await readSkillMdFile(name);
   if (!markdown) return null;
@@ -86,22 +94,14 @@ async function readSkillFromDisk(name: string, type: SkillType, enabled: boolean
   const skillDir = getSkillDir(name);
   const files = await listSkillFiles(skillDir);
 
-  return {
-    name: parsed.name,
-    type,
-    enabled,
-    description: parsed.description,
-    content: parsed.content,
-    location: getSkillMdPath(name),
-    files,
-  };
+  return toSkill({ name: parsed.name, type, enabled, description: parsed.description, content: parsed.content, files });
 }
 
-export async function listSkills(): Promise<ServiceResult<Skill[]>> {
+export async function listSkills(): Promise<Skill[]> {
   await ensureSkillsDir();
   const skillsDir = getSkillsDir();
 
-  if (!existsSync(skillsDir)) return ok([]);
+  if (!existsSync(skillsDir)) return [];
 
   const entries = await readdir(skillsDir, { withFileTypes: true });
   const dirs = entries.filter((entry) => entry.isDirectory());
@@ -124,46 +124,45 @@ export async function listSkills(): Promise<ServiceResult<Skill[]>> {
   }
 
   skills.sort((a, b) => a.name.localeCompare(b.name));
-  return ok(skills);
+  return skills;
 }
 
-export async function getSkillByName(name: string): Promise<ServiceResult<Skill>> {
+export async function getSkillByName(name: string): Promise<Skill> {
   await ensureSkillsDir();
   const registration = (await getSkillRegistration(name)) ?? { type: 'custom' as const, enabled: true };
   const skill = await readSkillFromDisk(name, registration.type, registration.enabled);
-  if (!skill) return err(`Skill "${name}" not found`, 404);
-  return ok(skill);
+  if (!skill) throw new HTTPException(404, { message: `Skill "${name}" not found` });
+  return skill;
 }
 
-export async function createSkill(input: SkillCreateInput): Promise<ServiceResult<Skill>> {
+export async function createSkill(input: SkillCreateInput): Promise<Skill> {
   const parsed = createSkillSchema.safeParse(input);
-  if (!parsed.success) return err(parsed.error.issues.at(0)?.message ?? 'Invalid skill', 400);
+  if (!parsed.success) throw new HTTPException(400, { message: parsed.error.issues.at(0)?.message ?? 'Invalid skill' });
 
   const value = parsed.data;
   await ensureSkillsDir();
 
   const skillDir = getSkillDir(value.name);
   if (existsSync(skillDir)) {
-    return err(new SkillNameCollisionError(value.name).message, 409);
+    throw new HTTPException(409, { message: new SkillNameCollisionError(value.name).message });
   }
 
   await writeSkillMdFile(value.name, buildSkillMd(value));
 
-  const skill = {
+  const skill = toSkill({
     name: value.name,
     type: 'custom' as const,
     enabled: true,
-    description: value.description.trim(),
-    content: value.content.trim(),
-    location: getSkillMdPath(value.name),
+    description: value.description,
+    content: value.content,
     files: [],
-  };
+  });
 
   await setSkillType(skill.name, skill.type);
 
   internalBus.emit('skill.created', { name: skill.name });
 
-  return ok(skill);
+  return skill;
 }
 
 export async function syncBuiltInSkills(builtInSkills: BuiltInSkill[]): Promise<void> {
@@ -186,26 +185,26 @@ export async function syncBuiltInSkills(builtInSkills: BuiltInSkill[]): Promise<
   await listSkills();
 }
 
-export async function updateSkill(name: string, input: SkillUpdateInput): Promise<ServiceResult<Skill>> {
+export async function updateSkill(name: string, input: SkillUpdateInput): Promise<Skill> {
   const parsed = updateSkillSchema.safeParse(input);
-  if (!parsed.success) return err(parsed.error.issues.at(0)?.message ?? 'Invalid skill', 400);
+  if (!parsed.success) throw new HTTPException(400, { message: parsed.error.issues.at(0)?.message ?? 'Invalid skill' });
 
   const value = parsed.data;
   await ensureSkillsDir();
 
   const registration = (await getSkillRegistration(name)) ?? { type: 'custom' as const, enabled: true };
   const { type } = registration;
-  if (type === 'stitch') return err(new SkillReadOnlyError(name).message, 403);
+  if (type === 'stitch') throw new HTTPException(403, { message: new SkillReadOnlyError(name).message });
 
   const currentDir = getSkillDir(name);
   if (!existsSync(currentDir)) {
-    return err(new SkillNotFoundError(name).message, 404);
+    throw new HTTPException(404, { message: new SkillNotFoundError(name).message });
   }
 
   if (value.name !== name) {
     const newDir = getSkillDir(value.name);
     if (existsSync(newDir)) {
-      return err(new SkillNameCollisionError(value.name).message, 409);
+      throw new HTTPException(409, { message: new SkillNameCollisionError(value.name).message });
     }
     await rename(currentDir, newDir);
     await renameSkillRegistration(name, value.name);
@@ -216,40 +215,40 @@ export async function updateSkill(name: string, input: SkillUpdateInput): Promis
   const targetDir = getSkillDir(value.name);
   const files = await listSkillFiles(targetDir);
 
-  const skill = {
+  const skill = toSkill({
     name: value.name,
     type,
     enabled: registration.enabled,
-    description: value.description.trim(),
-    content: value.content.trim(),
-    location: getSkillMdPath(value.name),
+    description: value.description,
+    content: value.content,
     files,
-  };
+  });
 
   internalBus.emit('skill.updated', { name: skill.name, previousName: name });
 
-  return ok(skill);
+  return skill;
 }
 
-export async function deleteSkill(name: string): Promise<ServiceResult<null>> {
+export async function deleteSkill(name: string): Promise<void> {
   await ensureSkillsDir();
 
-  if ((await getSkillRegistration(name))?.type === 'stitch') return err(new SkillReadOnlyError(name).message, 403);
+  if ((await getSkillRegistration(name))?.type === 'stitch') {
+    throw new HTTPException(403, { message: new SkillReadOnlyError(name).message });
+  }
 
   const skillDir = getSkillDir(name);
   if (!existsSync(skillDir)) {
-    return err(new SkillNotFoundError(name).message, 404);
+    throw new HTTPException(404, { message: new SkillNotFoundError(name).message });
   }
 
   await rm(skillDir, { recursive: true, force: true });
   await deleteSkillRegistration(name);
   internalBus.emit('skill.deleted', { name });
-  return ok(null);
 }
 
-export async function searchSkillsDirectory(query: string): Promise<ServiceResult<SkillSearchResult[]>> {
+export async function searchSkillsDirectory(query: string): Promise<SkillSearchResult[]> {
   const trimmedQuery = query.trim();
-  if (trimmedQuery.length < 2) return ok([]);
+  if (trimmedQuery.length < 2) return [];
 
   try {
     const url = `${SKILLS_API_BASE}/api/search?q=${encodeURIComponent(trimmedQuery)}&limit=10`;
@@ -257,16 +256,16 @@ export async function searchSkillsDirectory(query: string): Promise<ServiceResul
     if (!response.ok) {
       const body = await response.text().catch(() => '');
       log.error({ url, status: response.status, body }, 'skills.sh search request failed');
-      return err('Failed to search skills directory', 500);
+      throw new HTTPException(500, { message: 'Failed to search skills directory' });
     }
 
     const body = searchResponseSchema.safeParse(await response.json());
     if (!body.success) {
       log.error({ url, issues: body.error.issues }, 'skills.sh search response failed schema validation');
-      return err('Failed to search skills directory', 500);
+      throw new HTTPException(500, { message: 'Failed to search skills directory' });
     }
 
-    const results = body.data.skills
+    return body.data.skills
       .map(
         (hit): SkillSearchResult => ({
           name: hit.name,
@@ -277,20 +276,20 @@ export async function searchSkillsDirectory(query: string): Promise<ServiceResul
         }),
       )
       .toSorted((a, b) => b.installs - a.installs);
-
-    return ok(results);
   } catch (error) {
+    if (error instanceof HTTPException) throw error;
     log.error({ error, query: trimmedQuery }, 'skills.sh search threw');
-    return err('Failed to search skills directory', 500);
+    throw new HTTPException(500, { message: 'Failed to search skills directory' });
   }
 }
 
-export async function importSkillFromDirectory(input: SkillImportInput): Promise<ServiceResult<Skill>> {
+export async function importSkillFromDirectory(input: SkillImportInput): Promise<Skill> {
   const parsed = importSkillSchema.safeParse(input);
-  if (!parsed.success) return err(parsed.error.issues.at(0)?.message ?? 'Invalid skill import', 400);
+  if (!parsed.success)
+    throw new HTTPException(400, { message: parsed.error.issues.at(0)?.message ?? 'Invalid skill import' });
 
   const { source, slug } = parsed.data;
-  if (!source.includes('/')) return err('Skill source must be an owner/repo value', 400);
+  if (!source.includes('/')) throw new HTTPException(400, { message: 'Skill source must be an owner/repo value' });
 
   try {
     const encodedSlug = slug.split('/').map(encodeURIComponent).join('/');
@@ -299,13 +298,13 @@ export async function importSkillFromDirectory(input: SkillImportInput): Promise
     if (!response.ok) {
       const body = await response.text().catch(() => '');
       log.error({ url, status: response.status, body, source, slug }, 'skills.sh download request failed');
-      return err(new SkillImportError('Failed to download skill').message, 500);
+      throw new HTTPException(500, { message: new SkillImportError('Failed to download skill').message });
     }
 
     const body = downloadResponseSchema.safeParse(await response.json());
     if (!body.success) {
       log.error({ url, source, slug, issues: body.error.issues }, 'skills.sh download response failed validation');
-      return err(new SkillImportError('Failed to download skill').message, 500);
+      throw new HTTPException(500, { message: new SkillImportError('Failed to download skill').message });
     }
 
     const downloadedFiles = body.data.files;
@@ -316,22 +315,26 @@ export async function importSkillFromDirectory(input: SkillImportInput): Promise
         { source, slug, fileCount: downloadedFiles.length, filePaths: downloadedFiles.map((file) => file.path) },
         'downloaded skill missing SKILL.md',
       );
-      return err(new SkillImportError('Downloaded skill did not include a SKILL.md file').message, 422);
+      throw new HTTPException(422, {
+        message: new SkillImportError('Downloaded skill did not include a SKILL.md file').message,
+      });
     }
 
     const skillInput = parseSkillMarkdown(skillFile.contents);
     if (!skillInput) {
       log.error({ source, slug, contents: skillFile.contents.slice(0, 500) }, 'SKILL.md frontmatter parse failed');
-      return err(new SkillInvalidError('Downloaded skill has invalid frontmatter').message, 422);
+      throw new HTTPException(422, {
+        message: new SkillInvalidError('Downloaded skill has invalid frontmatter').message,
+      });
     }
 
     const createParsed = createSkillSchema.safeParse(skillInput);
     if (!createParsed.success) {
       log.error({ source, slug, issues: createParsed.error.issues }, 'downloaded skill failed schema validation');
-      return err(
-        new SkillInvalidError(createParsed.error.issues.at(0)?.message ?? 'Downloaded skill is invalid').message,
-        422,
-      );
+      throw new HTTPException(422, {
+        message: new SkillInvalidError(createParsed.error.issues.at(0)?.message ?? 'Downloaded skill is invalid')
+          .message,
+      });
     }
 
     const value = createParsed.data;
@@ -339,7 +342,7 @@ export async function importSkillFromDirectory(input: SkillImportInput): Promise
 
     const skillDir = getSkillDir(value.name);
     if (existsSync(skillDir)) {
-      return err(new SkillNameCollisionError(value.name).message, 409);
+      throw new HTTPException(409, { message: new SkillNameCollisionError(value.name).message });
     }
 
     await mkdir(skillDir, { recursive: true });
@@ -355,39 +358,39 @@ export async function importSkillFromDirectory(input: SkillImportInput): Promise
 
     const skillFiles = await listSkillFiles(skillDir);
 
-    const skill = {
+    const skill = toSkill({
       name: value.name,
       type: 'external' as const,
       enabled: true,
-      description: value.description.trim(),
-      content: value.content.trim(),
-      location: getSkillMdPath(value.name),
+      description: value.description,
+      content: value.content,
       files: skillFiles,
-    };
+    });
 
     await setSkillType(skill.name, skill.type);
 
     internalBus.emit('skill.created', { name: skill.name });
 
-    return ok(skill);
+    return skill;
   } catch (error) {
+    if (error instanceof HTTPException) throw error;
     if (error instanceof SkillNameCollisionError) {
-      return err(error.message, 409);
+      throw new HTTPException(409, { message: error.message });
     }
     log.error({ error, source, slug }, 'skills.sh import threw');
-    return err(new SkillImportError('Failed to import skill').message, 500);
+    throw new HTTPException(500, { message: new SkillImportError('Failed to import skill').message });
   }
 }
 
 export async function buildSkillsSystemPrompt(): Promise<string> {
-  const result = await listSkills();
-  if (result.error || result.data.length === 0) return '';
+  const skills = await listSkills();
+  if (skills.length === 0) return '';
 
   const [disabledAppSkillNames, disabledSkillNames] = await Promise.all([
-    getDisabledAppSkillNames(),
+    getDisabledAppFields('skillNames'),
     getDisabledToolIdentifiers('skill'),
   ]);
-  const lines = result.data
+  const lines = skills
     .filter((skill) => !disabledAppSkillNames.has(skill.name) && !disabledSkillNames.has(skill.name))
     .map((skill) => `- ${skill.name}: ${skill.description}`);
   if (lines.length === 0) return '';

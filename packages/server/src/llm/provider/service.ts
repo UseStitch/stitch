@@ -1,12 +1,11 @@
 import { eq, count } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 
 import type { EmbeddingProviderModels } from '@stitch/shared/embedding/types';
 import { isLocalProviderId } from '@stitch/shared/providers/types';
 
 import { getDb } from '@/db/client.js';
 import { providerConfig, localModels, type LocalProviderId } from '@/db/schema/providers.js';
-import { err, ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
 import type { ResolvedEmbeddingModel } from '@/models/embedding/schema.js';
 import * as EmbeddingModels from '@/models/embedding/service.js';
 import * as LocalModels from '@/models/llm/local.js';
@@ -48,18 +47,18 @@ function toModelSummary(model: Models.RawModel): ModelSummary {
   };
 }
 
-async function resolveProvider(providerId: string): Promise<ServiceResult<Models.RawProvider>> {
+async function resolveProvider(providerId: string): Promise<Models.RawProvider> {
   if (!isAllowedProvider(providerId)) {
-    return err('Provider not found', 404);
+    throw new HTTPException(404, { message: 'Provider not found' });
   }
 
   const providers = await Models.get();
   const provider = providers[providerId] as Models.RawProvider | undefined;
   if (!provider) {
-    return err('Provider not found', 404);
+    throw new HTTPException(404, { message: 'Provider not found' });
   }
 
-  return ok(provider);
+  return provider;
 }
 
 const LOCAL_PROVIDER_META: Record<LocalProviderId, { name: string }> = {
@@ -67,7 +66,15 @@ const LOCAL_PROVIDER_META: Record<LocalProviderId, { name: string }> = {
   lmstudio_local: { name: 'LM Studio' },
 };
 
-export async function getProvider(providerId: string): Promise<ServiceResult<ProviderSummary>> {
+async function isProviderEnabled(providerId: string): Promise<boolean> {
+  const rows = await getDb()
+    .select({ providerId: providerConfig.providerId })
+    .from(providerConfig)
+    .where(eq(providerConfig.providerId, providerId));
+  return rows.length > 0;
+}
+
+export async function getProvider(providerId: string): Promise<ProviderSummary> {
   if (isLocalProviderId(providerId)) {
     const meta = LOCAL_PROVIDER_META[providerId];
     const db = getDb();
@@ -80,44 +87,27 @@ export async function getProvider(providerId: string): Promise<ServiceResult<Pro
     ]);
     const config = configRows.at(0);
     const storedBaseURL = (config?.credentials as { baseURL?: string } | undefined)?.baseURL;
-    return ok({
+    return {
       id: providerId,
       name: meta.name,
       api: storedBaseURL,
       model_count: modelCount.at(0)?.value ?? 0,
       enabled: config !== undefined,
-    });
+    };
   }
 
   if (providerId === 'elevenlabs') {
-    const db = getDb();
-    const configRows = await db
-      .select({ providerId: providerConfig.providerId })
-      .from(providerConfig)
-      .where(eq(providerConfig.providerId, 'elevenlabs'));
-    const config = configRows.at(0);
-    return ok({
+    return {
       id: 'elevenlabs',
       name: 'ElevenLabs',
       api: 'https://api.elevenlabs.io',
       model_count: 0,
-      enabled: config !== undefined,
-    });
+      enabled: await isProviderEnabled('elevenlabs'),
+    };
   }
 
-  const providerResult = await resolveProvider(providerId);
-  if (providerResult.error) {
-    return providerResult;
-  }
-
-  const db = getDb();
-  const configRows = await db
-    .select({ providerId: providerConfig.providerId })
-    .from(providerConfig)
-    .where(eq(providerConfig.providerId, providerId));
-  const config = configRows.at(0);
-
-  return ok(toProviderSummary(providerResult.data, config !== undefined));
+  const provider = await resolveProvider(providerId);
+  return toProviderSummary(provider, await isProviderEnabled(providerId));
 }
 
 function localModelToSummary(m: LocalModels.LocalModel): ModelSummary {
@@ -137,25 +127,21 @@ function localModelToSummary(m: LocalModels.LocalModel): ModelSummary {
   };
 }
 
-export async function listProviderModels(providerId: string): Promise<ServiceResult<ModelSummary[]>> {
+export async function listProviderModels(providerId: string): Promise<ModelSummary[]> {
   if (isLocalProviderId(providerId)) {
     const models = await LocalModels.listLocalModels(providerId);
-    return ok(models.map(localModelToSummary));
+    return models.map(localModelToSummary);
   }
 
-  const providerResult = await resolveProvider(providerId);
-  if (providerResult.error) {
-    return providerResult;
-  }
-
-  return ok(Object.values(providerResult.data.models).map(toModelSummary));
+  const provider = await resolveProvider(providerId);
+  return Object.values(provider.models).map(toModelSummary);
 }
 
 function toEmbeddingModelSummary(model: ResolvedEmbeddingModel): EmbeddingProviderModels['models'][number] {
   return { id: model.id, name: model.name, family: model.family, dimensions: model.dimensions, context: model.context };
 }
 
-export async function listEnabledProviderEmbeddingModels(): Promise<ServiceResult<EmbeddingProviderModels[]>> {
+export async function listEnabledProviderEmbeddingModels(): Promise<EmbeddingProviderModels[]> {
   const db = getDb();
   const [providers, configs] = await Promise.all([
     EmbeddingModels.getEmbeddingModels(),
@@ -163,15 +149,13 @@ export async function listEnabledProviderEmbeddingModels(): Promise<ServiceResul
   ]);
   const enabledIds = new Set(configs.map((row) => row.providerId));
 
-  return ok(
-    Object.values(providers)
-      .filter((provider) => enabledIds.has(provider.id))
-      .map((provider) => ({
-        providerId: provider.id,
-        providerName: provider.name,
-        models: Object.values(provider.models).map(toEmbeddingModelSummary),
-      })),
-  );
+  return Object.values(providers)
+    .filter((provider) => enabledIds.has(provider.id))
+    .map((provider) => ({
+      providerId: provider.id,
+      providerName: provider.name,
+      models: Object.values(provider.models).map(toEmbeddingModelSummary),
+    }));
 }
 
 /** @knipignore Reserved for embedding consumers. */
@@ -182,15 +166,15 @@ export async function getEmbeddingModelDimensions(providerId: string, modelId: s
   return EmbeddingModels.getEmbeddingDimensions(model);
 }
 
-export async function getProviderLogo(providerId: string): Promise<ServiceResult<string>> {
+export async function getProviderLogo(providerId: string): Promise<string> {
   if (!isAllowedProvider(providerId)) {
-    return err('Provider not found', 404);
+    throw new HTTPException(404, { message: 'Provider not found' });
   }
 
   const logo = await ProviderLogos.get(providerId);
   if (!logo) {
-    return err('Provider logo not found', 404);
+    throw new HTTPException(404, { message: 'Provider logo not found' });
   }
 
-  return ok(logo);
+  return logo;
 }

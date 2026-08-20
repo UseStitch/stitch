@@ -10,17 +10,18 @@ import type { z } from 'zod';
 const createSkillInputSchema = createSkillSchema.describe('A reusable skill to save for future use');
 
 export async function createSkillFromTool(input: z.input<typeof createSkillSchema>) {
-  const result = await createSkill(createSkillSchema.parse(input));
-  if (result.error) {
-    return toolError(result.error.message);
+  try {
+    const skill = await createSkill(createSkillSchema.parse(input));
+    return {
+      name: skill.name,
+      description: skill.description,
+      location: skill.location,
+      output: `Created skill "${skill.name}" at ${skill.location}`,
+    };
+  } catch (error) {
+    const message = Error.isError(error) ? error.message : String(error);
+    return toolError(message);
   }
-
-  return {
-    name: result.data.name,
-    description: result.data.description,
-    location: result.data.location,
-    output: `Created skill "${result.data.name}" at ${result.data.location}`,
-  };
 }
 
 export const definition: ToolDefinition = {

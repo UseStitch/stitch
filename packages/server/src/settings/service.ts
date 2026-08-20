@@ -1,4 +1,5 @@
 import { eq, inArray } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 
 import { SETTINGS_DEFAULTS, SETTINGS_SCHEMAS } from '@stitch/shared/settings/types';
 import type { SettingsKey } from '@stitch/shared/settings/types';
@@ -6,8 +7,6 @@ import type { SettingsKey } from '@stitch/shared/settings/types';
 import { getDb } from '@/db/client.js';
 import { userSettings } from '@/db/schema/settings.js';
 import { internalBus } from '@/lib/internal-bus.js';
-import { err, ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
 import type { z } from 'zod';
 
 type SettingValue<K extends SettingsKey> = z.infer<(typeof SETTINGS_SCHEMAS)[K]>;
@@ -44,26 +43,26 @@ export async function getSettings<const Keys extends readonly SettingsKey[]>(key
   return result;
 }
 
-export async function listSettings(): Promise<ServiceResult<Record<string, string>>> {
+export async function listSettings(): Promise<Record<string, string>> {
   const db = getDb();
   const rows = await db.select().from(userSettings);
   const result: Record<string, string> = {};
   for (const row of rows) {
     result[row.key] = row.value;
   }
-  return ok(result);
+  return result;
 }
 
-export async function saveSetting(key: string, value: string): Promise<ServiceResult<null>> {
+export async function saveSetting(key: string, value: string): Promise<void> {
   const schema = SETTINGS_SCHEMAS[key as SettingsKey] as (typeof SETTINGS_SCHEMAS)[SettingsKey] | undefined;
   if (!schema) {
-    return err('Invalid setting key', 400);
+    throw new HTTPException(400, { message: 'Invalid setting key' });
   }
 
   const parseResult = schema.safeParse(value);
   if (!parseResult.success) {
     const issue = parseResult.error.issues[0];
-    return err(`Invalid value: ${issue.message}`, 400);
+    throw new HTTPException(400, { message: `Invalid value: ${issue.message}` });
   }
 
   const db = getDb();
@@ -73,13 +72,11 @@ export async function saveSetting(key: string, value: string): Promise<ServiceRe
     .onConflictDoUpdate({ target: userSettings.key, set: { value, updatedAt: Date.now() } });
 
   internalBus.emit('settings.changed', { key: key as SettingsKey });
-
-  return ok(null);
 }
 
-export async function deleteSetting(key: string): Promise<ServiceResult<null>> {
+export async function deleteSetting(key: string): Promise<void> {
   if (!(key in SETTINGS_SCHEMAS)) {
-    return err('Invalid setting key', 400);
+    throw new HTTPException(400, { message: 'Invalid setting key' });
   }
 
   const db = getDb();
@@ -88,10 +85,8 @@ export async function deleteSetting(key: string): Promise<ServiceResult<null>> {
     .where(eq(userSettings.key, key as SettingsKey))
     .returning({ key: userSettings.key });
   if (result.length === 0) {
-    return err('Setting not found', 404);
+    throw new HTTPException(404, { message: 'Setting not found' });
   }
 
   internalBus.emit('settings.changed', { key: key as SettingsKey });
-
-  return ok(null);
 }

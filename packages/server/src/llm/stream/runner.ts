@@ -21,7 +21,7 @@ import {
   isPermissionRejectedError,
   isStreamAbortedError,
 } from '@/llm/stream/errors.js';
-import { SessionContext } from '@/llm/stream/session-context.js';
+import { assembleSessionContext } from '@/llm/stream/session-context.js';
 import {
   buildNextSessionToolsetState,
   getSessionToolsetState,
@@ -64,15 +64,10 @@ type RunStreamOptions = {
 };
 
 type StreamRunnerDeps = {
-  executeStepWithRetry: typeof executeStepWithRetry;
-  checkAndHandleDoomLoop: typeof checkAndHandleDoomLoop;
-  getModelLimits: typeof getModelLimits;
   getCompactionSettings: typeof getCompactionSettings;
-  compact: typeof compact;
   pruneSession: typeof pruneSession;
   saveAssistantMessage: typeof saveAssistantMessage;
   markSessionUnread: typeof markSessionUnread;
-  now: () => number;
 };
 
 type StreamRunnerContext = {
@@ -114,19 +109,8 @@ type StreamRunnerState = {
 
 const UNKNOWN_RECOVERY_LIMIT = 1;
 const TOOL_CALL_FINISH_RECOVERY_LIMIT = 1;
-const PRESERVE_RECENT_TOOL_RESULTS = 3;
 
-const DEFAULT_DEPS: StreamRunnerDeps = {
-  executeStepWithRetry,
-  checkAndHandleDoomLoop,
-  getModelLimits,
-  getCompactionSettings,
-  compact,
-  pruneSession,
-  saveAssistantMessage,
-  markSessionUnread,
-  now: Date.now,
-};
+const DEFAULT_DEPS: StreamRunnerDeps = { getCompactionSettings, pruneSession, saveAssistantMessage, markSessionUnread };
 
 type InternalRunStreamOptions = RunStreamOptions & {
   coreTools: Record<string, Tool>;
@@ -193,7 +177,11 @@ class StreamRunner {
 
     try {
       await this.runStepLoop();
-      await this.maybeRunFinalSynthesis();
+      this.runFinalSynthesis({
+        triggerEvent: 'stream.final_synthesis.triggered',
+        triggerReason: 'step-loop-complete',
+        syntheticReason: 'missing-user-facing-text-after-tools',
+      });
       await this.evaluateCompactionTrigger();
     } catch (error) {
       await this.handleError(error);
@@ -284,7 +272,7 @@ class StreamRunner {
   private async runStepLoop(): Promise<void> {
     const [compactionSettings, modelLimits] = await Promise.all([
       this.deps.getCompactionSettings(),
-      this.deps.getModelLimits(this.ctx.providerId, this.ctx.modelId),
+      getModelLimits(this.ctx.providerId, this.ctx.modelId),
     ]);
     this.state.compactionSettings = compactionSettings;
 
@@ -307,10 +295,10 @@ class StreamRunner {
         this.state.conversation.push({ role: 'user', content: MAX_STEPS_WARNING(MAX_STEPS) });
       }
 
-      const stepStartedAt = this.deps.now();
-      const stepConversation = this.buildConversationForStep(step);
+      const stepStartedAt = Date.now();
+      const stepConversation = compactConversationForStep(this.state.conversation);
 
-      const stepResult = await this.deps.executeStepWithRetry({
+      const stepResult = await executeStepWithRetry({
         ...this.buildStepOptions(step, stepConversation),
         tools: isLastStep ? ({} as StepOptions['tools']) : this.getCurrentTools(),
         onAttemptFailure: async ({ attempt, errorCode, isRetryable }) => {
@@ -352,7 +340,7 @@ class StreamRunner {
         'stream.step.finished',
       );
 
-      const stepFinishedAt = this.deps.now();
+      const stepFinishedAt = Date.now();
       internalBus.emit('stream.step.completed', {
         sessionId: this.ctx.sessionId,
         messageId: this.ctx.assistantMessageId,
@@ -449,7 +437,7 @@ class StreamRunner {
       }
       await this.renewToolsetActivity(stepResult.toolCalls);
 
-      const doomLoopState = await this.deps.checkAndHandleDoomLoop({
+      const doomLoopState = await checkAndHandleDoomLoop({
         sessionId: this.ctx.sessionId,
         messageId: this.ctx.assistantMessageId,
         toolCallHistory: this.state.toolCallHistory,
@@ -504,32 +492,13 @@ class StreamRunner {
     }
   }
 
-  private buildConversationForStep(step: number): ModelMessage[] {
-    if (step === 0) {
-      return compactConversationForStep(this.state.conversation);
-    }
-
-    return compactConversationForStep(this.state.conversation, {
-      preserveRecentToolResults: PRESERVE_RECENT_TOOL_RESULTS,
-      compactToolResults: true,
-    });
-  }
-
-  private async maybeRunFinalSynthesis(): Promise<void> {
-    this.runFinalSynthesis({
-      triggerEvent: 'stream.final_synthesis.triggered',
-      triggerReason: 'step-loop-complete',
-      syntheticReason: 'missing-user-facing-text-after-tools',
-    });
-  }
-
   private async evaluateCompactionTrigger(): Promise<void> {
     const compactionSettings = await this.deps.getCompactionSettings();
     if (!compactionSettings.auto) {
       return;
     }
 
-    const limits = await this.deps.getModelLimits(this.ctx.providerId, this.ctx.modelId);
+    const limits = await getModelLimits(this.ctx.providerId, this.ctx.modelId);
     const contextPressureUsage = this.state.peakStepUsage;
 
     if (!isOverflow(contextPressureUsage, limits, { reserved: compactionSettings.reserved })) {
@@ -571,6 +540,29 @@ class StreamRunner {
     await this.handleUnknownError(error);
   }
 
+  private getUnresolvedToolCalls(): (StoredPart & { type: 'tool-call' })[] {
+    const resolvedToolCallIds = new Set(
+      this.state.accumulatedParts
+        .filter((p): p is StoredPart & { type: 'tool-result' } => p.type === 'tool-result')
+        .map((p) => p.toolCallId),
+    );
+    return this.state.accumulatedParts.filter(
+      (p): p is StoredPart & { type: 'tool-call' } => p.type === 'tool-call' && !resolvedToolCallIds.has(p.toolCallId),
+    );
+  }
+
+  private emitToolFailures(calls: (StoredPart & { type: 'tool-call' })[], error: string): void {
+    for (const call of calls) {
+      internalBus.emit('tool.failed', {
+        sessionId: this.ctx.sessionId,
+        messageId: this.ctx.assistantMessageId,
+        toolCallId: call.toolCallId,
+        toolName: call.toolName,
+        error,
+      });
+    }
+  }
+
   private async handleAbort(error: unknown): Promise<void> {
     this.state.wasAborted = true;
     this.setFinishReason('aborted', 'abort-signal');
@@ -587,17 +579,8 @@ class StreamRunner {
       'stream.abort.handled',
     );
 
-    const toolCallIds = new Set(
-      this.state.accumulatedParts
-        .filter((p): p is StoredPart & { type: 'tool-result' } => p.type === 'tool-result')
-        .map((p) => p.toolCallId),
-    );
-
-    const now = this.deps.now();
-    const unresolvedParts = this.state.accumulatedParts.filter(
-      (part): part is StoredPart & { type: 'tool-call' } =>
-        part.type === 'tool-call' && !toolCallIds.has(part.toolCallId),
-    );
+    const unresolvedParts = this.getUnresolvedToolCalls();
+    const now = Date.now();
 
     for (const part of unresolvedParts) {
       this.state.accumulatedParts.push({
@@ -612,15 +595,7 @@ class StreamRunner {
       } as StoredPart);
     }
 
-    for (const part of unresolvedParts) {
-      internalBus.emit('tool.failed', {
-        sessionId: this.ctx.sessionId,
-        messageId: this.ctx.assistantMessageId,
-        toolCallId: part.toolCallId,
-        toolName: part.toolName,
-        error: 'Aborted',
-      });
-    }
+    this.emitToolFailures(unresolvedParts, 'Aborted');
   }
 
   private async handlePermissionRejected(error: unknown): Promise<void> {
@@ -647,25 +622,7 @@ class StreamRunner {
       'stream.permission.rejected',
     );
 
-    const resolvedToolCallIds = new Set(
-      this.state.accumulatedParts
-        .filter((p): p is StoredPart & { type: 'tool-result' } => p.type === 'tool-result')
-        .map((p) => p.toolCallId),
-    );
-
-    const unresolvedToolCalls = this.state.accumulatedParts.filter(
-      (p): p is StoredPart & { type: 'tool-call' } => p.type === 'tool-call' && !resolvedToolCallIds.has(p.toolCallId),
-    );
-
-    for (const call of unresolvedToolCalls) {
-      internalBus.emit('tool.failed', {
-        sessionId: this.ctx.sessionId,
-        messageId: this.ctx.assistantMessageId,
-        toolCallId: call.toolCallId,
-        toolName: call.toolName,
-        error: 'Blocked before completion',
-      });
-    }
+    this.emitToolFailures(this.getUnresolvedToolCalls(), 'Blocked before completion');
   }
 
   private handleContextOverflow(): void {
@@ -716,8 +673,8 @@ class StreamRunner {
       id: createPartId(),
       error: mappedError.message,
       details: errorDetails,
-      startedAt: this.deps.now(),
-      endedAt: this.deps.now(),
+      startedAt: Date.now(),
+      endedAt: Date.now(),
     } as StoredPart);
 
     internalBus.emit('stream.failed', {
@@ -795,7 +752,7 @@ class StreamRunner {
       'synthetic fallback response triggered because message had tool results without trailing user-facing text',
     );
 
-    const now = this.deps.now();
+    const now = Date.now();
     const text =
       opts.syntheticReason === 'unhandled-stream-error'
         ? 'I hit an internal error after running tools and could not complete the final response. Please retry this request.'
@@ -898,7 +855,7 @@ class StreamRunner {
         sessionId: this.ctx.sessionId,
         messageId: this.ctx.assistantMessageId,
         finishReason: this.state.finalFinishReason,
-        durationMs: this.deps.now() - this.ctx.startedAt,
+        durationMs: Date.now() - this.ctx.startedAt,
         stepCount: this.state.stepCount,
         partCount: this.state.accumulatedParts.length,
         toolCallCount,
@@ -941,16 +898,7 @@ class StreamRunner {
   }
 
   private ensureTerminalToolResults(): void {
-    const resolvedToolCallIds = new Set(
-      this.state.accumulatedParts
-        .filter((p): p is StoredPart & { type: 'tool-result' } => p.type === 'tool-result')
-        .map((p) => p.toolCallId),
-    );
-
-    const missingToolCalls = this.state.accumulatedParts.filter(
-      (p): p is StoredPart & { type: 'tool-call' } => p.type === 'tool-call' && !resolvedToolCallIds.has(p.toolCallId),
-    );
-
+    const missingToolCalls = this.getUnresolvedToolCalls();
     if (missingToolCalls.length === 0) {
       return;
     }
@@ -960,7 +908,7 @@ class StreamRunner {
       : this.state.finalFinishReason === 'blocked'
         ? 'Blocked before completion'
         : 'Missing tool result';
-    const now = this.deps.now();
+    const now = Date.now();
 
     for (const call of missingToolCalls) {
       this.state.accumulatedParts.push({
@@ -993,7 +941,7 @@ class StreamRunner {
       return;
     }
 
-    const result = await this.deps.compact({
+    const result = await compact({
       sessionId: this.ctx.sessionId,
       providerId: this.ctx.providerId,
       modelId: this.ctx.modelId,
@@ -1033,7 +981,7 @@ class StreamRunner {
       providerId: this.ctx.providerId,
       totalUsage: this.state.totalUsage,
       finishReason: this.state.finalFinishReason,
-      durationMs: this.deps.now() - this.ctx.startedAt,
+      durationMs: Date.now() - this.ctx.startedAt,
       stepCount: this.state.stepCount,
       toolCallCount,
       accumulatedParts: this.state.accumulatedParts,
@@ -1051,12 +999,7 @@ class StreamRunner {
     return text.length > 0 ? text : null;
   }
 
-  private setFinishReason(next: string, reason: string): void {
-    const current = this.state.finalFinishReason;
-    if (current === next) {
-      return;
-    }
-
+  private logTransition(field: string, from: unknown, to: unknown, reason: string): void {
     log.info(
       {
         event: 'stream.state.transition',
@@ -1064,36 +1007,24 @@ class StreamRunner {
         streamRunId: this.ctx.streamRunId,
         sessionId: this.ctx.sessionId,
         messageId: this.ctx.assistantMessageId,
-        field: 'finalFinishReason',
-        from: current,
-        to: next,
+        field,
+        from,
+        to,
         reason,
       },
       'stream.state.transition',
     );
+  }
+
+  private setFinishReason(next: string, reason: string): void {
+    if (this.state.finalFinishReason === next) return;
+    this.logTransition('finalFinishReason', this.state.finalFinishReason, next, reason);
     this.state.finalFinishReason = next;
   }
 
   private setNeedsCompaction(next: boolean, reason: string): void {
-    const current = this.state.needsCompaction;
-    if (current === next) {
-      return;
-    }
-
-    log.info(
-      {
-        event: 'stream.state.transition',
-        phase: 'state',
-        streamRunId: this.ctx.streamRunId,
-        sessionId: this.ctx.sessionId,
-        messageId: this.ctx.assistantMessageId,
-        field: 'needsCompaction',
-        from: current,
-        to: next,
-        reason,
-      },
-      'stream.state.transition',
-    );
+    if (this.state.needsCompaction === next) return;
+    this.logTransition('needsCompaction', this.state.needsCompaction, next, reason);
     this.state.needsCompaction = next;
   }
 
@@ -1132,7 +1063,7 @@ export async function runStream(opts: {
   const streamRunId = randomUUID();
   const canUseTaskTool = opts.allowTaskTool ?? true;
 
-  const { messages, tools, toolsetManager } = await SessionContext.create({
+  const { messages, tools, toolsetManager } = await assembleSessionContext({
     sessionId: opts.sessionId,
     messageId: opts.assistantMessageId,
     streamRunId,
@@ -1143,7 +1074,7 @@ export async function runStream(opts: {
     activeToolsetIds: opts.activeToolsetIds,
     allowTaskTool: canUseTaskTool,
     excludedToolsetIds: opts.excludedToolsetIds,
-  }).assemble();
+  });
 
   const transformedMessages = await transformAttachmentsForModel(messages, opts.credentials.providerId, opts.modelId);
 

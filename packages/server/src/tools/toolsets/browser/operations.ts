@@ -1,4 +1,4 @@
-import { getBrowserManager } from '@/lib/browser/browser-manager.js';
+import { sendBrowserCommand } from '@/lib/browser/browser-manager.js';
 import type { ScrollDirection } from '@/lib/browser/types.js';
 import { BrowserInvalidOpError, BrowserMissingFieldError } from '@/tools/toolsets/browser/errors.js';
 import {
@@ -7,6 +7,7 @@ import {
   formatFindElementsSummary,
   formatSearchPageSummary,
   formatTabsOutput,
+  snapshotFields,
 } from '@/tools/toolsets/browser/formatters.js';
 import type { BatchAction, OperationInput } from '@/tools/toolsets/browser/schemas.js';
 import { serializeBrowserSnapshot } from '@/tools/toolsets/browser/snapshot-serializer.js';
@@ -47,18 +48,10 @@ export function shouldReturnFreshSnapshot(input: OperationInput): boolean {
 }
 
 export async function executeOperation(input: OperationInput, signal?: AbortSignal): Promise<unknown> {
-  const browser = getBrowserManager();
-
   if (input.tool === 'snapshot') {
-    const tree = await browser.snapshot(signal);
+    const tree = await sendBrowserCommand({ action: 'snapshot' }, signal);
     const compactSnapshot = serializeBrowserSnapshot(tree);
-    return {
-      output: compactSnapshot.text,
-      snapshot: compactSnapshot.text,
-      snapshotFingerprint: compactSnapshot.fingerprint,
-      snapshotOriginalChars: compactSnapshot.originalChars,
-      snapshotTruncated: compactSnapshot.truncated,
-    };
+    return { output: compactSnapshot.text, ...snapshotFields(compactSnapshot) };
   }
 
   if (input.tool === 'navigate') {
@@ -66,33 +59,44 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
     switch (op) {
       case 'navigate': {
         if (!input.url) throw new BrowserMissingFieldError('navigate', 'url');
-        return { output: await browser.navigate(input.url, signal, input.timeoutMs) };
+        return {
+          output: await sendBrowserCommand({ action: 'navigate', url: input.url, timeoutMs: input.timeoutMs }, signal),
+        };
       }
       case 'search': {
         if (!input.query) throw new BrowserMissingFieldError('navigate', 'query');
-        return { output: await browser.search(input.query, input.engine ?? 'google', signal, input.timeoutMs) };
+        return {
+          output: await sendBrowserCommand(
+            { action: 'search', query: input.query, engine: input.engine ?? 'google', timeoutMs: input.timeoutMs },
+            signal,
+          ),
+        };
       }
       case 'go_back': {
-        return { output: await browser.goBack(signal, input.timeoutMs) };
+        return { output: await sendBrowserCommand({ action: 'goBack', timeoutMs: input.timeoutMs }, signal) };
       }
       case 'go_forward': {
-        return { output: await browser.goForward(signal, input.timeoutMs) };
+        return { output: await sendBrowserCommand({ action: 'goForward', timeoutMs: input.timeoutMs }, signal) };
       }
       case 'tab_new': {
-        const tab = await browser.newTab(input.url, { signal, timeoutMs: input.timeoutMs });
+        const state = await sendBrowserCommand(
+          { action: 'newTab', url: input.url, timeoutMs: input.timeoutMs },
+          signal,
+        );
+        const tab = state.tabs.find((t) => t.id === state.activeTabId) ?? state.tabs[0];
         return { output: `Opened new tab: ${tab.id} (${tab.url})` };
       }
       case 'tab_list': {
-        const tabs = await browser.listTabs(signal);
+        const tabs = await sendBrowserCommand({ action: 'listTabs' }, signal);
         return { output: formatTabsOutput(tabs) };
       }
       case 'tab_focus': {
         if (!input.tabId) throw new BrowserMissingFieldError('navigate', 'tabId');
-        await browser.focusTab(input.tabId, { signal, timeoutMs: input.timeoutMs });
+        await sendBrowserCommand({ action: 'focusTab', tabId: input.tabId, timeoutMs: input.timeoutMs }, signal);
         return { output: `Focused tab: ${input.tabId}` };
       }
       case 'tab_close': {
-        await browser.closeTab(input.tabId, signal);
+        await sendBrowserCommand({ action: 'closeTab', tabId: input.tabId }, signal);
         return { output: `Closed tab: ${input.tabId ?? 'active'}` };
       }
       default:
@@ -106,57 +110,78 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
       case 'click': {
         if (!input.ref) throw new BrowserMissingFieldError('interact', 'ref');
         return {
-          output: await browser.click(input.ref, {
-            doubleClick: input.doubleClick,
-            button: input.button,
-            modifiers: input.modifiers,
+          output: await sendBrowserCommand(
+            {
+              action: 'click',
+              ref: input.ref,
+              doubleClick: input.doubleClick,
+              button: input.button,
+              modifiers: input.modifiers,
+              timeoutMs: input.timeoutMs,
+            },
             signal,
-            timeoutMs: input.timeoutMs,
-          }),
+          ),
         };
       }
       case 'type': {
         if (!input.ref) throw new BrowserMissingFieldError('interact', 'ref');
         if (!input.text) throw new BrowserMissingFieldError('interact', 'text');
         return {
-          output: await browser.type(input.ref, input.text, {
-            slowly: input.slowly,
-            submit: input.submit,
-            clear: input.clear,
+          output: await sendBrowserCommand(
+            {
+              action: 'type',
+              ref: input.ref,
+              text: input.text,
+              slowly: input.slowly,
+              submit: input.submit,
+              clear: input.clear,
+            },
             signal,
-          }),
+          ),
         };
       }
       case 'press': {
         if (!input.key) throw new BrowserMissingFieldError('interact', 'key');
-        return { output: await browser.press(input.key, signal, input.timeoutMs) };
+        return {
+          output: await sendBrowserCommand({ action: 'press', key: input.key, timeoutMs: input.timeoutMs }, signal),
+        };
       }
       case 'hover': {
         if (!input.ref) throw new BrowserMissingFieldError('interact', 'ref');
-        return { output: await browser.hover(input.ref, signal) };
+        return { output: await sendBrowserCommand({ action: 'hover', ref: input.ref }, signal) };
       }
       case 'select': {
         if (!input.ref) throw new BrowserMissingFieldError('interact', 'ref');
         if (!input.values) throw new BrowserMissingFieldError('interact', 'values');
-        return { output: await browser.select(input.ref, input.values, signal) };
+        return { output: await sendBrowserCommand({ action: 'select', ref: input.ref, values: input.values }, signal) };
       }
       case 'get_dropdown_options': {
         if (!input.ref) throw new BrowserMissingFieldError('interact', 'ref');
-        const result = await browser.getDropdownOptions(input.ref, signal);
+        const result = await sendBrowserCommand({ action: 'getDropdownOptions', ref: input.ref }, signal);
         return { output: formatDropdownOptionsSummary(input.ref, result), options: result.options };
       }
       case 'select_dropdown': {
         if (!input.ref) throw new BrowserMissingFieldError('interact', 'ref');
         if (!input.text) throw new BrowserMissingFieldError('interact', 'text');
-        return { output: await browser.selectDropdown(input.ref, input.text, signal, input.timeoutMs) };
+        return {
+          output: await sendBrowserCommand(
+            { action: 'selectDropdown', ref: input.ref, text: input.text, timeoutMs: input.timeoutMs },
+            signal,
+          ),
+        };
       }
       case 'scroll': {
         if (!input.direction) throw new BrowserMissingFieldError('interact', 'direction');
-        return { output: await browser.scroll(input.ref, input.direction as ScrollDirection, signal) };
+        return {
+          output: await sendBrowserCommand(
+            { action: 'scroll', ref: input.ref, direction: input.direction as ScrollDirection },
+            signal,
+          ),
+        };
       }
       case 'evaluate': {
         if (!input.fn) throw new BrowserMissingFieldError('interact', 'fn');
-        const result = await browser.evaluate(input.fn, signal);
+        const result = await sendBrowserCommand({ action: 'evaluate', expression: input.fn }, signal);
         return { output: typeof result === 'string' ? result : JSON.stringify(result, null, 2) };
       }
       default:
@@ -168,27 +193,29 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
     const mode = input.mode ?? input.op ?? 'time';
     if (mode === 'time') {
       if (input.timeMs === undefined) throw new BrowserMissingFieldError('wait', 'timeMs');
-      return { output: await browser.wait(input.timeMs, undefined, signal) };
+      return { output: await sendBrowserCommand({ action: 'wait', timeMs: input.timeMs }, signal) };
     }
     if (!input.selector) throw new BrowserMissingFieldError('wait', 'selector');
-    return { output: await browser.wait(input.timeoutMs, input.selector, signal) };
+    return {
+      output: await sendBrowserCommand(
+        { action: 'wait', timeoutMs: input.timeoutMs, selector: input.selector },
+        signal,
+      ),
+    };
   }
 
   if (input.tool === 'screenshot') {
-    const result = await browser.screenshot({
+    const result = await sendBrowserCommand(
+      { action: 'screenshot', format: input.format, quality: input.quality, fullPage: input.fullPage, ref: input.ref },
       signal,
-      format: input.format,
-      quality: input.quality,
-      fullPage: input.fullPage,
-      ref: input.ref,
-    });
+    );
     return { output: `Screenshot taken (${result.format})`, data: result.data, format: result.format };
   }
 
   if (input.tool === 'dialog') {
     const op = getRequiredOp(input);
     if (op === 'state') {
-      const state = await browser.getDialogState(signal);
+      const state = await sendBrowserCommand({ action: 'dialogState' }, signal);
       if (!state.type) {
         return { output: 'No open dialog found.' };
       }
@@ -201,7 +228,12 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
     }
     if (op === 'handle') {
       if (!input.dialogAction) throw new BrowserMissingFieldError('dialog', 'dialogAction');
-      return { output: await browser.handleDialog(input.dialogAction, input.promptText, signal) };
+      return {
+        output: await sendBrowserCommand(
+          { action: 'handleDialog', dialogAction: input.dialogAction, promptText: input.promptText },
+          signal,
+        ),
+      };
     }
     throw new BrowserInvalidOpError('dialog', op);
   }
@@ -209,20 +241,25 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
   const op = getRequiredOp(input);
   switch (op) {
     case 'extract': {
-      const content = await browser.extractPageContent(signal, {
-        selector: input.selector,
-        query: input.query,
-        includeLinks: input.includeLinks,
-        includeImages: input.includeImages,
-        outputSchema: input.outputSchema,
-      });
+      const content = await sendBrowserCommand(
+        {
+          action: 'extractPageContent',
+          selector: input.selector,
+          query: input.query,
+          includeLinks: input.includeLinks,
+          includeImages: input.includeImages,
+          outputSchema: input.outputSchema,
+        },
+        signal,
+      );
       const selectorNote = input.selector ? `\n**Selector:** ${input.selector}` : '';
       return { output: `${formatExtractContent(input.query, content)}${selectorNote}` };
     }
     case 'search_page': {
       if (!input.pattern) throw new BrowserMissingFieldError('content', 'pattern');
-      const result = await browser.searchPage(
+      const result = await sendBrowserCommand(
         {
+          action: 'searchPage',
           pattern: input.pattern,
           regex: input.regex,
           caseSensitive: input.caseSensitive,
@@ -236,8 +273,9 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
     }
     case 'find_elements': {
       if (!input.selector) throw new BrowserMissingFieldError('content', 'selector');
-      const result = await browser.findElements(
+      const result = await sendBrowserCommand(
         {
+          action: 'findElements',
           selector: input.selector,
           attributes: input.attributes,
           maxResults: input.maxResults,

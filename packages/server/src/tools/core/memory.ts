@@ -1,11 +1,11 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
+import type { MemoryMutation } from '@stitch/shared/memory/types';
 import { toolError } from '@stitch/shared/tools/types';
 
 import { getMemoryConfig } from '@/memory/config.js';
 import { memoryFileStore } from '@/memory/file-store.js';
-import type { MemoryMutation } from '@/memory/types.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 
@@ -41,13 +41,7 @@ function createMemoryTool(context: ToolContext) {
       if (!config.enabled) return toolError('Memory is disabled. Enable memory.enabled in settings.');
 
       const operations: MemoryMutation[] =
-        input.action === 'batch'
-          ? input.operations
-          : input.action === 'add'
-            ? [{ type: 'add', content: input.content, origin: 'agent', source: context.sessionId }]
-            : input.action === 'replace'
-              ? [{ type: 'replace', oldText: input.oldText, content: input.content }]
-              : [{ type: 'remove', oldText: input.oldText }];
+        input.action === 'batch' ? input.operations : [{ type: input.action, ...input } as MemoryMutation];
       const attributed = operations.map((operation) =>
         operation.type === 'add' ? { ...operation, origin: 'agent' as const, source: context.sessionId } : operation,
       );

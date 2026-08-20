@@ -14,12 +14,6 @@ const levelPriority: Record<Level, number> = { DEBUG: 0, INFO: 1, WARN: 2, ERROR
 
 let level: Level = 'INFO';
 
-type Logger = StitchLogger & {
-  tag(key: string, value: string): Logger;
-  clone(): Logger;
-  time(message: string, extra?: Record<string, unknown>): { stop(): void; [Symbol.dispose](): void };
-};
-
 interface Options {
   dev?: boolean;
   level?: Level;
@@ -58,7 +52,7 @@ let currentDate: string | undefined;
 let prefix = 'app';
 let initialized = false;
 let last = Date.now();
-const loggers = new Map<string, Logger>();
+const loggers = new Map<string, StitchLogger>();
 
 function openStream(date: string): void {
   const logFile = path.join(PATHS.logDir, `${prefix}.${date}.1.log`);
@@ -113,7 +107,7 @@ export async function cleanup(dir = PATHS.logDir): Promise<void> {
   await Promise.all(toDelete.map((f) => fs.unlink(path.join(dir, f)).catch(() => {})));
 }
 
-export function create(tags?: Record<string, unknown>, { skipCache = false } = {}): Logger {
+export function create(tags?: Record<string, unknown>, { skipCache = false } = {}): StitchLogger {
   tags = tags ?? {};
 
   const service = tags['service'];
@@ -145,7 +139,7 @@ export function create(tags?: Record<string, unknown>, { skipCache = false } = {
     }
   }
 
-  const result: Logger = {
+  const result: StitchLogger = {
     debug(extraOrMessage, message?) {
       emit('DEBUG', extraOrMessage, message as string | undefined);
     },
@@ -157,26 +151,6 @@ export function create(tags?: Record<string, unknown>, { skipCache = false } = {
     },
     error(extraOrMessage, message?) {
       emit('ERROR', extraOrMessage, message as string | undefined);
-    },
-    tag(key: string, value: string) {
-      tags = { ...tags, [key]: value };
-      return result;
-    },
-    clone() {
-      return create({ ...tags }, { skipCache: true });
-    },
-    time(message: string, extra?: Record<string, unknown>) {
-      const now = Date.now();
-      result.info({ status: 'started', ...extra }, message);
-      function stop() {
-        result.info({ status: 'completed', duration: Date.now() - now, ...extra }, message);
-      }
-      return {
-        stop,
-        [Symbol.dispose]() {
-          stop();
-        },
-      };
     },
   };
 

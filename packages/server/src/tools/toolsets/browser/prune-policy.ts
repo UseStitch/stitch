@@ -1,43 +1,45 @@
-import type { ToolPrunePolicy } from '@/llm/tool-prune-policy.js';
+import type { StoredPart } from '@stitch/shared/chat/messages';
+import type { PrefixedString } from '@stitch/shared/id';
 
 const BROWSER_PRUNE_PROTECT = 10_000;
 
-export const browserPrunePolicy: ToolPrunePolicy = {
-  name: 'browser',
-  findProtectOverrides(messages) {
-    const overrides = new Map<string, { protectTokens: number; reason: string }>();
+export type PrunePolicyMessage = { id: PrefixedString<'msg'>; parts: StoredPart[] };
 
-    for (const msg of messages) {
-      const activeSnapshotIndices: number[] = [];
-      for (let partIndex = 0; partIndex < msg.parts.length; partIndex++) {
-        const part = msg.parts[partIndex];
-        if (part.type !== 'tool-result') {
-          continue;
-        }
+export function findBrowserProtectOverrides(
+  messages: PrunePolicyMessage[],
+): Map<string, { protectTokens: number; reason: string }> {
+  const overrides = new Map<string, { protectTokens: number; reason: string }>();
 
-        if (part.toolName === 'browser_snapshot') {
-          for (const index of activeSnapshotIndices) {
-            overrides.set(`${msg.id}:${index}`, {
-              protectTokens: BROWSER_PRUNE_PROTECT,
-              reason: 'stale-browser-snapshot',
-            });
-          }
-          activeSnapshotIndices.push(partIndex);
-          continue;
-        }
+  for (const msg of messages) {
+    const activeSnapshotIndices: number[] = [];
+    for (let partIndex = 0; partIndex < msg.parts.length; partIndex++) {
+      const part = msg.parts[partIndex];
+      if (part.type !== 'tool-result') {
+        continue;
+      }
 
-        if (part.toolName === 'browser_navigate') {
-          for (const index of activeSnapshotIndices) {
-            overrides.set(`${msg.id}:${index}`, {
-              protectTokens: BROWSER_PRUNE_PROTECT,
-              reason: 'stale-browser-snapshot-after-navigation',
-            });
-          }
-          activeSnapshotIndices.length = 0;
+      if (part.toolName === 'browser_snapshot') {
+        for (const index of activeSnapshotIndices) {
+          overrides.set(`${msg.id}:${index}`, {
+            protectTokens: BROWSER_PRUNE_PROTECT,
+            reason: 'stale-browser-snapshot',
+          });
         }
+        activeSnapshotIndices.push(partIndex);
+        continue;
+      }
+
+      if (part.toolName === 'browser_navigate') {
+        for (const index of activeSnapshotIndices) {
+          overrides.set(`${msg.id}:${index}`, {
+            protectTokens: BROWSER_PRUNE_PROTECT,
+            reason: 'stale-browser-snapshot-after-navigation',
+          });
+        }
+        activeSnapshotIndices.length = 0;
       }
     }
+  }
 
-    return overrides;
-  },
-};
+  return overrides;
+}

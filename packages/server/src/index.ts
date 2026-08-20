@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server';
 import { createNodeWebSocket } from '@hono/node-ws';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { HTTPException } from 'hono/http-exception';
 import { Server as HttpServer } from 'node:http';
 
 import { init } from '@/init.js';
@@ -61,6 +62,15 @@ const app = new Hono();
 const nodeWebSocket = createNodeWebSocket({ app });
 
 app.use(cors({ origin: '*', allowHeaders: ['Content-Type'], exposeHeaders: [] }));
+
+app.onError((err, c) => {
+  if (err instanceof HTTPException) {
+    return c.json({ error: err.message }, err.status);
+  }
+  log.error({ err }, 'Unhandled server error');
+  return c.json({ error: 'Internal Server Error' }, 500);
+});
+
 app.get('/health', (c) => c.json({ status: 'ok', paths: PATHS }));
 app.route('/automations', automationsRouter);
 app.route('/chat', chatRouter);

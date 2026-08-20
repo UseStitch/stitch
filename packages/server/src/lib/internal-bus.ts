@@ -7,7 +7,6 @@ type InternalEventName = keyof InternalEventMap;
 
 type AsyncListener<K extends InternalEventName> = (data: InternalEventMap[K]) => Promise<void>;
 type SyncListener<K extends InternalEventName> = (data: InternalEventMap[K]) => void;
-type WildcardListener = <K extends InternalEventName>(event: K, data: InternalEventMap[K]) => void;
 
 type ListenerEntry<K extends InternalEventName> =
   | { mode: 'sync'; fn: SyncListener<K> }
@@ -15,7 +14,6 @@ type ListenerEntry<K extends InternalEventName> =
 
 class InternalBus {
   private listeners = new Map<InternalEventName, Set<ListenerEntry<InternalEventName>>>();
-  private wildcardListeners = new Set<WildcardListener>();
 
   /**
    * Subscribe to an event asynchronously (fire-and-forget).
@@ -36,30 +34,11 @@ class InternalBus {
   }
 
   /**
-   * Subscribe to ALL events. Useful for logging/debugging.
-   * Always invoked synchronously.
-   */
-  onAny(listener: WildcardListener): () => void {
-    this.wildcardListeners.add(listener);
-    return () => {
-      this.wildcardListeners.delete(listener);
-    };
-  }
-
-  /**
    * Emit an event to all subscribers.
    * Sync listeners execute immediately and block.
    * Async listeners are scheduled and errors are caught/logged.
    */
   emit<K extends InternalEventName>(event: K, data: InternalEventMap[K]): void {
-    for (const wildcard of this.wildcardListeners) {
-      try {
-        wildcard(event, data);
-      } catch (error) {
-        log.warn({ event, error }, 'wildcard listener threw');
-      }
-    }
-
     const set = this.listeners.get(event);
     if (!set) return;
 
@@ -82,7 +61,6 @@ class InternalBus {
   /** Remove all listeners. Useful for testing teardown. */
   clear(): void {
     this.listeners.clear();
-    this.wildcardListeners.clear();
   }
 
   private addListener<K extends InternalEventName>(event: K, entry: ListenerEntry<K>): () => void {

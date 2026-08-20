@@ -62,10 +62,8 @@ export async function getMcpRegistryLogo(
   const cached = await readCachedText(filePath);
   if (cached) return cached;
 
-  const result = await listMcpRegistryServers({ cacheFilePath: options.registryCacheFilePath });
-  if (result.error) return undefined;
-
-  const server = result.data.find((entry) => entry.id === registryId);
+  const servers = await listMcpRegistryServers({ cacheFilePath: options.registryCacheFilePath }).catch(() => []);
+  const server = servers.find((entry) => entry.id === registryId);
   if (!server) return undefined;
 
   return fetchAndCacheLogo(server, filePath, cacheDir, options.fetchImpl ?? fetch);

@@ -3,7 +3,6 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 
 import { getSessionById } from '@/chat/session-crud.js';
-import { unwrapResult } from '@/lib/route-helpers.js';
 import { routeSchemas } from '@/lib/route-schemas.js';
 import { getPendingMcpElicitations, resolveMcpElicitation } from '@/mcp/elicitation-service.js';
 
@@ -22,9 +21,9 @@ export const mcpElicitationsRouter = new Hono();
 
 mcpElicitationsRouter.get('/sessions/:id/mcp-elicitations', zValidator('param', sessionParamSchema), async (c) => {
   const { id } = c.req.valid('param');
-  const session = await getSessionById(id);
-  if (session.error) return unwrapResult(c, session);
-  return unwrapResult(c, await getPendingMcpElicitations(id));
+  await getSessionById(id);
+  const result = await getPendingMcpElicitations(id);
+  return c.json(result);
 });
 
 mcpElicitationsRouter.post(
@@ -34,6 +33,7 @@ mcpElicitationsRouter.post(
   async (c) => {
     const { elicitationId } = c.req.valid('param');
     const { action, content } = c.req.valid('json');
-    return unwrapResult(c, await resolveMcpElicitation(elicitationId, action, content));
+    await resolveMcpElicitation(elicitationId, action, content);
+    return c.body(null, 204);
   },
 );

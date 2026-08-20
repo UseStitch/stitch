@@ -1,10 +1,9 @@
 import { and, eq } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 
 import { getDb } from '@/db/client.js';
 import { localModels, providerConfig, type LocalProviderId } from '@/db/schema/providers.js';
-import { err, ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
 import { ModelSchema } from '@/models/llm/registry.js';
 
 export type LocalModel = typeof localModels.$inferSelect;
@@ -58,7 +57,7 @@ export async function listLocalModels(provider: LocalProviderId): Promise<LocalM
   return db.select().from(localModels).where(eq(localModels.provider, provider)).orderBy(localModels.createdAt);
 }
 
-export async function getLocalModel(provider: LocalProviderId, id: string): Promise<ServiceResult<LocalModel>> {
+export async function getLocalModel(provider: LocalProviderId, id: string): Promise<LocalModel> {
   const db = getDb();
   const model = (
     await db
@@ -67,18 +66,15 @@ export async function getLocalModel(provider: LocalProviderId, id: string): Prom
       .where(and(eq(localModels.provider, provider), eq(localModels.id, id)))
   ).at(0);
   if (!model) {
-    return err('Model not found', 404);
+    throw new HTTPException(404, { message: 'Model not found' });
   }
-  return ok(model);
+  return model;
 }
 
-export async function upsertLocalModel(
-  provider: LocalProviderId,
-  input: LocalModelInput,
-): Promise<ServiceResult<LocalModel>> {
+export async function upsertLocalModel(provider: LocalProviderId, input: LocalModelInput): Promise<LocalModel> {
   const parsed = LocalModelInputSchema.safeParse(input);
   if (!parsed.success) {
-    return err('Invalid model data', 400, z.treeifyError(parsed.error));
+    throw new HTTPException(400, { message: 'Invalid model data' });
   }
 
   const db = getDb();
@@ -110,28 +106,24 @@ export async function upsertLocalModel(
   ).at(0);
 
   if (!model) {
-    return err('Failed to save model', 500);
+    throw new HTTPException(500, { message: 'Failed to save model' });
   }
 
-  return ok(model);
+  return model;
 }
 
-export async function deleteLocalModel(provider: LocalProviderId, id: string): Promise<ServiceResult<null>> {
+export async function deleteLocalModel(provider: LocalProviderId, id: string): Promise<void> {
   const db = getDb();
   const result = await db
     .delete(localModels)
     .where(and(eq(localModels.provider, provider), eq(localModels.id, id)))
     .returning({ id: localModels.id });
   if (result.length === 0) {
-    return err('Model not found', 404);
+    throw new HTTPException(404, { message: 'Model not found' });
   }
-  return ok(null);
 }
 
-export async function discoverModels(
-  provider: LocalProviderId,
-  baseURL: string,
-): Promise<ServiceResult<DiscoveredModel[]>> {
+export async function discoverModels(provider: LocalProviderId, baseURL: string): Promise<DiscoveredModel[]> {
   switch (provider) {
     case 'ollama_local':
       return discoverOllamaModels(baseURL);
@@ -140,13 +132,13 @@ export async function discoverModels(
   }
 }
 
-async function discoverOllamaModels(baseURL: string): Promise<ServiceResult<DiscoveredModel[]>> {
+async function discoverOllamaModels(baseURL: string): Promise<DiscoveredModel[]> {
   const tagsUrl = `${baseURL}/api/tags`;
 
   const response = await fetch(tagsUrl, { signal: AbortSignal.timeout(5_000) }).catch(() => null);
 
   if (!response || !response.ok) {
-    return err('Could not connect to Ollama. Make sure it is running.', 500);
+    throw new HTTPException(500, { message: 'Could not connect to Ollama. Make sure it is running.' });
   }
 
   const body = (await response.json()) as { models?: { name: string }[] };
@@ -208,10 +200,10 @@ async function discoverOllamaModels(baseURL: string): Promise<ServiceResult<Disc
     }),
   );
 
-  return ok(enriched.filter((m): m is DiscoveredModel => m !== null));
+  return enriched.filter((m): m is DiscoveredModel => m !== null);
 }
 
-async function discoverLmStudioModels(baseURL: string): Promise<ServiceResult<DiscoveredModel[]>> {
+async function discoverLmStudioModels(baseURL: string): Promise<DiscoveredModel[]> {
   // Try v1 API first (LM Studio 0.4.0+)
   const v1Response = await fetch(`${baseURL}/api/v1/models`, { signal: AbortSignal.timeout(5_000) }).catch(() => null);
 
@@ -259,14 +251,14 @@ async function discoverLmStudioModels(baseURL: string): Promise<ServiceResult<Di
         };
       });
 
-    return ok(models);
+    return models;
   }
 
   // Fall back to v0 API
   const v0Response = await fetch(`${baseURL}/api/v0/models`, { signal: AbortSignal.timeout(5_000) }).catch(() => null);
 
   if (!v0Response || !v0Response.ok) {
-    return err('Could not connect to LM Studio. Make sure it is running.', 500);
+    throw new HTTPException(500, { message: 'Could not connect to LM Studio. Make sure it is running.' });
   }
 
   const body = (await v0Response.json()) as {
@@ -292,7 +284,7 @@ async function discoverLmStudioModels(baseURL: string): Promise<ServiceResult<Di
       };
     });
 
-  return ok(models);
+  return models;
 }
 
 export async function checkHealth(provider: LocalProviderId, baseURL: string): Promise<boolean> {

@@ -11,22 +11,12 @@ function makeTool(description: string): Tool {
 describe('getCacheConfig', () => {
   test('returns anthropic config for google-vertex with claude model', () => {
     const config = getCacheConfig('google-vertex', 'claude-3-5-sonnet@20241022');
-    expect(config).toEqual({
-      namespace: 'anthropic',
-      key: 'cacheControl',
-      value: { type: 'ephemeral' },
-      breakpointCap: 4,
-    });
+    expect(config).toEqual({ namespace: 'anthropic', key: 'cacheControl', value: { type: 'ephemeral' } });
   });
 
   test('returns anthropic config for google-vertex with anthropic model', () => {
     const config = getCacheConfig('google-vertex', 'anthropic.claude-3-haiku');
-    expect(config).toEqual({
-      namespace: 'anthropic',
-      key: 'cacheControl',
-      value: { type: 'ephemeral' },
-      breakpointCap: 4,
-    });
+    expect(config).toEqual({ namespace: 'anthropic', key: 'cacheControl', value: { type: 'ephemeral' } });
   });
 
   test('returns null for google-vertex with gemini model', () => {

@@ -20,12 +20,12 @@ import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
 import { getSessionToolsetState } from '@/llm/stream/session-toolsets.js';
-import { getToolPruneProtectOverrides } from '@/llm/tool-prune-policy.js';
 import * as LocalModels from '@/models/llm/local.js';
 import * as Models from '@/models/llm/registry.js';
 import type { LlmProviderCredentials } from '@/provider/config/schema.js';
 import { getSettings } from '@/settings/service.js';
 import { getSessionTodosPromptBlock } from '@/todos/service.js';
+import { findBrowserProtectOverrides } from '@/tools/toolsets/browser/prune-policy.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
 import { estimate } from '@/utils/token.js';
@@ -72,7 +72,7 @@ async function prune(msgs: StoredMessage[]): Promise<number> {
   let pruned = 0;
   const toPrune: Array<{ messageId: PrefixedString<'msg'>; partIndex: number }> = [];
   let turns = 0;
-  const protectOverrides = getToolPruneProtectOverrides(msgs);
+  const protectOverrides = findBrowserProtectOverrides(msgs);
 
   outer: for (let msgIndex = msgs.length - 1; msgIndex >= 0; msgIndex--) {
     const msg = msgs[msgIndex];
@@ -98,31 +98,22 @@ async function prune(msgs: StoredMessage[]): Promise<number> {
   log.info({ pruned, total }, 'prune scan');
 
   if (pruned > PRUNE_MINIMUM) {
-    const grouped = new Map<PrefixedString<'msg'>, Array<number>>();
-    for (const entry of toPrune) {
-      let arr = grouped.get(entry.messageId);
-      if (!arr) {
-        arr = [];
-        grouped.set(entry.messageId, arr);
-      }
-      arr.push(entry.partIndex);
-    }
-
+    const grouped = Map.groupBy(toPrune, (e) => e.messageId);
     const msgById = new Map(msgs.map((m) => [m.id, m]));
     const db = getDb();
     const now = Date.now();
 
     await db.transaction(async (tx) => {
       await Promise.all(
-        Array.from(grouped.entries()).map(async ([messageId, partIndices]) => {
+        Array.from(grouped.entries()).map(async ([messageId, entries]) => {
           const msg = msgById.get(messageId);
           if (!msg) return;
 
           const updatedParts = [...msg.parts];
-          for (const partIndex of partIndices) {
-            const part = updatedParts[partIndex];
+          for (const entry of entries) {
+            const part = updatedParts[entry.partIndex];
             if (part.type === 'tool-result') {
-              updatedParts[partIndex] = { ...part, output: '[Old tool result content cleared]' } as StoredPart;
+              updatedParts[entry.partIndex] = { ...part, output: '[Old tool result content cleared]' } as StoredPart;
             }
           }
 
@@ -191,8 +182,6 @@ Be very concise. The context window is critically full.
 Only include: current goal, active files, and immediate next steps.
 Keep under 800 words.`;
 
-type CompactionSeverity = 'normal' | 'overflow';
-
 async function resolveCompactionModel(
   fallbackProviderId: string,
   fallbackModelId: string,
@@ -225,11 +214,10 @@ export async function compact(input: {
   modelId: string;
   auto: boolean;
   overflow?: boolean;
-  severity?: CompactionSeverity;
   compactionSettings?: CompactionSettings;
 }): Promise<'continue' | 'error'> {
   const { sessionId } = input;
-  const severity: CompactionSeverity = input.severity ?? (input.overflow ? 'overflow' : 'normal');
+  const severity = input.overflow ? 'overflow' : 'normal';
 
   if (activeCompactions.has(sessionId)) {
     log.warn({ sessionId }, 'compaction already in progress');
@@ -457,9 +445,9 @@ export function buildActiveToolsetInstructionsBlock(sessionId: PrefixedString<'s
  */
 export async function getModelLimits(providerId: string, modelId: string): Promise<ModelLimits> {
   if (isLocalProviderId(providerId)) {
-    const result = await LocalModels.getLocalModel(providerId, modelId);
-    if (!result.error) {
-      return { context: result.data.contextWindow, output: result.data.outputLimit };
+    const result = await LocalModels.getLocalModel(providerId, modelId).catch(() => null);
+    if (result) {
+      return { context: result.contextWindow, output: result.outputLimit };
     }
     return { context: 200_000, output: 8_192 };
   }

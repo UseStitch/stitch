@@ -2,7 +2,6 @@ import { createHash, randomUUID } from 'node:crypto';
 import { copyFile, mkdir, open, readFile, readdir, realpath, rename, rm, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
 
-import { PATHS } from '@/lib/paths.js';
 import type {
   ManagedMemoryEntry,
   MemoryCapacity,
@@ -12,7 +11,9 @@ import type {
   MemoryOrigin,
   MemorySearchResult,
   MemoryTarget,
-} from '@/memory/types.js';
+} from '@stitch/shared/memory/types';
+
+import { PATHS } from '@/lib/paths.js';
 
 const MEMORY_TEMPLATE = '# Long-term memory\n';
 const USER_TEMPLATE = '# User profile\n';

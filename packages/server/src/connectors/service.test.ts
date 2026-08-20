@@ -103,13 +103,7 @@ describe('connector service', () => {
         accountInfo: null,
       });
 
-    const result = await upgradeConnectorInstance(instanceId, {});
-
-    expect(result.error).not.toBeNull();
-    if (result.error) {
-      expect(result.error.status).toBe(400);
-      expect(result.error.message).toContain('API key is required');
-    }
+    expect(upgradeConnectorInstance(instanceId, {})).rejects.toThrow('API key is required');
 
     // Row should be unchanged
     const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
@@ -162,10 +156,7 @@ describe('connector service', () => {
       { startOAuthFlow: fakeStartOAuthFlow },
     );
 
-    expect(result.error).toBeNull();
-    if (!result.error) {
-      expect(result.data).toEqual({ type: 'reauthorize', authUrl: 'https://example.com/authorize' });
-    }
+    expect(result).toEqual({ type: 'reauthorize', authUrl: 'https://example.com/authorize' });
 
     // Wait for the background waitForTokens to complete
     await new Promise((r) => setTimeout(r, 50));
@@ -237,9 +228,8 @@ describe('connector service', () => {
       };
     };
 
-    const result = await upgradeConnectorInstance(instanceId, {}, { startOAuthFlow: fakeStartOAuthFlow });
+    await upgradeConnectorInstance(instanceId, {}, { startOAuthFlow: fakeStartOAuthFlow });
 
-    expect(result.error).toBeNull();
     expect(requestedScopes).toEqual(['scope:admin']);
     expect(requestedParams).toEqual({ include_granted_scopes: 'true' });
 
@@ -266,23 +256,18 @@ describe('connector service', () => {
       setupInstructions: [],
     });
 
-    const oauthConnectorResult = await createOAuthConnector({
-      connectorId: 'disabled-oauth',
-      label: 'Disabled OAuth',
-      clientId: 'client-id',
-      clientSecret: 'client-secret',
-    });
+    expect(
+      createOAuthConnector({
+        connectorId: 'disabled-oauth',
+        label: 'Disabled OAuth',
+        clientId: 'client-id',
+        clientSecret: 'client-secret',
+      }),
+    ).rejects.toThrow('Connector is currently disabled');
 
-    const apiKeyResult = await createApiKeyConnectorInstance({
-      connectorId: 'disabled-api-key',
-      label: 'Disabled API key',
-      apiKey: 'secret',
-    });
-
-    expect(oauthConnectorResult.error).not.toBeNull();
-    expect(apiKeyResult.error).not.toBeNull();
-    if (oauthConnectorResult.error) expect(oauthConnectorResult.error.message).toBe('Connector is currently disabled');
-    if (apiKeyResult.error) expect(apiKeyResult.error.message).toBe('Connector is currently disabled');
+    expect(
+      createApiKeyConnectorInstance({ connectorId: 'disabled-api-key', label: 'Disabled API key', apiKey: 'secret' }),
+    ).rejects.toThrow('Connector is currently disabled');
 
     // Nothing written to DB
     const rows = await getDb().select().from(connectorInstances);
@@ -328,12 +313,9 @@ describe('connector service', () => {
 
     const result = await authorizeOAuthInstance(instanceId, { startOAuthFlow: fakeStartOAuthFlow });
 
-    expect(result.error).toBeNull();
-    if (result.error) return;
-
     let threw = false;
     try {
-      await result.data.waitForTokens();
+      await result.waitForTokens();
     } catch {
       threw = true;
     }
@@ -381,10 +363,7 @@ describe('connector service', () => {
 
     const result = await authorizeOAuthInstance(instanceId, { startOAuthFlow: fakeStartOAuthFlow });
 
-    expect(result.error).toBeNull();
-    if (result.error) return;
-
-    await result.data.waitForTokens();
+    await result.waitForTokens();
 
     const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
     expect(row.status).toBe('connected');
@@ -447,9 +426,8 @@ describe('connector service', () => {
       };
     };
 
-    const result = await authorizeOAuthInstance(instanceId, { startOAuthFlow: fakeStartOAuthFlow });
+    await authorizeOAuthInstance(instanceId, { startOAuthFlow: fakeStartOAuthFlow });
 
-    expect(result.error).toBeNull();
     expect(requestedScopes).toEqual(['scope:read']);
     expect(requestedParams).toEqual({ include_granted_scopes: 'true' });
   });
@@ -488,10 +466,7 @@ describe('connector service', () => {
 
     const result = await authorizeOAuthInstance(instanceId, { startOAuthFlow: fakeStartOAuthFlow });
 
-    expect(result.error).toBeNull();
-    if (result.error) return;
-
-    await result.data.waitForTokens();
+    await result.waitForTokens();
 
     const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
     expect(row.status).toBe('connected');

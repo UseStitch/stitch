@@ -1,3 +1,4 @@
+import type { ToolCallStatus } from '@stitch/shared/chat/stream-events';
 import { SSE_EVENT_NAMES, type SseEventName, type SseEventPayloadMap } from '@stitch/shared/realtime';
 
 import type { InternalEventMap } from '@/lib/internal-bus-events.js';
@@ -5,6 +6,17 @@ import { internalBus } from '@/lib/internal-bus.js';
 import type { SSEStreamingApi } from 'hono/streaming';
 
 type InternalEventName = keyof InternalEventMap;
+
+const TOOL_STATUS_MAP: Record<
+  'tool.pending' | 'tool.started' | 'tool.completed' | 'tool.failed' | 'tool.progress',
+  ToolCallStatus
+> = {
+  'tool.pending': 'pending',
+  'tool.started': 'in-progress',
+  'tool.completed': 'completed',
+  'tool.failed': 'error',
+  'tool.progress': 'in-progress',
+};
 
 const connections = new Set<SSEStreamingApi>();
 
@@ -79,51 +91,18 @@ export function registerSseAdapter(): void {
 
   // ─── Tool Lifecycle ──────────────────────────────────────────────────────
   // Five internal events collapse into one discriminated SSE event.
-
-  forward('tool.pending', 'tool.state', ({ sessionId, messageId, toolCallId, toolName }) => ({
-    sessionId,
-    messageId,
-    toolCallId,
-    toolName,
-    status: 'pending',
-  }));
-
-  forward('tool.started', 'tool.state', ({ sessionId, messageId, toolCallId, toolName, input }) => ({
-    sessionId,
-    messageId,
-    toolCallId,
-    toolName,
-    status: 'in-progress',
-    input,
-  }));
-
-  forward('tool.completed', 'tool.state', ({ sessionId, messageId, toolCallId, toolName, input, output }) => ({
-    sessionId,
-    messageId,
-    toolCallId,
-    toolName,
-    status: 'completed',
-    input,
-    output,
-  }));
-
-  forward('tool.failed', 'tool.state', ({ sessionId, messageId, toolCallId, toolName, error }) => ({
-    sessionId,
-    messageId,
-    toolCallId,
-    toolName,
-    status: 'error',
-    error,
-  }));
-
-  forward('tool.progress', 'tool.state', ({ sessionId, messageId, toolCallId, toolName, output }) => ({
-    sessionId,
-    messageId,
-    toolCallId,
-    toolName,
-    status: 'in-progress',
-    output,
-  }));
+  for (const [event, status] of Object.entries(TOOL_STATUS_MAP) as [keyof typeof TOOL_STATUS_MAP, ToolCallStatus][]) {
+    forward(event, 'tool.state', (e) => ({
+      sessionId: e.sessionId,
+      messageId: e.messageId,
+      toolCallId: e.toolCallId,
+      toolName: e.toolName,
+      status,
+      ...('input' in e ? { input: e.input } : {}),
+      ...('output' in e ? { output: e.output } : {}),
+      ...('error' in e ? { error: e.error } : {}),
+    }));
+  }
 
   // ─── Session → Stream Finish ────────────────────────────────────────────
 

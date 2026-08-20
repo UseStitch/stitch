@@ -1,13 +1,12 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 
-import { ok } from '@/lib/service-result.js';
 import type { McpServerWithTools } from '@/mcp/service.js';
 import { getMcpServerPresentation, refreshMcpToolsets } from '@/mcp/tool-executor.js';
-import { getToolset, listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
+import { getToolset, listToolsets, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 
 function clearToolsets(): void {
-  for (const id of listToolsetIds()) {
-    unregisterToolset(id);
+  for (const toolset of listToolsets()) {
+    unregisterToolset(toolset.id);
   }
 }
 
@@ -38,7 +37,7 @@ describe('refreshMcpToolsets', () => {
       { refreshTools: true },
       {
         getMcpServersWithCachedTools: async () => [TEST_SERVER],
-        fetchMcpTools: async () => ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
+        fetchMcpTools: async () => [{ name: 'lookup', description: 'Lookup data', inputSchema: {} }],
         fetchServerInfo: async () => null,
         fetchServerPrompts: async () => [],
         findRegistryServer: async () => null,
@@ -46,7 +45,7 @@ describe('refreshMcpToolsets', () => {
       },
     );
 
-    expect(listToolsetIds()).not.toContain('mcp:stale-server');
+    expect(listToolsets().map((t) => t.id)).not.toContain('mcp:stale-server');
   });
 
   test('uses registry metadata for MCP toolset name and description', async () => {
@@ -54,7 +53,7 @@ describe('refreshMcpToolsets', () => {
       { refreshTools: true },
       {
         getMcpServersWithCachedTools: async () => [TEST_SERVER],
-        fetchMcpTools: async () => ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
+        fetchMcpTools: async () => [{ name: 'lookup', description: 'Lookup data', inputSchema: {} }],
         fetchServerInfo: async () => null,
         fetchServerPrompts: async () => [],
         findRegistryServer: async () => ({
@@ -85,7 +84,7 @@ describe('refreshMcpToolsets', () => {
       { refreshTools: true },
       {
         getMcpServersWithCachedTools: async () => [TEST_SERVER],
-        fetchMcpTools: async () => ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
+        fetchMcpTools: async () => [{ name: 'lookup', description: 'Lookup data', inputSchema: {} }],
         fetchServerInfo: async () => ({
           name: 'mcp-typescript server on vercel',
           title: 'mcp-typescript server on vercel',
@@ -111,7 +110,7 @@ describe('refreshMcpToolsets', () => {
       { refreshTools: true },
       {
         getMcpServersWithCachedTools: async () => [TEST_SERVER],
-        fetchMcpTools: async () => ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
+        fetchMcpTools: async () => [{ name: 'lookup', description: 'Lookup data', inputSchema: {} }],
         fetchServerInfo: async () => null,
         fetchServerPrompts: async () => [],
         findRegistryServer: async () => null,
@@ -124,7 +123,7 @@ describe('refreshMcpToolsets', () => {
       },
     );
 
-    expect(listToolsetIds()).toContain('mcp:mcp_test_server');
+    expect(listToolsets().map((t) => t.id)).toContain('mcp:mcp_test_server');
     expect(getToolset('mcp:mcp_test_server')?.presentation).toMatchObject({
       serverId: TEST_SERVER.id,
       iconPath: '/mcp/icons/test',
@@ -137,7 +136,7 @@ describe('refreshMcpToolsets', () => {
 
   test('removing a stale server also drops its presentation', async () => {
     const deps = {
-      fetchMcpTools: async () => ok([{ name: 'lookup', description: 'Lookup data', inputSchema: {} }]),
+      fetchMcpTools: async () => [{ name: 'lookup', description: 'Lookup data', inputSchema: {} }],
       fetchServerInfo: async () => null,
       fetchServerPrompts: async () => [],
       findRegistryServer: async () => null,

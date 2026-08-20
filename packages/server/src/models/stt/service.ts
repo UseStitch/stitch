@@ -1,18 +1,14 @@
 import { getSttProvidersFromRegistry } from '@/models/stt/registry.js';
-import type { SttModel, SttProvider } from '@/models/stt/schema.js';
+import type { SttProvider } from '@/models/stt/schema.js';
 import type { ModelDescriptor } from '@/stt/types.js';
 
 type CatalogEntry = { providerId: string; providerName: string; models: ModelDescriptor[] };
-
-function toModelDescriptor(model: SttModel): ModelDescriptor {
-  return model;
-}
 
 function toCatalogEntry(provider: SttProvider): CatalogEntry {
   return {
     providerId: provider.providerId,
     providerName: provider.providerName,
-    models: provider.models.map(toModelDescriptor),
+    models: provider.models,
   };
 }
 

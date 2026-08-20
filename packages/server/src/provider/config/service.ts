@@ -1,37 +1,35 @@
 import { eq } from 'drizzle-orm';
-import { z } from 'zod';
+import { HTTPException } from 'hono/http-exception';
 
 import { isLocalProviderId } from '@stitch/shared/providers/types';
 
 import { getDb } from '@/db/client.js';
 import { localModels, providerConfig } from '@/db/schema/providers.js';
-import { err, ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
 import { isAllowedProvider } from '@/models/llm/registry.js';
 import { ProviderCredentialsSchema, type ProviderCredentials } from '@/provider/config/schema.js';
 
-export async function getProviderCredentials(providerId: string): Promise<ServiceResult<ProviderCredentials>> {
+export async function getProviderCredentials(providerId: string): Promise<ProviderCredentials> {
   if (!isAllowedProvider(providerId)) {
-    return err('Provider not found', 404);
+    throw new HTTPException(404, { message: 'Provider not found' });
   }
 
   const db = getDb();
   const config = (await db.select().from(providerConfig).where(eq(providerConfig.providerId, providerId))).at(0);
   if (!config) {
-    return err('Provider not configured', 404);
+    throw new HTTPException(404, { message: 'Provider not configured' });
   }
 
-  return ok(config.credentials);
+  return config.credentials;
 }
 
-export async function upsertProviderCredentials(providerId: string, body: unknown): Promise<ServiceResult<null>> {
+export async function upsertProviderCredentials(providerId: string, body: unknown): Promise<void> {
   if (!isAllowedProvider(providerId)) {
-    return err('Provider not found', 404);
+    throw new HTTPException(404, { message: 'Provider not found' });
   }
 
   const parsed = ProviderCredentialsSchema.safeParse({ ...(body as Record<string, unknown>), providerId });
   if (!parsed.success) {
-    return err('Invalid credentials', 400, z.treeifyError(parsed.error));
+    throw new HTTPException(400, { message: 'Invalid credentials' });
   }
 
   const db = getDb();
@@ -42,13 +40,11 @@ export async function upsertProviderCredentials(providerId: string, body: unknow
       target: providerConfig.providerId,
       set: { credentials: parsed.data, updatedAt: Date.now() },
     });
-
-  return ok(null);
 }
 
-export async function deleteProviderCredentials(providerId: string): Promise<ServiceResult<null>> {
+export async function deleteProviderCredentials(providerId: string): Promise<void> {
   if (!isAllowedProvider(providerId)) {
-    return err('Provider not found', 404);
+    throw new HTTPException(404, { message: 'Provider not found' });
   }
 
   const db = getDb();
@@ -57,12 +53,10 @@ export async function deleteProviderCredentials(providerId: string): Promise<Ser
     .where(eq(providerConfig.providerId, providerId))
     .returning({ providerId: providerConfig.providerId });
   if (result.length === 0) {
-    return err('Provider not configured', 404);
+    throw new HTTPException(404, { message: 'Provider not configured' });
   }
 
   if (isLocalProviderId(providerId)) {
     await db.delete(localModels).where(eq(localModels.provider, providerId));
   }
-
-  return ok(null);
 }

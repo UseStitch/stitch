@@ -5,6 +5,7 @@ import { createToolResultId } from '@stitch/shared/id';
 
 import * as Log from '@/lib/log.js';
 import { PATHS } from '@/lib/paths.js';
+import type { ToolTruncationLimits } from '@/tools/runtime/runtime.js';
 
 const MAX_LINES = 2000;
 const MAX_BYTES = 50 * 1024;
@@ -14,12 +15,7 @@ const log = Log.create({ service: 'truncation' });
 
 type TruncateResult = { content: string; truncated: false } | { content: string; truncated: true; outputPath: string };
 
-interface TruncateOptions {
-  maxLines?: number;
-  maxBytes?: number;
-}
-
-export async function truncateOutput(text: string, options: TruncateOptions = {}): Promise<TruncateResult> {
+export async function truncateOutput(text: string, options: ToolTruncationLimits = {}): Promise<TruncateResult> {
   const maxLines = options.maxLines ?? MAX_LINES;
   const maxBytes = options.maxBytes ?? MAX_BYTES;
   const lines = text.split('\n');

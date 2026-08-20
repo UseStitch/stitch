@@ -1,14 +1,8 @@
 import type {
   ElectronBrowserCommand,
   ElectronBrowserCommandResult,
-  ElectronBrowserDialogState,
-  ElectronBrowserDropdownOptionsResult,
   ElectronBrowserErrorMessage,
-  ElectronBrowserExtractContentResult,
-  ElectronBrowserFindElementsResult,
   ElectronBrowserResultMessage,
-  ElectronBrowserScreenshotResult,
-  ElectronBrowserSearchPageResult,
 } from '@stitch/shared/browser/electron';
 
 import {
@@ -16,7 +10,6 @@ import {
   BrowserBridgeNotConnectedError,
   BrowserSessionNotSetError,
 } from '@/lib/browser/errors.js';
-import type { BrowserTab, LaunchOptions, ScrollDirection } from '@/lib/browser/types.js';
 
 const BRIDGE_HOST = '127.0.0.1';
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -147,171 +140,15 @@ class BrowserManager {
     return this._sessionId;
   }
 
-  private send<C extends ElectronBrowserCommand>(
+  send<C extends ElectronBrowserCommand>(
     command: C,
     signal?: AbortSignal,
   ): Promise<ElectronBrowserCommandResult<C['action']>> {
     return this.bridge.send(command, this.getSessionId(), signal);
   }
 
-  async launch(_options: LaunchOptions = {}): Promise<void> {
+  async launch(): Promise<void> {
     await this.send({ action: 'ensure' });
-  }
-
-  async close(): Promise<void> {
-    return;
-  }
-
-  async handleDialog(action: 'accept' | 'dismiss', promptText?: string, signal?: AbortSignal): Promise<string> {
-    return String(await this.send({ action: 'handleDialog', dialogAction: action, promptText }, signal));
-  }
-
-  async getDialogState(signal?: AbortSignal): Promise<ElectronBrowserDialogState> {
-    return this.send({ action: 'dialogState' }, signal);
-  }
-
-  async getExecutionState(signal?: AbortSignal): Promise<string> {
-    const state = await this.send({ action: 'executionState' }, signal);
-    return JSON.stringify(state);
-  }
-
-  async saveStorageState() {
-    return { path: null, note: 'Storage is persisted by the Electron browser partition.' };
-  }
-
-  async loadStorageState() {
-    return { path: null, note: 'Storage is persisted by the Electron browser partition.' };
-  }
-
-  async listTabs(signal?: AbortSignal): Promise<BrowserTab[]> {
-    return this.send({ action: 'listTabs' }, signal);
-  }
-
-  async newTab(url?: string, options: { signal?: AbortSignal; timeoutMs?: number } = {}): Promise<BrowserTab> {
-    await this.send({ action: 'newTab', url, timeoutMs: options.timeoutMs }, options.signal);
-    const tabs = await this.listTabs(options.signal);
-    return tabs.find((tab) => tab.type === 'page') ?? tabs[0];
-  }
-
-  async focusTab(tabId: string, options: { signal?: AbortSignal; timeoutMs?: number } = {}): Promise<void> {
-    await this.send({ action: 'focusTab', tabId, timeoutMs: options.timeoutMs }, options.signal);
-  }
-
-  async closeTab(tabId?: string, signal?: AbortSignal): Promise<void> {
-    await this.send({ action: 'closeTab', tabId }, signal);
-  }
-
-  async navigate(url: string, signal?: AbortSignal, timeoutMs?: number): Promise<string> {
-    return String(await this.send({ action: 'navigate', url, timeoutMs }, signal));
-  }
-
-  async goBack(signal?: AbortSignal, timeoutMs?: number): Promise<string> {
-    return String(await this.send({ action: 'goBack', timeoutMs }, signal));
-  }
-
-  async goForward(signal?: AbortSignal, timeoutMs?: number): Promise<string> {
-    return String(await this.send({ action: 'goForward', timeoutMs }, signal));
-  }
-
-  async click(
-    ref: string,
-    options: {
-      doubleClick?: boolean;
-      button?: string;
-      modifiers?: string[];
-      signal?: AbortSignal;
-      timeoutMs?: number;
-    } = {},
-  ): Promise<string> {
-    return String(await this.send({ action: 'click', ref, ...options }, options.signal));
-  }
-
-  async hover(ref: string, signal?: AbortSignal): Promise<string> {
-    return String(await this.send({ action: 'hover', ref }, signal));
-  }
-
-  async type(
-    ref: string,
-    text: string,
-    options: { slowly?: boolean; submit?: boolean; clear?: boolean; signal?: AbortSignal } = {},
-  ): Promise<string> {
-    return String(await this.send({ action: 'type', ref, text, ...options }, options.signal));
-  }
-
-  async press(key: string, signal?: AbortSignal, timeoutMs?: number): Promise<string> {
-    return String(await this.send({ action: 'press', key, timeoutMs }, signal));
-  }
-
-  async select(ref: string, values: string[], signal?: AbortSignal): Promise<string> {
-    return String(await this.send({ action: 'select', ref, values }, signal));
-  }
-
-  async getDropdownOptions(ref: string, signal?: AbortSignal): Promise<ElectronBrowserDropdownOptionsResult> {
-    return this.send({ action: 'getDropdownOptions', ref }, signal);
-  }
-
-  async selectDropdown(ref: string, text: string, signal?: AbortSignal, timeoutMs?: number): Promise<string> {
-    return String(await this.send({ action: 'selectDropdown', ref, text, timeoutMs }, signal));
-  }
-
-  async scroll(ref: string | undefined, direction: ScrollDirection, signal?: AbortSignal): Promise<string> {
-    return String(await this.send({ action: 'scroll', ref, direction }, signal));
-  }
-
-  async snapshot(signal?: AbortSignal): Promise<string> {
-    return String(await this.send({ action: 'snapshot' }, signal));
-  }
-
-  async screenshot(
-    options: { signal?: AbortSignal; format?: 'png' | 'jpeg'; quality?: number; fullPage?: boolean; ref?: string } = {},
-  ): Promise<ElectronBrowserScreenshotResult> {
-    return this.send({ action: 'screenshot', ...options }, options.signal);
-  }
-
-  async evaluate(expression: string, signal?: AbortSignal): Promise<unknown> {
-    return this.send({ action: 'evaluate', expression }, signal);
-  }
-
-  async searchPage(
-    options: {
-      pattern: string;
-      regex?: boolean;
-      caseSensitive?: boolean;
-      contextChars?: number;
-      cssScope?: string;
-      maxResults?: number;
-    },
-    signal?: AbortSignal,
-  ): Promise<ElectronBrowserSearchPageResult> {
-    return this.send({ action: 'searchPage', ...options }, signal);
-  }
-
-  async findElements(
-    options: { selector: string; attributes?: string[]; maxResults?: number; includeText?: boolean },
-    signal?: AbortSignal,
-  ): Promise<ElectronBrowserFindElementsResult> {
-    return this.send({ action: 'findElements', ...options }, signal);
-  }
-
-  async wait(timeMs?: number, selector?: string, signal?: AbortSignal): Promise<string> {
-    return String(await this.send({ action: 'wait', timeMs, selector }, signal));
-  }
-
-  async search(query: string, engine = 'google', signal?: AbortSignal, timeoutMs?: number): Promise<string> {
-    return String(await this.send({ action: 'search', query, engine, timeoutMs }, signal));
-  }
-
-  async extractPageContent(
-    signal?: AbortSignal,
-    options: {
-      selector?: string;
-      query?: string;
-      includeLinks?: boolean;
-      includeImages?: boolean;
-      outputSchema?: Record<string, unknown>;
-    } = {},
-  ): Promise<string | ElectronBrowserExtractContentResult> {
-    return this.send({ action: 'extractPageContent', ...options }, signal);
   }
 }
 
@@ -321,4 +158,11 @@ export function getBrowserManager(sessionId?: string): BrowserManager {
   singleton ??= new BrowserManager();
   if (sessionId) singleton.sessionId = sessionId;
   return singleton;
+}
+
+export function sendBrowserCommand<C extends ElectronBrowserCommand>(
+  command: C,
+  signal?: AbortSignal,
+): Promise<ElectronBrowserCommandResult<C['action']>> {
+  return getBrowserManager().send(command, signal);
 }

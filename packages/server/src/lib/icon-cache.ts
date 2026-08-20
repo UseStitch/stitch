@@ -15,6 +15,18 @@ export async function writeCachedText(filePath: string, value: string): Promise<
   await fs.writeFile(filePath, value, 'utf8');
 }
 
+export async function fetchCachedSvg(url: string, filePath: string): Promise<string | undefined> {
+  const cached = await readCachedText(filePath);
+  if (cached) return cached;
+
+  const result = await fetch(url, { signal: AbortSignal.timeout(10_000) }).catch(() => undefined);
+  if (!result || !result.ok) return undefined;
+
+  const svg = await result.text();
+  await writeCachedText(filePath, svg);
+  return svg;
+}
+
 export function isSvgResponse(response: Response): boolean {
   return response.headers.get('content-type')?.split(';').at(0)?.trim().toLowerCase() === 'image/svg+xml';
 }

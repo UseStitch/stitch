@@ -16,10 +16,9 @@ const LOW_VALUE_PATTERNS = [
 
 type BrowserSnapshotSerializeOptions = { maxChars?: number; maxElements?: number; textPerLineChars?: number };
 
-type SerializedBrowserSnapshot = {
+export type SerializedBrowserSnapshot = {
   text: string;
   fingerprint: string;
-  elementCount: number;
   truncated: boolean;
   originalChars: number;
 };
@@ -52,16 +51,6 @@ function uniquePush(lines: string[], seen: Set<string>, line: string): void {
   if (seen.has(key)) return;
   seen.add(key);
   lines.push(line);
-}
-
-function countRefs(lines: string[]): number {
-  const refs = new Set<string>();
-  for (const line of lines) {
-    for (const match of line.matchAll(/\b(?:ref=)?(e\d+)\b/g)) {
-      refs.add(match[1]);
-    }
-  }
-  return refs.size;
 }
 
 function trimToBudget(lines: string[], maxChars: number): { text: string; truncated: boolean } {
@@ -139,7 +128,6 @@ export function serializeBrowserSnapshot(
   return {
     text: result.text,
     fingerprint,
-    elementCount: countRefs(interactive),
     truncated: result.truncated || originalChars > result.text.length,
     originalChars,
   };

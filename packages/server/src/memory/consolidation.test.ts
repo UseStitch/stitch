@@ -3,10 +3,11 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
+import type { ManagedMemoryEntry, MemoryFileSnapshot } from '@stitch/shared/memory/types';
+
 import { consolidateMemories, validateConsolidationProposal } from '@/memory/consolidation.js';
 import { MemoryConflictError, MemoryFileStore } from '@/memory/file-store.js';
 import { filterCaptureCandidates } from '@/memory/processor.js';
-import type { ManagedMemoryEntry, MemoryFileSnapshot } from '@/memory/types.js';
 
 const roots: string[] = [];
 const NOW = new Date('2026-08-04T12:00:00.000Z');

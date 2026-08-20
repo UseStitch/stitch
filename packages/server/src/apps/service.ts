@@ -17,21 +17,14 @@ export async function isToolsetEnabledByApp(toolsetId: string): Promise<boolean>
   return isAppEnabled(app.id);
 }
 
-export async function getDisabledAppToolsetIds(): Promise<Set<string>> {
+export async function getDisabledAppFields(key: 'toolsetIds' | 'skillNames'): Promise<Set<string>> {
   const states = await getAppEnabledStates();
   const disabledAppIds = new Set(states.filter((state) => !state.enabled).map((state) => state.appId));
 
-  return new Set(APP_MANIFESTS.filter((app) => disabledAppIds.has(app.id)).flatMap((app) => app.toolsetIds));
-}
-
-export async function getDisabledAppSkillNames(): Promise<Set<string>> {
-  const states = await getAppEnabledStates();
-  const disabledAppIds = new Set(states.filter((state) => !state.enabled).map((state) => state.appId));
-
-  return new Set(APP_MANIFESTS.filter((app) => disabledAppIds.has(app.id)).flatMap((app) => app.skillNames));
+  return new Set(APP_MANIFESTS.filter((app) => disabledAppIds.has(app.id)).flatMap((app) => app[key]));
 }
 
 export async function isSkillEnabledByApp(skillName: string): Promise<boolean> {
-  const disabledSkillNames = await getDisabledAppSkillNames();
+  const disabledSkillNames = await getDisabledAppFields('skillNames');
   return !disabledSkillNames.has(skillName);
 }

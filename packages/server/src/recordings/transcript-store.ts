@@ -19,19 +19,11 @@ type TranscriptEventInput = {
 
 type PendingPartial = { speaker: string; content: string; offsetMs: number };
 
-/**
- * Internal entry that preserves arrival sequence for correct ordering.
- * The ordering buffer emits events in the correct interleaved order,
- * so `seq` is the authoritative ordering — NOT offsetMs alone.
- */
-type InternalEntry = { seq: number; speaker: string; content: string; startMs: number; endMs: number };
-
 type RecordingTranscriptState = {
-  entries: InternalEntry[];
+  entries: RecordingTranscriptEntry[];
   pendingPartials: Map<AudioSource, PendingPartial>;
   flushTimer: ReturnType<typeof setInterval> | null;
   dirty: boolean;
-  nextSeq: number;
 };
 
 const store = new Map<PrefixedString<'rec'>, RecordingTranscriptState>();
@@ -39,7 +31,7 @@ const store = new Map<PrefixedString<'rec'>, RecordingTranscriptState>();
 function getOrCreate(recordingId: PrefixedString<'rec'>): RecordingTranscriptState {
   let state = store.get(recordingId);
   if (!state) {
-    state = { entries: [], pendingPartials: new Map(), flushTimer: null, dirty: false, nextSeq: 0 };
+    state = { entries: [], pendingPartials: new Map(), flushTimer: null, dirty: false };
     store.set(recordingId, state);
   }
   return state;
@@ -66,7 +58,6 @@ export function pushTranscriptEvent(recordingId: PrefixedString<'rec'>, event: T
     state.pendingPartials.delete(event.source);
     if (event.content.trim()) {
       state.entries.push({
-        seq: state.nextSeq++,
         speaker: event.speaker,
         content: event.content,
         startMs: event.offsetMs,
@@ -92,24 +83,21 @@ export function pushTranscriptEvent(recordingId: PrefixedString<'rec'>, event: T
  * Anarlog's approach, we never merge across commit boundaries — each final
  * is its own segment regardless of speaker continuity.
  *
- * Build the transcript snapshot for persistence: sorted by sequence order.
+ * Build the transcript snapshot for persistence.
  */
+function promotePartials(state: RecordingTranscriptState): RecordingTranscriptEntry[] {
+  return [...state.pendingPartials.values()]
+    .filter((partial) => partial.content.trim())
+    .map((partial) => ({
+      speaker: partial.speaker,
+      content: partial.content,
+      startMs: partial.offsetMs,
+      endMs: partial.offsetMs,
+    }));
+}
+
 function buildSnapshot(state: RecordingTranscriptState): RecordingTranscriptEntry[] {
-  const all: InternalEntry[] = [...state.entries];
-  for (const partial of state.pendingPartials.values()) {
-    if (partial.content.trim()) {
-      all.push({
-        seq: state.nextSeq,
-        speaker: partial.speaker,
-        content: partial.content,
-        startMs: partial.offsetMs,
-        endMs: partial.offsetMs,
-      });
-    }
-  }
-  // Sort by sequence number — this is the ordering buffer's emission order.
-  all.sort((a, b) => a.seq - b.seq);
-  return all.map((e) => ({ speaker: e.speaker, content: e.content, startMs: e.startMs, endMs: e.endMs }));
+  return [...state.entries, ...promotePartials(state)];
 }
 
 async function flushTranscript(recordingId: PrefixedString<'rec'>): Promise<void> {
@@ -136,18 +124,7 @@ export async function finalFlushAndCleanup(recordingId: PrefixedString<'rec'>): 
     state.flushTimer = null;
   }
 
-  // Promote partials for the final write
-  for (const partial of state.pendingPartials.values()) {
-    if (partial.content.trim()) {
-      state.entries.push({
-        seq: state.nextSeq++,
-        speaker: partial.speaker,
-        content: partial.content,
-        startMs: partial.offsetMs,
-        endMs: partial.offsetMs,
-      });
-    }
-  }
+  state.entries.push(...promotePartials(state));
   state.pendingPartials.clear();
   state.dirty = true;
   await flushTranscript(recordingId);

@@ -1,5 +1,5 @@
 import { MockLanguageModelV3 } from 'ai/test';
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterAll, afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
@@ -8,12 +8,16 @@ import { getDb } from '@/db/client.js';
 import { meetingNoteTemplates, recordingAnalyses, recordings } from '@/db/schema/recordings.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 import { internalBus } from '@/lib/internal-bus.js';
-import { ok } from '@/lib/service-result.js';
+import * as provider from '@/llm/provider/provider.js';
+import * as modelResolver from '@/llm/resolve-model.js';
 import { cancelRecordingAnalysis, startRecordingAnalysis } from '@/recordings/analysis-service.js';
 import { readRecordingAnalysis, writeRecordingAnalysis, writeRecordingTranscript } from '@/recordings/file-store.js';
 import { ZERO_USAGE } from '@/utils/usage.js';
 
 let generateTextCalls = 0;
+
+const resolveModel = spyOn(modelResolver, 'resolveModel');
+const createProvider = spyOn(provider, 'createProvider');
 
 function createHangingAnalysisModel(): MockLanguageModelV3 {
   return new MockLanguageModelV3({
@@ -103,6 +107,14 @@ describe('recording analysis reruns', () => {
   beforeEach(async () => {
     internalBus.clear();
     generateTextCalls = 0;
+    resolveModel.mockImplementation(async () => ({
+      providerId: 'openai',
+      modelId: 'test-model',
+      credentials: { providerId: 'openai', auth: { method: 'api-key', apiKey: 'test-key' } },
+    }));
+    createProvider.mockImplementation(
+      () => (() => createHangingAnalysisModel()) as unknown as ReturnType<typeof provider.createProvider>,
+    );
     await seedCompletedAnalysis();
   });
 
@@ -110,24 +122,17 @@ describe('recording analysis reruns', () => {
     internalBus.clear();
   });
 
+  afterAll(() => {
+    resolveModel.mockRestore();
+    createProvider.mockRestore();
+  });
+
   test('keeps completed analysis while a forced rerun is cancelled', async () => {
-    const startResult = await startRecordingAnalysis(
-      recordingId,
-      { force: true, templateId },
-      {
-        resolveModel: async () =>
-          ok({
-            providerId: 'openai',
-            modelId: 'test-model',
-            credentials: { providerId: 'openai', auth: { method: 'api-key', apiKey: 'test-key' } },
-          }),
-        createProvider: () => () => createHangingAnalysisModel(),
-      },
-    );
+    const startResult = await startRecordingAnalysis(recordingId, { force: true, templateId });
 
     await waitForAnalysisModelCall();
 
-    expect('data' in startResult).toBe(true);
+    expect(startResult.analysis).not.toBeNull();
     expect(generateTextCalls).toBe(1);
     expect(await readAnalysis()).toMatchObject({
       status: 'completed',
@@ -137,9 +142,8 @@ describe('recording analysis reruns', () => {
     });
     expect(await readRecordingAnalysis(recordingId)).toBe('Existing summary');
 
-    const cancelResult = await cancelRecordingAnalysis(recordingId);
+    await cancelRecordingAnalysis(recordingId);
 
-    expect('data' in cancelResult).toBe(true);
     expect(await readAnalysis()).toMatchObject({
       status: 'completed',
       title: 'Existing title',

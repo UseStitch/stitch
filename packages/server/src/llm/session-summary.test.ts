@@ -8,7 +8,7 @@ import { setupTestDb } from '@/db/test-helpers.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { isOverflow, buildActiveToolsetInstructionsBlock } from '@/llm/session-summary.js';
 import { setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
-import { registerToolset, unregisterToolset, listToolsetIds } from '@/tools/toolsets/registry.js';
+import { registerToolset, unregisterToolset, listToolsets } from '@/tools/toolsets/registry.js';
 
 setupTestDb();
 
@@ -599,8 +599,8 @@ describe('buildActiveToolsetInstructionsBlock', () => {
   };
 
   beforeEach(() => {
-    for (const id of listToolsetIds()) {
-      unregisterToolset(id);
+    for (const toolset of listToolsets()) {
+      unregisterToolset(toolset.id);
     }
     getDb().insert(sessions).values({ id: sessionId, title: 'Compaction test' }).run();
     setActiveToolsets([]);

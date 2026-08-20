@@ -21,12 +21,7 @@ describe('paginated-query', () => {
         },
       };
 
-      const result = await paginatedQuery({
-        dataQuery,
-        countQuery: Promise.resolve([{ total: 25 }]),
-        page: 2,
-        pageSize: 10,
-      });
+      const result = await paginatedQuery({ dataQuery, count: Promise.resolve(25), page: 2, pageSize: 10 });
 
       expect(capturedLimit).toBe(10);
       expect(capturedOffset).toBe(10); // (2-1) * 10
@@ -49,40 +44,11 @@ describe('paginated-query', () => {
         },
       };
 
-      const result = await paginatedQuery({
-        dataQuery,
-        countQuery: Promise.resolve([{ total: 0 }]),
-        page: 1,
-        pageSize: 10,
-      });
+      const result = await paginatedQuery({ dataQuery, count: Promise.resolve(0), page: 1, pageSize: 10 });
 
       expect(capturedLimit).toBe(10);
       expect(capturedOffset).toBe(0); // (1-1) * 10
       expect(result).toEqual({ items: [], page: 1, pageSize: 10, total: 0, totalPages: 0 });
-    });
-
-    it('applies transform function if provided', async () => {
-      const data = [{ val: 1 }, { val: 2 }];
-
-      const dataQuery = {
-        limit(_n: number) {
-          return {
-            offset(_o: number) {
-              return Promise.resolve(data);
-            },
-          };
-        },
-      };
-
-      const result = await paginatedQuery({
-        dataQuery,
-        countQuery: Promise.resolve([{ total: 2 }]),
-        page: 1,
-        pageSize: 10,
-        transform: (row: { val: number }) => ({ transformed: row.val * 2 }),
-      });
-
-      expect(result.items).toEqual([{ transformed: 2 }, { transformed: 4 }]);
     });
   });
 });

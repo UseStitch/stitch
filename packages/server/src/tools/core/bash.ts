@@ -93,8 +93,10 @@ async function killProcessTree(proc: ChildProcess, exited: () => boolean): Promi
   }
 }
 
-function createBashTool() {
-  return tool({
+export const definition: ToolDefinition = {
+  name: 'bash',
+  displayName: 'Bash',
+  tool: tool({
     description: `Run a shell command in a specified folder.
 
 Usage:
@@ -206,8 +208,9 @@ Parameter sourcing:
 
       return { title: input.description, output: cleanedOutput, metadata };
     },
-  });
-}
+  }),
+  permission: { getPatternTargets, getSuggestion },
+};
 
 function getPatternTargets(input: ToolInput): string[] {
   const command = input.command;
@@ -220,10 +223,3 @@ function getSuggestion(input: ToolInput): PermissionSuggestion | null {
   if (typeof command !== 'string' || command.trim().length === 0) return null;
   return getCommandFamilySuggestion(command);
 }
-
-export const definition: ToolDefinition = {
-  name: 'bash',
-  displayName: 'Bash',
-  tool: createBashTool(),
-  permission: { getPatternTargets, getSuggestion },
-};

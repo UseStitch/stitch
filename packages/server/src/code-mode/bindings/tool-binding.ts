@@ -11,29 +11,9 @@ const validator = new AjvJsonSchemaValidator();
 
 export type ToolTypeInfo = { name: string; description: string; inputSchema: Record<string, unknown> };
 
-/**
- * Extracts JSON schema from a tool's parameters, handling multiple possible
- * locations where the schema may be stored across different ai SDK versions.
- */
-function extractJsonSchema(schema: unknown): Record<string, unknown> {
-  if (!schema) return { type: 'object', properties: {} };
-
-  const s = schema as Record<string, unknown>;
-
-  if (typeof s['type'] === 'string' || typeof s['properties'] === 'object') {
-    return s;
-  }
-
-  if (s['jsonSchema'] && typeof s['jsonSchema'] === 'object') {
-    return s['jsonSchema'] as Record<string, unknown>;
-  }
-
-  return { type: 'object', properties: {} };
-}
-
 function getToolSchema(tool: Tool): Record<string, unknown> {
-  const carrier: { parameters?: unknown; inputSchema?: unknown } = tool;
-  return extractJsonSchema(carrier.parameters ?? carrier.inputSchema);
+  const inputSchema = tool.inputSchema as { jsonSchema?: Record<string, unknown> } | undefined;
+  return inputSchema?.jsonSchema ?? { type: 'object', properties: {} };
 }
 
 type ToolMeta = {

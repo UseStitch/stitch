@@ -117,7 +117,7 @@ export function permissionMiddleware(): ToolMiddleware {
       toolName: input.toolName,
       toolInput: input.args,
       systemReminder: 'Tool execution requires user approval',
-      suggestion: behavior.getSuggestion(input.args),
+      suggestion: behavior.getSuggestion?.(input.args) ?? null,
       dedupeKey: createPermissionDedupeKey(input, patternTargets),
       abortSignal,
     });

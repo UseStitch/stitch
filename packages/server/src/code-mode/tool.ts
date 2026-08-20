@@ -4,12 +4,10 @@ import { z } from 'zod';
 import { createProcessSandbox } from '@stitch/sandbox';
 import type { IsolateDriver, IsolateExecuteResult, IsolateOptions } from '@stitch/sandbox';
 import { toolError } from '@stitch/shared/tools/types';
-import type { ToolErrorResult } from '@stitch/shared/tools/types';
 
 import { toolsToBindings, toolsToTypeInfo } from '@/code-mode/bindings/tool-binding.js';
 import { SandboxExecPathMissingError } from '@/code-mode/errors.js';
 import { applyToolFilter } from '@/code-mode/filter.js';
-import type { CodeModeToolFilter } from '@/code-mode/filter.js';
 import { stripTypeScript } from '@/code-mode/strip-typescript.js';
 import { buildCodeModeSystemPrompt } from '@/code-mode/system-prompt.js';
 import * as Log from '@/lib/log.js';
@@ -34,7 +32,6 @@ function getDefaultDriver(): IsolateDriver {
 type CodeModeOptions = {
   getTools: () => Record<string, Tool>;
   driver?: IsolateDriver;
-  filter?: CodeModeToolFilter;
   isolateOptions?: IsolateOptions;
   abortSignal?: AbortSignal;
 };
@@ -43,10 +40,9 @@ type CodeModeToolResult = { tool: Tool; getSystemPrompt: () => string };
 
 export function createCodeModeTool(options: CodeModeOptions): CodeModeToolResult {
   const driver = options.driver ?? getDefaultDriver();
-  const filter = options.filter ?? {};
-  const isolateOptions = options.isolateOptions ?? {};
+  const isolateOptions = options.isolateOptions ?? {}; // TODO: Bun1.4 Upgrade allows these now, use sensible defaults
 
-  const getFilteredTools = () => applyToolFilter(options.getTools(), filter);
+  const getFilteredTools = () => applyToolFilter(options.getTools());
 
   const codeModeInputSchema = z.object({
     code: z
@@ -122,7 +118,7 @@ The sandbox has no filesystem, network, or Node.js access beyond these functions
       );
 
       if (!execResult.ok) {
-        return createSandboxErrorResult(execResult.error, execResult.logs);
+        return toolError(execResult.error, execResult.logs.length > 0 ? { logs: execResult.logs } : undefined);
       }
 
       const resultText = serializeIsolateOutput(execResult.result, execResult.logs);
@@ -156,14 +152,6 @@ function createCodeModeIsolateOptions(
     abortSignal,
     libraries: { ...isolateOptions.libraries, libpdf: { specifier: '@libpdf/core' } },
   };
-}
-
-function createSandboxErrorResult(error: string, logs: string[]): ToolErrorResult {
-  if (logs.length === 0) {
-    return toolError(error);
-  }
-
-  return toolError(error, { logs });
 }
 
 export function serializeIsolateOutput(result: unknown, logs: string[]): string {

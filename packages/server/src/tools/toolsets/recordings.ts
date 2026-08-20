@@ -12,30 +12,31 @@ import {
   readRecordingTranscript,
 } from '@/recordings/file-store.js';
 import { getSettings } from '@/settings/service.js';
-import type { ToolContext } from '@/tools/runtime/runtime.js';
-import { TOOLSET_SUMMARY_CONTEXT, summarizeTools, type Toolset } from '@/tools/toolsets/types.js';
+import { summarizeTools, type Toolset } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
 
 const RECORDINGS_TOOLSET_ID = 'recordings';
 
-function createRecordingsTools(_context: ToolContext): Record<string, Tool> {
+function createRecordingsTools(): Record<string, Tool> {
   const recordings_get_analysis = tool({
     description: `Get recording analysis for one recording ID.
 
 Returns status, file path, and Markdown meeting notes.`,
     inputSchema: z.object({ recordingId: z.string().describe('Recording ID (e.g. rec_abc123).') }),
     execute: async (input) => {
-      const result = await getRecordingAnalysis(input.recordingId as PrefixedString<'rec'>);
-
-      if (result.error) {
-        return toolError(result.error.message, { recordingId: input.recordingId });
+      let result;
+      try {
+        result = await getRecordingAnalysis(input.recordingId as PrefixedString<'rec'>);
+      } catch (error) {
+        const message = Error.isError(error) ? error.message : String(error);
+        return toolError(message, { recordingId: input.recordingId });
       }
 
-      if (!result.data.analysis) {
+      if (!result.analysis) {
         return { recordingId: input.recordingId, found: false, message: 'No analysis found for this recording.' };
       }
 
-      const analysis = result.data.analysis;
+      const analysis = result.analysis;
 
       return {
         recordingId: input.recordingId,
@@ -78,19 +79,21 @@ Use this when analysis is missing or stale.`,
       const { 'recordings.analysis.defaultTemplateId': templateId } = await getSettings([
         'recordings.analysis.defaultTemplateId',
       ] as const);
-      const result = await startRecordingAnalysis(input.recordingId as PrefixedString<'rec'>, {
-        force: input.force,
-        templateId: templateId as PrefixedString<'mnt'>,
-      });
-
-      if (result.error) {
-        return toolError(result.error.message, { recordingId: input.recordingId });
+      let result;
+      try {
+        result = await startRecordingAnalysis(input.recordingId as PrefixedString<'rec'>, {
+          force: input.force,
+          templateId: templateId as PrefixedString<'mnt'>,
+        });
+      } catch (error) {
+        const message = Error.isError(error) ? error.message : String(error);
+        return toolError(message, { recordingId: input.recordingId });
       }
 
       return {
         recordingId: input.recordingId,
         ok: true,
-        status: result.data.analysis.status,
+        status: result.analysis.status,
         message: 'Recording analysis queued or already available.',
       };
     },
@@ -112,9 +115,7 @@ export function createRecordingsToolset(): Toolset {
       'Use recordings_get_transcript for transcript entries for one recording.',
       'Use recordings_start_analysis when a completed recording has no analysis or needs a forced refresh.',
     ].join('\n'),
-    tools: () => summarizeTools(createRecordingsTools(TOOLSET_SUMMARY_CONTEXT)),
-    activate: async (context: ToolContext) => {
-      return createRecordingsTools(context);
-    },
+    tools: () => summarizeTools(createRecordingsTools()),
+    activate: async () => createRecordingsTools(),
   };
 }

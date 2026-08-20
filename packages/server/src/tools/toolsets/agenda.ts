@@ -21,15 +21,8 @@ import type { Tool } from 'ai';
 
 const AGENDA_TOOLSET_ID = 'agenda';
 
-const dateFormattersCache = new Map<string, Intl.DateTimeFormat>();
-
 function getDateFormatter(timeZone: string): Intl.DateTimeFormat {
-  let formatter = dateFormattersCache.get(timeZone);
-  if (!formatter) {
-    formatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone });
-    dateFormattersCache.set(timeZone, formatter);
-  }
-  return formatter;
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone });
 }
 
 function parseDueDate(dateStr: string, timeZone: string): number | null {
@@ -52,9 +45,12 @@ function parseDueDate(dateStr: string, timeZone: string): number | null {
 }
 
 async function resolveUserTimezone(): Promise<string> {
-  const settingsResult = await listSettings();
-  if (settingsResult.error) return 'UTC';
-  return settingsResult.data['profile.timezone'] || 'UTC';
+  try {
+    const settings = await listSettings();
+    return settings['profile.timezone'] || 'UTC';
+  } catch {
+    return 'UTC';
+  }
 }
 
 function createAgendaTools(context: ToolContext, userTimezone: string): Record<string, Tool> {
@@ -82,32 +78,32 @@ Use when the user asks to add a todo, task, or follow-up. Default priority is "m
         return toolError('Invalid due date format. Use ISO 8601 (e.g. "2025-01-15T09:00:00Z").');
       }
 
-      const result = createAgendaItem({
-        title: input.title,
-        description: input.description,
-        priority: input.priority,
-        dueAt,
-        listName: input.listName,
-        sourceSessionId: context.sessionId,
-        sourceMessageId: context.messageId,
-      });
+      try {
+        const item = createAgendaItem({
+          title: input.title,
+          description: input.description,
+          priority: input.priority,
+          dueAt,
+          listName: input.listName,
+          sourceSessionId: context.sessionId,
+          sourceMessageId: context.messageId,
+        });
 
-      if (result.error) {
-        return toolError(`Failed to create item: ${result.error.message}`);
+        const parts = [
+          `Added "${item.title}" (id: ${item.id})`,
+          `List: ${item.listName ?? 'General'}`,
+          `Priority: ${item.priority}`,
+          `Status: ${item.status}`,
+        ];
+        if (item.dueAt) {
+          parts.push(`Due: ${getDateFormatter(userTimezone).format(new Date(item.dueAt))}`);
+        }
+
+        return { output: parts.join('\n') };
+      } catch (error) {
+        const message = Error.isError(error) ? error.message : String(error);
+        return toolError(`Failed to create item: ${message}`);
       }
-
-      const item = result.data;
-      const parts = [
-        `Added "${item.title}" (id: ${item.id})`,
-        `List: ${item.listName ?? 'General'}`,
-        `Priority: ${item.priority}`,
-        `Status: ${item.status}`,
-      ];
-      if (item.dueAt) {
-        parts.push(`Due: ${getDateFormatter(userTimezone).format(new Date(item.dueAt))}`);
-      }
-
-      return { output: parts.join('\n') };
     },
   });
 
@@ -126,22 +122,21 @@ Use when the user asks to mark something as done, change priority, reschedule, o
     execute: async (input) => {
       const dueAt = input.dueAt ? parseDueDate(input.dueAt, userTimezone) : input.dueAt === '' ? null : undefined;
 
-      const result = updateAgendaItem(input.itemId as PrefixedString<'aitm'>, {
-        title: input.title,
-        description: input.description,
-        status: input.status,
-        priority: input.priority,
-        dueAt,
-      });
+      try {
+        const item = updateAgendaItem(input.itemId as PrefixedString<'aitm'>, {
+          title: input.title,
+          description: input.description,
+          status: input.status,
+          priority: input.priority,
+          dueAt,
+        });
 
-      if (result.error) {
+        return {
+          output: `Updated "${item.title}" (id: ${item.id})\nStatus: ${item.status} | Priority: ${item.priority}`,
+        };
+      } catch {
         return toolError(`No agenda item found with id: ${input.itemId}`);
       }
-
-      const item = result.data;
-      return {
-        output: `Updated "${item.title}" (id: ${item.id})\nStatus: ${item.status} | Priority: ${item.priority}`,
-      };
     },
   });
 
@@ -157,34 +152,34 @@ Use when the user asks about their tasks, what's pending, or what's due.`,
     execute: async (input) => {
       let listId: PrefixedString<'alist'> | undefined;
       if (input.listName) {
-        const listResult = getAgendaListByName(input.listName);
-        if (!listResult.error && listResult.data) listId = listResult.data.id;
+        const list = getAgendaListByName(input.listName);
+        if (list) listId = list.id;
       }
 
-      const result = await getAgendaItems({
-        listId,
-        status: input.filterStatus,
-        priority: input.filterPriority,
-        page: 1,
-        pageSize: 50,
-      });
+      try {
+        const { items, total } = await getAgendaItems({
+          listId,
+          status: input.filterStatus,
+          priority: input.filterPriority,
+          page: 1,
+          pageSize: 50,
+        });
 
-      if (result.error) {
-        return toolError(`Failed to list items: ${result.error.message}`);
+        if (items.length === 0) {
+          return { output: 'No agenda items found matching the filters.' };
+        }
+
+        const formatter = getDateFormatter(userTimezone);
+        const lines = items.map((item) => {
+          const due = item.dueAt ? ` | Due: ${formatter.format(new Date(item.dueAt))}` : '';
+          return `- [${item.status}] [${item.priority}] ${item.title} (id: ${item.id}, list: ${item.listName ?? 'Unknown'}${due})`;
+        });
+
+        return { output: `${total} item(s) found\n${lines.join('\n')}` };
+      } catch (error) {
+        const message = Error.isError(error) ? error.message : String(error);
+        return toolError(`Failed to list items: ${message}`);
       }
-
-      const { items, total } = result.data;
-      if (items.length === 0) {
-        return { output: 'No agenda items found matching the filters.' };
-      }
-
-      const formatter = getDateFormatter(userTimezone);
-      const lines = items.map((item) => {
-        const due = item.dueAt ? ` | Due: ${formatter.format(new Date(item.dueAt))}` : '';
-        return `- [${item.status}] [${item.priority}] ${item.title} (id: ${item.id}, list: ${item.listName ?? 'Unknown'}${due})`;
-      });
-
-      return { output: `${total} item(s) found\n${lines.join('\n')}` };
     },
   });
 
@@ -194,23 +189,22 @@ Use when the user asks about their tasks, what's pending, or what's due.`,
 Use when the user wants to see the complete information about a specific item.`,
     inputSchema: z.object({ itemId: z.string().describe('The ID of the agenda item') }),
     execute: async (input) => {
-      const result = getAgendaItem(input.itemId as PrefixedString<'aitm'>);
-      if (result.error) {
+      try {
+        const detail = getAgendaItem(input.itemId as PrefixedString<'aitm'>);
+        const formatter = getDateFormatter(userTimezone);
+        const parts = [
+          `Title: ${detail.title}`,
+          `List: ${detail.listName ?? 'Unknown'}`,
+          `Status: ${detail.status} | Priority: ${detail.priority}`,
+        ];
+        if (detail.description) parts.push(`Description: ${detail.description}`);
+        if (detail.dueAt) parts.push(`Due: ${formatter.format(new Date(detail.dueAt))}`);
+        if (detail.completedAt) parts.push(`Completed: ${formatter.format(new Date(detail.completedAt))}`);
+
+        return { output: parts.join('\n') };
+      } catch {
         return toolError(`No agenda item found with id: ${input.itemId}`);
       }
-
-      const detail = result.data;
-      const formatter = getDateFormatter(userTimezone);
-      const parts = [
-        `Title: ${detail.title}`,
-        `List: ${detail.listName ?? 'Unknown'}`,
-        `Status: ${detail.status} | Priority: ${detail.priority}`,
-      ];
-      if (detail.description) parts.push(`Description: ${detail.description}`);
-      if (detail.dueAt) parts.push(`Due: ${formatter.format(new Date(detail.dueAt))}`);
-      if (detail.completedAt) parts.push(`Completed: ${formatter.format(new Date(detail.completedAt))}`);
-
-      return { output: parts.join('\n') };
     },
   });
 
@@ -223,14 +217,13 @@ Use when the user wants to organize items into a new list/topic.`,
       description: z.string().optional().describe('Optional description for the list'),
     }),
     execute: async (input) => {
-      const result = createAgendaList({ name: input.name, description: input.description });
-
-      if (result.error) {
-        return toolError(`Failed to create list: ${result.error.message}`);
+      try {
+        const list = createAgendaList({ name: input.name, description: input.description });
+        return { output: `Created list "${list.name}" (id: ${list.id})` };
+      } catch (error) {
+        const message = Error.isError(error) ? error.message : String(error);
+        return toolError(`Failed to create list: ${message}`);
       }
-
-      const list = result.data;
-      return { output: `Created list "${list.name}" (id: ${list.id})` };
     },
   });
 
@@ -240,22 +233,22 @@ Use when the user wants to organize items into a new list/topic.`,
 Use when the user wants to see what lists exist or get an overview of their agenda.`,
     inputSchema: z.object({}),
     execute: async () => {
-      const result = getAgendaLists();
-      if (result.error) {
-        return toolError(`Failed to list agenda lists: ${result.error.message}`);
+      try {
+        const lists = getAgendaLists();
+        if (lists.length === 0) {
+          return { output: 'No agenda lists yet. Create one with agenda_create_list.' };
+        }
+
+        const lines = lists.map((l) => {
+          const c = l.itemCounts;
+          return `- ${l.name} (id: ${l.id}) — ${c.open} open, ${c.in_progress} in progress, ${c.done} done, ${c.overdue} overdue`;
+        });
+
+        return { output: `${lists.length} list(s)\n${lines.join('\n')}` };
+      } catch (error) {
+        const message = Error.isError(error) ? error.message : String(error);
+        return toolError(`Failed to list agenda lists: ${message}`);
       }
-
-      const lists = result.data;
-      if (lists.length === 0) {
-        return { output: 'No agenda lists yet. Create one with agenda_create_list.' };
-      }
-
-      const lines = lists.map((l) => {
-        const c = l.itemCounts;
-        return `- ${l.name} (id: ${l.id}) — ${c.open} open, ${c.in_progress} in progress, ${c.done} done, ${c.overdue} overdue`;
-      });
-
-      return { output: `${lists.length} list(s)\n${lines.join('\n')}` };
     },
   });
 

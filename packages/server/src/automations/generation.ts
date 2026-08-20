@@ -1,5 +1,6 @@
 import { generateText, Output } from 'ai';
 import { asc, eq } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 
 import type { GeneratedAutomationDraft } from '@stitch/shared/automations/types';
@@ -9,8 +10,6 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
-import { err, ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
 import { getPromptUserContext } from '@/llm/prompt/builder.js';
 import { createProvider } from '@/llm/provider/provider.js';
@@ -146,7 +145,7 @@ function normalizeDraft(
   };
 }
 
-export async function generateAutomationDraft(sessionId: string): Promise<ServiceResult<GeneratedAutomationDraft>> {
+export async function generateAutomationDraft(sessionId: string): Promise<GeneratedAutomationDraft> {
   const db = getDb();
   const [session] = await db
     .select()
@@ -160,12 +159,12 @@ export async function generateAutomationDraft(sessionId: string): Promise<Servic
     .orderBy(asc(messages.createdAt));
 
   if (messageList.length === 0) {
-    return err('Session has no messages to analyze', 400);
+    throw new HTTPException(400, { message: 'Session has no messages to analyze' });
   }
 
   const sessionModel = findLastUsedModel(messageList);
   if (!sessionModel) {
-    return err('Unable to determine model for this session', 400);
+    throw new HTTPException(400, { message: 'Unable to determine model for this session' });
   }
 
   const promptUserContext = await getPromptUserContext();
@@ -187,7 +186,7 @@ export async function generateAutomationDraft(sessionId: string): Promise<Servic
   });
 
   if (!resolved) {
-    return err('No configured provider found for automation generation', 400);
+    throw new HTTPException(400, { message: 'No configured provider found for automation generation' });
   }
 
   const generationMessageId = createMessageId();
@@ -254,5 +253,5 @@ export async function generateAutomationDraft(sessionId: string): Promise<Servic
       duration: Date.now() - start,
     });
 
-  return ok(draft);
+  return draft;
 }

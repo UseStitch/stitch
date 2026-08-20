@@ -2,6 +2,7 @@ import { generateText, Output } from 'ai';
 import { eq } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
+import type { MemorySource, MemoryTarget } from '@stitch/shared/memory/types';
 
 import { getDb } from '@/db/client.js';
 import { sessions } from '@/db/schema/sessions.js';
@@ -12,7 +13,6 @@ import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { getMemoryConfig } from '@/memory/config.js';
 import { memoryFileStore } from '@/memory/file-store.js';
 import { buildExtractionPrompt, extractionSchema } from '@/memory/prompts.js';
-import type { MemorySource, MemoryTarget } from '@/memory/types.js';
 
 const log = Log.create({ service: 'memory-capture' });
 const SECRET_PATTERN = /(?:api[_ -]?key|access[_ -]?token|password|secret|bearer\s+[a-z0-9._-]+)/i;

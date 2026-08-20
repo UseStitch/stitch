@@ -14,7 +14,7 @@ import { buildSkillsSystemPrompt } from '@/skills/service.js';
 import { createInspectImageTool } from '@/tools/core/inspect-image.js';
 import { createTaskTool } from '@/tools/core/task.js';
 import { createToolsetTools } from '@/tools/core/toolset-management.js';
-import { ToolPipeline } from '@/tools/runtime/pipeline.js';
+import { wrapTool } from '@/tools/runtime/pipeline.js';
 import { createTools } from '@/tools/runtime/registry.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
@@ -80,154 +80,145 @@ export function buildExpiredToolsetsPrompt(expired: SessionExpiredToolset[]): st
   ].join('\n');
 }
 
-export class SessionContext {
-  private readonly toolContext: ToolContext;
+export async function assembleSessionContext(opts: SessionContextOptions): Promise<AssembledResult> {
+  const toolContext: ToolContext = {
+    sessionId: opts.sessionId,
+    messageId: opts.messageId,
+    streamRunId: opts.streamRunId,
+  };
 
-  private constructor(private readonly opts: SessionContextOptions) {
-    this.toolContext = { sessionId: opts.sessionId, messageId: opts.messageId, streamRunId: opts.streamRunId };
-  }
+  const sessionState = getSessionToolsetState(opts.sessionId);
+  const currentSessionState = getCurrentSessionToolsetState(sessionState, (toolsetId) => getToolNames(toolsetId));
+  const activeEntries = opts.activeToolsetIds
+    ? opts.activeToolsetIds.map((id) => ({ id, scope: 'until_deactivated' as const }))
+    : currentSessionState.active;
+  const expiredEntries = opts.activeToolsetIds ? [] : currentSessionState.expired;
+  const expiredPrompt = opts.activeToolsetIds ? '' : buildExpiredToolsetsPrompt(expiredEntries);
 
-  static create(opts: SessionContextOptions): SessionContext {
-    return new SessionContext(opts);
-  }
+  const toolsetManager = new ToolsetManager(toolContext, activeEntries, {
+    excludedToolsetIds: opts.excludedToolsetIds,
+  });
+  await restoreToolsets(
+    toolsetManager,
+    activeEntries.map((entry) => entry.id),
+  );
 
-  async assemble(): Promise<AssembledResult> {
-    const sessionState = getSessionToolsetState(this.opts.sessionId);
-    const currentSessionState = getCurrentSessionToolsetState(sessionState, (toolsetId) =>
-      SessionContext.getToolNames(toolsetId),
-    );
-    const activeEntries = this.opts.activeToolsetIds
-      ? this.opts.activeToolsetIds.map((id) => ({ id, scope: 'until_deactivated' as const }))
-      : currentSessionState.active;
-    const expiredEntries = this.opts.activeToolsetIds ? [] : currentSessionState.expired;
-    const expiredPrompt = this.opts.activeToolsetIds ? '' : buildExpiredToolsetsPrompt(expiredEntries);
+  const coreTools = await createTools(toolContext);
+  const metaTools = buildToolsetMetaTools(toolContext, toolsetManager);
+  const taskTool = buildTaskTool(toolContext, opts, toolsetManager);
+  const inspectImageTool = buildInspectImageTool(toolContext, opts);
+  const codeModeResult = createCodeModeTool({
+    getTools: () =>
+      mergeTools({
+        staticTools: { ...coreTools, ...metaTools },
+        taskTool,
+        inspectImageTool,
+        dynamicTools: toolsetManager.getActiveTools(),
+      }),
+    abortSignal: opts.abortSignal,
+  });
+  const toolsetsPrompt = await buildAvailableToolsetsPrompt(toolsetManager);
+  const skillsPrompt = await buildSkillsSystemPrompt();
 
-    const toolsetManager = new ToolsetManager(this.toolContext, activeEntries, {
-      excludedToolsetIds: this.opts.excludedToolsetIds,
-    });
-    await this.restoreToolsets(
+  const composer = new PromptComposer();
+  composer
+    .add('semiStatic', codeModeResult.getSystemPrompt())
+    .add('semiStatic', expiredPrompt)
+    .add('semiStatic', toolsetsPrompt)
+    .add('semiStatic', skillsPrompt);
+
+  const instructionsBlock = buildActiveToolsetInstructionsBlock(opts.sessionId);
+  composer.add('dynamic', instructionsBlock);
+
+  const tools = {
+    ...mergeTools({ staticTools: { ...coreTools, ...metaTools }, taskTool, inspectImageTool, dynamicTools: {} }),
+    execute_typescript: codeModeResult.tool,
+  };
+
+  return { messages: composer.compose(opts.llmMessages), tools, toolsetManager };
+}
+
+function getToolNames(toolsetId: string): string[] {
+  return (
+    getToolset(toolsetId)
+      ?.tools()
+      .map((tool) => tool.name) ?? []
+  );
+}
+
+async function restoreToolsets(manager: ToolsetManager, toolsetIds: string[]): Promise<void> {
+  if (toolsetIds.length === 0) return;
+
+  await Promise.all(
+    toolsetIds.map(async (id) => {
+      const result = await manager.activate(id);
+      if (result.status === 'not_found' || result.status === 'disabled') {
+        log.warn(
+          { event: 'toolset.restore.failed', toolsetId: id, reason: result.status },
+          'failed to restore previously active toolset — skipping',
+        );
+      }
+    }),
+  );
+}
+
+function buildToolsetMetaTools(toolContext: ToolContext, manager: ToolsetManager): Record<string, Tool> {
+  return Object.fromEntries(
+    Object.entries(createToolsetTools(manager, toolContext.sessionId)).map(([name, tool]) => [
+      name,
+      wrapTool(toolContext, { name, displayName: name, tool, source: 'meta' }),
+    ]),
+  );
+}
+
+function buildTaskTool(
+  toolContext: ToolContext,
+  opts: SessionContextOptions,
+  toolsetManager: ToolsetManager,
+): Tool | null {
+  const canUseTaskTool = opts.allowTaskTool ?? true;
+  if (!canUseTaskTool) return null;
+
+  return wrapTool(toolContext, {
+    name: 'task',
+    displayName: 'Task',
+    tool: createTaskTool(toolContext, {
+      parentSessionId: opts.sessionId,
+      parentAbortSignal: opts.abortSignal,
+      credentials: opts.credentials,
+      modelId: opts.modelId,
+      providerId: opts.credentials.providerId,
       toolsetManager,
-      activeEntries.map((entry) => entry.id),
-    );
+    }),
+    source: 'task',
+  });
+}
 
-    const coreTools = await createTools(this.toolContext);
-    const metaTools = this.buildToolsetMetaTools(toolsetManager);
-    const taskTool = this.buildTaskTool(toolsetManager);
-    const inspectImageTool = this.buildInspectImageTool();
-    const codeModeResult = createCodeModeTool({
-      getTools: () =>
-        this.mergeTools({
-          staticTools: { ...coreTools, ...metaTools },
-          taskTool,
-          inspectImageTool,
-          dynamicTools: toolsetManager.getActiveTools(),
-        }),
-      abortSignal: this.opts.abortSignal,
-    });
-    const toolsetsPrompt = await buildAvailableToolsetsPrompt(toolsetManager);
-    const skillsPrompt = await buildSkillsSystemPrompt();
+function buildInspectImageTool(toolContext: ToolContext, opts: SessionContextOptions): Tool {
+  return wrapTool(toolContext, {
+    name: 'inspect_image',
+    displayName: 'Inspect Image',
+    tool: createInspectImageTool(toolContext, {
+      parentSessionId: opts.sessionId,
+      parentAbortSignal: opts.abortSignal,
+      credentials: opts.credentials,
+      modelId: opts.modelId,
+      providerId: opts.credentials.providerId,
+    }),
+    source: 'core',
+  });
+}
 
-    const composer = new PromptComposer();
-    composer
-      .add('semiStatic', codeModeResult.getSystemPrompt())
-      .add('semiStatic', expiredPrompt)
-      .add('semiStatic', toolsetsPrompt)
-      .add('semiStatic', skillsPrompt);
-
-    const instructionsBlock = buildActiveToolsetInstructionsBlock(this.opts.sessionId);
-    composer.add('dynamic', instructionsBlock);
-
-    const tools = {
-      ...this.mergeTools({ staticTools: { ...coreTools, ...metaTools }, taskTool, inspectImageTool, dynamicTools: {} }),
-      execute_typescript: codeModeResult.tool,
-    };
-
-    return { messages: composer.compose(this.opts.llmMessages), tools, toolsetManager };
-  }
-
-  private static getToolNames(toolsetId: string): string[] {
-    return (
-      getToolset(toolsetId)
-        ?.tools()
-        .map((tool) => tool.name) ?? []
-    );
-  }
-
-  private async restoreToolsets(manager: ToolsetManager, toolsetIds: string[]): Promise<void> {
-    if (toolsetIds.length === 0) return;
-
-    await Promise.all(
-      toolsetIds.map(async (id) => {
-        const result = await manager.activate(id);
-        if (result.status === 'not_found' || result.status === 'disabled') {
-          log.warn(
-            { event: 'toolset.restore.failed', toolsetId: id, reason: result.status },
-            'failed to restore previously active toolset — skipping',
-          );
-        }
-      }),
-    );
-  }
-
-  private buildToolsetMetaTools(manager: ToolsetManager): Record<string, Tool> {
-    const pipeline = ToolPipeline.create(this.toolContext);
-    return pipeline.registerAll(
-      Object.entries(createToolsetTools(manager, this.toolContext.sessionId)).map(([name, tool]) => ({
-        name,
-        displayName: name,
-        tool,
-        source: 'meta' as const,
-      })),
-    );
-  }
-
-  private buildTaskTool(toolsetManager: ToolsetManager): Tool | null {
-    const canUseTaskTool = this.opts.allowTaskTool ?? true;
-    if (!canUseTaskTool) return null;
-
-    const pipeline = ToolPipeline.create(this.toolContext);
-    return pipeline.register({
-      name: 'task',
-      displayName: 'Task',
-      tool: createTaskTool(this.toolContext, {
-        parentSessionId: this.opts.sessionId,
-        parentAbortSignal: this.opts.abortSignal,
-        credentials: this.opts.credentials,
-        modelId: this.opts.modelId,
-        providerId: this.opts.credentials.providerId,
-        toolsetManager,
-      }),
-      source: 'task',
-    });
-  }
-
-  private buildInspectImageTool(): Tool {
-    const pipeline = ToolPipeline.create(this.toolContext);
-    return pipeline.register({
-      name: 'inspect_image',
-      displayName: 'Inspect Image',
-      tool: createInspectImageTool(this.toolContext, {
-        parentSessionId: this.opts.sessionId,
-        parentAbortSignal: this.opts.abortSignal,
-        credentials: this.opts.credentials,
-        modelId: this.opts.modelId,
-        providerId: this.opts.credentials.providerId,
-      }),
-      source: 'core',
-    });
-  }
-
-  private mergeTools(parts: {
-    staticTools: Record<string, Tool>;
-    taskTool: Tool | null;
-    inspectImageTool: Tool;
-    dynamicTools: Record<string, Tool>;
-  }): Record<string, Tool> {
-    return {
-      ...parts.staticTools,
-      ...(parts.taskTool ? { task: parts.taskTool } : {}),
-      inspect_image: parts.inspectImageTool,
-      ...parts.dynamicTools,
-    };
-  }
+function mergeTools(parts: {
+  staticTools: Record<string, Tool>;
+  taskTool: Tool | null;
+  inspectImageTool: Tool;
+  dynamicTools: Record<string, Tool>;
+}): Record<string, Tool> {
+  return {
+    ...parts.staticTools,
+    ...(parts.taskTool ? { task: parts.taskTool } : {}),
+    inspect_image: parts.inspectImageTool,
+    ...parts.dynamicTools,
+  };
 }

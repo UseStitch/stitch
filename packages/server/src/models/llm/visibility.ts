@@ -1,22 +1,21 @@
 import { and, eq } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 
 import { getDb } from '@/db/client.js';
 import { modelVisibility } from '@/db/schema/providers.js';
-import { err, ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
 
 type VisibilityOverride = { providerId: string; modelId: string; visibility: 'show' | 'hide' };
 
-export async function listVisibilityOverrides(): Promise<ServiceResult<VisibilityOverride[]>> {
+export async function listVisibilityOverrides(): Promise<VisibilityOverride[]> {
   const db = getDb();
-  return ok(await db.select().from(modelVisibility));
+  return db.select().from(modelVisibility);
 }
 
 export async function upsertVisibility(
   providerId: string,
   modelId: string,
   visibility: 'show' | 'hide',
-): Promise<ServiceResult<null>> {
+): Promise<void> {
   const db = getDb();
   await db
     .insert(modelVisibility)
@@ -25,10 +24,9 @@ export async function upsertVisibility(
       target: [modelVisibility.providerId, modelVisibility.modelId],
       set: { visibility, updatedAt: Date.now() },
     });
-  return ok(null);
 }
 
-export async function deleteVisibility(providerId: string, modelId: string): Promise<ServiceResult<null>> {
+export async function deleteVisibility(providerId: string, modelId: string): Promise<void> {
   const db = getDb();
   const deleted = await db
     .delete(modelVisibility)
@@ -36,7 +34,6 @@ export async function deleteVisibility(providerId: string, modelId: string): Pro
     .returning({ providerId: modelVisibility.providerId });
 
   if (deleted.length === 0) {
-    return err('Visibility override not found', 404);
+    throw new HTTPException(404, { message: 'Visibility override not found' });
   }
-  return ok(null);
 }

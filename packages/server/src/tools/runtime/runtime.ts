@@ -13,7 +13,7 @@ export type ToolTruncationLimits = { maxLines?: number; maxBytes?: number };
 
 export type ToolPermissionBehavior = {
   getPatternTargets: (input: ToolInput) => string[];
-  getSuggestion: (input: ToolInput) => PermissionSuggestion | null;
+  getSuggestion?: (input: ToolInput) => PermissionSuggestion | null;
 };
 
 export type RuntimeToolMetadata = {
@@ -22,8 +22,6 @@ export type RuntimeToolMetadata = {
   permission?: ToolPermissionBehavior;
   truncation?: ToolTruncationLimits;
 };
-
-type RuntimeTool = RuntimeToolMetadata & { name: string; description: string; tool: Tool };
 
 export type ToolExecutionInput = {
   toolName: string;
@@ -36,52 +34,3 @@ export type ToolExecutionInput = {
 
 type ToolExecutor = (input: ToolExecutionInput) => Promise<unknown>;
 export type ToolMiddleware = (next: ToolExecutor) => ToolExecutor;
-
-type ToolRuntime = {
-  use: (middleware: ToolMiddleware) => ToolRuntime;
-  wrapTool: <T extends Tool>(name: string, tool: T, metadata?: RuntimeToolMetadata) => T;
-  toAiToolRecord: (tools: RuntimeTool[]) => Record<string, Tool>;
-};
-
-function compose(middlewares: ToolMiddleware[], base: ToolExecutor): ToolExecutor {
-  return middlewares.reduceRight((next, middleware) => middleware(next), base);
-}
-
-export function defineRuntimeTool(name: string, tool: Tool, metadata: RuntimeToolMetadata = {}): RuntimeTool {
-  return { ...metadata, name, description: tool.description ?? '', tool };
-}
-
-export function createToolRuntime(context: ToolContext): ToolRuntime {
-  const middlewares: ToolMiddleware[] = [];
-
-  const runtime: ToolRuntime = {
-    use(middleware) {
-      middlewares.push(middleware);
-      return runtime;
-    },
-
-    wrapTool<T extends Tool>(name: string, tool: T, metadata: RuntimeToolMetadata = {}) {
-      const originalExecute: Tool['execute'] = tool.execute;
-      if (!originalExecute) return tool;
-
-      const executor = compose(middlewares, async (input) => originalExecute(input.args, input.executeOptions));
-
-      return {
-        ...tool,
-        execute: async (args: ToolInput, executeOptions: ToolExecuteOptions) =>
-          executor({ toolName: name, args, executeOptions, tool, context, metadata }),
-      } as T;
-    },
-
-    toAiToolRecord(tools) {
-      return Object.fromEntries(
-        tools.map((runtimeTool) => [
-          runtimeTool.name,
-          runtime.wrapTool(runtimeTool.name, runtimeTool.tool, runtimeTool),
-        ]),
-      );
-    },
-  };
-
-  return runtime;
-}

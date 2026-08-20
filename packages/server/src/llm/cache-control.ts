@@ -2,27 +2,20 @@ import type { LlmProviderId } from '@stitch/shared/providers/types';
 
 import type { ModelMessage, JSONValue, Tool } from 'ai';
 
-type ProviderCacheConfig = { namespace: string; key: string; value: JSONValue; breakpointCap: number };
+type ProviderCacheConfig = { namespace: string; key: string; value: JSONValue };
 
 const ANTHROPIC_CACHE: ProviderCacheConfig = {
   namespace: 'anthropic',
   key: 'cacheControl',
   value: { type: 'ephemeral' },
-  breakpointCap: 4,
 };
 
-const BEDROCK_CACHE: ProviderCacheConfig = {
-  namespace: 'bedrock',
-  key: 'cachePoint',
-  value: { type: 'default' },
-  breakpointCap: 4,
-};
+const BEDROCK_CACHE: ProviderCacheConfig = { namespace: 'bedrock', key: 'cachePoint', value: { type: 'default' } };
 
 const OPENROUTER_CACHE: ProviderCacheConfig = {
   namespace: 'openrouter',
   key: 'cacheControl',
   value: { type: 'ephemeral' },
-  breakpointCap: 4,
 };
 
 export function getCacheConfig(providerId: LlmProviderId, modelId: string): ProviderCacheConfig | null {
@@ -91,38 +84,17 @@ export function addCacheControlToMessages(
   const config = getCacheConfig(providerId, modelId);
   if (!config) return messages;
 
-  // Budget: reserve 1 slot for tools, use remaining for messages
-  let remaining = config.breakpointCap - 1;
+  const systemIndex = messages.findIndex((m) => m.role === 'system');
+  const userIndex = messages.findLastIndex((m) => m.role === 'user');
 
-  const toMark = new Set<number>();
-
-  // System message
-  if (remaining > 0) {
-    for (let i = 0; i < messages.length; i++) {
-      if (messages[i].role === 'system') {
-        toMark.add(i);
-        remaining--;
-        break;
-      }
-    }
-  }
-
-  // Latest user message
-  if (remaining > 0) {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === 'user') {
-        toMark.add(i);
-        remaining--;
-        break;
-      }
-    }
-  }
-
-  if (toMark.size === 0) return messages;
+  if (systemIndex === -1 && userIndex === -1) return messages;
 
   const result = [...messages];
-  for (const index of toMark) {
-    result[index] = withCacheMarker(result[index], config);
+  if (systemIndex !== -1) {
+    result[systemIndex] = withCacheMarker(result[systemIndex], config);
+  }
+  if (userIndex !== -1) {
+    result[userIndex] = withCacheMarker(result[userIndex], config);
   }
 
   return result;

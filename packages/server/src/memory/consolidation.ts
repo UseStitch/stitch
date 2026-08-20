@@ -1,6 +1,7 @@
 import { generateText, Output } from 'ai';
 
 import type { MemoryConsolidationResult } from '@stitch/shared/memory/types';
+import type { ManagedMemoryEntry, MemoryFileSnapshot, MemoryTarget } from '@stitch/shared/memory/types';
 
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
@@ -8,7 +9,6 @@ import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { memoryFileStore, type CuratedEntryInput, type MemoryFileStore } from '@/memory/file-store.js';
 import { buildConsolidationPrompt, consolidationSchema, type ConsolidationProposal } from '@/memory/prompts.js';
-import type { ManagedMemoryEntry, MemoryFileSnapshot, MemoryTarget } from '@/memory/types.js';
 
 const log = Log.create({ service: 'memory-consolidation' });
 const MAX_CANDIDATE_CHARACTERS = 20_000;
@@ -27,6 +27,10 @@ type ValidationInput = {
 };
 
 let maintenanceQueue = Promise.resolve();
+
+export function noopResult(summary: string, lastRunAt: string): MemoryConsolidationResult {
+  return { status: 'noop', lastRunAt, summary, candidateCount: 0, promotedCount: 0, rejectedCount: 0 };
+}
 
 function formatEntries(entries: ManagedMemoryEntry[]): string {
   return JSON.stringify(
@@ -221,24 +225,10 @@ export async function consolidateMemories(
     const curatedIds = new Set([...memory.entries, ...user.entries].map((entry) => entry.id));
     const pending = await eligibleCandidates(store, checkpoint, curatedIds, options.maxCandidates ?? 50);
     if (!pending.changed) {
-      return {
-        status: 'noop',
-        lastRunAt,
-        summary: 'Daily memory files have not changed since the last consolidation.',
-        candidateCount: 0,
-        promotedCount: 0,
-        rejectedCount: 0,
-      };
+      return noopResult('Daily memory files have not changed since the last consolidation.', lastRunAt);
     }
     if (pending.candidates.length === 0) {
-      const result: MemoryConsolidationResult = {
-        status: 'noop',
-        lastRunAt,
-        summary: 'No eligible user-origin candidates were found.',
-        candidateCount: 0,
-        promotedCount: 0,
-        rejectedCount: 0,
-      };
+      const result = noopResult('No eligible user-origin candidates were found.', lastRunAt);
       await store.writeConsolidationState(nextCheckpoint(checkpoint, pending, [], result));
       await store.appendConsolidationLog(auditMarkdown(result));
       return result;

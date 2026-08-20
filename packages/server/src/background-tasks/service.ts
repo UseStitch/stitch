@@ -1,4 +1,5 @@
 import { and, eq } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 
 import type { BackgroundTask } from '@stitch/shared/background-tasks/types';
 import { extractTextFromParts } from '@stitch/shared/chat/messages';
@@ -21,7 +22,6 @@ import { messages } from '@/db/schema/sessions.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
-import { err, ok, type ServiceResult } from '@/lib/service-result.js';
 import type { runStream } from '@/llm/stream/runner.js';
 import { abortSessionInteractions } from '@/llm/stream/session-abort.js';
 import type { LlmProviderCredentials } from '@/provider/config/schema.js';
@@ -47,32 +47,17 @@ type StartBackgroundTaskInput = {
   activeToolsetIds: string[];
   llmMessages: ModelMessage[];
   run: typeof runStream;
-  scheduleResult?: (parentSessionId: PrefixedString<'ses'>) => void | Promise<void>;
-};
-
-type BackgroundTaskServiceDependencies = {
-  registerAbort: typeof AbortRegistry.register;
-  cleanupAbort: typeof AbortRegistry.cleanup;
-};
-
-const defaultDependencies: BackgroundTaskServiceDependencies = {
-  registerAbort: AbortRegistry.register,
-  cleanupAbort: AbortRegistry.cleanup,
 };
 
 async function scheduleResult(input: StartBackgroundTaskInput): Promise<void> {
   try {
-    await Promise.resolve((input.scheduleResult ?? scheduleBackgroundTaskResult)(input.parentSessionId));
+    await Promise.resolve(scheduleBackgroundTaskResult(input.parentSessionId));
   } catch (error) {
     log.error({ event: 'background_task.delivery.failed', taskId: input.taskId, error }, 'result scheduling failed');
   }
 }
 
-async function executeBackgroundTask(
-  input: StartBackgroundTaskInput,
-  abortSignal: AbortSignal,
-  deps: BackgroundTaskServiceDependencies,
-): Promise<void> {
+async function executeBackgroundTask(input: StartBackgroundTaskInput, abortSignal: AbortSignal): Promise<void> {
   try {
     await input.run({
       sessionId: input.childSessionId,
@@ -108,7 +93,7 @@ async function executeBackgroundTask(
     internalBus.emit('background-task.failed', { task: settled });
     await scheduleResult(input);
   } finally {
-    deps.cleanupAbort(input.childSessionId);
+    AbortRegistry.cleanup(input.childSessionId);
   }
 }
 
@@ -153,10 +138,7 @@ export async function shutdownBackgroundTaskService(): Promise<void> {
   await Promise.all(executions);
 }
 
-export async function startBackgroundTask(
-  input: StartBackgroundTaskInput,
-  dependencies: BackgroundTaskServiceDependencies = defaultDependencies,
-): Promise<void> {
+export async function startBackgroundTask(input: StartBackgroundTaskInput): Promise<void> {
   if (!isAcceptingTasks()) throw new Error('Background task service is shutting down');
 
   pendingStarts++;
@@ -179,8 +161,8 @@ export async function startBackgroundTask(
     }
 
     internalBus.emit('background-task.started', { task });
-    const abortSignal = dependencies.registerAbort(input.childSessionId);
-    const execution = executeBackgroundTask(input, abortSignal, dependencies)
+    const abortSignal = AbortRegistry.register(input.childSessionId);
+    const execution = executeBackgroundTask(input, abortSignal)
       .catch((error) => {
         log.error(
           { event: 'background_task.execution.unhandled', taskId: input.taskId, error },
@@ -219,13 +201,12 @@ export async function cancelBackgroundTasksForParent(parentSessionId: PrefixedSt
   }
 }
 
-export async function listBackgroundTasksForParent(
-  parentSessionId: PrefixedString<'ses'>,
-): Promise<ServiceResult<BackgroundTask[]>> {
-  return ok(await listBackgroundTasks(parentSessionId));
+export async function listBackgroundTasksForParent(parentSessionId: PrefixedString<'ses'>): Promise<BackgroundTask[]> {
+  return listBackgroundTasks(parentSessionId);
 }
 
-export async function cancelBackgroundTaskById(taskId: PrefixedString<'ses'>): Promise<ServiceResult<BackgroundTask>> {
+export async function cancelBackgroundTaskById(taskId: PrefixedString<'ses'>): Promise<BackgroundTask> {
   const task = await cancelBackgroundTask(taskId);
-  return task ? ok(task) : err('Background task not found', 404);
+  if (!task) throw new HTTPException(404, { message: 'Background task not found' });
+  return task;
 }

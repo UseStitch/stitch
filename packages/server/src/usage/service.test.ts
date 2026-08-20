@@ -90,11 +90,8 @@ describe('getUsageDashboard', () => {
     const now = Date.now();
     const result = await getUsageDashboard({ from: now - 60_000, to: now });
 
-    expect(result.error).toBeNull();
-    if (result.error) return;
-
-    expect(result.data.totals.costUsd).toBe(0);
-    expect(result.data.totals.tokenMetrics.totalTokens).toBe(0);
+    expect(result.totals.costUsd).toBe(0);
+    expect(result.totals.tokenMetrics.totalTokens).toBe(0);
   });
 
   test('aggregates cost across events in range', async () => {
@@ -118,10 +115,7 @@ describe('getUsageDashboard', () => {
 
     const result = await getUsageDashboard({ from, to: now });
 
-    expect(result.error).toBeNull();
-    if (result.error) return;
-
-    expect(result.data.totals.costUsd).toBeCloseTo(0.03);
+    expect(result.totals.costUsd).toBeCloseTo(0.03);
   });
 
   test('excludes transcription from LLM usage totals', async () => {
@@ -138,11 +132,8 @@ describe('getUsageDashboard', () => {
 
     const result = await getUsageDashboard({ from, to: now });
 
-    expect(result.error).toBeNull();
-    if (result.error) return;
-
-    expect(result.data.totals.costUsd).toBe(0);
-    expect(result.data.sources).not.toContain('transcription');
+    expect(result.totals.costUsd).toBe(0);
+    expect(result.sources).not.toContain('transcription');
   });
 
   test('excludes events outside the time range', async () => {
@@ -159,10 +150,7 @@ describe('getUsageDashboard', () => {
 
     const result = await getUsageDashboard({ from, to: now });
 
-    expect(result.error).toBeNull();
-    if (result.error) return;
-
-    expect(result.data.totals.costUsd).toBe(0);
+    expect(result.totals.costUsd).toBe(0);
   });
 
   test('excludes failed events from totals', async () => {
@@ -180,10 +168,7 @@ describe('getUsageDashboard', () => {
 
     const result = await getUsageDashboard({ from, to: now });
 
-    expect(result.error).toBeNull();
-    if (result.error) return;
-
-    expect(result.data.totals.costUsd).toBe(0);
+    expect(result.totals.costUsd).toBe(0);
   });
 
   test('populates usedProviders and usedModels from events in range', async () => {
@@ -200,12 +185,9 @@ describe('getUsageDashboard', () => {
 
     const result = await getUsageDashboard({ from, to: now });
 
-    expect(result.error).toBeNull();
-    if (result.error) return;
-
-    expect(result.data.usedProviders).toContain('anthropic');
+    expect(result.usedProviders).toContain('anthropic');
     expect(
-      result.data.usedModels.some(
+      result.usedModels.some(
         (m: { providerId: string; modelId: string }) => m.providerId === 'anthropic' && m.modelId === 'claude-3',
       ),
     ).toBe(true);
@@ -232,10 +214,7 @@ describe('getUsageDashboard', () => {
 
     const result = await getUsageDashboard({ from, to: now, providerId: 'openai' });
 
-    expect(result.error).toBeNull();
-    if (result.error) return;
-
-    expect(result.data.totals.costUsd).toBeCloseTo(1.0);
-    expect(result.data.usedProviders).toEqual(['openai']);
+    expect(result.totals.costUsd).toBeCloseTo(1.0);
+    expect(result.usedProviders).toEqual(['openai']);
   });
 });

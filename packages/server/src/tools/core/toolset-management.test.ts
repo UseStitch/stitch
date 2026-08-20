@@ -7,13 +7,13 @@ import { setupTestDb } from '@/db/test-helpers.js';
 import { setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { createToolsetTools } from '@/tools/core/toolset-management.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
-import { listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
+import { listToolsets, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
 
 function clearToolsets(): void {
-  for (const id of listToolsetIds()) {
-    unregisterToolset(id);
+  for (const toolset of listToolsets()) {
+    unregisterToolset(toolset.id);
   }
 }
 
