@@ -144,75 +144,62 @@ Parameter sourcing:
     execute: async (input, { abortSignal }) => {
       const normalizedUrl = validateAndNormalizeUrl(input.url);
       const timeoutMs = toSafeTimeoutMs(input.timeout);
+      const signal = AbortSignal.any([AbortSignal.timeout(timeoutMs), ...(abortSignal ? [abortSignal] : [])]);
+      const headers = {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
+        Accept: buildAcceptHeader(input.format),
+        'Accept-Language': 'en-US,en;q=0.9',
+      };
 
-      const timeoutController = new AbortController();
-      const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
-      const onAbort = () => timeoutController.abort();
-      abortSignal?.addEventListener('abort', onAbort, { once: true });
+      const firstResponse = await fetch(normalizedUrl, { signal, headers });
 
-      try {
-        const headers = {
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
-          Accept: buildAcceptHeader(input.format),
-          'Accept-Language': 'en-US,en;q=0.9',
-        };
+      const response =
+        firstResponse.status === 403 && firstResponse.headers.get('cf-mitigated') === 'challenge'
+          ? await fetch(normalizedUrl, { signal, headers: { ...headers, 'User-Agent': 'stitch' } })
+          : firstResponse;
 
-        const firstResponse = await fetch(normalizedUrl, { signal: timeoutController.signal, headers });
-
-        const response =
-          firstResponse.status === 403 && firstResponse.headers.get('cf-mitigated') === 'challenge'
-            ? await fetch(normalizedUrl, {
-                signal: timeoutController.signal,
-                headers: { ...headers, 'User-Agent': 'stitch' },
-              })
-            : firstResponse;
-
-        if (!response.ok) {
-          throw new WebFetchHttpError(normalizedUrl, response.status);
-        }
-
-        const contentLength = response.headers.get('content-length');
-        if (contentLength && Number.parseInt(contentLength, 10) > MAX_RESPONSE_SIZE_BYTES) {
-          throw new WebFetchResponseTooLargeError(normalizedUrl);
-        }
-
-        const arrayBuffer = await response.arrayBuffer();
-        if (arrayBuffer.byteLength > MAX_RESPONSE_SIZE_BYTES) {
-          throw new WebFetchResponseTooLargeError(normalizedUrl);
-        }
-
-        const { mime, full } = parseContentType(response.headers.get('content-type'));
-        const title = `${normalizedUrl} (${full})`;
-
-        const isImage = mime.startsWith('image/') && mime !== 'image/svg+xml' && mime !== 'image/vnd.fastbidsheet';
-
-        if (isImage) {
-          const base64Content = Buffer.from(arrayBuffer).toString('base64');
-          return {
-            title,
-            output: 'Image fetched successfully',
-            metadata: {},
-            attachments: [{ type: 'file' as const, mime, url: `data:${mime};base64,${base64Content}` }],
-          };
-        }
-
-        const content = new TextDecoder().decode(arrayBuffer);
-        const isHtml = mime === 'text/html' || mime === 'application/xhtml+xml';
-
-        if (input.format === 'html') {
-          return { output: content, title, metadata: {} };
-        }
-
-        if (input.format === 'text') {
-          return { output: isHtml ? extractTextFromHtml(content) : content, title, metadata: {} };
-        }
-
-        return { output: isHtml ? convertHtmlToMarkdown(content) : content, title, metadata: {} };
-      } finally {
-        clearTimeout(timeoutId);
-        abortSignal?.removeEventListener('abort', onAbort);
+      if (!response.ok) {
+        throw new WebFetchHttpError(normalizedUrl, response.status);
       }
+
+      const contentLength = response.headers.get('content-length');
+      if (contentLength && Number.parseInt(contentLength, 10) > MAX_RESPONSE_SIZE_BYTES) {
+        throw new WebFetchResponseTooLargeError(normalizedUrl);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      if (arrayBuffer.byteLength > MAX_RESPONSE_SIZE_BYTES) {
+        throw new WebFetchResponseTooLargeError(normalizedUrl);
+      }
+
+      const { mime, full } = parseContentType(response.headers.get('content-type'));
+      const title = `${normalizedUrl} (${full})`;
+
+      const isImage = mime.startsWith('image/') && mime !== 'image/svg+xml' && mime !== 'image/vnd.fastbidsheet';
+
+      if (isImage) {
+        const base64Content = Buffer.from(arrayBuffer).toString('base64');
+        return {
+          title,
+          output: 'Image fetched successfully',
+          metadata: {},
+          attachments: [{ type: 'file' as const, mime, url: `data:${mime};base64,${base64Content}` }],
+        };
+      }
+
+      const content = new TextDecoder().decode(arrayBuffer);
+      const isHtml = mime === 'text/html' || mime === 'application/xhtml+xml';
+
+      if (input.format === 'html') {
+        return { output: content, title, metadata: {} };
+      }
+
+      if (input.format === 'text') {
+        return { output: isHtml ? extractTextFromHtml(content) : content, title, metadata: {} };
+      }
+
+      return { output: isHtml ? convertHtmlToMarkdown(content) : content, title, metadata: {} };
     },
   });
 }

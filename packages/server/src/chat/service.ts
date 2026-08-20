@@ -518,17 +518,12 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
   }
 
   // Find the latest assistant message with token usage (for context window stats)
-  let latestAssistantWithTokens: (typeof sessionMessages)[number] | null = null;
-  for (let i = sessionMessages.length - 1; i >= 0; i--) {
-    const msg = sessionMessages[i];
-    if (msg.role !== 'assistant') continue;
-    if (msg.parts.some((p) => p.type === 'session-title')) continue;
-    const tokenSum = normalizeUsage(msg.usage).totalTokens;
-    if (tokenSum > 0) {
-      latestAssistantWithTokens = msg;
-      break;
-    }
-  }
+  const latestAssistantWithTokens = sessionMessages.findLast((message) => {
+    const isAssistantMessage = message.role === 'assistant';
+    const isSessionTitleMessage = message.parts.some((part) => part.type === 'session-title');
+    const hasTokenUsage = normalizeUsage(message.usage).totalTokens > 0;
+    return isAssistantMessage && !isSessionTitleMessage && hasTokenUsage;
+  });
 
   const latestUsage = normalizeUsage(latestAssistantWithTokens?.usage);
   const totalTokens = latestUsage.totalTokens;
@@ -540,14 +535,11 @@ export async function getSessionStats(sessionId: PrefixedString<'ses'>): Promise
     'compaction',
     'automation-generation',
   ]);
-  let latestRealMessage: (typeof sessionMessages)[number] | null = null;
-  for (let i = sessionMessages.length - 1; i >= 0; i--) {
-    const msg = sessionMessages[i];
-    if (msg.role !== 'assistant') continue;
-    if (msg.parts.some((p) => BACKGROUND_PART_TYPES.has(p.type))) continue;
-    latestRealMessage = msg;
-    break;
-  }
+  const latestRealMessage = sessionMessages.findLast((message) => {
+    const isAssistantMessage = message.role === 'assistant';
+    const isBackgroundMessage = message.parts.some((part) => BACKGROUND_PART_TYPES.has(part.type));
+    return isAssistantMessage && !isBackgroundMessage;
+  });
 
   const [providersResult, modelCatalog] = await Promise.all([listProvidersWithCapabilities(), Models.get()]);
   const providers: ProviderWithCapabilities[] = providersResult.error ? [] : providersResult.data;

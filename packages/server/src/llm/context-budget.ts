@@ -107,16 +107,6 @@ function toToolResultOutput(value: unknown): { type: 'text'; value: string } | {
   return typeof value === 'string' ? { type: 'text', value } : { type: 'json', value };
 }
 
-function findLastUserMessageIndex(conversation: ModelMessage[]): number {
-  for (let i = conversation.length - 1; i >= 0; i--) {
-    if (conversation[i]?.role === 'user') {
-      return i;
-    }
-  }
-
-  return -1;
-}
-
 function countToolResults(conversation: ModelMessage[]): number {
   let count = 0;
   for (const message of conversation) {
@@ -151,7 +141,7 @@ export function compactConversationForStep(
 ): ModelMessage[] {
   const preserveRecentToolResults = options?.preserveRecentToolResults ?? PRESERVE_RECENT_TOOL_RESULTS;
   const compactToolResults = options?.compactToolResults ?? true;
-  const lastUserMessageIndex = findLastUserMessageIndex(conversation);
+  const lastUserMessageIndex = conversation.findLastIndex((message) => message.role === 'user');
   let remainingProtectedToolResults = preserveRecentToolResults;
   let remainingToolResults = countToolResults(conversation);
   let remainingBrowserToolResults = countBrowserToolResults(conversation);

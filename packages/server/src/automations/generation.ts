@@ -34,28 +34,27 @@ function isHiddenFromHistory(message: GenerationMessageContext): boolean {
 }
 
 function findLastUsedModel(messageList: GenerationMessageContext[]): { providerId: string; modelId: string } | null {
-  for (let index = messageList.length - 1; index >= 0; index--) {
-    const message = messageList[index];
-    if (message.isSummary || isHiddenFromHistory(message)) continue;
-    if (!message.providerId || !message.modelId) continue;
-    return { providerId: message.providerId, modelId: message.modelId };
-  }
-
-  return null;
+  const message = messageList.findLast(
+    (candidate): candidate is GenerationMessageContext & { providerId: string; modelId: string } => {
+      const isSummary = candidate.isSummary;
+      const isHiddenMessage = isHiddenFromHistory(candidate);
+      const hasProvider = Boolean(candidate.providerId);
+      const hasModel = Boolean(candidate.modelId);
+      return !isSummary && !isHiddenMessage && hasProvider && hasModel;
+    },
+  );
+  return message ? { providerId: message.providerId, modelId: message.modelId } : null;
 }
 
 function dedupeStrings(values: string[]): string[] {
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const value of values) {
-    const normalized = value.trim();
-    if (!normalized) continue;
-    const key = normalized.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    result.push(normalized);
-  }
-  return result;
+  return [
+    ...new Map(
+      values
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .map((value) => [value.toLowerCase(), value]),
+    ).values(),
+  ];
 }
 
 function collectToolsetContext(messageList: GenerationMessageContext[]): {

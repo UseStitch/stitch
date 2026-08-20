@@ -1,3 +1,5 @@
+import { scheduler } from 'node:timers/promises';
+
 import { mapAIError, OVERLOADED_PATTERN } from '@/llm/stream/ai-error-mapper.js';
 
 const RETRY_INITIAL_DELAY = 2000;
@@ -13,17 +15,7 @@ function cap(ms: number): number {
 type ErrorInfo = ReturnType<typeof mapAIError>;
 
 export function sleep(ms: number, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const abortHandler = () => {
-      clearTimeout(timeout);
-      reject(new DOMException('Aborted', 'AbortError'));
-    };
-    const timeout = setTimeout(() => {
-      if (signal) signal.removeEventListener('abort', abortHandler);
-      resolve();
-    }, ms);
-    if (signal) signal.addEventListener('abort', abortHandler, { once: true });
-  });
+  return scheduler.wait(ms, { signal });
 }
 
 export function delay(attempt: number, headers?: Record<string, string>): number {

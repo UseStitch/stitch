@@ -1,5 +1,4 @@
 import { createServer, type Server } from 'node:http';
-import { URL } from 'node:url';
 import * as oauth from 'openid-client';
 
 import type { OAuthConfig } from '@stitch/shared/connectors/types';

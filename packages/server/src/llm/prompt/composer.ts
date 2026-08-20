@@ -29,13 +29,7 @@ export class PromptComposer {
     }
 
     if (dynamicFragments.length > 0 && result.length > 0) {
-      let dynamicIndex = -1;
-      for (let i = result.length - 1; i >= 0; i--) {
-        if (result[i].role === 'system') {
-          dynamicIndex = i;
-          break;
-        }
-      }
+      const dynamicIndex = result.findLastIndex((message) => message.role === 'system');
       if (dynamicIndex !== -1) {
         const existing = getStringContent(result[dynamicIndex]);
         result[dynamicIndex] = { role: 'system', content: `${existing}\n\n${dynamicFragments.join('\n\n')}` };

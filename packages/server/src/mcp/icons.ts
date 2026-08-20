@@ -22,28 +22,6 @@ function getIconFilePaths(key: string, cacheDir: string): { payload: string; met
   return { payload: path.join(cacheDir, `${key}.bin`), metadata: path.join(cacheDir, `${key}.json`) };
 }
 
-function parseDataUri(uri: string): { mimeType: string; data: Uint8Array } | null {
-  if (!uri.startsWith('data:')) return null;
-  const commaIndex = uri.indexOf(',');
-  if (commaIndex < 0) return null;
-
-  const header = uri.slice(5, commaIndex);
-  const dataPart = uri.slice(commaIndex + 1);
-  const parts = header.split(';').map((part) => part.trim().toLowerCase());
-  const mimeType = parts.at(0) || 'text/plain';
-  const isBase64 = parts.includes('base64');
-  if (!ALLOWED_MIME_TYPES.has(mimeType)) return null;
-
-  try {
-    if (isBase64) {
-      return { mimeType, data: Buffer.from(dataPart, 'base64') };
-    }
-    return { mimeType, data: Buffer.from(decodeURIComponent(dataPart), 'utf8') };
-  } catch {
-    return null;
-  }
-}
-
 function normalizeMimeType(raw?: string): string | undefined {
   if (!raw) return undefined;
   const normalized = raw.split(';').at(0)?.trim().toLowerCase();
@@ -97,12 +75,6 @@ export async function cacheMcpIcon(input: {
   const existing = await readCachedIcon(key, cacheDir);
   if (existing) return { key };
 
-  const dataUri = parseDataUri(icon.src);
-  if (dataUri) {
-    await writeCachedIcon(key, dataUri.mimeType, dataUri.data, cacheDir);
-    return { key };
-  }
-
   let iconUrl: URL;
   try {
     iconUrl = new URL(icon.src);
@@ -110,13 +82,14 @@ export async function cacheMcpIcon(input: {
     return null;
   }
 
-  if (!['http:', 'https:'].includes(iconUrl.protocol)) return null;
-  if (!isAllowedRemoteIcon(iconUrl, serverUrl)) {
+  const isDataUri = iconUrl.protocol === 'data:';
+  if (!isDataUri && !['http:', 'https:'].includes(iconUrl.protocol)) return null;
+  if (!isDataUri && !isAllowedRemoteIcon(iconUrl, serverUrl)) {
     log.warn({ serverUrl, iconUrl: iconUrl.toString() }, 'blocked mcp icon from non-matching origin');
     return null;
   }
 
-  const response = await fetch(iconUrl, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
+  const response = await fetch(icon.src, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
   if (!response || !response.ok) return null;
 
   const headerType = normalizeMimeType(response.headers.get('content-type') ?? undefined);

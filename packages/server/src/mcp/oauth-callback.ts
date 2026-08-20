@@ -1,5 +1,5 @@
+import { once } from 'node:events';
 import { createServer, type Server } from 'node:http';
-import { URL } from 'node:url';
 
 import * as Log from '@/lib/log.js';
 
@@ -78,22 +78,16 @@ function handleRequest(req: import('node:http').IncomingMessage, res: import('no
 }
 
 /** Lazily start the callback listener. No-op if already running. */
-export function ensureRunning(): Promise<void> {
-  if (server) return Promise.resolve();
+export async function ensureRunning(): Promise<void> {
+  if (server) return;
 
   const port = resolvePort();
-  return new Promise((resolve, reject) => {
-    const listener = createServer(handleRequest);
-    listener.on('error', (e) => {
-      reject(e);
-    });
-    listener.listen(port, '127.0.0.1', () => {
-      server = listener;
-      activePort = port;
-      log.info({ event: 'mcp.oauth.callback.listening', port }, 'MCP OAuth callback server ready');
-      resolve();
-    });
-  });
+  const listener = createServer(handleRequest);
+  listener.listen(port, '127.0.0.1');
+  await once(listener, 'listening');
+  server = listener;
+  activePort = port;
+  log.info({ event: 'mcp.oauth.callback.listening', port }, 'MCP OAuth callback server ready');
 }
 
 /**

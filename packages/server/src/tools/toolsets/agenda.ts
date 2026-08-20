@@ -37,29 +37,14 @@ function parseDueDate(dateStr: string, timeZone: string): number | null {
   if (isDateOnly) {
     const [year, month, day] = dateStr.split('-').map(Number);
     const utcNoon = Date.UTC(year, month - 1, day, 12, 0, 0);
-
-    const tzFormatter = new Intl.DateTimeFormat('en-US', { timeZone, hour: '2-digit', day: '2-digit', hour12: false });
-    const utcFormatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'UTC',
-      hour: '2-digit',
-      day: '2-digit',
-      hour12: false,
-    });
-
     const probe = new Date(utcNoon);
-    const tzParts = tzFormatter.formatToParts(probe);
-    const utcParts = utcFormatter.formatToParts(probe);
+    const timeZoneName = new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'longOffset' })
+      .formatToParts(probe)
+      .find((part) => part.type === 'timeZoneName')?.value;
+    const [, sign = '+', hours = '0', minutes = '0'] = timeZoneName?.match(/^GMT([+-])(\d{2}):(\d{2})$/) ?? [];
+    const offsetMinutes = (Number(hours) * 60 + Number(minutes)) * (sign === '+' ? 1 : -1);
 
-    const tzHour = Number(tzParts.find((p) => p.type === 'hour')?.value ?? 0);
-    const utcHour = Number(utcParts.find((p) => p.type === 'hour')?.value ?? 0);
-    const tzDay = Number(tzParts.find((p) => p.type === 'day')?.value ?? 0);
-    const utcDay = Number(utcParts.find((p) => p.type === 'day')?.value ?? 0);
-
-    let offsetHours = utcHour - tzHour;
-    if (utcDay > tzDay) offsetHours += 24;
-    else if (utcDay < tzDay) offsetHours -= 24;
-
-    return Date.UTC(year, month - 1, day, 12 + offsetHours, 0, 0);
+    return utcNoon - offsetMinutes * 60_000;
   }
 
   const ms = new Date(dateStr).getTime();

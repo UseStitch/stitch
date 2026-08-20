@@ -2,7 +2,6 @@ import { tool } from 'ai';
 import fs from 'node:fs/promises';
 import { z } from 'zod';
 
-import * as Glob from '@/lib/glob.js';
 import { ToolPathValidationError, ToolValidationError } from '@/tools/errors.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import type { ToolInput } from '@/tools/runtime/runtime.js';
@@ -51,7 +50,15 @@ export async function grepContent(input: z.infer<typeof grepInputSchema>): Promi
     throw new ToolValidationError('Invalid regex pattern', 'grep', 'pattern');
   }
 
-  const candidateFiles = await Glob.scan(parsed.include ?? '**/*', { cwd: searchPath, absolute: true, dot: true });
+  const candidateFiles = await Array.fromAsync(
+    new Bun.Glob(parsed.include ?? '**/*').scan({
+      cwd: searchPath,
+      absolute: true,
+      dot: true,
+      onlyFiles: true,
+      followSymlinks: false,
+    }),
+  );
 
   const filesWithMtime = await Promise.all(
     candidateFiles.map(async (filePath) => {
