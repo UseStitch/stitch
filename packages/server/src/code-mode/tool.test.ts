@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { IsolateDriver } from '@stitch/sandbox';
+import type { IsolateDriver, IsolateOptions } from '@stitch/sandbox';
 
 import { createCodeModeTool, serializeIsolateOutput } from '@/code-mode/tool.js';
 
@@ -57,6 +57,36 @@ describe('serializeIsolateOutput', () => {
 });
 
 describe('createCodeModeTool', () => {
+  test('applies resource limits while preserving isolate option overrides', async () => {
+    const createdOptions: IsolateOptions[] = [];
+    const driver: IsolateDriver = {
+      createContext: async (_bindings, options) => {
+        createdOptions.push(options ?? {});
+        return { execute: async () => ({ ok: true, result: true, logs: [] }), dispose: () => {} };
+      },
+    };
+    const { tool: defaultTool } = createCodeModeTool({ getTools: () => ({}), driver });
+    const { tool: overriddenTool } = createCodeModeTool({
+      getTools: () => ({}),
+      driver,
+      isolateOptions: { memoryLimit: 256, timeout: 45_000 },
+    });
+
+    await defaultTool.execute?.(
+      { code: 'return true;', description: 'run with default limits' },
+      { toolCallId: 'call-default-limits', messages: [] },
+    );
+    await overriddenTool.execute?.(
+      { code: 'return true;', description: 'run with custom limits' },
+      { toolCallId: 'call-custom-limits', messages: [] },
+    );
+
+    expect(createdOptions).toEqual([
+      expect.objectContaining({ memoryLimit: 128, timeout: 30_000 }),
+      expect.objectContaining({ memoryLimit: 256, timeout: 45_000 }),
+    ]);
+  });
+
   test('throws on invalid syntax without creating a sandbox context', () => {
     const driver: IsolateDriver = {
       createContext: () => {

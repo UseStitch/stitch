@@ -16,6 +16,7 @@ import { truncateOutput } from '@/tools/runtime/truncation.js';
 import type { Tool } from 'ai';
 
 const log = Log.create({ service: 'code-mode' });
+const DEFAULT_CODE_MODE_ISOLATE_OPTIONS: IsolateOptions = { memoryLimit: 128, timeout: 30_000 };
 
 function getDefaultDriver(): IsolateDriver {
   const sandboxExecPath = process.env['SANDBOX_EXEC_PATH'];
@@ -40,7 +41,7 @@ type CodeModeToolResult = { tool: Tool; getSystemPrompt: () => string };
 
 export function createCodeModeTool(options: CodeModeOptions): CodeModeToolResult {
   const driver = options.driver ?? getDefaultDriver();
-  const isolateOptions = options.isolateOptions ?? {}; // TODO: Bun1.4 Upgrade allows these now, use sensible defaults
+  const isolateOptions = { ...DEFAULT_CODE_MODE_ISOLATE_OPTIONS, ...options.isolateOptions };
 
   const getFilteredTools = () => applyToolFilter(options.getTools());
 
