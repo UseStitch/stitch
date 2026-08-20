@@ -7,9 +7,6 @@ import { getFilePathPatternTargets, getParentDirPermissionSuggestion } from '@/t
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import { isTextFileBuffer, validateAbsoluteFilePath } from '@/tools/runtime/shared.js';
 
-const MULTIPLE_MATCHES_ERROR =
-  'Found multiple matches for oldString. Provide more surrounding lines in oldString to identify the correct match.';
-
 const editInputSchema = z
   .object({
     filePath: z.string().describe('The absolute path to the file to modify'),
@@ -93,5 +90,3 @@ export const definition: ToolDefinition = {
   tool: createEditTool(),
   permission: { getPatternTargets: getFilePathPatternTargets, getSuggestion: getParentDirPermissionSuggestion },
 };
-
-export { MULTIPLE_MATCHES_ERROR };

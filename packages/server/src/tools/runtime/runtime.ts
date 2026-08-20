@@ -23,8 +23,6 @@ export type RuntimeToolMetadata = {
   truncation?: ToolTruncationLimits;
 };
 
-type RuntimeTool = RuntimeToolMetadata & { name: string; description: string; tool: Tool };
-
 export type ToolExecutionInput = {
   toolName: string;
   args: ToolInput;
@@ -40,15 +38,10 @@ export type ToolMiddleware = (next: ToolExecutor) => ToolExecutor;
 type ToolRuntime = {
   use: (middleware: ToolMiddleware) => ToolRuntime;
   wrapTool: <T extends Tool>(name: string, tool: T, metadata?: RuntimeToolMetadata) => T;
-  toAiToolRecord: (tools: RuntimeTool[]) => Record<string, Tool>;
 };
 
 function compose(middlewares: ToolMiddleware[], base: ToolExecutor): ToolExecutor {
   return middlewares.reduceRight((next, middleware) => middleware(next), base);
-}
-
-export function defineRuntimeTool(name: string, tool: Tool, metadata: RuntimeToolMetadata = {}): RuntimeTool {
-  return { ...metadata, name, description: tool.description ?? '', tool };
 }
 
 export function createToolRuntime(context: ToolContext): ToolRuntime {
@@ -71,15 +64,6 @@ export function createToolRuntime(context: ToolContext): ToolRuntime {
         execute: async (args: ToolInput, executeOptions: ToolExecuteOptions) =>
           executor({ toolName: name, args, executeOptions, tool, context, metadata }),
       } as T;
-    },
-
-    toAiToolRecord(tools) {
-      return Object.fromEntries(
-        tools.map((runtimeTool) => [
-          runtimeTool.name,
-          runtime.wrapTool(runtimeTool.name, runtimeTool.tool, runtimeTool),
-        ]),
-      );
     },
   };
 

@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 
 import { applyToolFilter } from '@/code-mode/filter.js';
-import { listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
+import { listToolsets, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset, ToolsetKind } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
 
 function clearToolsets(): void {
-  for (const id of listToolsetIds()) {
-    unregisterToolset(id);
+  for (const toolset of listToolsets()) {
+    unregisterToolset(toolset.id);
   }
 }
 

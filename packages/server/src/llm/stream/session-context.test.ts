@@ -7,7 +7,7 @@ import { setupTestDb } from '@/db/test-helpers.js';
 import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { buildExpiredToolsetsPrompt, SessionContext } from '@/llm/stream/session-context.js';
 import { getSessionToolsetState, setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
-import { listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
+import { listToolsets, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
 import type { ModelMessage, Tool } from 'ai';
 
@@ -22,8 +22,8 @@ const STUB_MESSAGES: ModelMessage[] = [
 setupTestDb();
 
 function clearToolsets(): void {
-  for (const id of listToolsetIds()) {
-    unregisterToolset(id);
+  for (const toolset of listToolsets()) {
+    unregisterToolset(toolset.id);
   }
 }
 

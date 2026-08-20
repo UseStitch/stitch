@@ -136,15 +136,6 @@ export class ToolsetManager {
     return new Set(this.getActiveEntries().map(([id]) => id));
   }
 
-  /** Return the set of toolset IDs that should persist across future turns. */
-  getPersistedIds(): Set<string> {
-    return new Set(
-      [...this.activations.values()]
-        .filter((entry) => entry.state.scope === 'until_deactivated')
-        .map((entry) => entry.state.id),
-    );
-  }
-
   getPersistableActivationState(): SessionActiveToolset[] {
     return this.getActiveEntries()
       .map(([, entry]) => entry.state)

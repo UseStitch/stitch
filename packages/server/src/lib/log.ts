@@ -14,11 +14,7 @@ const levelPriority: Record<Level, number> = { DEBUG: 0, INFO: 1, WARN: 2, ERROR
 
 let level: Level = 'INFO';
 
-type Logger = StitchLogger & {
-  tag(key: string, value: string): Logger;
-  clone(): Logger;
-  time(message: string, extra?: Record<string, unknown>): { stop(): void; [Symbol.dispose](): void };
-};
+type Logger = StitchLogger;
 
 interface Options {
   dev?: boolean;
@@ -157,26 +153,6 @@ export function create(tags?: Record<string, unknown>, { skipCache = false } = {
     },
     error(extraOrMessage, message?) {
       emit('ERROR', extraOrMessage, message as string | undefined);
-    },
-    tag(key: string, value: string) {
-      tags = { ...tags, [key]: value };
-      return result;
-    },
-    clone() {
-      return create({ ...tags }, { skipCache: true });
-    },
-    time(message: string, extra?: Record<string, unknown>) {
-      const now = Date.now();
-      result.info({ status: 'started', ...extra }, message);
-      function stop() {
-        result.info({ status: 'completed', duration: Date.now() - now, ...extra }, message);
-      }
-      return {
-        stop,
-        [Symbol.dispose]() {
-          stop();
-        },
-      };
     },
   };
 

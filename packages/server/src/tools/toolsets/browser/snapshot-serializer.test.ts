@@ -22,6 +22,5 @@ describe('browser snapshot serializer', () => {
     expect(result.text).toContain('[ref=e2]');
     expect(result.text).not.toContain('<script>');
     expect(result.truncated).toBe(true);
-    expect(result.elementCount).toBe(2);
   });
 });

@@ -3,7 +3,8 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { editFileContent, MULTIPLE_MATCHES_ERROR } from '@/tools/core/edit.js';
+import { editFileContent } from '@/tools/core/edit.js';
+import { ToolEditMultipleMatchesError } from '@/tools/errors.js';
 
 const tempDirs: string[] = [];
 
@@ -57,7 +58,9 @@ describe('edit tool helpers', () => {
 
     await fs.writeFile(filePath, 'foo foo foo', 'utf8');
 
-    expect(editFileContent({ filePath, oldString: 'foo', newString: 'bar' })).rejects.toThrow(MULTIPLE_MATCHES_ERROR);
+    expect(editFileContent({ filePath, oldString: 'foo', newString: 'bar' })).rejects.toThrow(
+      ToolEditMultipleMatchesError,
+    );
   });
 
   test('rejects non-absolute paths', async () => {

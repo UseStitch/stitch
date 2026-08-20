@@ -2,13 +2,13 @@ import { jsonSchema } from 'ai';
 import { beforeEach, describe, expect, test } from 'bun:test';
 
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
-import { listToolsetIds, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
+import { listToolsets, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
 import type { Tool } from 'ai';
 
 function clearToolsets(): void {
-  for (const id of listToolsetIds()) {
-    unregisterToolset(id);
+  for (const toolset of listToolsets()) {
+    unregisterToolset(toolset.id);
   }
 }
 
@@ -246,7 +246,6 @@ describe('ToolsetManager activation state', () => {
     manager.pin('persisted');
 
     expect(manager.getPersistableActivationState()).toEqual([{ id: 'persisted', scope: 'until_deactivated' }]);
-    expect(manager.getPersistedIds()).toEqual(new Set(['persisted']));
     expect(manager.getExpiredRunToolsets()).toEqual([{ id: 'run-only', toolNames: ['run_tool'] }]);
   });
 
@@ -268,7 +267,6 @@ describe('ToolsetManager activation state', () => {
     expect(manager.isActive('restored')).toBe(false);
     expect(manager.isPersisted('restored')).toBe(true);
     expect(manager.getActiveIds()).toEqual(new Set());
-    expect(manager.getPersistedIds()).toEqual(new Set(['restored']));
 
     const catalog = await manager.getCatalogWithState();
     expect(catalog.find((entry) => entry.id === 'restored')).toMatchObject({ active: false, persisted: true });
@@ -282,7 +280,6 @@ describe('ToolsetManager activation state', () => {
 
     expect(manager.unpin('restored')).toBe(true);
     expect(manager.isPersisted('restored')).toBe(false);
-    expect(manager.getPersistedIds()).toEqual(new Set());
     expect(manager.getPersistableActivationState()).toEqual([]);
   });
 
@@ -307,7 +304,6 @@ describe('ToolsetManager activation state', () => {
     expect(manager.isActive('restored')).toBe(false);
     expect(manager.isPersisted('restored')).toBe(false);
     expect(manager.getActiveIds()).toEqual(new Set());
-    expect(manager.getPersistedIds()).toEqual(new Set());
     expect(manager.getPersistableActivationState()).toEqual([]);
     expect(manager.getActiveTools()).toEqual({});
   });
