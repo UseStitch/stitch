@@ -32,58 +32,43 @@ type SaveTitleMessageOpts = {
 };
 
 export async function saveAssistantMessage(opts: SaveAssistantMessageOpts): Promise<void> {
-  const {
-    sessionId,
-    assistantMessageId,
-    modelId,
-    providerId,
-    accumulatedParts,
-    totalUsage,
-    finalFinishReason,
-    startedAt,
-  } = opts;
-
   const finishedAt = Date.now();
   const db = getDb();
-  const costUsd = await calculateMessageCostUsd({ providerId, modelId, usage: totalUsage });
+  const costUsd = await calculateMessageCostUsd({
+    providerId: opts.providerId,
+    modelId: opts.modelId,
+    usage: opts.totalUsage,
+  });
+  const set = {
+    parts: opts.accumulatedParts,
+    usage: opts.totalUsage,
+    costUsd,
+    finishReason: opts.finalFinishReason,
+    startedAt: opts.startedAt,
+    duration: finishedAt - opts.startedAt,
+  };
 
   await db
     .insert(messages)
     .values({
-      id: assistantMessageId,
-      sessionId,
+      id: opts.assistantMessageId,
+      sessionId: opts.sessionId,
       role: 'assistant',
-      parts: accumulatedParts,
-      modelId,
-      providerId,
-      usage: totalUsage,
-      costUsd,
-      finishReason: finalFinishReason,
-      createdAt: startedAt,
-      startedAt,
-      duration: finishedAt - startedAt,
+      modelId: opts.modelId,
+      providerId: opts.providerId,
+      createdAt: opts.startedAt,
+      ...set,
     })
-    .onConflictDoUpdate({
-      target: messages.id,
-      set: {
-        parts: accumulatedParts,
-        usage: totalUsage,
-        costUsd,
-        finishReason: finalFinishReason,
-        updatedAt: finishedAt,
-        startedAt,
-        duration: finishedAt - startedAt,
-      },
-    });
+    .onConflictDoUpdate({ target: messages.id, set: { ...set, updatedAt: finishedAt } });
 
   internalBus.emit('session.message.saved', {
-    sessionId,
-    messageId: assistantMessageId,
-    modelId,
-    providerId,
-    usage: totalUsage,
+    sessionId: opts.sessionId,
+    messageId: opts.assistantMessageId,
+    modelId: opts.modelId,
+    providerId: opts.providerId,
+    usage: opts.totalUsage,
     costUsd,
-    finishReason: finalFinishReason,
+    finishReason: opts.finalFinishReason,
   });
 }
 

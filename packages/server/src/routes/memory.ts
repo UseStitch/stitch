@@ -3,11 +3,12 @@ import { Hono } from 'hono';
 import { execFile } from 'node:child_process';
 import { z } from 'zod';
 
+import type { MemoryConsolidationStatus } from '@stitch/shared/memory/types';
+
 import { PATHS } from '@/lib/paths.js';
 import { getMemoryConfig } from '@/memory/config.js';
 import { MemoryCapacityError, MemoryConflictError, MemoryPathError, memoryFileStore } from '@/memory/file-store.js';
 import { runMemoryMaintenance } from '@/memory/maintenance.js';
-import type { MemoryConsolidationStatus } from '@/memory/types.js';
 import type { Context } from 'hono';
 
 const fileNames = { memory: 'MEMORY.md', user: 'USER.md', dreams: 'DREAMS.md' } as const;

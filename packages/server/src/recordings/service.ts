@@ -18,7 +18,7 @@ import { providerConfig } from '@/db/schema/providers.js';
 import { recordingAnalyses, recordings } from '@/db/schema/recordings.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
-import { computeTotalPages } from '@/lib/paginated-query.js';
+import { paginatedQuery } from '@/lib/paginated-query.js';
 import { getModelDescriptor } from '@/models/stt/service.js';
 import { startRecordingAnalysis, toRecordingAnalysis } from '@/recordings/analysis-service.js';
 import { deleteRecordingFiles } from '@/recordings/file-store.js';
@@ -113,9 +113,8 @@ function toRecording(
 
 export async function listRecordings(input: { page: number; pageSize: number }): Promise<ListRecordingsResponse> {
   const db = getDb();
-  const offset = (input.page - 1) * input.pageSize;
-  const [rows, total] = await Promise.all([
-    db
+  const result = await paginatedQuery({
+    dataQuery: db
       .select({
         recording: recordings,
         analysisTitle: recordingAnalyses.title,
@@ -123,20 +122,21 @@ export async function listRecordings(input: { page: number; pageSize: number }):
       })
       .from(recordings)
       .leftJoin(recordingAnalyses, eq(recordingAnalyses.recordingId, recordings.id))
-      .orderBy(desc(recordings.createdAt))
-      .limit(input.pageSize)
-      .offset(offset),
-    db.$count(recordings),
-  ]);
-  const totalPages = computeTotalPages(total, input.pageSize);
-
-  return {
-    recordings: rows.map((row) => toRecording(row.recording, row.analysisTitle || null, row.analysisCostUsd ?? null)),
-    activeRecordingId: activeRecording?.id ?? null,
+      .orderBy(desc(recordings.createdAt)),
+    count: db.$count(recordings),
     page: input.page,
     pageSize: input.pageSize,
-    total,
-    totalPages,
+  });
+
+  return {
+    recordings: result.items.map((row) =>
+      toRecording(row.recording, row.analysisTitle || null, row.analysisCostUsd ?? null),
+    ),
+    activeRecordingId: activeRecording?.id ?? null,
+    page: result.page,
+    pageSize: result.pageSize,
+    total: result.total,
+    totalPages: result.totalPages,
   };
 }
 

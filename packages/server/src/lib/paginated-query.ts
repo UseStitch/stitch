@@ -4,7 +4,7 @@ type PaginatedResult<T> = { items: T[]; page: number; pageSize: number; total: n
  * Compute totalPages from a total count and pageSize.
  * Standalone helper for cases where the full paginatedQuery isn't needed.
  */
-export function computeTotalPages(total: number, pageSize: number): number {
+function computeTotalPages(total: number, pageSize: number): number {
   return total === 0 ? 0 : Math.ceil(total / pageSize);
 }
 

@@ -11,7 +11,6 @@ import { interactionBroker } from '@/lib/interactions/broker.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { QuestionAbortedError } from '@/llm/stream/errors.js';
-import { QuestionNotFoundAfterCreateError } from '@/question/errors.js';
 
 const log = Log.create({ service: 'question-service' });
 
@@ -84,14 +83,12 @@ export async function askQuestion(opts: {
   streamRunId?: string;
   abortSignal?: AbortSignal;
 }): Promise<string[][]> {
-  const db = getDb();
-  const id = createQuestionId();
-  const now = Date.now();
+  const question = await createQuestion(opts);
 
   log.info(
     {
       event: 'stream.question.requested',
-      id,
+      id: question.id,
       streamRunId: opts.streamRunId,
       sessionId: opts.sessionId,
       messageId: opts.messageId,
@@ -101,29 +98,10 @@ export async function askQuestion(opts: {
     'asking question',
   );
 
-  const row = (
-    await db
-      .insert(questions)
-      .values({
-        id,
-        sessionId: opts.sessionId,
-        questions: opts.questions,
-        status: 'pending',
-        toolCallId: opts.toolCallId,
-        messageId: opts.messageId,
-        createdAt: now,
-      })
-      .returning()
-  ).at(0);
-
-  if (!row) {
-    throw new QuestionNotFoundAfterCreateError(id);
-  }
-
-  internalBus.emit('question.asked', { question: toQuestionRequest(row) });
+  internalBus.emit('question.asked', { question });
 
   return interactionBroker.wait<string[][]>({
-    id,
+    id: question.id,
     kind: 'question',
     sessionId: opts.sessionId,
     streamRunId: opts.streamRunId,

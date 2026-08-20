@@ -1,6 +1,7 @@
 import { generateText, Output } from 'ai';
 
 import type { MemoryConsolidationResult } from '@stitch/shared/memory/types';
+import type { ManagedMemoryEntry, MemoryFileSnapshot, MemoryTarget } from '@stitch/shared/memory/types';
 
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
@@ -8,7 +9,6 @@ import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { memoryFileStore, type CuratedEntryInput, type MemoryFileStore } from '@/memory/file-store.js';
 import { buildConsolidationPrompt, consolidationSchema, type ConsolidationProposal } from '@/memory/prompts.js';
-import type { ManagedMemoryEntry, MemoryFileSnapshot, MemoryTarget } from '@/memory/types.js';
 
 const log = Log.create({ service: 'memory-consolidation' });
 const MAX_CANDIDATE_CHARACTERS = 20_000;

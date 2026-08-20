@@ -295,22 +295,23 @@ export function deleteAgendaItem(id: PrefixedString<'aitm'>): void {
   if (!deleted) throw new HTTPException(404, { message: 'Item not found' });
 }
 
-export function reorderAgendaItems(orderedIds: PrefixedString<'aitm'>[]): void {
+function reorder(
+  table: typeof agendaItems | typeof agendaLists,
+  orderedIds: Array<PrefixedString<'aitm'> | PrefixedString<'alist'>>,
+): void {
   const db = getDb();
   const now = Date.now();
   db.transaction(() => {
     for (let i = 0; i < orderedIds.length; i++) {
-      db.update(agendaItems).set({ position: i, updatedAt: now }).where(eq(agendaItems.id, orderedIds[i])).run();
+      db.update(table).set({ position: i, updatedAt: now }).where(eq(table.id, orderedIds[i])).run();
     }
   });
 }
 
+export function reorderAgendaItems(orderedIds: PrefixedString<'aitm'>[]): void {
+  reorder(agendaItems, orderedIds);
+}
+
 export function reorderAgendaLists(orderedIds: PrefixedString<'alist'>[]): void {
-  const db = getDb();
-  const now = Date.now();
-  db.transaction(() => {
-    for (let i = 0; i < orderedIds.length; i++) {
-      db.update(agendaLists).set({ position: i, updatedAt: now }).where(eq(agendaLists.id, orderedIds[i])).run();
-    }
-  });
+  reorder(agendaLists, orderedIds);
 }

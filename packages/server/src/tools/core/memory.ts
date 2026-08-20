@@ -1,11 +1,11 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
+import type { MemoryMutation } from '@stitch/shared/memory/types';
 import { toolError } from '@stitch/shared/tools/types';
 
 import { getMemoryConfig } from '@/memory/config.js';
 import { memoryFileStore } from '@/memory/file-store.js';
-import type { MemoryMutation } from '@/memory/types.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 
