@@ -5,8 +5,6 @@ import { z } from 'zod';
 import { PROVIDER_IDS } from '@stitch/shared/providers/types';
 
 import { ICON_CACHE_CONTROL, SVG_CONTENT_TYPE } from '@/lib/icon-cache.js';
-import * as Log from '@/lib/log.js';
-import { unwrapResult } from '@/lib/route-helpers.js';
 import {
   getProvider,
   getProviderLogo,
@@ -19,8 +17,6 @@ import {
   upsertProviderCredentials,
 } from '@/provider/config/service.js';
 
-const log = Log.create({ service: 'provider-routes' });
-
 const providerIdSchema = z.enum(PROVIDER_IDS);
 const providerConfigSchema = z.record(z.string(), z.unknown());
 
@@ -28,14 +24,13 @@ export const providerRouter = new Hono();
 
 providerRouter.get('/embedding-models', async (c) => {
   const result = await listEnabledProviderEmbeddingModels();
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 providerRouter.get('/:providerId', zValidator('param', z.object({ providerId: providerIdSchema })), async (c) => {
   const { providerId } = c.req.valid('param');
   const result = await getProvider(providerId);
-  if (result.error) log.warn({ providerId }, 'blocked access to provider');
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 providerRouter.get(
@@ -44,22 +39,17 @@ providerRouter.get(
   async (c) => {
     const { providerId } = c.req.valid('param');
     const result = await listProviderModels(providerId);
-    if (result.error) log.warn({ providerId }, 'blocked access to provider models');
-    return unwrapResult(c, result);
+    return c.json(result);
   },
 );
 
 providerRouter.get('/:providerId/logo', zValidator('param', z.object({ providerId: providerIdSchema })), async (c) => {
   const { providerId } = c.req.valid('param');
-  const result = await getProviderLogo(providerId);
-  if (result.error) {
-    log.warn({ providerId }, 'provider logo request failed');
-    return unwrapResult(c, result);
-  }
+  const logo = await getProviderLogo(providerId);
 
   c.header('Content-Type', SVG_CONTENT_TYPE);
   c.header('Cache-Control', ICON_CACHE_CONTROL);
-  return c.body(result.data, 200);
+  return c.body(logo, 200);
 });
 
 providerRouter.get(
@@ -68,8 +58,7 @@ providerRouter.get(
   async (c) => {
     const { providerId } = c.req.valid('param');
     const result = await getProviderCredentials(providerId);
-    if (result.error) log.warn({ providerId }, 'provider config request failed');
-    return unwrapResult(c, result);
+    return c.json(result);
   },
 );
 
@@ -80,9 +69,8 @@ providerRouter.put(
   async (c) => {
     const { providerId } = c.req.valid('param');
     const body = c.req.valid('json');
-    const result = await upsertProviderCredentials(providerId, body);
-    if (result.error) log.warn({ providerId }, 'provider config update failed');
-    return unwrapResult(c, result, 204);
+    await upsertProviderCredentials(providerId, body);
+    return c.body(null, 204);
   },
 );
 
@@ -91,8 +79,7 @@ providerRouter.delete(
   zValidator('param', z.object({ providerId: providerIdSchema })),
   async (c) => {
     const { providerId } = c.req.valid('param');
-    const result = await deleteProviderCredentials(providerId);
-    if (result.error) log.warn({ providerId }, 'provider config delete failed');
-    return unwrapResult(c, result, 204);
+    await deleteProviderCredentials(providerId);
+    return c.body(null, 204);
   },
 );

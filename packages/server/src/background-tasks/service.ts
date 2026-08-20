@@ -1,4 +1,5 @@
 import { and, eq } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 
 import type { BackgroundTask } from '@stitch/shared/background-tasks/types';
 import { extractTextFromParts } from '@stitch/shared/chat/messages';
@@ -21,7 +22,6 @@ import { messages } from '@/db/schema/sessions.js';
 import * as AbortRegistry from '@/lib/abort-registry.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
-import { err, ok, type ServiceResult } from '@/lib/service-result.js';
 import type { runStream } from '@/llm/stream/runner.js';
 import { abortSessionInteractions } from '@/llm/stream/session-abort.js';
 import type { LlmProviderCredentials } from '@/provider/config/schema.js';
@@ -219,13 +219,12 @@ export async function cancelBackgroundTasksForParent(parentSessionId: PrefixedSt
   }
 }
 
-export async function listBackgroundTasksForParent(
-  parentSessionId: PrefixedString<'ses'>,
-): Promise<ServiceResult<BackgroundTask[]>> {
-  return ok(await listBackgroundTasks(parentSessionId));
+export async function listBackgroundTasksForParent(parentSessionId: PrefixedString<'ses'>): Promise<BackgroundTask[]> {
+  return listBackgroundTasks(parentSessionId);
 }
 
-export async function cancelBackgroundTaskById(taskId: PrefixedString<'ses'>): Promise<ServiceResult<BackgroundTask>> {
+export async function cancelBackgroundTaskById(taskId: PrefixedString<'ses'>): Promise<BackgroundTask> {
   const task = await cancelBackgroundTask(taskId);
-  return task ? ok(task) : err('Background task not found', 404);
+  if (!task) throw new HTTPException(404, { message: 'Background task not found' });
+  return task;
 }

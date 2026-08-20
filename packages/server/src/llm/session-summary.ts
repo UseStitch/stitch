@@ -98,31 +98,22 @@ async function prune(msgs: StoredMessage[]): Promise<number> {
   log.info({ pruned, total }, 'prune scan');
 
   if (pruned > PRUNE_MINIMUM) {
-    const grouped = new Map<PrefixedString<'msg'>, Array<number>>();
-    for (const entry of toPrune) {
-      let arr = grouped.get(entry.messageId);
-      if (!arr) {
-        arr = [];
-        grouped.set(entry.messageId, arr);
-      }
-      arr.push(entry.partIndex);
-    }
-
+    const grouped = Map.groupBy(toPrune, (e) => e.messageId);
     const msgById = new Map(msgs.map((m) => [m.id, m]));
     const db = getDb();
     const now = Date.now();
 
     await db.transaction(async (tx) => {
       await Promise.all(
-        Array.from(grouped.entries()).map(async ([messageId, partIndices]) => {
+        Array.from(grouped.entries()).map(async ([messageId, entries]) => {
           const msg = msgById.get(messageId);
           if (!msg) return;
 
           const updatedParts = [...msg.parts];
-          for (const partIndex of partIndices) {
-            const part = updatedParts[partIndex];
+          for (const entry of entries) {
+            const part = updatedParts[entry.partIndex];
             if (part.type === 'tool-result') {
-              updatedParts[partIndex] = { ...part, output: '[Old tool result content cleared]' } as StoredPart;
+              updatedParts[entry.partIndex] = { ...part, output: '[Old tool result content cleared]' } as StoredPart;
             }
           }
 
@@ -454,9 +445,9 @@ export function buildActiveToolsetInstructionsBlock(sessionId: PrefixedString<'s
  */
 export async function getModelLimits(providerId: string, modelId: string): Promise<ModelLimits> {
   if (isLocalProviderId(providerId)) {
-    const result = await LocalModels.getLocalModel(providerId, modelId);
-    if (!result.error) {
-      return { context: result.data.contextWindow, output: result.data.outputLimit };
+    const result = await LocalModels.getLocalModel(providerId, modelId).catch(() => null);
+    if (result) {
+      return { context: result.contextWindow, output: result.outputLimit };
     }
     return { context: 200_000, output: 8_192 };
   }

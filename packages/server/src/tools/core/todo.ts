@@ -40,20 +40,21 @@ function createTodoTool(context: ToolContext) {
     inputSchema: todoInputSchema,
     execute: async (input) => {
       if (input.action === 'read') {
-        const result = await listSessionTodos(context.sessionId);
-        if (result.error) return toolError(result.error.message);
-
-        return { output: formatSummary(result.data), todos: toAgentTodos(result.data) };
+        const todos = await listSessionTodos(context.sessionId);
+        return { output: formatSummary(todos), todos: toAgentTodos(todos) };
       }
 
       if (!input.todos) {
         return toolError('Provide todos when action="write".');
       }
 
-      const result = await replaceSessionTodos({ sessionId: context.sessionId, todos: input.todos });
-      if (result.error) return toolError(result.error.message);
-
-      return { output: `Updated session todos:\n${formatSummary(result.data)}`, todos: toAgentTodos(result.data) };
+      try {
+        const updated = await replaceSessionTodos({ sessionId: context.sessionId, todos: input.todos });
+        return { output: `Updated session todos:\n${formatSummary(updated)}`, todos: toAgentTodos(updated) };
+      } catch (error) {
+        const message = Error.isError(error) ? error.message : String(error);
+        return toolError(message);
+      }
     },
   });
 }

@@ -1,4 +1,5 @@
 import { and, desc, eq, isNull, like, lt } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 
 import { ARCHIVE_REASONS } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
@@ -7,8 +8,6 @@ import { createSessionId } from '@stitch/shared/id';
 import { cancelBackgroundTasksForParent } from '@/background-tasks/service.js';
 import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
-import { err, ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
 
 const DEFAULT_PAGE_SIZE = 50;
 const DEFAULT_SESSION_PAGE_SIZE = 30;
@@ -20,7 +19,7 @@ type CreateSessionInput = {
   parentSessionId?: string;
 };
 
-export async function createSession(input: CreateSessionInput): Promise<ServiceResult<typeof sessions.$inferSelect>> {
+export async function createSession(input: CreateSessionInput): Promise<typeof sessions.$inferSelect> {
   const db = getDb();
   const id = createSessionId();
   const now = Date.now();
@@ -39,13 +38,13 @@ export async function createSession(input: CreateSessionInput): Promise<ServiceR
     })
     .returning();
 
-  return ok(session);
+  return session;
 }
 
 export async function listSessions(
   type: 'chat' | 'automation' = 'chat',
   options: { limit?: number; cursor?: number; search?: string } = {},
-): Promise<ServiceResult<{ sessions: (typeof sessions.$inferSelect)[]; hasMore: boolean }>> {
+): Promise<{ sessions: (typeof sessions.$inferSelect)[]; hasMore: boolean }> {
   const db = getDb();
   const pageSize = options.limit ? Math.min(Math.max(options.limit, 1), 100) : DEFAULT_SESSION_PAGE_SIZE;
 
@@ -70,23 +69,21 @@ export async function listSessions(
 
   const hasMore = rows.length > pageSize;
   const page = hasMore ? rows.slice(0, pageSize) : rows;
-  return ok({ sessions: page, hasMore });
+  return { sessions: page, hasMore };
 }
 
-export async function getSessionById(
-  sessionId: PrefixedString<'ses'>,
-): Promise<ServiceResult<typeof sessions.$inferSelect>> {
+export async function getSessionById(sessionId: PrefixedString<'ses'>): Promise<typeof sessions.$inferSelect> {
   const db = getDb();
   const session = (await db.select().from(sessions).where(eq(sessions.id, sessionId))).at(0);
-  if (!session) return err('Session not found', 404);
-  return ok(session);
+  if (!session) throw new HTTPException(404, { message: 'Session not found' });
+  return session;
 }
 
 export async function listSessionMessages(
   sessionId: PrefixedString<'ses'>,
   limit?: number,
   cursor?: number,
-): Promise<ServiceResult<{ messages: (typeof messages.$inferSelect)[]; hasMore: boolean }>> {
+): Promise<{ messages: (typeof messages.$inferSelect)[]; hasMore: boolean }> {
   const db = getDb();
   const pageSize = limit ? Math.min(Math.max(limit, 1), 200) : DEFAULT_PAGE_SIZE;
 
@@ -105,28 +102,26 @@ export async function listSessionMessages(
   const hasMore = rows.length > pageSize;
   const page = hasMore ? rows.slice(0, pageSize) : rows;
   page.reverse();
-  return ok({ messages: page, hasMore });
+  return { messages: page, hasMore };
 }
 
-async function deleteSessionTree(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<{ id: string }>> {
+async function deleteSessionTree(sessionId: PrefixedString<'ses'>): Promise<{ id: string }> {
   const db = getDb();
   const children = await db.select({ id: sessions.id }).from(sessions).where(eq(sessions.parentSessionId, sessionId));
   for (const child of children) {
     await deleteSessionTree(child.id);
   }
   const result = await db.delete(sessions).where(eq(sessions.id, sessionId)).returning({ id: sessions.id });
-  if (result.length === 0) return err('Session not found', 404);
-  return ok(result[0]);
+  if (result.length === 0) throw new HTTPException(404, { message: 'Session not found' });
+  return result[0];
 }
 
-export async function deleteSession(sessionId: PrefixedString<'ses'>): Promise<ServiceResult<{ id: string }>> {
+export async function deleteSession(sessionId: PrefixedString<'ses'>): Promise<{ id: string }> {
   await cancelBackgroundTasksForParent(sessionId);
   return deleteSessionTree(sessionId);
 }
 
-export async function archiveSession(
-  sessionId: PrefixedString<'ses'>,
-): Promise<ServiceResult<typeof sessions.$inferSelect>> {
+export async function archiveSession(sessionId: PrefixedString<'ses'>): Promise<typeof sessions.$inferSelect> {
   await cancelBackgroundTasksForParent(sessionId);
   const db = getDb();
   const now = Date.now();
@@ -137,25 +132,23 @@ export async function archiveSession(
       .where(eq(sessions.id, sessionId))
       .returning()
   ).at(0);
-  if (!updated) return err('Session not found', 404);
-  return ok(updated);
+  if (!updated) throw new HTTPException(404, { message: 'Session not found' });
+  return updated;
 }
 
 export async function renameSession(
   sessionId: PrefixedString<'ses'>,
   title: string,
-): Promise<ServiceResult<typeof sessions.$inferSelect>> {
+): Promise<typeof sessions.$inferSelect> {
   const db = getDb();
   const updated = (
     await db.update(sessions).set({ title, updatedAt: Date.now() }).where(eq(sessions.id, sessionId)).returning()
   ).at(0);
-  if (!updated) return err('Session not found', 404);
-  return ok(updated);
+  if (!updated) throw new HTTPException(404, { message: 'Session not found' });
+  return updated;
 }
 
-export async function markSessionRead(
-  sessionId: PrefixedString<'ses'>,
-): Promise<ServiceResult<typeof sessions.$inferSelect>> {
+export async function markSessionRead(sessionId: PrefixedString<'ses'>): Promise<typeof sessions.$inferSelect> {
   const db = getDb();
   const updated = (
     await db
@@ -164,6 +157,6 @@ export async function markSessionRead(
       .where(eq(sessions.id, sessionId))
       .returning()
   ).at(0);
-  if (!updated) return err('Session not found', 404);
-  return ok(updated);
+  if (!updated) throw new HTTPException(404, { message: 'Session not found' });
+  return updated;
 }

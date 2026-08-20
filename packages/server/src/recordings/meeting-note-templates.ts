@@ -1,4 +1,5 @@
 import { desc, eq } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 
 import { createMeetingNoteTemplateId } from '@stitch/shared/id';
 import type {
@@ -10,8 +11,6 @@ import type {
 
 import { getDb } from '@/db/client.js';
 import { meetingNoteTemplates } from '@/db/schema/recordings.js';
-import { err, ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
 
 type MeetingNoteTemplateRow = typeof meetingNoteTemplates.$inferSelect;
 
@@ -56,27 +55,23 @@ export function seedMeetingNoteTemplates(db = getDb()): void {
   }
 }
 
-export async function listMeetingNoteTemplates(): Promise<ServiceResult<ListMeetingNoteTemplatesResponse>> {
+export async function listMeetingNoteTemplates(): Promise<ListMeetingNoteTemplatesResponse> {
   const db = getDb();
   const rows = await db.select().from(meetingNoteTemplates).orderBy(desc(meetingNoteTemplates.updatedAt));
 
-  return ok({ templates: rows.map(toMeetingNoteTemplate) });
+  return { templates: rows.map(toMeetingNoteTemplate) };
 }
 
-export async function getMeetingNoteTemplate(
-  id: MeetingNoteTemplate['id'],
-): Promise<ServiceResult<MeetingNoteTemplateResponse>> {
+export async function getMeetingNoteTemplate(id: MeetingNoteTemplate['id']): Promise<MeetingNoteTemplateResponse> {
   const db = getDb();
   const row = (await db.select().from(meetingNoteTemplates).where(eq(meetingNoteTemplates.id, id))).at(0);
 
-  if (!row) return err('Meeting note template not found', 404);
+  if (!row) throw new HTTPException(404, { message: 'Meeting note template not found' });
 
-  return ok({ template: toMeetingNoteTemplate(row) });
+  return { template: toMeetingNoteTemplate(row) };
 }
 
-export async function createMeetingNoteTemplate(
-  input: MeetingNoteTemplateInput,
-): Promise<ServiceResult<MeetingNoteTemplateResponse>> {
+export async function createMeetingNoteTemplate(input: MeetingNoteTemplateInput): Promise<MeetingNoteTemplateResponse> {
   const db = getDb();
   const now = Date.now();
   const id = createMeetingNoteTemplateId();
@@ -87,15 +82,15 @@ export async function createMeetingNoteTemplate(
       .returning()
   ).at(0);
 
-  if (!row) return err('Failed to create meeting note template', 500);
+  if (!row) throw new HTTPException(500, { message: 'Failed to create meeting note template' });
 
-  return ok({ template: toMeetingNoteTemplate(row) });
+  return { template: toMeetingNoteTemplate(row) };
 }
 
 export async function updateMeetingNoteTemplate(
   id: MeetingNoteTemplate['id'],
   input: MeetingNoteTemplateInput,
-): Promise<ServiceResult<MeetingNoteTemplateResponse>> {
+): Promise<MeetingNoteTemplateResponse> {
   const db = getDb();
   const row = (
     await db
@@ -105,19 +100,17 @@ export async function updateMeetingNoteTemplate(
       .returning()
   ).at(0);
 
-  if (!row) return err('Meeting note template not found', 404);
+  if (!row) throw new HTTPException(404, { message: 'Meeting note template not found' });
 
-  return ok({ template: toMeetingNoteTemplate(row) });
+  return { template: toMeetingNoteTemplate(row) };
 }
 
-export async function deleteMeetingNoteTemplate(id: MeetingNoteTemplate['id']): Promise<ServiceResult<void>> {
+export async function deleteMeetingNoteTemplate(id: MeetingNoteTemplate['id']): Promise<void> {
   const db = getDb();
   const rows = await db
     .delete(meetingNoteTemplates)
     .where(eq(meetingNoteTemplates.id, id))
     .returning({ id: meetingNoteTemplates.id });
 
-  if (rows.length === 0) return err('Meeting note template not found', 404);
-
-  return ok(undefined);
+  if (rows.length === 0) throw new HTTPException(404, { message: 'Meeting note template not found' });
 }

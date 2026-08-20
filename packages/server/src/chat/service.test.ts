@@ -71,12 +71,10 @@ describe('splitSession', () => {
 
     const result = await splitSession(sessionId, splitMessageId);
 
-    expect(result.error).toBeNull();
-    expect(result.data?.prefillText).toBe('Continue from here');
-    expect(result.data?.session.parentSessionId).toBeNull();
-    if (!result.data) throw new Error('expected split session data');
+    expect(result.prefillText).toBe('Continue from here');
+    expect(result.session.parentSessionId).toBeNull();
 
-    const clonedSessionId = result.data.session.id;
+    const clonedSessionId = result.session.id;
     const [clonedSession] = await getDb().select().from(sessions).where(eq(sessions.id, clonedSessionId));
     expect(clonedSession.parentSessionId).toBeNull();
 
@@ -158,10 +156,7 @@ describe('splitSession', () => {
 
     const result = await splitSession(sessionId, splitMessageId);
 
-    expect(result.error).toBeNull();
-    if (!result.data) throw new Error('expected split session data');
-
-    const clonedSessionId = result.data.session.id;
+    const clonedSessionId = result.session.id;
     const clonedMessages = await getDb().select().from(messages).where(eq(messages.sessionId, clonedSessionId));
 
     expect(clonedMessages).toHaveLength(1);
@@ -227,8 +222,7 @@ describe('listSessionMessages', () => {
 
     const result = await listSessionMessages(sessionId);
 
-    expect(result.error).toBeNull();
-    expect(result.data?.messages.map((message) => message.id)).toEqual([liveMessageId]);
+    expect(result.messages.map((message) => message.id)).toEqual([liveMessageId]);
   });
 });
 
@@ -264,9 +258,7 @@ describe('listSessions', () => {
     const archiveResult = await archiveSession(archivedSessionId);
     const result = await listSessions('chat', { search: 'Archive Filter' });
 
-    expect(archiveResult.error).toBeNull();
-    expect(archiveResult.data?.archivedReason).toBe('archive_session');
-    expect(result.error).toBeNull();
-    expect(result.data?.sessions.map((session) => session.id)).toEqual([visibleSessionId]);
+    expect(archiveResult.archivedReason).toBe('archive_session');
+    expect(result.sessions.map((session) => session.id)).toEqual([visibleSessionId]);
   });
 });

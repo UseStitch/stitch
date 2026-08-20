@@ -37,11 +37,13 @@ export type ChildSessionOptions = {
 };
 
 export async function runChildSession(context: ToolContext, deps: ChildSessionDeps, options: ChildSessionOptions) {
-  const sessionResult = await createSession({ title: options.title, parentSessionId: deps.parentSessionId });
-  if (sessionResult.error) {
-    return toolError(`Failed to create child session: ${sessionResult.error.message}`);
+  let childSession;
+  try {
+    childSession = await createSession({ title: options.title, parentSessionId: deps.parentSessionId });
+  } catch (error) {
+    const message = Error.isError(error) ? error.message : String(error);
+    return toolError(`Failed to create child session: ${message}`);
   }
-  const childSession = sessionResult.data;
   const childSessionId = childSession.id;
 
   if (options.toolCallId) {

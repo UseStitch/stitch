@@ -14,8 +14,6 @@ import { getDb } from '@/db/client.js';
 import { recordingAnalyses } from '@/db/schema/recordings.js';
 import { sessions } from '@/db/schema/sessions.js';
 import { llmUsageEvents, sttUsageEvents } from '@/db/schema/usage.js';
-import { ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
 import { normalizeUsage } from '@/utils/usage.js';
 import type { LanguageModelUsage } from 'ai';
 
@@ -280,7 +278,7 @@ function normalizeEventSource(source: string, sessionType: 'chat' | 'automation'
   return 'chat';
 }
 
-export async function getUsageDashboard(input: GetUsageDashboardInput): Promise<ServiceResult<UsageDashboardResponse>> {
+export async function getUsageDashboard(input: GetUsageDashboardInput): Promise<UsageDashboardResponse> {
   const db = getDb();
   const window = await resolveWindow(input);
   const granularity = inferGranularity(window);
@@ -381,7 +379,7 @@ export async function getUsageDashboard(input: GetUsageDashboardInput): Promise<
 
   const totalCostUsd = Object.values(totalsByCostSource).reduce((sum, cost) => sum + cost, 0);
 
-  return ok({
+  return {
     range: { from: window.from, to: window.to, granularity, bucketCount: buckets.length },
     filters: { providerId: input.providerId ?? null, modelId: input.modelId ?? null },
     usedProviders: Array.from(usedProviderIds).toSorted((a, b) => a.localeCompare(b)),
@@ -394,12 +392,10 @@ export async function getUsageDashboard(input: GetUsageDashboardInput): Promise<
     sources,
     totals: { costUsd: totalCostUsd, tokenMetrics: totalTokenMetrics },
     buckets,
-  });
+  };
 }
 
-export async function getSttUsageDashboard(
-  input: GetUsageDashboardInput,
-): Promise<ServiceResult<SttUsageDashboardResponse>> {
+export async function getSttUsageDashboard(input: GetUsageDashboardInput): Promise<SttUsageDashboardResponse> {
   const db = getDb();
   const window = await resolveWindow(input);
   const granularity = inferGranularity(window);
@@ -466,7 +462,7 @@ export async function getSttUsageDashboard(
 
   const services = Array.from(serviceSet).toSorted((a, b) => a.localeCompare(b));
 
-  return ok({
+  return {
     range: { from: window.from, to: window.to, granularity, bucketCount: buckets.length },
     filters: { providerId: input.providerId ?? null, modelId: input.modelId ?? null },
     usedProviders: Array.from(usedProviderIds).toSorted((a, b) => a.localeCompare(b)),
@@ -479,7 +475,7 @@ export async function getSttUsageDashboard(
     services,
     totals: { costUsd: totalCostUsd, durationMs: totalDurationMs },
     buckets,
-  });
+  };
 }
 
 export const usageServiceInternals = { inferGranularity, buildBucketRanges, floorToGranularity };

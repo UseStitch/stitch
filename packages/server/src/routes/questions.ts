@@ -3,7 +3,6 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 
 import { getSessionById } from '@/chat/session-crud.js';
-import { unwrapResult } from '@/lib/route-helpers.js';
 import { routeSchemas } from '@/lib/route-schemas.js';
 import { createQuestion, getPendingQuestions, rejectQuestion, replyQuestion } from '@/question/service.js';
 
@@ -34,11 +33,9 @@ export const questionsRouter = new Hono();
 questionsRouter.get('/sessions/:id/questions', zValidator('param', sessionParamSchema), async (c) => {
   const { id: sessionId } = c.req.valid('param');
 
-  const sessionResult = await getSessionById(sessionId);
-  if (sessionResult.error) return unwrapResult(c, sessionResult);
-
+  await getSessionById(sessionId);
   const result = await getPendingQuestions(sessionId);
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 questionsRouter.post(
@@ -48,8 +45,7 @@ questionsRouter.post(
   async (c) => {
     const { id: sessionId } = c.req.valid('param');
 
-    const sessionResult = await getSessionById(sessionId);
-    if (sessionResult.error) return unwrapResult(c, sessionResult);
+    await getSessionById(sessionId);
 
     const body = c.req.valid('json');
 
@@ -60,7 +56,7 @@ questionsRouter.post(
       messageId: body.messageId,
     });
 
-    return unwrapResult(c, result, 201);
+    return c.json(result, 201);
   },
 );
 
@@ -72,8 +68,8 @@ questionsRouter.post(
     const { questionId } = c.req.valid('param');
     const { answers } = c.req.valid('json');
 
-    const result = await replyQuestion(questionId, answers);
-    return unwrapResult(c, result);
+    await replyQuestion(questionId, answers);
+    return c.json({ ok: true });
   },
 );
 
@@ -83,7 +79,7 @@ questionsRouter.post(
   async (c) => {
     const { questionId } = c.req.valid('param');
 
-    const result = await rejectQuestion(questionId);
-    return unwrapResult(c, result);
+    await rejectQuestion(questionId);
+    return c.json({ ok: true });
   },
 );

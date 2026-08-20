@@ -1,9 +1,8 @@
 import { formatMcpToolName } from '@stitch/shared/mcp/types';
-import type { McpIcon, McpRegistryServer } from '@stitch/shared/mcp/types';
+import type { McpRegistryServer } from '@stitch/shared/mcp/types';
 
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
-import { buildAuthHeaders } from '@/mcp/auth.js';
 import { getMcpClient, listMcpAiTools } from '@/mcp/client.js';
 import { buildServerPresentation } from '@/mcp/presentation.js';
 import type { McpServerLiveInfo, McpServerPresentation } from '@/mcp/presentation.js';
@@ -58,57 +57,11 @@ async function getToolsForServer(server: McpServerWithTools, context: ToolContex
 
 async function fetchServerInfo(server: McpServerWithTools): Promise<McpServerLiveInfo | null> {
   try {
-    const authHeaders = buildAuthHeaders(server.authConfig);
-    const headers = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json, text/event-stream',
-      'MCP-Protocol-Version': '2025-03-26',
-      ...authHeaders,
-    };
-
-    const res = await fetch(server.url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'initialize',
-        params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'stitch', version: '1.0' } },
-      }),
-      signal: AbortSignal.timeout(5_000),
-    });
-
-    if (!res.ok) return null;
-
-    const contentType = res.headers.get('content-type') ?? '';
-    const text = await res.text();
-    let body: unknown;
-    if (contentType.includes('text/event-stream')) {
-      const dataLine = text.split('\n').find((line) => line.startsWith('data:'));
-      if (!dataLine) return null;
-      body = JSON.parse(dataLine.slice(5).trim());
-    } else {
-      body = JSON.parse(text);
-    }
-
-    const rpc = body as {
-      result?: {
-        serverInfo?: { name?: string; title?: string; description?: string; icons?: McpIcon[] };
-        instructions?: string;
-      };
-    };
-
-    const serverInfo = rpc.result?.serverInfo;
-    const instructions = rpc.result?.instructions;
-    if (!serverInfo && !instructions) return null;
-
-    return {
-      name: serverInfo?.name ?? undefined,
-      title: serverInfo?.title ?? undefined,
-      description: serverInfo?.description ?? undefined,
-      icons: serverInfo?.icons,
-      instructions: instructions ?? undefined,
-    };
+    const client = await getMcpClient(server);
+    const serverVersion = client.getServerVersion();
+    const instructions = client.getInstructions();
+    if (!serverVersion && !instructions) return null;
+    return { ...serverVersion, instructions };
   } catch {
     return null;
   }
@@ -245,10 +198,7 @@ async function refreshMcpToolsetsInternal(
   const serverSnapshots = await Promise.all(
     serversToRefresh.map(async (server) => {
       const tools = refreshTools
-        ? await deps
-            .fetchMcpTools(server.id)
-            .then((result) => (result.error ? (server.tools ?? []) : result.data))
-            .catch(() => server.tools ?? [])
+        ? await deps.fetchMcpTools(server.id).catch(() => server.tools ?? [])
         : (server.tools ?? []);
       return { ...server, tools } satisfies McpServerWithTools;
     }),

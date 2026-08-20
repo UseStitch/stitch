@@ -24,17 +24,19 @@ function createRecordingsTools(): Record<string, Tool> {
 Returns status, file path, and Markdown meeting notes.`,
     inputSchema: z.object({ recordingId: z.string().describe('Recording ID (e.g. rec_abc123).') }),
     execute: async (input) => {
-      const result = await getRecordingAnalysis(input.recordingId as PrefixedString<'rec'>);
-
-      if (result.error) {
-        return toolError(result.error.message, { recordingId: input.recordingId });
+      let result;
+      try {
+        result = await getRecordingAnalysis(input.recordingId as PrefixedString<'rec'>);
+      } catch (error) {
+        const message = Error.isError(error) ? error.message : String(error);
+        return toolError(message, { recordingId: input.recordingId });
       }
 
-      if (!result.data.analysis) {
+      if (!result.analysis) {
         return { recordingId: input.recordingId, found: false, message: 'No analysis found for this recording.' };
       }
 
-      const analysis = result.data.analysis;
+      const analysis = result.analysis;
 
       return {
         recordingId: input.recordingId,
@@ -77,19 +79,21 @@ Use this when analysis is missing or stale.`,
       const { 'recordings.analysis.defaultTemplateId': templateId } = await getSettings([
         'recordings.analysis.defaultTemplateId',
       ] as const);
-      const result = await startRecordingAnalysis(input.recordingId as PrefixedString<'rec'>, {
-        force: input.force,
-        templateId: templateId as PrefixedString<'mnt'>,
-      });
-
-      if (result.error) {
-        return toolError(result.error.message, { recordingId: input.recordingId });
+      let result;
+      try {
+        result = await startRecordingAnalysis(input.recordingId as PrefixedString<'rec'>, {
+          force: input.force,
+          templateId: templateId as PrefixedString<'mnt'>,
+        });
+      } catch (error) {
+        const message = Error.isError(error) ? error.message : String(error);
+        return toolError(message, { recordingId: input.recordingId });
       }
 
       return {
         recordingId: input.recordingId,
         ok: true,
-        status: result.data.analysis.status,
+        status: result.analysis.status,
         message: 'Recording analysis queued or already available.',
       };
     },

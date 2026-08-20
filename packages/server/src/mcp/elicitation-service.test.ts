@@ -74,10 +74,7 @@ describe('MCP elicitation service', () => {
       status: 'pending',
     });
 
-    expect(await resolveMcpElicitation(event.elicitation.id, 'accept', { project: 'Stitch' })).toEqual({
-      data: null,
-      error: null,
-    });
+    await resolveMcpElicitation(event.elicitation.id, 'accept', { project: 'Stitch' });
     expect(pending).resolves.toEqual({ action: 'accept', content: { project: 'Stitch' } });
 
     const row = (await getDb().select().from(mcpElicitations).where(eq(mcpElicitations.id, event.elicitation.id))).at(
@@ -93,8 +90,7 @@ describe('MCP elicitation service', () => {
     });
     const event = await waitForRequest();
 
-    const result = await resolveMcpElicitation(event.elicitation.id, 'accept', { name: 'x' });
-    expect(result.error?.status).toBe(400);
+    expect(resolveMcpElicitation(event.elicitation.id, 'accept', { name: 'x' })).rejects.toThrow();
     expect(interactionBroker.get(event.elicitation.id)).toBeDefined();
 
     await resolveMcpElicitation(event.elicitation.id, 'cancel');
@@ -115,7 +111,7 @@ describe('MCP elicitation service', () => {
       url: 'https://example.com/connect',
       externalElicitationId: 'external-id',
     });
-    expect(await resolveMcpElicitation(event.elicitation.id, 'accept')).toEqual({ data: null, error: null });
+    await resolveMcpElicitation(event.elicitation.id, 'accept');
     expect(pending).resolves.toEqual({ action: 'accept' });
   });
 

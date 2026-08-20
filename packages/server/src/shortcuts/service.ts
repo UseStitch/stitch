@@ -1,12 +1,11 @@
 import { eq } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 
 import { SHORTCUT_ACTION_IDS, SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 import type { ShortcutActionId } from '@stitch/shared/shortcuts/types';
 
 import { getDb } from '@/db/client.js';
 import { keyboardShortcuts } from '@/db/schema/settings.js';
-import { err, ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
 
 const ALLOWED_ACTION_IDS: ReadonlySet<string> = new Set(SHORTCUT_ACTION_IDS);
 
@@ -14,18 +13,17 @@ function isAllowedActionId(actionId: string): boolean {
   return ALLOWED_ACTION_IDS.has(actionId);
 }
 
-export async function listShortcuts(): Promise<ServiceResult<Array<typeof keyboardShortcuts.$inferSelect>>> {
+export async function listShortcuts(): Promise<Array<typeof keyboardShortcuts.$inferSelect>> {
   const db = getDb();
-  const rows = await db.select().from(keyboardShortcuts);
-  return ok(rows);
+  return db.select().from(keyboardShortcuts);
 }
 
-export async function saveShortcut(actionId: string, hotkeyValue: unknown): Promise<ServiceResult<null>> {
+export async function saveShortcut(actionId: string, hotkeyValue: unknown): Promise<void> {
   if (!isAllowedActionId(actionId)) {
-    return err('Invalid action ID', 400);
+    throw new HTTPException(400, { message: 'Invalid action ID' });
   }
   if (hotkeyValue !== null && typeof hotkeyValue !== 'string') {
-    return err('hotkey must be a string or null', 400);
+    throw new HTTPException(400, { message: 'hotkey must be a string or null' });
   }
 
   const hotkey = hotkeyValue ?? null;
@@ -34,11 +32,9 @@ export async function saveShortcut(actionId: string, hotkeyValue: unknown): Prom
     .update(keyboardShortcuts)
     .set({ hotkey, updatedAt: Date.now() })
     .where(eq(keyboardShortcuts.actionId, actionId as ShortcutActionId));
-
-  return ok(null);
 }
 
-export async function resetShortcuts(): Promise<ServiceResult<null>> {
+export async function resetShortcuts(): Promise<void> {
   const db = getDb();
   const now = Date.now();
   for (const def of SHORTCUT_DEFAULTS) {
@@ -47,12 +43,11 @@ export async function resetShortcuts(): Promise<ServiceResult<null>> {
       .set({ hotkey: def.hotkey, isSequence: def.isSequence, updatedAt: now })
       .where(eq(keyboardShortcuts.actionId, def.actionId));
   }
-  return ok(null);
 }
 
-export async function deleteShortcut(actionId: string): Promise<ServiceResult<null>> {
+export async function deleteShortcut(actionId: string): Promise<void> {
   if (!isAllowedActionId(actionId)) {
-    return err('Invalid action ID', 400);
+    throw new HTTPException(400, { message: 'Invalid action ID' });
   }
 
   const db = getDb();
@@ -60,6 +55,4 @@ export async function deleteShortcut(actionId: string): Promise<ServiceResult<nu
     .update(keyboardShortcuts)
     .set({ hotkey: null, updatedAt: Date.now() })
     .where(eq(keyboardShortcuts.actionId, actionId as ShortcutActionId));
-
-  return ok(null);
 }

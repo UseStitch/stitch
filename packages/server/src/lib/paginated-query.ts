@@ -10,7 +10,7 @@ export function computeTotalPages(total: number, pageSize: number): number {
 
 type PaginatedQueryInput<TRow> = {
   dataQuery: { limit: (n: number) => { offset: (n: number) => Promise<TRow[]> | PromiseLike<TRow[]> } };
-  countQuery: PromiseLike<{ total: number }[]>;
+  countQuery: Promise<number> | PromiseLike<{ total: number }[]>;
   page: number;
   pageSize: number;
 };
@@ -20,7 +20,7 @@ type PaginatedQueryInput<TRow> = {
  * Returns a standardized envelope with items, page, pageSize, total, totalPages.
  *
  * @param dataQuery  - A Drizzle query builder. limit() and offset() will be applied.
- * @param countQuery - A Drizzle count query (e.g. db.select({ total: sql\`count(*)\` }).from(table).where(...))
+ * @param countQuery - A Drizzle count query or db.$count promise
  * @param page       - 1-indexed page number
  * @param pageSize   - Items per page
  * @param transform  - Optional row mapper applied to each data row
@@ -34,9 +34,12 @@ export async function paginatedQuery<TRow, TOut>(
 ): Promise<PaginatedResult<TRow | TOut>> {
   const offset = (input.page - 1) * input.pageSize;
 
-  const [rows, countRows] = await Promise.all([input.dataQuery.limit(input.pageSize).offset(offset), input.countQuery]);
+  const [rows, countResult] = await Promise.all([
+    input.dataQuery.limit(input.pageSize).offset(offset),
+    input.countQuery,
+  ]);
 
-  const total = Number(countRows.at(0)?.total ?? 0);
+  const total = typeof countResult === 'number' ? countResult : Number(countResult.at(0)?.total ?? 0);
   const transform: (row: TRow) => TRow | TOut = input.transform ?? ((row) => row);
 
   return {

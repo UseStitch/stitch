@@ -92,7 +92,7 @@ describe('permission service interactions', () => {
 
     const permissionResponseId = requestedData.permissionResponse.id;
 
-    expect(allowPermissionResponse(permissionResponseId)).resolves.toEqual({ data: null, error: null });
+    await allowPermissionResponse(permissionResponseId);
     expect(promise).resolves.toEqual({ decision: 'allow' });
 
     const resolvedEvent = emittedEvents.find(([name]) => name === 'permission.resolved');
@@ -271,10 +271,7 @@ describe('permission service interactions', () => {
     )?.[1] as InternalEventMap['permission.requested'];
     const permissionResponseId = requestedData.permissionResponse.id;
 
-    expect(alternativePermissionResponse(permissionResponseId, 'Use read instead')).resolves.toEqual({
-      data: null,
-      error: null,
-    });
+    await alternativePermissionResponse(permissionResponseId, 'Use read instead');
     expect(promise).resolves.toEqual({ decision: 'alternative', entry: 'Use read instead' });
   });
 

@@ -1,4 +1,5 @@
 import { and, eq, isNull } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 
 import type { PrefixedString } from '@stitch/shared/id';
 import { createPermissionResponseId, createPermissionRuleId } from '@stitch/shared/id';
@@ -15,8 +16,6 @@ import { toolPermissions } from '@/db/schema/permissions.js';
 import { interactionBroker } from '@/lib/interactions/broker.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
-import { err, ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
 import { PermissionResponseAbortedError } from '@/llm/stream/errors.js';
 import { resolvePermissionFromRules } from '@/permission/policy.js';
 
@@ -156,11 +155,11 @@ async function resolvePermissionResponse(opts: {
   permissionResponseId: PrefixedString<'permres'>;
   decision: PermissionDecisionResult;
   setPermission?: SetPermissionRule;
-}): Promise<ServiceResult<null>> {
+}): Promise<void> {
   const existing = permissionResponseStore.get(opts.permissionResponseId);
 
   if (!existing) {
-    return err(`Permission response not found: ${opts.permissionResponseId}`, 404);
+    throw new HTTPException(404, { message: `Permission response not found: ${opts.permissionResponseId}` });
   }
 
   if (opts.setPermission) {
@@ -190,35 +189,31 @@ async function resolvePermissionResponse(opts: {
   );
 
   interactionBroker.resolve(opts.permissionResponseId, opts.decision);
-
-  return ok(null);
 }
 
 export async function allowPermissionResponse(
   permissionResponseId: PrefixedString<'permres'>,
   setPermission?: SetPermissionRule,
-): Promise<ServiceResult<null>> {
+): Promise<void> {
   return resolvePermissionResponse({ permissionResponseId, decision: { decision: 'allow' }, setPermission });
 }
 
 export async function rejectPermissionResponse(
   permissionResponseId: PrefixedString<'permres'>,
   setPermission?: SetPermissionRule,
-): Promise<ServiceResult<null>> {
+): Promise<void> {
   return resolvePermissionResponse({ permissionResponseId, decision: { decision: 'reject' }, setPermission });
 }
 
 export async function alternativePermissionResponse(
   permissionResponseId: PrefixedString<'permres'>,
   entry: string,
-): Promise<ServiceResult<null>> {
+): Promise<void> {
   return resolvePermissionResponse({ permissionResponseId, decision: { decision: 'alternative', entry } });
 }
 
-export async function getPendingPermissionResponses(
-  sessionId: PrefixedString<'ses'>,
-): Promise<ServiceResult<PermissionResponse[]>> {
-  return ok([...permissionResponseStore.values()].filter((r) => r.sessionId === sessionId));
+export async function getPendingPermissionResponses(sessionId: PrefixedString<'ses'>): Promise<PermissionResponse[]> {
+  return [...permissionResponseStore.values()].filter((r) => r.sessionId === sessionId);
 }
 
 export async function abortPermissionResponses(sessionId: PrefixedString<'ses'>): Promise<void> {

@@ -7,9 +7,6 @@ setupTestDb();
 
 describe('validateProviderModel', () => {
   test('returns structured provider errors without reading model settings', async () => {
-    const result = await validateProviderModel('not-a-provider', 'not-a-model');
-
-    expect(result.error?.message).toBe('Provider not found');
-    expect(result.error?.status).toBe(404);
+    expect(validateProviderModel('not-a-provider', 'not-a-model')).rejects.toThrow('Provider not found');
   });
 });

@@ -4,7 +4,6 @@ import { z } from 'zod';
 
 import { PROVIDER_IDS } from '@stitch/shared/providers/types';
 
-import { unwrapResult } from '@/lib/route-helpers.js';
 import { deleteVisibility, listVisibilityOverrides, upsertVisibility } from '@/models/llm/visibility.js';
 
 export const modelsRouter = new Hono();
@@ -18,7 +17,7 @@ const upsertVisibilitySchema = z.object({ visibility: z.enum(['show', 'hide']) }
 
 visibilityRouter.get('/', async (c) => {
   const result = await listVisibilityOverrides();
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 visibilityRouter.put(
@@ -29,8 +28,8 @@ visibilityRouter.put(
     const { providerId, modelId } = c.req.valid('param');
     const { visibility } = c.req.valid('json');
 
-    const result = await upsertVisibility(providerId, modelId, visibility);
-    return unwrapResult(c, result, 204);
+    await upsertVisibility(providerId, modelId, visibility);
+    return c.body(null, 204);
   },
 );
 
@@ -40,8 +39,8 @@ visibilityRouter.delete(
   async (c) => {
     const { providerId, modelId } = c.req.valid('param');
 
-    const result = await deleteVisibility(providerId, modelId);
-    return unwrapResult(c, result, 204);
+    await deleteVisibility(providerId, modelId);
+    return c.body(null, 204);
   },
 );
 

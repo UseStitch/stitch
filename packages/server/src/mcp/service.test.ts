@@ -22,20 +22,18 @@ async function seed(authConfig: McpAuthConfig): Promise<PrefixedString<'mcp'>> {
 
 describe('mcp auth service', () => {
   test('getMcpAuthStatus returns 404 for unknown servers', async () => {
-    const result = await getMcpAuthStatus('mcp_does_not_exist');
-    expect(result.error?.status).toBe(404);
+    expect(getMcpAuthStatus('mcp_does_not_exist')).rejects.toThrow();
   });
 
   test('getMcpAuthStatus returns the stored status', async () => {
     const id = await seed({ type: 'oauth' });
     const result = await getMcpAuthStatus(id);
-    expect(result.data?.authStatus).toBe('none');
+    expect(result.authStatus).toBe('none');
   });
 
   test('startMcpAuth rejects non-oauth servers', async () => {
     const id = await seed({ type: 'none' });
-    const result = await startMcpAuth(id);
-    expect(result.error?.status).toBe(400);
+    expect(startMcpAuth(id)).rejects.toThrow();
   });
 
   test('logoutMcpAuth clears the session row and resets status', async () => {
@@ -44,8 +42,7 @@ describe('mcp auth service', () => {
     await db.insert(mcpOAuthSessions).values({ serverId: id, tokens: { access_token: 'at', token_type: 'Bearer' } });
     await db.update(mcpServers).set({ authStatus: 'connected' }).where(eq(mcpServers.id, id));
 
-    const result = await logoutMcpAuth(id);
-    expect(result.error).toBeNull();
+    await logoutMcpAuth(id);
 
     const sessions = await db.select().from(mcpOAuthSessions).where(eq(mcpOAuthSessions.serverId, id));
     expect(sessions).toHaveLength(0);

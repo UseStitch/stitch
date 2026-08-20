@@ -1,6 +1,7 @@
 import { auth } from '@modelcontextprotocol/sdk/client/auth.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { and, asc, eq, like, or } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 
 import { createMcpServerId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
@@ -10,8 +11,6 @@ import { getDb } from '@/db/client.js';
 import { mcpServers } from '@/db/schema/mcp.js';
 import { toolEnabled, toolPermissions } from '@/db/schema/permissions.js';
 import * as Log from '@/lib/log.js';
-import { err, ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
 import {
   clearPendingOAuthTransport,
   getPendingOAuthTransport,
@@ -26,10 +25,9 @@ const log = Log.create({ service: 'mcp-service' });
 
 type McpServerRow = typeof mcpServers.$inferSelect;
 
-export async function listMcpServers(): Promise<ServiceResult<McpServerRow[]>> {
+export async function listMcpServers(): Promise<McpServerRow[]> {
   const db = getDb();
-  const servers = await db.select().from(mcpServers).orderBy(asc(mcpServers.createdAt));
-  return ok(servers);
+  return db.select().from(mcpServers).orderBy(asc(mcpServers.createdAt));
 }
 
 export async function createMcpServer(input: {
@@ -37,16 +35,16 @@ export async function createMcpServer(input: {
   transport: McpTransport;
   url: string;
   authConfig: McpAuthConfig;
-}): Promise<ServiceResult<{ id: string }>> {
+}): Promise<{ id: string }> {
   const db = getDb();
   const id = createMcpServerId();
   await db
     .insert(mcpServers)
     .values({ id, name: input.name, transport: input.transport, url: input.url, authConfig: input.authConfig });
-  return ok({ id });
+  return { id };
 }
 
-export async function deleteMcpServer(serverId: string): Promise<ServiceResult<null>> {
+export async function deleteMcpServer(serverId: string): Promise<void> {
   const db = getDb();
   const toolsetId = `mcp:${serverId}`;
   const mcpToolPrefix = `${serverId}_%`;
@@ -57,7 +55,7 @@ export async function deleteMcpServer(serverId: string): Promise<ServiceResult<n
     .where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
   const existing = existingRows.at(0);
   if (!existing) {
-    return err('MCP server not found', 404);
+    throw new HTTPException(404, { message: 'MCP server not found' });
   }
 
   await db.delete(mcpServers).where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
@@ -70,11 +68,9 @@ export async function deleteMcpServer(serverId: string): Promise<ServiceResult<n
       ),
     );
   await db.delete(toolPermissions).where(like(toolPermissions.toolName, mcpToolPrefix));
-
-  return ok(null);
 }
 
-export async function fetchMcpTools(serverId: string): Promise<ServiceResult<McpTool[]>> {
+export async function fetchMcpTools(serverId: string): Promise<McpTool[]> {
   const db = getDb();
   const serverRows = await db
     .select()
@@ -82,7 +78,7 @@ export async function fetchMcpTools(serverId: string): Promise<ServiceResult<Mcp
     .where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
   const server = serverRows.at(0);
   if (!server) {
-    return err('MCP server not found', 404);
+    throw new HTTPException(404, { message: 'MCP server not found' });
   }
 
   let rawTools: Record<string, unknown>;
@@ -91,7 +87,7 @@ export async function fetchMcpTools(serverId: string): Promise<ServiceResult<Mcp
     rawTools = Object.fromEntries(result.tools.map((tool) => [tool.name, tool]));
   } catch (e) {
     const message = Error.isError(e) ? e.message : String(e);
-    return err(`MCP server error: ${message}`, 400);
+    throw new HTTPException(400, { message: `MCP server error: ${message}` });
   }
 
   // Map SDK tool objects to our lightweight cached shape
@@ -119,7 +115,7 @@ export async function fetchMcpTools(serverId: string): Promise<ServiceResult<Mcp
     .set({ tools, updatedAt: Date.now() })
     .where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
 
-  return ok(tools);
+  return tools;
 }
 
 export type McpServerWithTools = {
@@ -153,7 +149,7 @@ function isClientRegistrationError(error: unknown): boolean {
 
 async function loadOAuthServer(
   serverId: string,
-): Promise<ServiceResult<{ id: PrefixedString<'mcp'>; url: string; authConfig: OAuthAuth }>> {
+): Promise<{ id: PrefixedString<'mcp'>; url: string; authConfig: OAuthAuth }> {
   const db = getDb();
   const serverRows = await db
     .select()
@@ -161,12 +157,12 @@ async function loadOAuthServer(
     .where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
   const server = serverRows.at(0);
   if (!server) {
-    return err('MCP server not found', 404);
+    throw new HTTPException(404, { message: 'MCP server not found' });
   }
   if (server.authConfig.type !== 'oauth') {
-    return err('MCP server is not configured for OAuth', 400);
+    throw new HTTPException(400, { message: 'MCP server is not configured for OAuth' });
   }
-  return ok({ id: server.id, url: server.url, authConfig: server.authConfig });
+  return { id: server.id, url: server.url, authConfig: server.authConfig };
 }
 
 /**
@@ -174,12 +170,8 @@ async function loadOAuthServer(
  * registers the transport so `finishAuth` can later run on the same instance,
  * then lets the SDK perform discovery + DCR and capture the authorization URL.
  */
-export async function startMcpAuth(
-  serverId: string,
-): Promise<ServiceResult<{ authUrl: string; waitForTokens: () => Promise<void> }>> {
-  const loaded = await loadOAuthServer(serverId);
-  if (loaded.error) return loaded;
-  const server = loaded.data;
+export async function startMcpAuth(serverId: string): Promise<{ authUrl: string; waitForTokens: () => Promise<void> }> {
+  const server = await loadOAuthServer(serverId);
 
   await OAuthCallback.ensureRunning();
   const provider = new McpOAuthProvider(server);
@@ -199,21 +191,21 @@ export async function startMcpAuth(
       await setMcpAuthStatus(server.id, 'error');
     }
     const message = Error.isError(error) ? error.message : String(error);
-    return err(`Failed to start MCP authorization: ${message}`, 400);
+    throw new HTTPException(400, { message: `Failed to start MCP authorization: ${message}` });
   }
 
   if (result === 'AUTHORIZED') {
     clearPendingOAuthTransport(server.id);
     await setMcpAuthStatus(server.id, 'connected');
     await refreshMcpToolsets({ serverIds: [server.id], refreshTools: true });
-    return ok({ authUrl: '', waitForTokens: () => Promise.resolve() });
+    return { authUrl: '', waitForTokens: () => Promise.resolve() };
   }
 
   const authorizationUrl = provider.authorizationUrl;
   if (!authorizationUrl) {
     clearPendingOAuthTransport(server.id);
     await setMcpAuthStatus(server.id, 'error');
-    return err('Authorization URL was not produced by the OAuth flow', 400);
+    throw new HTTPException(400, { message: 'Authorization URL was not produced by the OAuth flow' });
   }
 
   // The SDK builds the authorization URL with its own `state`; use that value
@@ -242,25 +234,21 @@ export async function startMcpAuth(
     }
   };
 
-  return ok({ authUrl: authorizationUrl.toString(), waitForTokens });
+  return { authUrl: authorizationUrl.toString(), waitForTokens };
 }
 
 /** Clear OAuth credentials and tear down any in-flight auth for a server. */
-export async function logoutMcpAuth(serverId: string): Promise<ServiceResult<null>> {
-  const loaded = await loadOAuthServer(serverId);
-  if (loaded.error) return loaded;
+export async function logoutMcpAuth(serverId: string): Promise<void> {
+  const server = await loadOAuthServer(serverId);
 
   OAuthCallback.cancelPending(serverId);
   clearPendingOAuthTransport(serverId);
-  const provider = new McpOAuthProvider(loaded.data);
+  const provider = new McpOAuthProvider(server);
   await provider.invalidateCredentials('all');
-  await setMcpAuthStatus(loaded.data.id, 'none');
-  return ok(null);
+  await setMcpAuthStatus(server.id, 'none');
 }
 
-export async function getMcpAuthStatus(
-  serverId: string,
-): Promise<ServiceResult<{ authStatus: McpServerRow['authStatus'] }>> {
+export async function getMcpAuthStatus(serverId: string): Promise<{ authStatus: McpServerRow['authStatus'] }> {
   const db = getDb();
   const serverRows = await db
     .select({ authStatus: mcpServers.authStatus })
@@ -268,9 +256,9 @@ export async function getMcpAuthStatus(
     .where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
   const server = serverRows.at(0);
   if (!server) {
-    return err('MCP server not found', 404);
+    throw new HTTPException(404, { message: 'MCP server not found' });
   }
-  return ok({ authStatus: server.authStatus });
+  return { authStatus: server.authStatus };
 }
 
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60_000;

@@ -29,17 +29,15 @@ export async function resolveCheapModel(input: {
   fallbackProviderId: string;
   fallbackModelId: string;
 }): Promise<ResolvedModel | null> {
-  const result = await resolveModel({
-    providerIdKey: input.providerIdKey,
-    modelIdKey: input.modelIdKey,
-    fallbackProviderId: input.fallbackProviderId,
-    fallbackModelId: input.fallbackModelId,
-    priorityModelIds: CHEAP_MODEL_PRIORITY,
-  });
-
-  if (result.error) {
+  try {
+    return await resolveModel({
+      providerIdKey: input.providerIdKey,
+      modelIdKey: input.modelIdKey,
+      fallbackProviderId: input.fallbackProviderId,
+      fallbackModelId: input.fallbackModelId,
+      priorityModelIds: CHEAP_MODEL_PRIORITY,
+    });
+  } catch {
     return null;
   }
-
-  return result.data;
 }

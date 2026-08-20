@@ -44,13 +44,12 @@ describe('deleteAutomation', () => {
     const sessionId = 'ses_delete_sessions';
     await insertAutomationWithSession({ automationId, sessionId });
 
-    const result = await deleteAutomation(automationId);
+    await deleteAutomation(automationId);
 
     const sessionRows = await getDb()
       .select()
       .from(sessions)
       .where(eq(sessions.id, sessionId as never));
-    expect(result.error).toBeNull();
     expect(sessionRows).toEqual([]);
   });
 
@@ -59,13 +58,12 @@ describe('deleteAutomation', () => {
     const sessionId = 'ses_delete_archive';
     await insertAutomationWithSession({ automationId, sessionId });
 
-    const result = await deleteAutomation(automationId, { archiveSessions: true });
+    await deleteAutomation(automationId, { archiveSessions: true });
 
     const [session] = await getDb()
       .select()
       .from(sessions)
       .where(eq(sessions.id, sessionId as never));
-    expect(result.error).toBeNull();
     expect(session.automationId).toBeNull();
     expect(session.archivedAt).toBeNumber();
     expect(session.archivedReason).toBe(ARCHIVE_REASONS.automationDeleted);

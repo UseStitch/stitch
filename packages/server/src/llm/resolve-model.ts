@@ -1,11 +1,11 @@
 import { eq } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 
 import type { LlmProviderId } from '@stitch/shared/providers/types';
 import type { SettingsKey } from '@stitch/shared/settings/types';
 
 import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema/providers.js';
-import { err, ok, type ServiceResult } from '@/lib/service-result.js';
 import { isAllowedProvider } from '@/models/llm/registry.js';
 import * as Models from '@/models/llm/registry.js';
 import { isLlmProviderCredentials, type LlmProviderCredentials } from '@/provider/config/schema.js';
@@ -35,9 +35,9 @@ type ResolveModelInput = {
  * 4. Validating the provider is allowed and the model exists
  * 5. Looking up provider credentials from the database
  *
- * Returns a ServiceResult with the resolved provider, model, and credentials.
+ * Returns the resolved provider, model, and credentials.
  */
-export async function resolveModel(input: ResolveModelInput): Promise<ServiceResult<ResolvedModel>> {
+export async function resolveModel(input: ResolveModelInput): Promise<ResolvedModel> {
   const db = getDb();
 
   const [settingsMap, configs, providers] = await Promise.all([
@@ -80,36 +80,36 @@ export async function resolveModel(input: ResolveModelInput): Promise<ServiceRes
   }
 
   if (!targetProviderId || !targetModelId) {
-    return err('No model configured and no fallback available', 400);
+    throw new HTTPException(400, { message: 'No model configured and no fallback available' });
   }
 
   if (!isAllowedProvider(targetProviderId)) {
-    return err('Provider not found', 404);
+    throw new HTTPException(404, { message: 'Provider not found' });
   }
 
   const provider = providers[targetProviderId] as Models.RawProvider | undefined;
-  if (!provider) return err('Provider not found', 404);
+  if (!provider) throw new HTTPException(404, { message: 'Provider not found' });
 
   const model = provider.models[targetModelId] as Models.RawModel | undefined;
-  if (!model) return err('Model not found for provider', 400);
+  if (!model) throw new HTTPException(400, { message: 'Model not found for provider' });
 
   const config = configs.find((c) => c.providerId === targetProviderId);
-  if (!config) return err('Provider is not configured', 400);
+  if (!config) throw new HTTPException(400, { message: 'Provider is not configured' });
 
   if (config.credentials.providerId !== targetProviderId || !isLlmProviderCredentials(config.credentials)) {
-    return err('Provider credentials do not match the resolved LLM provider', 400);
+    throw new HTTPException(400, { message: 'Provider credentials do not match the resolved LLM provider' });
   }
 
-  return ok({ providerId: targetProviderId, modelId: targetModelId, credentials: config.credentials });
+  return { providerId: targetProviderId, modelId: targetModelId, credentials: config.credentials };
 }
 
 /**
  * Validates that a provider + model combination is configured and available.
  * Does not return credentials — use when you only need to gate on validity.
  */
-export async function validateProviderModel(providerId: string, modelId: string): Promise<ServiceResult<null>> {
+export async function validateProviderModel(providerId: string, modelId: string): Promise<void> {
   if (!isAllowedProvider(providerId)) {
-    return err('Provider not found', 404);
+    throw new HTTPException(404, { message: 'Provider not found' });
   }
 
   const db = getDb();
@@ -123,12 +123,10 @@ export async function validateProviderModel(providerId: string, modelId: string)
   ]);
 
   const provider = providers[providerId] as Models.RawProvider | undefined;
-  if (!provider) return err('Provider not found', 404);
+  if (!provider) throw new HTTPException(404, { message: 'Provider not found' });
 
   const model = provider.models[modelId] as Models.RawModel | undefined;
-  if (!model) return err('Model not found for provider', 400);
+  if (!model) throw new HTTPException(400, { message: 'Model not found for provider' });
 
-  if (!config) return err('Provider is not configured', 400);
-
-  return ok(null);
+  if (!config) throw new HTTPException(400, { message: 'Provider is not configured' });
 }

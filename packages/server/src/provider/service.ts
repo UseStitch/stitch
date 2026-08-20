@@ -3,8 +3,6 @@ import type { SttProviderModels } from '@stitch/shared/stt/types';
 
 import { getDb } from '@/db/client.js';
 import { providerConfig } from '@/db/schema/providers.js';
-import { ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
 import * as EmbeddingModels from '@/models/embedding/service.js';
 import * as Models from '@/models/llm/registry.js';
 import { getModelCatalog } from '@/models/stt/service.js';
@@ -19,7 +17,7 @@ export type ProviderWithCapabilities = {
   capabilities: ProviderCapability[];
 };
 
-export async function listProvidersWithCapabilities(): Promise<ServiceResult<ProviderWithCapabilities[]>> {
+export async function listProvidersWithCapabilities(): Promise<ProviderWithCapabilities[]> {
   const db = getDb();
   const [llmProviders, embeddingProviders, sttCatalog, configs] = await Promise.all([
     Models.get(),
@@ -77,10 +75,10 @@ export async function listProvidersWithCapabilities(): Promise<ServiceResult<Pro
     return a.name.localeCompare(b.name);
   });
 
-  return ok(results);
+  return results;
 }
 
-export async function listEnabledSttModels(): Promise<ServiceResult<SttProviderModels[]>> {
+export async function listEnabledSttModels(): Promise<SttProviderModels[]> {
   const db = getDb();
   const [configs, sttCatalog] = await Promise.all([
     db.select({ providerId: providerConfig.providerId }).from(providerConfig),
@@ -104,5 +102,5 @@ export async function listEnabledSttModels(): Promise<ServiceResult<SttProviderM
     });
   }
 
-  return ok(results);
+  return results;
 }

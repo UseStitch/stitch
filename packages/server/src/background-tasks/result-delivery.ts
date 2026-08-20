@@ -15,9 +15,9 @@ import { validateProviderModel } from '@/llm/resolve-model.js';
 import { buildSessionLlmMessages } from '@/llm/session-history.js';
 import { runStream } from '@/llm/stream/runner.js';
 import { enqueueSessionRun } from '@/llm/stream/session-run-coordinator.js';
-import { getProviderCredentials } from '@/provider/config/service.js';
 import { isLlmProviderCredentials, ProviderCredentialsSchema } from '@/provider/config/schema.js';
 import type { LlmProviderCredentials } from '@/provider/config/schema.js';
+import { getProviderCredentials } from '@/provider/config/service.js';
 
 const log = Log.create({ service: 'background-task-result-delivery' });
 
@@ -41,13 +41,12 @@ export type ResultDeliveryDependencies = {
 };
 
 async function loadCredentials(providerId: string, modelId: string): Promise<LlmProviderCredentials> {
-  const validation = await validateProviderModel(providerId, modelId);
-  if (validation.error) throw new Error(validation.error.message);
+  await validateProviderModel(providerId, modelId);
 
-  const result = await getProviderCredentials(providerId);
-  const parsed = ProviderCredentialsSchema.safeParse(result.data);
-  if (result.error || !parsed.success || !isLlmProviderCredentials(parsed.data) || parsed.data.providerId !== providerId) {
-    throw new Error(result.error?.message ?? `Provider "${providerId}" is not configured for LLM usage`);
+  const creds = await getProviderCredentials(providerId);
+  const parsed = ProviderCredentialsSchema.safeParse(creds);
+  if (!parsed.success || !isLlmProviderCredentials(parsed.data) || parsed.data.providerId !== providerId) {
+    throw new Error(`Provider "${providerId}" is not configured for LLM usage`);
   }
   return parsed.data;
 }
@@ -126,10 +125,7 @@ export function scheduleBackgroundTaskResult(
       inserted = true;
       await dependencies.markDelivered(deliveryMessageId);
 
-      const llmMessages = await dependencies.buildHistory(parentSessionId, {
-        useBasePrompt: true,
-        systemPrompt: null,
-      });
+      const llmMessages = await dependencies.buildHistory(parentSessionId, { useBasePrompt: true, systemPrompt: null });
       await dependencies.run({
         sessionId: parentSessionId,
         assistantMessageId: wakeUpMessageId,

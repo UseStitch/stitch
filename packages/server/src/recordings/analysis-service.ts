@@ -1,5 +1,6 @@
 import { generateText } from 'ai';
 import { and, eq } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 import { readFileSync } from 'node:fs';
 
 import { createRecordingAnalysisId, type PrefixedString } from '@stitch/shared/id';
@@ -15,8 +16,6 @@ import { recordingAnalyses, recordings } from '@/db/schema/recordings.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { resolveRuntimeAssetPath } from '@/lib/runtime-assets.js';
-import { err, ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveModel } from '@/llm/resolve-model.js';
 import type { LlmProviderCredentials } from '@/provider/config/schema.js';
@@ -92,38 +91,36 @@ export async function toRecordingAnalysis(row: typeof recordingAnalyses.$inferSe
   };
 }
 
-export async function getRecordingAnalysis(
-  recordingId: PrefixedString<'rec'>,
-): Promise<ServiceResult<RecordingAnalysisResponse>> {
+export async function getRecordingAnalysis(recordingId: PrefixedString<'rec'>): Promise<RecordingAnalysisResponse> {
   const db = getDb();
 
   const recording = (await db.select({ id: recordings.id }).from(recordings).where(eq(recordings.id, recordingId))).at(
     0,
   );
   if (!recording) {
-    return err('Recording not found', 404);
+    throw new HTTPException(404, { message: 'Recording not found' });
   }
 
   const analysis = (await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.recordingId, recordingId))).at(
     0,
   );
 
-  return ok({ analysis: analysis ? await toRecordingAnalysis(analysis) : null });
+  return { analysis: analysis ? await toRecordingAnalysis(analysis) : null };
 }
 
 export async function startRecordingAnalysis(
   recordingId: PrefixedString<'rec'>,
   input: { force?: boolean; templateId: PrefixedString<'mnt'> },
   deps: AnalysisDeps = defaultDeps,
-): Promise<ServiceResult<StartRecordingAnalysisResponse>> {
+): Promise<StartRecordingAnalysisResponse> {
   const db = getDb();
 
   const recording = (await db.select().from(recordings).where(eq(recordings.id, recordingId))).at(0);
   if (!recording) {
-    return err('Recording not found', 404);
+    throw new HTTPException(404, { message: 'Recording not found' });
   }
   if (recording.status !== 'completed') {
-    return err('Recording must be completed before analysis', 400);
+    throw new HTTPException(400, { message: 'Recording must be completed before analysis' });
   }
 
   const existing = (await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.recordingId, recordingId))).at(
@@ -131,27 +128,20 @@ export async function startRecordingAnalysis(
   );
 
   if (existing && existing.status !== 'failed' && existing.status !== 'pending' && !input.force) {
-    return ok({ analysis: await toRecordingAnalysis(existing) });
+    return { analysis: await toRecordingAnalysis(existing) };
   }
 
   const templateResult = await getMeetingNoteTemplate(input.templateId);
-  if (templateResult.error) {
-    return templateResult;
-  }
 
   const transcript: RecordingTranscriptEntry[] = await readRecordingTranscript(recordingId);
   if (transcript.length === 0) {
-    return err('No transcript available for this recording', 400);
+    throw new HTTPException(400, { message: 'No transcript available for this recording' });
   }
 
   const analysisModel = await deps.resolveModel({
     providerIdKey: 'recordings.analysis.providerId',
     modelIdKey: 'recordings.analysis.modelId',
   });
-
-  if (analysisModel.error) {
-    return analysisModel;
-  }
 
   const now = Date.now();
   const id = existing?.id ?? createRecordingAnalysisId();
@@ -171,8 +161,8 @@ export async function startRecordingAnalysis(
         error: null,
         transcriptionProviderId: existing?.transcriptionProviderId ?? null,
         transcriptionModelId: existing?.transcriptionModelId ?? null,
-        analysisProviderId: analysisModel.data.providerId,
-        analysisModelId: analysisModel.data.modelId,
+        analysisProviderId: analysisModel.providerId,
+        analysisModelId: analysisModel.modelId,
         usage: ZERO_USAGE,
         costUsd: existing?.costUsd ?? 0,
         startedAt: null,
@@ -191,8 +181,8 @@ export async function startRecordingAnalysis(
           error: null,
           transcriptionProviderId: existing?.transcriptionProviderId ?? null,
           transcriptionModelId: existing?.transcriptionModelId ?? null,
-          analysisProviderId: analysisModel.data.providerId,
-          analysisModelId: analysisModel.data.modelId,
+          analysisProviderId: analysisModel.providerId,
+          analysisModelId: analysisModel.modelId,
           usage: ZERO_USAGE,
           startedAt: null,
           endedAt: null,
@@ -210,10 +200,10 @@ export async function startRecordingAnalysis(
       recordingId,
       transcript,
       templateId: input.templateId,
-      templateContent: templateResult.data.template.content,
-      analysisProviderId: analysisModel.data.providerId,
-      analysisModelId: analysisModel.data.modelId,
-      analysisCredentials: analysisModel.data.credentials,
+      templateContent: templateResult.template.content,
+      analysisProviderId: analysisModel.providerId,
+      analysisModelId: analysisModel.modelId,
+      analysisCredentials: analysisModel.credentials,
       preserveExistingUntilComplete,
     },
     deps,
@@ -221,32 +211,32 @@ export async function startRecordingAnalysis(
 
   const created = (await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.id, id))).at(0);
   if (!created) {
-    return err('Failed to create recording analysis', 400);
+    throw new HTTPException(400, { message: 'Failed to create recording analysis' });
   }
 
-  return ok({ analysis: await toRecordingAnalysis(created) });
+  return { analysis: await toRecordingAnalysis(created) };
 }
 
-export async function cancelRecordingAnalysis(recordingId: PrefixedString<'rec'>): Promise<ServiceResult<null>> {
+export async function cancelRecordingAnalysis(recordingId: PrefixedString<'rec'>): Promise<void> {
   const db = getDb();
 
   const recording = (await db.select({ id: recordings.id }).from(recordings).where(eq(recordings.id, recordingId))).at(
     0,
   );
   if (!recording) {
-    return err('Recording not found', 404);
+    throw new HTTPException(404, { message: 'Recording not found' });
   }
 
   const existing = (await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.recordingId, recordingId))).at(
     0,
   );
   if (!existing) {
-    return err('Recording analysis not found', 404);
+    throw new HTTPException(404, { message: 'Recording analysis not found' });
   }
 
   const activeRun = activeRuns.get(existing.id);
   if (!activeRun && existing.status !== 'processing') {
-    return err('Recording analysis is not running', 400);
+    throw new HTTPException(400, { message: 'Recording analysis is not running' });
   }
 
   activeRuns.delete(existing.id);
@@ -259,7 +249,7 @@ export async function cancelRecordingAnalysis(recordingId: PrefixedString<'rec'>
       title: existing.title || null,
     });
 
-    return ok(null);
+    return;
   }
 
   const endedAt = Date.now();
@@ -280,10 +270,8 @@ export async function cancelRecordingAnalysis(recordingId: PrefixedString<'rec'>
   internalBus.emit('recording.analysis.failed', { recordingId });
 
   if (!updated) {
-    return err('Failed to cancel recording analysis', 400);
+    throw new HTTPException(400, { message: 'Failed to cancel recording analysis' });
   }
-
-  return ok(null);
 }
 
 async function runRecordingAnalysis(

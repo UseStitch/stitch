@@ -274,9 +274,8 @@ describe('background task service', () => {
       }),
     );
 
-    const result = await deleteSession(parentSessionId);
+    await deleteSession(parentSessionId);
 
-    expect(result.error).toBeNull();
     expect(childSignal?.aborted).toBeTrue();
     expect(await getBackgroundTask(childSessionId)).toBeNull();
   });
@@ -291,9 +290,8 @@ describe('background task service', () => {
       }),
     );
 
-    const result = await archiveSession(parentSessionId);
+    await archiveSession(parentSessionId);
 
-    expect(result.error).toBeNull();
     expect(childSignal?.aborted).toBeTrue();
     expect((await getBackgroundTask(childSessionId))?.status).toBe('cancelled');
   });

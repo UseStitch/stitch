@@ -18,7 +18,6 @@ import {
   updateAgendaItem,
   updateAgendaList,
 } from '@/agenda/service.js';
-import { unwrapResult } from '@/lib/route-helpers.js';
 import { paginationQuerySchema } from '@/lib/route-schemas.js';
 
 const createListSchema = z.object({
@@ -63,49 +62,48 @@ export const agendaRouter = new Hono();
 
 agendaRouter.get('/lists', (c) => {
   const includeArchived = c.req.query('includeArchived') === 'true';
-  const result = getAgendaLists({ includeArchived });
-  if (result.error) return unwrapResult(c, result);
-  return c.json({ lists: result.data });
+  const lists = getAgendaLists({ includeArchived });
+  return c.json({ lists });
 });
 
 agendaRouter.post('/lists', zValidator('json', createListSchema), (c) => {
   const body = c.req.valid('json');
   const result = createAgendaList(body);
-  return unwrapResult(c, result, 201);
+  return c.json(result, 201);
 });
 
 agendaRouter.post('/lists/reorder', zValidator('json', reorderSchema), (c) => {
   const { orderedIds } = c.req.valid('json');
-  const result = reorderAgendaLists(orderedIds as PrefixedString<'alist'>[]);
-  return unwrapResult(c, result, 204);
+  reorderAgendaLists(orderedIds as PrefixedString<'alist'>[]);
+  return c.body(null, 204);
 });
 
 agendaRouter.patch('/lists/:id', zValidator('json', updateListSchema), (c) => {
   const id = c.req.param('id') as PrefixedString<'alist'>;
   const body = c.req.valid('json');
   const result = updateAgendaList(id, body);
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 agendaRouter.delete('/lists/:id', (c) => {
   const id = c.req.param('id') as PrefixedString<'alist'>;
-  const result = deleteAgendaList(id);
-  return unwrapResult(c, result, 204);
+  deleteAgendaList(id);
+  return c.body(null, 204);
 });
 
 agendaRouter.post('/lists/:id/merge', zValidator('json', z.object({ sourceId: z.string().min(1) })), (c) => {
   const targetId = c.req.param('id') as PrefixedString<'alist'>;
   const { sourceId } = c.req.valid('json');
   const result = mergeAgendaLists(targetId, sourceId as PrefixedString<'alist'>);
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 // --- Items ---
 
 agendaRouter.post('/items/reorder', zValidator('json', reorderSchema), (c) => {
   const { orderedIds } = c.req.valid('json');
-  const result = reorderAgendaItems(orderedIds as PrefixedString<'aitm'>[]);
-  return unwrapResult(c, result, 204);
+  reorderAgendaItems(orderedIds as PrefixedString<'aitm'>[]);
+  return c.body(null, 204);
 });
 
 agendaRouter.get('/items', zValidator('query', paginationQuerySchema({ pageSize: 20 })), async (c) => {
@@ -114,7 +112,7 @@ agendaRouter.get('/items', zValidator('query', paginationQuerySchema({ pageSize:
   const status = c.req.query('status') as (typeof AGENDA_ITEM_STATUSES)[number] | undefined;
   const priority = c.req.query('priority') as (typeof AGENDA_ITEM_PRIORITIES)[number] | undefined;
   const result = await getAgendaItems({ listId, status, priority, page, pageSize });
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 agendaRouter.post('/items', zValidator('json', createItemSchema), (c) => {
@@ -125,18 +123,18 @@ agendaRouter.post('/items', zValidator('json', createItemSchema), (c) => {
     sourceSessionId: body.sourceSessionId as PrefixedString<'ses'> | null | undefined,
     sourceMessageId: body.sourceMessageId as PrefixedString<'msg'> | null | undefined,
   });
-  return unwrapResult(c, result, 201);
+  return c.json(result, 201);
 });
 
 agendaRouter.patch('/items/:id', zValidator('json', updateItemSchema), (c) => {
   const id = c.req.param('id') as PrefixedString<'aitm'>;
   const body = c.req.valid('json');
   const result = updateAgendaItem(id, { ...body, listId: body.listId as PrefixedString<'alist'> | undefined });
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 agendaRouter.delete('/items/:id', (c) => {
   const id = c.req.param('id') as PrefixedString<'aitm'>;
-  const result = deleteAgendaItem(id);
-  return unwrapResult(c, result, 204);
+  deleteAgendaItem(id);
+  return c.body(null, 204);
 });

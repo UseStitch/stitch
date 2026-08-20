@@ -3,7 +3,7 @@ import type { Automation, AutomationSchedule } from '@stitch/shared/automations/
 
 import { listAutomations, runAutomation } from './service.js';
 
-import { AutomationCallbackError, AutomationSyncError } from '@/automations/errors.js';
+import { AutomationCallbackError } from '@/automations/errors.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import { registerSchedulerJob, unregisterSchedulerJob } from '@/scheduler/runtime.js';
 import { getSettings } from '@/settings/service.js';
@@ -45,12 +45,14 @@ async function registerAutomationJob(automation: Automation, timezone: string): 
     callback: async () => {
       const key = getAutomationJobKey(automation.id);
       internalBus.emit('schedule.job.fired', { key, automationId: automation.id });
-      const result = await runAutomation(automation.id);
-      if (result.error) {
-        internalBus.emit('schedule.job.failed', { key, automationId: automation.id, error: result.error.message });
-        throw new AutomationCallbackError(result.error.message, automation.id);
+      try {
+        await runAutomation(automation.id);
+        internalBus.emit('schedule.job.succeeded', { key, automationId: automation.id });
+      } catch (error) {
+        const message = Error.isError(error) ? error.message : String(error);
+        internalBus.emit('schedule.job.failed', { key, automationId: automation.id, error: message });
+        throw new AutomationCallbackError(message, automation.id);
       }
-      internalBus.emit('schedule.job.succeeded', { key, automationId: automation.id });
     },
     maxConcurrency: 1,
     catchup: 'one',
@@ -80,11 +82,9 @@ export async function syncAllAutomationSchedules(): Promise<void> {
 
   for (;;) {
     const result = await listAutomations({ page, pageSize });
-    if (result.error) throw new AutomationSyncError(result.error.message);
+    automationList.push(...result.automations);
 
-    automationList.push(...result.data.automations);
-
-    if (result.data.totalPages === 0 || page >= result.data.totalPages) {
+    if (result.totalPages === 0 || page >= result.totalPages) {
       break;
     }
 

@@ -71,11 +71,13 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
         });
       }
 
-      const sessionResult = await createSession({ title, parentSessionId: deps.parentSessionId });
-      if (sessionResult.error) {
-        return toolError(`Task failed: could not create child session - ${sessionResult.error.message}`);
+      let childSession;
+      try {
+        childSession = await createSession({ title, parentSessionId: deps.parentSessionId });
+      } catch (error) {
+        const message = Error.isError(error) ? error.message : String(error);
+        return toolError(`Task failed: could not create child session - ${message}`);
       }
-      const childSession = sessionResult.data;
       const childSessionId = childSession.id;
 
       internalBus.emit('tool.progress', {

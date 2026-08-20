@@ -13,10 +13,3 @@ export class AutomationCallbackError extends AutomationError {
     this.automationId = automationId;
   }
 }
-
-export class AutomationSyncError extends AutomationError {
-  constructor(message: string) {
-    super(message);
-    this.name = 'AutomationSyncError';
-  }
-}

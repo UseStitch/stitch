@@ -18,7 +18,6 @@ import {
   upgradeConnectorInstance,
 } from '@/connectors/service.js';
 import * as Log from '@/lib/log.js';
-import { unwrapResult } from '@/lib/route-helpers.js';
 
 export const connectorsRouter = new Hono();
 const log = Log.create({ service: 'connectors-route' });
@@ -32,7 +31,7 @@ connectorsRouter.get('/definitions', (c) => {
 // List configured connector credentials
 connectorsRouter.get('/', async (c) => {
   const result = await listConnectors();
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 // Create OAuth connector credentials
@@ -46,20 +45,20 @@ const createConnectorOAuthSchema = z.object({
 connectorsRouter.post('/oauth', zValidator('json', createConnectorOAuthSchema), async (c) => {
   const body = c.req.valid('json');
   const result = await createOAuthConnector(body);
-  return unwrapResult(c, result, 201);
+  return c.json(result, 201);
 });
 
 // List all connector instances
 connectorsRouter.get('/instances', async (c) => {
   const result = await listConnectorInstances();
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 // Get a specific connector instance
 connectorsRouter.get('/instances/:id', async (c) => {
   const id = c.req.param('id');
   const result = await getConnectorInstance(id);
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 // Create an OAuth connector instance
@@ -72,7 +71,7 @@ const createOAuthSchema = z.object({
 connectorsRouter.post('/instances/oauth', zValidator('json', createOAuthSchema), async (c) => {
   const body = c.req.valid('json');
   const result = await createOAuthConnectorInstance(body);
-  return unwrapResult(c, result, 201);
+  return c.json(result, 201);
 });
 
 // Create an API key connector instance
@@ -85,16 +84,15 @@ const createApiKeySchema = z.object({
 connectorsRouter.post('/instances/api-key', zValidator('json', createApiKeySchema), async (c) => {
   const body = c.req.valid('json');
   const result = await createApiKeyConnectorInstance(body);
-  return unwrapResult(c, result, 201);
+  return c.json(result, 201);
 });
 
 // Start OAuth authorization flow for an instance
 connectorsRouter.post('/instances/:id/authorize', async (c) => {
   const id = c.req.param('id');
   const result = await authorizeOAuthInstance(id);
-  if (result.error) return unwrapResult(c, result);
 
-  const { waitForTokens } = result.data;
+  const { waitForTokens } = result;
   void waitForTokens().catch((error) => {
     const message = Error.isError(error) ? error.message : String(error);
     log.warn(
@@ -103,7 +101,7 @@ connectorsRouter.post('/instances/:id/authorize', async (c) => {
     );
   });
 
-  return c.json({ authUrl: result.data.authUrl });
+  return c.json({ authUrl: result.authUrl });
 });
 
 // Update a connector instance
@@ -115,28 +113,27 @@ connectorsRouter.patch('/instances/:id', zValidator('json', updateSchema), async
   const id = c.req.param('id');
   const body = c.req.valid('json');
   const result = await updateConnectorInstance(id, body);
-  return unwrapResult(c, result);
+  return c.json(result);
 });
 
 // Delete a connector instance
 connectorsRouter.delete('/instances/:id', async (c) => {
   const id = c.req.param('id');
-  const result = await deleteConnectorInstance(id);
-  return unwrapResult(c, result, 204);
+  await deleteConnectorInstance(id);
+  return c.body(null, 204);
 });
 
 // Delete connector credentials and all linked accounts
 connectorsRouter.delete('/:id', async (c) => {
   const id = c.req.param('id');
-  const result = await deleteConnector(id);
-  return unwrapResult(c, result, 204);
+  await deleteConnector(id);
+  return c.body(null, 204);
 });
 
 // Test a connector instance connection
 connectorsRouter.post('/instances/:id/test', async (c) => {
   const id = c.req.param('id');
-  const result = await testConnectorInstance(id);
-  if (result.error) return unwrapResult(c, result);
+  await testConnectorInstance(id);
   return c.json({ success: true });
 });
 
@@ -145,5 +142,5 @@ connectorsRouter.post('/instances/:id/upgrade', zValidator('json', upgradeSchema
   const id = c.req.param('id');
   const body = c.req.valid('json');
   const result = await upgradeConnectorInstance(id, body);
-  return unwrapResult(c, result);
+  return c.json(result);
 });

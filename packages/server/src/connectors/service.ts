@@ -1,4 +1,5 @@
 import { asc, eq } from 'drizzle-orm';
+import { HTTPException } from 'hono/http-exception';
 
 import { buildUpgradeState, getCapabilitiesForVersion } from '@stitch-connectors/sdk/upgrade';
 
@@ -28,8 +29,6 @@ import { getDb } from '@/db/client.js';
 import { connectorInstances, connectors } from '@/db/schema/connectors.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
-import { err, ok } from '@/lib/service-result.js';
-import type { ServiceResult } from '@/lib/service-result.js';
 
 const log = Log.create({ service: 'connectors' });
 const REFRESH_BUFFER_MS = 60_000;
@@ -95,10 +94,10 @@ function toConnectorSafe(connector: Connector): ConnectorSafe {
   return { ...rest, hasApiKey: apiKey !== '' };
 }
 
-export async function listConnectors(): Promise<ServiceResult<ConnectorSafe[]>> {
+export async function listConnectors(): Promise<ConnectorSafe[]> {
   const db = getDb();
   const rows = await db.select().from(connectors).orderBy(asc(connectors.createdAt));
-  return ok(rows.map((row) => toConnectorSafe(toConnector(row))));
+  return rows.map((row) => toConnectorSafe(toConnector(row)));
 }
 
 export async function createOAuthConnector(input: {
@@ -106,16 +105,16 @@ export async function createOAuthConnector(input: {
   label: string;
   clientId: string;
   clientSecret: string;
-}): Promise<ServiceResult<ConnectorSafe>> {
+}): Promise<ConnectorSafe> {
   const definition = getConnectorDefinition(input.connectorId);
-  if (!definition) return err('Unknown connector type', 400);
-  if (!definition.enabled) return err('Connector is currently disabled', 400);
-  if (definition.authType !== 'oauth2') return err('Connector does not use OAuth2', 400);
+  if (!definition) throw new HTTPException(400, { message: 'Unknown connector type' });
+  if (!definition.enabled) throw new HTTPException(400, { message: 'Connector is currently disabled' });
+  if (definition.authType !== 'oauth2') throw new HTTPException(400, { message: 'Connector does not use OAuth2' });
 
   const clientId = input.clientId.trim();
   const clientSecret = input.clientSecret.trim();
   if (!clientId || !clientSecret) {
-    return err('Client credentials are required', 400);
+    throw new HTTPException(400, { message: 'Client credentials are required' });
   }
 
   const db = getDb();
@@ -138,15 +137,15 @@ export async function createOAuthConnector(input: {
   );
 
   const [row] = await db.select().from(connectors).where(eq(connectors.id, id));
-  return ok(toConnectorSafe(toConnector(row)));
+  return toConnectorSafe(toConnector(row));
 }
 
-export async function deleteConnector(connectorRefId: string): Promise<ServiceResult<null>> {
+export async function deleteConnector(connectorRefId: string): Promise<void> {
   const db = getDb();
   const typedConnectorRefId = connectorRefId as PrefixedString<'cnr'>;
   const existing = (await db.select().from(connectors).where(eq(connectors.id, typedConnectorRefId))).at(0);
 
-  if (!existing) return err('Connector not found', 404);
+  if (!existing) throw new HTTPException(404, { message: 'Connector not found' });
 
   await db.delete(connectors).where(eq(connectors.id, typedConnectorRefId));
   internalBus.emit('connector.removed', { instanceId: null, connectorId: existing.connectorId });
@@ -155,22 +154,18 @@ export async function deleteConnector(connectorRefId: string): Promise<ServiceRe
     { event: 'connector.credentials.deleted', connectorRefId, connectorId: existing.connectorId },
     `Connector deleted: ${existing.label}`,
   );
-
-  return ok(null);
 }
 
-export async function listConnectorInstances(): Promise<ServiceResult<ConnectorInstanceSafe[]>> {
+export async function listConnectorInstances(): Promise<ConnectorInstanceSafe[]> {
   const db = getDb();
   const rows = await db.select().from(connectorInstances).orderBy(asc(connectorInstances.createdAt));
-  return ok(
-    rows.map((r) => {
-      const instance = r as ConnectorInstance;
-      return toSafe(instance, getConnectorDefinition(instance.connectorId));
-    }),
-  );
+  return rows.map((r) => {
+    const instance = r as ConnectorInstance;
+    return toSafe(instance, getConnectorDefinition(instance.connectorId));
+  });
 }
 
-export async function getConnectorInstance(id: string): Promise<ServiceResult<ConnectorInstanceSafe>> {
+export async function getConnectorInstance(id: string): Promise<ConnectorInstanceSafe> {
   const db = getDb();
   const row = (
     await db
@@ -179,16 +174,16 @@ export async function getConnectorInstance(id: string): Promise<ServiceResult<Co
       .where(eq(connectorInstances.id, id as PrefixedString<'conn'>))
   ).at(0);
 
-  if (!row) return err('Connector instance not found', 404);
+  if (!row) throw new HTTPException(404, { message: 'Connector instance not found' });
   const instance = row as ConnectorInstance;
-  return ok(toSafe(instance, getConnectorDefinition(instance.connectorId)));
+  return toSafe(instance, getConnectorDefinition(instance.connectorId));
 }
 
 export async function createOAuthConnectorInstance(input: {
   connectorRefId: string;
   label: string;
   scopes: string[];
-}): Promise<ServiceResult<ConnectorInstanceSafe>> {
+}): Promise<ConnectorInstanceSafe> {
   const db = getDb();
   const connector = (
     await db
@@ -197,13 +192,14 @@ export async function createOAuthConnectorInstance(input: {
       .where(eq(connectors.id, input.connectorRefId as PrefixedString<'cnr'>))
   ).at(0);
 
-  if (!connector) return err('Connector not found', 404);
+  if (!connector) throw new HTTPException(404, { message: 'Connector not found' });
 
   const definition = getConnectorDefinition(connector.connectorId);
-  if (!definition) return err('Unknown connector type', 400);
-  if (!definition.enabled) return err('Connector is currently disabled', 400);
-  if (definition.authType !== 'oauth2') return err('Connector does not use OAuth2', 400);
-  if (!connector.clientId || !connector.clientSecret) return err('OAuth credentials not configured', 400);
+  if (!definition) throw new HTTPException(400, { message: 'Unknown connector type' });
+  if (!definition.enabled) throw new HTTPException(400, { message: 'Connector is currently disabled' });
+  if (definition.authType !== 'oauth2') throw new HTTPException(400, { message: 'Connector does not use OAuth2' });
+  if (!connector.clientId || !connector.clientSecret)
+    throw new HTTPException(400, { message: 'OAuth credentials not configured' });
 
   const id = createConnectorInstanceId();
 
@@ -237,18 +233,18 @@ export async function createOAuthConnectorInstance(input: {
   );
 
   const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, id));
-  return ok(toSafe(row as ConnectorInstance, definition));
+  return toSafe(row as ConnectorInstance, definition);
 }
 
 export async function createApiKeyConnectorInstance(input: {
   connectorId: string;
   label: string;
   apiKey: string;
-}): Promise<ServiceResult<ConnectorInstanceSafe>> {
+}): Promise<ConnectorInstanceSafe> {
   const definition = getConnectorDefinition(input.connectorId);
-  if (!definition) return err('Unknown connector type', 400);
-  if (!definition.enabled) return err('Connector is currently disabled', 400);
-  if (definition.authType !== 'api_key') return err('Connector does not use API key', 400);
+  if (!definition) throw new HTTPException(400, { message: 'Unknown connector type' });
+  if (!definition.enabled) throw new HTTPException(400, { message: 'Connector is currently disabled' });
+  if (definition.authType !== 'api_key') throw new HTTPException(400, { message: 'Connector does not use API key' });
 
   const db = getDb();
   const connectorRefId = createConnectorId();
@@ -291,14 +287,14 @@ export async function createApiKeyConnectorInstance(input: {
   );
 
   const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, id));
-  return ok(toSafe(row as ConnectorInstance, definition));
+  return toSafe(row as ConnectorInstance, definition);
 }
 
 export async function authorizeOAuthInstance(
   instanceId: string,
   deps?: { startOAuthFlow?: typeof StartOAuthFlowFn },
   options?: { scopes?: string[]; additionalParams?: Record<string, string> },
-): Promise<ServiceResult<{ authUrl: string; waitForTokens: () => Promise<void> }>> {
+): Promise<{ authUrl: string; waitForTokens: () => Promise<void> }> {
   const db = getDb();
   const instance = (
     await db
@@ -307,16 +303,16 @@ export async function authorizeOAuthInstance(
       .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>))
   ).at(0);
 
-  if (!instance) return err('Connector instance not found', 404);
+  if (!instance) throw new HTTPException(404, { message: 'Connector instance not found' });
 
   const definition = getConnectorDefinition(instance.connectorId);
   if (!definition || definition.authType !== 'oauth2') {
-    return err('Connector does not use OAuth2', 400);
+    throw new HTTPException(400, { message: 'Connector does not use OAuth2' });
   }
 
   const resolvedOAuthCredentials = await resolveOAuthCredentials(instance);
   if (!resolvedOAuthCredentials) {
-    return err('OAuth credentials not configured', 400);
+    throw new HTTPException(400, { message: 'OAuth credentials not configured' });
   }
 
   const config = definition.authConfig as OAuthConfig;
@@ -378,13 +374,13 @@ export async function authorizeOAuthInstance(
     }
   };
 
-  return ok({ authUrl, waitForTokens: tokenHandler });
+  return { authUrl, waitForTokens: tokenHandler };
 }
 
 export async function updateConnectorInstance(
   instanceId: string,
   updates: { label?: string; scopes?: string[] },
-): Promise<ServiceResult<ConnectorInstanceSafe>> {
+): Promise<ConnectorInstanceSafe> {
   const db = getDb();
   const existing = (
     await db
@@ -393,7 +389,7 @@ export async function updateConnectorInstance(
       .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>))
   ).at(0);
 
-  if (!existing) return err('Connector instance not found', 404);
+  if (!existing) throw new HTTPException(404, { message: 'Connector instance not found' });
 
   const setValues: Partial<typeof connectorInstances.$inferInsert> = { updatedAt: Date.now() };
   if (updates.label !== undefined) setValues['label'] = updates.label;
@@ -410,22 +406,22 @@ export async function updateConnectorInstance(
     .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
 
   const instance = row as ConnectorInstance;
-  return ok(toSafe(instance, getConnectorDefinition(instance.connectorId)));
+  return toSafe(instance, getConnectorDefinition(instance.connectorId));
 }
 
 export async function upgradeConnectorInstance(
   instanceId: string,
   input: { apiKey?: string },
   deps?: { startOAuthFlow?: typeof StartOAuthFlowFn },
-): Promise<ServiceResult<{ type: 'reauthorize'; authUrl: string } | { type: 'updated' }>> {
+): Promise<{ type: 'reauthorize'; authUrl: string } | { type: 'updated' }> {
   const db = getDb();
   const typedInstanceId = instanceId as PrefixedString<'conn'>;
   const instance = (await db.select().from(connectorInstances).where(eq(connectorInstances.id, typedInstanceId))).at(0);
 
-  if (!instance) return err('Connector instance not found', 404);
+  if (!instance) throw new HTTPException(404, { message: 'Connector instance not found' });
 
   const definition = getConnectorDefinition(instance.connectorId);
-  if (!definition) return err('Unknown connector type', 400);
+  if (!definition) throw new HTTPException(400, { message: 'Unknown connector type' });
 
   const appliedVersion = Number.isFinite(instance.appliedVersion) ? instance.appliedVersion : 1;
   const capabilities = Array.isArray(instance.capabilities) ? instance.capabilities : [];
@@ -433,7 +429,7 @@ export async function upgradeConnectorInstance(
   const upgrade = buildUpgradeState({ definition, appliedVersion, scopes: instance.scopes ?? null, capabilities });
 
   if (!upgrade) {
-    return err('Connector is already up to date', 400);
+    throw new HTTPException(400, { message: 'Connector is already up to date' });
   }
 
   const now = Date.now();
@@ -448,14 +444,14 @@ export async function upgradeConnectorInstance(
       })
       .where(eq(connectorInstances.id, typedInstanceId));
     internalBus.emit('connector.authorized', { instanceId, connectorId: instance.connectorId });
-    return ok({ type: 'updated' });
+    return { type: 'updated' };
   }
 
   const requiresApiKeyRotation = actions.includes('rotate_api_key');
   const requiresReauthorize = actions.includes('reauthorize');
 
   if (requiresApiKeyRotation && !input.apiKey?.trim()) {
-    return err('A new API key is required to upgrade this connector', 400);
+    throw new HTTPException(400, { message: 'A new API key is required to upgrade this connector' });
   }
 
   if (requiresApiKeyRotation && !requiresReauthorize) {
@@ -477,12 +473,14 @@ export async function upgradeConnectorInstance(
 
     internalBus.emit('connector.authorized', { instanceId, connectorId: instance.connectorId });
 
-    return ok({ type: 'updated' });
+    return { type: 'updated' };
   }
 
   if (requiresReauthorize) {
     if (definition.authType !== 'oauth2') {
-      return err('Connector upgrade requires reauthorization, but connector is not OAuth2', 400);
+      throw new HTTPException(400, {
+        message: 'Connector upgrade requires reauthorization, but connector is not OAuth2',
+      });
     }
 
     const currentScopes = instance.scopes ?? [];
@@ -507,15 +505,12 @@ export async function upgradeConnectorInstance(
 
     const config = definition.authConfig as OAuthConfig;
     const authScopes = config.incrementalAuth?.enabled ? upgrade.missingScopes : nextScopes;
-    const auth = await authorizeOAuthInstance(instanceId, deps, {
+    const authResult = await authorizeOAuthInstance(instanceId, deps, {
       scopes: authScopes.length > 0 ? authScopes : nextScopes,
       additionalParams: config.incrementalAuth?.params,
     });
-    if (auth.error) {
-      return auth;
-    }
 
-    const { waitForTokens } = auth.data;
+    const { waitForTokens } = authResult;
     void waitForTokens().catch((error) => {
       const message = Error.isError(error) ? error.message : String(error);
       log.warn(
@@ -523,13 +518,13 @@ export async function upgradeConnectorInstance(
         'connector upgrade reauthorization failed',
       );
     });
-    return ok({ type: 'reauthorize', authUrl: auth.data.authUrl });
+    return { type: 'reauthorize', authUrl: authResult.authUrl };
   }
 
-  return err('Unsupported upgrade action for connector', 400);
+  throw new HTTPException(400, { message: 'Unsupported upgrade action for connector' });
 }
 
-export async function deleteConnectorInstance(instanceId: string): Promise<ServiceResult<null>> {
+export async function deleteConnectorInstance(instanceId: string): Promise<void> {
   const db = getDb();
   const existing = (
     await db
@@ -538,7 +533,7 @@ export async function deleteConnectorInstance(instanceId: string): Promise<Servi
       .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>))
   ).at(0);
 
-  if (!existing) return err('Connector instance not found', 404);
+  if (!existing) throw new HTTPException(404, { message: 'Connector instance not found' });
 
   await db.delete(connectorInstances).where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
 
@@ -549,11 +544,9 @@ export async function deleteConnectorInstance(instanceId: string): Promise<Servi
   internalBus.emit('connector.removed', { instanceId, connectorId: existing.connectorId });
 
   log.info({ event: 'connector.deleted', instanceId }, `Connector instance deleted: ${existing.label}`);
-
-  return ok(null);
 }
 
-export async function testConnectorInstance(instanceId: string): Promise<ServiceResult<boolean>> {
+export async function testConnectorInstance(instanceId: string): Promise<boolean> {
   const db = getDb();
   const instance = (
     await db
@@ -562,10 +555,10 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
       .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>))
   ).at(0);
 
-  if (!instance) return err('Connector instance not found', 404);
+  if (!instance) throw new HTTPException(404, { message: 'Connector instance not found' });
 
   const definition = getConnectorDefinition(instance.connectorId);
-  if (!definition) return err('Unknown connector type', 400);
+  if (!definition) throw new HTTPException(400, { message: 'Unknown connector type' });
 
   try {
     // Proactively refresh an expiring/expired OAuth token before testing so the
@@ -609,18 +602,19 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
     const module = getConnectorModule(instance.connectorId);
     if (module?.hooks?.testConnection) {
       await module.hooks.testConnection({ instance: testedInstance, logger: log });
-      return ok(true);
+      return true;
     }
 
     if (definition.authType === 'oauth2' && testedInstance.accessToken) {
-      return ok(true);
+      return true;
     } else if (definition.authType === 'api_key') {
       const connector = (await db.select().from(connectors).where(eq(connectors.id, instance.connectorRefId))).at(0);
-      if (!connector?.apiKey) return err('Connector has no credentials to test', 400);
-      return err('Connector test is not supported for this connector type', 400);
+      if (!connector?.apiKey) throw new HTTPException(400, { message: 'Connector has no credentials to test' });
+      throw new HTTPException(400, { message: 'Connector test is not supported for this connector type' });
     }
-    return err('Connector has no credentials to test', 400);
+    throw new HTTPException(400, { message: 'Connector has no credentials to test' });
   } catch (e) {
+    if (e instanceof HTTPException) throw e;
     const message = Error.isError(e) ? e.message : String(e);
     const requiresReauth = requiresOAuthReauth(e);
     log.error({ event: 'connector.test.failed', instanceId, requiresReauth, error: message }, 'Connection test failed');
@@ -633,11 +627,10 @@ export async function testConnectorInstance(instanceId: string): Promise<Service
       internalBus.emit('connector.auth.failed', { instanceId });
     }
 
-    return err(
-      requiresReauth
+    throw new HTTPException(400, {
+      message: requiresReauth
         ? 'Connection test failed: Google requires reauthorization for this account.'
         : `Connection test failed: Temporary Google auth failure. ${message}`,
-      400,
-    );
+    });
   }
 }
