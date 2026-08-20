@@ -21,15 +21,8 @@ import type { Tool } from 'ai';
 
 const AGENDA_TOOLSET_ID = 'agenda';
 
-const dateFormattersCache = new Map<string, Intl.DateTimeFormat>();
-
 function getDateFormatter(timeZone: string): Intl.DateTimeFormat {
-  let formatter = dateFormattersCache.get(timeZone);
-  if (!formatter) {
-    formatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone });
-    dateFormattersCache.set(timeZone, formatter);
-  }
-  return formatter;
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone });
 }
 
 function parseDueDate(dateStr: string, timeZone: string): number | null {

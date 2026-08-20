@@ -34,38 +34,3 @@ export type ToolExecutionInput = {
 
 type ToolExecutor = (input: ToolExecutionInput) => Promise<unknown>;
 export type ToolMiddleware = (next: ToolExecutor) => ToolExecutor;
-
-type ToolRuntime = {
-  use: (middleware: ToolMiddleware) => ToolRuntime;
-  wrapTool: <T extends Tool>(name: string, tool: T, metadata?: RuntimeToolMetadata) => T;
-};
-
-function compose(middlewares: ToolMiddleware[], base: ToolExecutor): ToolExecutor {
-  return middlewares.reduceRight((next, middleware) => middleware(next), base);
-}
-
-export function createToolRuntime(context: ToolContext): ToolRuntime {
-  const middlewares: ToolMiddleware[] = [];
-
-  const runtime: ToolRuntime = {
-    use(middleware) {
-      middlewares.push(middleware);
-      return runtime;
-    },
-
-    wrapTool<T extends Tool>(name: string, tool: T, metadata: RuntimeToolMetadata = {}) {
-      const originalExecute: Tool['execute'] = tool.execute;
-      if (!originalExecute) return tool;
-
-      const executor = compose(middlewares, async (input) => originalExecute(input.args, input.executeOptions));
-
-      return {
-        ...tool,
-        execute: async (args: ToolInput, executeOptions: ToolExecuteOptions) =>
-          executor({ toolName: name, args, executeOptions, tool, context, metadata }),
-      } as T;
-    },
-  };
-
-  return runtime;
-}

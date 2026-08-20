@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 
-import { browserPrunePolicy } from '@/tools/toolsets/browser/prune-policy.js';
+import { findBrowserProtectOverrides } from '@/tools/toolsets/browser/prune-policy.js';
 
 function toolResult(toolName: string): StoredPart {
   return {
@@ -18,9 +18,9 @@ function toolResult(toolName: string): StoredPart {
   } as StoredPart;
 }
 
-describe('browserPrunePolicy', () => {
+describe('findBrowserProtectOverrides', () => {
   test('marks previous snapshots stale when a newer snapshot appears', () => {
-    const overrides = browserPrunePolicy.findProtectOverrides([
+    const overrides = findBrowserProtectOverrides([
       { id: 'msg_browser' as never, parts: [toolResult('browser_snapshot'), toolResult('browser_snapshot')] },
     ]);
 
@@ -29,7 +29,7 @@ describe('browserPrunePolicy', () => {
   });
 
   test('marks active snapshots stale after navigation', () => {
-    const overrides = browserPrunePolicy.findProtectOverrides([
+    const overrides = findBrowserProtectOverrides([
       {
         id: 'msg_browser' as never,
         parts: [toolResult('browser_snapshot'), toolResult('browser_navigate'), toolResult('browser_snapshot')],

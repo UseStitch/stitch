@@ -4,24 +4,23 @@ import fs from 'node:fs/promises';
 import { z } from 'zod';
 
 import { PATHS } from '@/lib/paths.js';
-import { resultNormalizationMiddleware, truncationMiddleware } from '@/tools/runtime/middleware.js';
-import { createToolRuntime } from '@/tools/runtime/runtime.js';
+import { wrapTool } from '@/tools/runtime/pipeline.js';
 
 const context = { sessionId: 'ses_test' as never, messageId: 'msg_test' as never, streamRunId: 'run_test' };
 
 describe('truncationMiddleware', () => {
   test('returns compact result when truncation is triggered', async () => {
     const largeOutput = 'big output\n'.repeat(300);
-    const wrapped = createToolRuntime(context)
-      .use(truncationMiddleware({ maxBytes: 120 }))
-      .wrapTool(
-        'test',
-        tool({
-          description: 'test tool',
-          inputSchema: z.object({}),
-          execute: async () => ({ output: largeOutput, title: 'kept title', attachment: 'x'.repeat(20_000) }),
-        }),
-      );
+    const wrapped = wrapTool(context, {
+      name: 'test',
+      displayName: 'test',
+      truncation: { maxBytes: 120 },
+      tool: tool({
+        description: 'test tool',
+        inputSchema: z.object({}),
+        execute: async () => ({ output: largeOutput, title: 'kept title', attachment: 'x'.repeat(20_000) }),
+      }),
+    });
 
     const result = await wrapped.execute?.({}, {} as never);
 
@@ -52,16 +51,15 @@ describe('truncationMiddleware', () => {
   });
 
   test('returns original result when truncation is not needed', async () => {
-    const wrapped = createToolRuntime(context)
-      .use(truncationMiddleware())
-      .wrapTool(
-        'test',
-        tool({
-          description: 'test tool',
-          inputSchema: z.object({}),
-          execute: async () => ({ output: 'small output' }),
-        }),
-      );
+    const wrapped = wrapTool(context, {
+      name: 'test',
+      displayName: 'test',
+      tool: tool({
+        description: 'test tool',
+        inputSchema: z.object({}),
+        execute: async () => ({ output: 'small output' }),
+      }),
+    });
 
     const result = await wrapped.execute?.({}, {} as never);
 
@@ -71,49 +69,49 @@ describe('truncationMiddleware', () => {
 
 describe('resultNormalizationMiddleware', () => {
   test('throws when tool returns an error-shaped result', async () => {
-    const wrapped = createToolRuntime(context)
-      .use(resultNormalizationMiddleware())
-      .wrapTool(
-        'test',
-        tool({ description: 'test tool', inputSchema: z.object({}), execute: async () => ({ error: 'boom' }) }),
-      );
+    const wrapped = wrapTool(context, {
+      name: 'test',
+      displayName: 'test',
+      tool: tool({ description: 'test tool', inputSchema: z.object({}), execute: async () => ({ error: 'boom' }) }),
+    });
 
     expect(wrapped.execute?.({}, {} as never)).rejects.toThrow('boom');
   });
 
   test('unwraps data result payloads', async () => {
-    const wrapped = createToolRuntime(context)
-      .use(resultNormalizationMiddleware())
-      .wrapTool(
-        'test',
-        tool({ description: 'test tool', inputSchema: z.object({}), execute: async () => ({ data: { ok: true } }) }),
-      );
+    const wrapped = wrapTool(context, {
+      name: 'test',
+      displayName: 'test',
+      tool: tool({
+        description: 'test tool',
+        inputSchema: z.object({}),
+        execute: async () => ({ data: { ok: true } }),
+      }),
+    });
 
     expect(wrapped.execute?.({}, {} as never)).resolves.toMatchObject({ ok: true });
   });
 
   test('preserves plain legacy results', async () => {
-    const wrapped = createToolRuntime(context)
-      .use(resultNormalizationMiddleware())
-      .wrapTool(
-        'test',
-        tool({ description: 'test tool', inputSchema: z.object({}), execute: async () => ({ output: 'hello' }) }),
-      );
+    const wrapped = wrapTool(context, {
+      name: 'test',
+      displayName: 'test',
+      tool: tool({ description: 'test tool', inputSchema: z.object({}), execute: async () => ({ output: 'hello' }) }),
+    });
 
     expect(wrapped.execute?.({}, {} as never)).resolves.toEqual({ output: 'hello' });
   });
 
   test('does not treat generic objects containing error as tool failures', async () => {
-    const wrapped = createToolRuntime(context)
-      .use(resultNormalizationMiddleware())
-      .wrapTool(
-        'test',
-        tool({
-          description: 'test tool',
-          inputSchema: z.object({}),
-          execute: async () => ({ error: 'non-fatal', matches: [], total: 0 }),
-        }),
-      );
+    const wrapped = wrapTool(context, {
+      name: 'test',
+      displayName: 'test',
+      tool: tool({
+        description: 'test tool',
+        inputSchema: z.object({}),
+        execute: async () => ({ error: 'non-fatal', matches: [], total: 0 }),
+      }),
+    });
 
     expect(wrapped.execute?.({}, {} as never)).resolves.toEqual({ error: 'non-fatal', matches: [], total: 0 });
   });

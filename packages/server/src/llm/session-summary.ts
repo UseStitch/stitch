@@ -25,7 +25,7 @@ import * as Models from '@/models/llm/registry.js';
 import type { LlmProviderCredentials } from '@/provider/config/schema.js';
 import { getSettings } from '@/settings/service.js';
 import { getSessionTodosPromptBlock } from '@/todos/service.js';
-import { browserPrunePolicy } from '@/tools/toolsets/browser/prune-policy.js';
+import { findBrowserProtectOverrides } from '@/tools/toolsets/browser/prune-policy.js';
 import { getToolset } from '@/tools/toolsets/registry.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
 import { estimate } from '@/utils/token.js';
@@ -72,7 +72,7 @@ async function prune(msgs: StoredMessage[]): Promise<number> {
   let pruned = 0;
   const toPrune: Array<{ messageId: PrefixedString<'msg'>; partIndex: number }> = [];
   let turns = 0;
-  const protectOverrides = browserPrunePolicy.findProtectOverrides(msgs);
+  const protectOverrides = findBrowserProtectOverrides(msgs);
 
   outer: for (let msgIndex = msgs.length - 1; msgIndex >= 0; msgIndex--) {
     const msg = msgs[msgIndex];

@@ -14,7 +14,7 @@ import { buildSkillsSystemPrompt } from '@/skills/service.js';
 import { createInspectImageTool } from '@/tools/core/inspect-image.js';
 import { createTaskTool } from '@/tools/core/task.js';
 import { createToolsetTools } from '@/tools/core/toolset-management.js';
-import { ToolPipeline } from '@/tools/runtime/pipeline.js';
+import { wrapTool } from '@/tools/runtime/pipeline.js';
 import { createTools } from '@/tools/runtime/registry.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { ToolsetManager } from '@/tools/toolsets/manager.js';
@@ -163,14 +163,11 @@ async function restoreToolsets(manager: ToolsetManager, toolsetIds: string[]): P
 }
 
 function buildToolsetMetaTools(toolContext: ToolContext, manager: ToolsetManager): Record<string, Tool> {
-  const pipeline = ToolPipeline.create(toolContext);
-  return pipeline.registerAll(
-    Object.entries(createToolsetTools(manager, toolContext.sessionId)).map(([name, tool]) => ({
+  return Object.fromEntries(
+    Object.entries(createToolsetTools(manager, toolContext.sessionId)).map(([name, tool]) => [
       name,
-      displayName: name,
-      tool,
-      source: 'meta' as const,
-    })),
+      wrapTool(toolContext, { name, displayName: name, tool, source: 'meta' }),
+    ]),
   );
 }
 
@@ -182,8 +179,7 @@ function buildTaskTool(
   const canUseTaskTool = opts.allowTaskTool ?? true;
   if (!canUseTaskTool) return null;
 
-  const pipeline = ToolPipeline.create(toolContext);
-  return pipeline.register({
+  return wrapTool(toolContext, {
     name: 'task',
     displayName: 'Task',
     tool: createTaskTool(toolContext, {
@@ -199,8 +195,7 @@ function buildTaskTool(
 }
 
 function buildInspectImageTool(toolContext: ToolContext, opts: SessionContextOptions): Tool {
-  const pipeline = ToolPipeline.create(toolContext);
-  return pipeline.register({
+  return wrapTool(toolContext, {
     name: 'inspect_image',
     displayName: 'Inspect Image',
     tool: createInspectImageTool(toolContext, {

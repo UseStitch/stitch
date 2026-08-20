@@ -9,7 +9,7 @@ import type { McpServerLiveInfo, McpServerPresentation } from '@/mcp/presentatio
 import { findMcpRegistryServerForInstall } from '@/mcp/registry-service.js';
 import { fetchMcpTools, getMcpServersWithCachedTools } from '@/mcp/service.js';
 import type { McpServerWithTools } from '@/mcp/service.js';
-import { ToolPipeline } from '@/tools/runtime/pipeline.js';
+import { wrapTool } from '@/tools/runtime/pipeline.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import { getToolset, listToolsets, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset, ToolsetPrompt } from '@/tools/toolsets/types.js';
@@ -40,11 +40,10 @@ const DEFAULT_DEPS: McpToolExecutorDeps = {
 async function getToolsForServer(server: McpServerWithTools, context: ToolContext): Promise<Record<string, Tool>> {
   const rawTools = await listMcpAiTools(server, context.sessionId);
 
-  const pipeline = ToolPipeline.create(context);
   const prefixed: Record<string, Tool> = {};
   for (const [toolName, toolDef] of Object.entries(rawTools)) {
     const prefixedName = formatMcpToolName(server.id, toolName);
-    prefixed[prefixedName] = pipeline.register({
+    prefixed[prefixedName] = wrapTool(context, {
       name: prefixedName,
       displayName: prefixedName,
       tool: toolDef,

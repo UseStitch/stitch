@@ -2,40 +2,36 @@ import { tool } from 'ai';
 import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 
-import { createToolRuntime } from '@/tools/runtime/runtime.js';
-import type { ToolMiddleware } from '@/tools/runtime/runtime.js';
+import { wrapTool } from '@/tools/runtime/pipeline.js';
 
 const context = { sessionId: 'ses_test' as never, messageId: 'msg_test' as never, streamRunId: 'run_test' };
 
-describe('tool runtime', () => {
-  test('executes middleware in declaration order', async () => {
-    const events: string[] = [];
-    const middleware =
-      (name: string): ToolMiddleware =>
-      (next) =>
-      async (input) => {
-        events.push(`${name}:before`);
-        const result = await next(input);
-        events.push(`${name}:after`);
-        return result;
-      };
+describe('wrapTool', () => {
+  test('wraps and executes tool with metadata and context', async () => {
+    let capturedArgs: unknown = null;
+    const wrapped = wrapTool(context, {
+      name: 'example',
+      displayName: 'Example Tool',
+      tool: tool({
+        description: 'example tool',
+        inputSchema: z.object({ value: z.string() }),
+        execute: async (args) => {
+          capturedArgs = args;
+          return { data: { success: true } };
+        },
+      }),
+    });
 
-    const wrapped = createToolRuntime(context)
-      .use(middleware('a'))
-      .use(middleware('b'))
-      .wrapTool(
-        'example',
-        tool({
-          description: 'example tool',
-          inputSchema: z.object({}),
-          execute: async () => {
-            events.push('execute');
-            return { ok: true };
-          },
-        }),
-      );
+    const result = await wrapped.execute?.({ value: 'hello' }, {} as never);
+    expect(capturedArgs).toEqual({ value: 'hello' });
+    expect(result).toEqual({ success: true });
+  });
 
-    expect(wrapped.execute?.({}, {} as never)).resolves.toEqual({ ok: true });
-    expect(events).toEqual(['a:before', 'b:before', 'execute', 'b:after', 'a:after']);
+  test('returns tool unmodified if tool has no execute function', () => {
+    const rawTool = tool({ description: 'no execute tool', inputSchema: z.object({}) });
+
+    const wrapped = wrapTool(context, { name: 'no_execute', displayName: 'No Execute', tool: rawTool });
+
+    expect(wrapped.execute).toBeUndefined();
   });
 });

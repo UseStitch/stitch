@@ -2,7 +2,7 @@ import type { ToolType } from '@stitch/shared/tools/types';
 
 import { CORE_TOOL_CATALOG } from '@/tools/core/catalog.js';
 import { getDisabledToolIdentifiers } from '@/tools/enabled-service.js';
-import { ToolPipeline, type ToolDefinition } from '@/tools/runtime/pipeline.js';
+import { wrapTool, type ToolDefinition } from '@/tools/runtime/pipeline.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 
 export const MAX_STEPS = 25;
@@ -35,6 +35,5 @@ export async function createTools(context: ToolContext) {
     definitions.push(entry.create(context));
   }
 
-  const pipeline = ToolPipeline.create(context);
-  return pipeline.registerAll(definitions);
+  return Object.fromEntries(definitions.map((def) => [def.name, wrapTool(context, def)]));
 }
