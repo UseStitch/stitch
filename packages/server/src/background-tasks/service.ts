@@ -47,32 +47,17 @@ type StartBackgroundTaskInput = {
   activeToolsetIds: string[];
   llmMessages: ModelMessage[];
   run: typeof runStream;
-  scheduleResult?: (parentSessionId: PrefixedString<'ses'>) => void | Promise<void>;
-};
-
-type BackgroundTaskServiceDependencies = {
-  registerAbort: typeof AbortRegistry.register;
-  cleanupAbort: typeof AbortRegistry.cleanup;
-};
-
-const defaultDependencies: BackgroundTaskServiceDependencies = {
-  registerAbort: AbortRegistry.register,
-  cleanupAbort: AbortRegistry.cleanup,
 };
 
 async function scheduleResult(input: StartBackgroundTaskInput): Promise<void> {
   try {
-    await Promise.resolve((input.scheduleResult ?? scheduleBackgroundTaskResult)(input.parentSessionId));
+    await Promise.resolve(scheduleBackgroundTaskResult(input.parentSessionId));
   } catch (error) {
     log.error({ event: 'background_task.delivery.failed', taskId: input.taskId, error }, 'result scheduling failed');
   }
 }
 
-async function executeBackgroundTask(
-  input: StartBackgroundTaskInput,
-  abortSignal: AbortSignal,
-  deps: BackgroundTaskServiceDependencies,
-): Promise<void> {
+async function executeBackgroundTask(input: StartBackgroundTaskInput, abortSignal: AbortSignal): Promise<void> {
   try {
     await input.run({
       sessionId: input.childSessionId,
@@ -108,7 +93,7 @@ async function executeBackgroundTask(
     internalBus.emit('background-task.failed', { task: settled });
     await scheduleResult(input);
   } finally {
-    deps.cleanupAbort(input.childSessionId);
+    AbortRegistry.cleanup(input.childSessionId);
   }
 }
 
@@ -153,10 +138,7 @@ export async function shutdownBackgroundTaskService(): Promise<void> {
   await Promise.all(executions);
 }
 
-export async function startBackgroundTask(
-  input: StartBackgroundTaskInput,
-  dependencies: BackgroundTaskServiceDependencies = defaultDependencies,
-): Promise<void> {
+export async function startBackgroundTask(input: StartBackgroundTaskInput): Promise<void> {
   if (!isAcceptingTasks()) throw new Error('Background task service is shutting down');
 
   pendingStarts++;
@@ -179,8 +161,8 @@ export async function startBackgroundTask(
     }
 
     internalBus.emit('background-task.started', { task });
-    const abortSignal = dependencies.registerAbort(input.childSessionId);
-    const execution = executeBackgroundTask(input, abortSignal, dependencies)
+    const abortSignal = AbortRegistry.register(input.childSessionId);
+    const execution = executeBackgroundTask(input, abortSignal)
       .catch((error) => {
         log.error(
           { event: 'background_task.execution.unhandled', taskId: input.taskId, error },

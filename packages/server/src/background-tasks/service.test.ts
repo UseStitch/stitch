@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, test } from 'bun:test';
+import { afterAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { getBackgroundTask, insertBackgroundTask } from '@/background-tasks/repository.js';
+import * as resultDelivery from '@/background-tasks/result-delivery.js';
 import {
   cancelBackgroundTask,
   initializeBackgroundTaskService,
@@ -19,8 +20,16 @@ import type { LlmProviderCredentials } from '@/provider/config/schema.js';
 
 setupTestDb();
 
+const scheduleBackgroundTaskResult = spyOn(resultDelivery, 'scheduleBackgroundTaskResult');
+
 beforeEach(async () => {
+  scheduleBackgroundTaskResult.mockClear();
+  scheduleBackgroundTaskResult.mockImplementation(() => undefined);
   await initializeBackgroundTaskService();
+});
+
+afterAll(() => {
+  scheduleBackgroundTaskResult.mockRestore();
 });
 
 const parentSessionId = 'ses_service_parent' as PrefixedString<'ses'>;
@@ -53,10 +62,7 @@ async function setupSessions(): Promise<void> {
     });
 }
 
-function input(
-  run: Parameters<typeof startBackgroundTask>[0]['run'],
-  scheduleResult?: (parentId: PrefixedString<'ses'>) => void | Promise<void>,
-) {
+function input(run: Parameters<typeof startBackgroundTask>[0]['run']) {
   return {
     taskId: childSessionId,
     parentSessionId,
@@ -71,7 +77,6 @@ function input(
     activeToolsetIds: ['github'],
     llmMessages: [],
     run,
-    scheduleResult,
   };
 }
 
@@ -80,45 +85,38 @@ describe('background task service', () => {
     await setupSessions();
     const streamGate = Promise.withResolvers<void>();
     const completedEvent = Promise.withResolvers<void>();
-    const scheduled: PrefixedString<'ses'>[] = [];
     const unsubscribe = internalBus.on('background-task.completed', async ({ task }) => {
       expect((await getBackgroundTask(task.id))?.status).toBe('completed');
       completedEvent.resolve();
     });
 
     await startBackgroundTask(
-      input(
-        async () => {
-          await streamGate.promise;
-          const now = Date.now();
-          const part: StoredPart = {
-            type: 'text-delta',
-            id: 'prt_service_result',
-            text: 'child result',
+      input(async () => {
+        await streamGate.promise;
+        const now = Date.now();
+        const part: StoredPart = {
+          type: 'text-delta',
+          id: 'prt_service_result',
+          text: 'child result',
+          startedAt: now,
+          endedAt: now,
+        };
+        await getDb()
+          .insert(messages)
+          .values({
+            id: assistantMessageId,
+            sessionId: childSessionId,
+            role: 'assistant',
+            parts: [part],
+            modelId: 'model',
+            providerId: 'openai',
+            costUsd: 0,
+            createdAt: now,
+            updatedAt: now,
             startedAt: now,
-            endedAt: now,
-          };
-          await getDb()
-            .insert(messages)
-            .values({
-              id: assistantMessageId,
-              sessionId: childSessionId,
-              role: 'assistant',
-              parts: [part],
-              modelId: 'model',
-              providerId: 'openai',
-              costUsd: 0,
-              createdAt: now,
-              updatedAt: now,
-              startedAt: now,
-              duration: 0,
-            });
-        },
-        (parentId) => {
-          scheduled.push(parentId);
-        },
-      ),
-      { registerAbort: () => new AbortController().signal, cleanupAbort: () => undefined },
+            duration: 0,
+          });
+      }),
     );
 
     expect((await getBackgroundTask(childSessionId))?.status).toBe('running');
@@ -127,73 +125,50 @@ describe('background task service', () => {
     unsubscribe();
 
     expect((await getBackgroundTask(childSessionId))?.result).toBe('child result');
-    expect(scheduled).toEqual([parentSessionId]);
+    expect(scheduleBackgroundTaskResult).toHaveBeenCalledWith(parentSessionId);
   });
 
   test('cancellation remains terminal when detached execution finishes later', async () => {
     await setupSessions();
     const streamGate = Promise.withResolvers<void>();
-    const scheduled: PrefixedString<'ses'>[] = [];
 
-    await startBackgroundTask(
-      input(
-        async () => streamGate.promise,
-        (parentId) => {
-          scheduled.push(parentId);
-        },
-      ),
-      { registerAbort: () => new AbortController().signal, cleanupAbort: () => undefined },
-    );
+    await startBackgroundTask(input(async () => streamGate.promise));
     const cancelled = await cancelBackgroundTask(childSessionId);
     streamGate.resolve();
     await Bun.sleep(0);
 
     expect(cancelled?.status).toBe('cancelled');
     expect((await getBackgroundTask(childSessionId))?.status).toBe('cancelled');
-    expect(scheduled).toEqual([]);
+    expect(scheduleBackgroundTaskResult).not.toHaveBeenCalled();
   });
 
   test('persists a stream failure before emitting the failed event', async () => {
     await setupSessions();
     const failedEvent = Promise.withResolvers<void>();
-    const scheduled: PrefixedString<'ses'>[] = [];
     const unsubscribe = internalBus.on('background-task.failed', async ({ task }) => {
       expect((await getBackgroundTask(task.id))?.error).toBe('stream failed');
       failedEvent.resolve();
     });
 
     await startBackgroundTask(
-      input(
-        async () => {
-          throw new Error('stream failed');
-        },
-        (parentId) => {
-          scheduled.push(parentId);
-        },
-      ),
-      { registerAbort: () => new AbortController().signal, cleanupAbort: () => undefined },
+      input(async () => {
+        throw new Error('stream failed');
+      }),
     );
     await failedEvent.promise;
     unsubscribe();
 
     expect((await getBackgroundTask(childSessionId))?.status).toBe('error');
-    expect(scheduled).toEqual([parentSessionId]);
+    expect(scheduleBackgroundTaskResult).toHaveBeenCalledWith(parentSessionId);
   });
 
   test('keeps a completed task settled when result scheduling fails asynchronously', async () => {
     await setupSessions();
     const completedEvent = Promise.withResolvers<void>();
     const unsubscribe = internalBus.on('background-task.completed', async () => completedEvent.resolve());
+    scheduleBackgroundTaskResult.mockImplementation(() => Promise.reject(new Error('delivery unavailable')));
 
-    await startBackgroundTask(
-      input(
-        async () => undefined,
-        async () => {
-          throw new Error('delivery unavailable');
-        },
-      ),
-      { registerAbort: () => new AbortController().signal, cleanupAbort: () => undefined },
-    );
+    await startBackgroundTask(input(async () => undefined));
     await completedEvent.promise;
     await Bun.sleep(0);
     unsubscribe();
@@ -240,10 +215,7 @@ describe('background task service', () => {
     expect(await getBackgroundTask(childSessionId)).toBeNull();
 
     await initializeBackgroundTaskService();
-    await startBackgroundTask(
-      input(async () => undefined),
-      { registerAbort: () => new AbortController().signal, cleanupAbort: () => undefined },
-    );
+    await startBackgroundTask(input(async () => undefined));
     await Bun.sleep(0);
     expect((await getBackgroundTask(childSessionId))?.status).toBe('completed');
   });

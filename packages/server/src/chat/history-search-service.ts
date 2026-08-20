@@ -133,8 +133,6 @@ export async function searchSessionHistory(
   }
 
   const sessionIds = sessionRows.map((row) => row.id);
-  const roleCondition =
-    input.roleFilter === 'all' ? undefined : eq(messages.role, input.roleFilter === 'user' ? 'user' : 'assistant');
 
   const messageRows = await db
     .select({
@@ -146,9 +144,10 @@ export async function searchSessionHistory(
     })
     .from(messages)
     .where(
-      roleCondition
-        ? and(inArray(messages.sessionId, sessionIds), roleCondition)
-        : inArray(messages.sessionId, sessionIds),
+      and(
+        inArray(messages.sessionId, sessionIds),
+        input.roleFilter === 'all' ? undefined : eq(messages.role, input.roleFilter),
+      ),
     )
     .orderBy(desc(messages.createdAt));
 

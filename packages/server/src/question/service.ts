@@ -213,14 +213,12 @@ export async function abortQuestions(sessionId: PrefixedString<'ses'>): Promise<
   });
   const streamRunIds = new Map(aborted.map((entry) => [entry.id, entry.streamRunId]));
 
-  await Promise.all(
-    pendingRows.map(async (q) => {
-      const streamRunId = streamRunIds.get(q.id);
-      internalBus.emit('question.rejected', { questionId: q.id, sessionId });
+  for (const q of pendingRows) {
+    const streamRunId = streamRunIds.get(q.id);
+    internalBus.emit('question.rejected', { questionId: q.id, sessionId });
 
-      log.info({ event: 'stream.question.aborted', streamRunId, sessionId, questionId: q.id }, 'question aborted');
-    }),
-  );
+    log.info({ event: 'stream.question.aborted', streamRunId, sessionId, questionId: q.id }, 'question aborted');
+  }
 
   log.info({ sessionId, count: pendingRows.length }, 'aborted pending questions');
 }

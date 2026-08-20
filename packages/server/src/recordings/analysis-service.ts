@@ -24,7 +24,6 @@ import { readRecordingAnalysis, readRecordingTranscript, writeRecordingAnalysis 
 import { getMeetingNoteTemplate } from '@/recordings/meeting-note-templates.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
 import { ZERO_USAGE } from '@/utils/usage.js';
-import type { LanguageModel } from 'ai';
 
 const log = Log.create({ service: 'recordings-analysis' });
 
@@ -35,13 +34,6 @@ const ANALYSIS_PROMPT_TEMPLATE = readFileSync(
   ),
   'utf8',
 ).trim();
-
-type AnalysisDeps = {
-  resolveModel: typeof resolveModel;
-  createProvider: (credentials: LlmProviderCredentials) => (modelId: string) => LanguageModel;
-};
-
-const defaultDeps: AnalysisDeps = { resolveModel, createProvider };
 
 type ActiveRun = { controller: AbortController; preserveExistingUntilComplete: boolean };
 
@@ -111,7 +103,6 @@ export async function getRecordingAnalysis(recordingId: PrefixedString<'rec'>): 
 export async function startRecordingAnalysis(
   recordingId: PrefixedString<'rec'>,
   input: { force?: boolean; templateId: PrefixedString<'mnt'> },
-  deps: AnalysisDeps = defaultDeps,
 ): Promise<StartRecordingAnalysisResponse> {
   const db = getDb();
 
@@ -138,7 +129,7 @@ export async function startRecordingAnalysis(
     throw new HTTPException(400, { message: 'No transcript available for this recording' });
   }
 
-  const analysisModel = await deps.resolveModel({
+  const analysisModel = await resolveModel({
     providerIdKey: 'recordings.analysis.providerId',
     modelIdKey: 'recordings.analysis.modelId',
   });
@@ -179,20 +170,16 @@ export async function startRecordingAnalysis(
 
   internalBus.emit('recording.analysis.updated', { recordingId, status: 'pending', title: null });
 
-  void runRecordingAnalysis(
-    id,
-    {
-      recordingId,
-      transcript,
-      templateId: input.templateId,
-      templateContent: templateResult.template.content,
-      analysisProviderId: analysisModel.providerId,
-      analysisModelId: analysisModel.modelId,
-      analysisCredentials: analysisModel.credentials,
-      preserveExistingUntilComplete,
-    },
-    deps,
-  );
+  void runRecordingAnalysis(id, {
+    recordingId,
+    transcript,
+    templateId: input.templateId,
+    templateContent: templateResult.template.content,
+    analysisProviderId: analysisModel.providerId,
+    analysisModelId: analysisModel.modelId,
+    analysisCredentials: analysisModel.credentials,
+    preserveExistingUntilComplete,
+  });
 
   const created = (await db.select().from(recordingAnalyses).where(eq(recordingAnalyses.id, id))).at(0);
   if (!created) {
@@ -271,7 +258,6 @@ async function runRecordingAnalysis(
     analysisCredentials: LlmProviderCredentials;
     preserveExistingUntilComplete: boolean;
   },
-  deps: AnalysisDeps,
 ): Promise<void> {
   const db = getDb();
   const startedAt = Date.now();
@@ -295,7 +281,7 @@ async function runRecordingAnalysis(
       title: null,
     });
 
-    const analysisModel = deps.createProvider(input.analysisCredentials)(input.analysisModelId);
+    const analysisModel = createProvider(input.analysisCredentials)(input.analysisModelId);
     const analysisStart = Date.now();
     const analysisResult = await generateText({
       model: analysisModel,
