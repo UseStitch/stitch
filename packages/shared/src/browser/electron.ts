@@ -85,7 +85,7 @@ export type ElectronBrowserCommand =
   | { action: 'dialogState' }
   | { action: 'handleDialog'; dialogAction: 'accept' | 'dismiss'; promptText?: string };
 
-export type ElectronBrowserScreenshotResult = { data: string; format: 'png' | 'jpeg' };
+type ElectronBrowserScreenshotResult = { data: string; format: 'png' | 'jpeg' };
 
 type ElectronBrowserSearchPageMatch = { match: string; context: string; index: number };
 

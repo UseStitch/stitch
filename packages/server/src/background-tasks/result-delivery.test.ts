@@ -1,60 +1,68 @@
-import { describe, expect, test } from 'bun:test';
+import { afterAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { asc, eq } from 'drizzle-orm';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
 
-import {
-  claimPendingBackgroundTasks,
-  completeBackgroundTask,
-  getBackgroundTask,
-  insertBackgroundTask,
-  markBackgroundTaskClaimsDelivered,
-  releaseBackgroundTaskClaims,
-} from '@/background-tasks/repository.js';
-import {
-  scheduleBackgroundTaskResult,
-  type ResultDeliveryDependencies,
-} from '@/background-tasks/result-delivery.js';
+import { completeBackgroundTask, getBackgroundTask, insertBackgroundTask } from '@/background-tasks/repository.js';
+import { scheduleBackgroundTaskResult } from '@/background-tasks/result-delivery.js';
 import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
 import { setupTestDb } from '@/db/test-helpers.js';
+import * as resolveModel from '@/llm/resolve-model.js';
+import * as sessionHistory from '@/llm/session-history.js';
+import * as streamRunner from '@/llm/stream/runner.js';
 import { enqueueSessionRun } from '@/llm/stream/session-run-coordinator.js';
 import type { LlmProviderCredentials } from '@/provider/config/schema.js';
+import * as providerConfig from '@/provider/config/service.js';
 import type { ModelMessage } from 'ai';
 
 setupTestDb();
 
 const parentSessionId = 'ses_delivery_parent' as PrefixedString<'ses'>;
-const credentials = {
-  providerId: 'openai',
-  auth: { method: 'api-key', apiKey: 'test' },
-} as LlmProviderCredentials;
+const credentials = { providerId: 'openai', auth: { method: 'api-key', apiKey: 'test' } } as LlmProviderCredentials;
+
+const validateProviderModel = spyOn(resolveModel, 'validateProviderModel');
+const getProviderCredentials = spyOn(providerConfig, 'getProviderCredentials');
+const buildSessionLlmMessages = spyOn(sessionHistory, 'buildSessionLlmMessages');
+const runStream = spyOn(streamRunner, 'runStream');
+
+beforeEach(() => {
+  validateProviderModel.mockImplementation(async () => undefined);
+  getProviderCredentials.mockImplementation(async () => credentials);
+  buildSessionLlmMessages.mockImplementation(async () => []);
+  runStream.mockImplementation(async () => undefined);
+});
+
+afterAll(() => {
+  validateProviderModel.mockRestore();
+  getProviderCredentials.mockRestore();
+  buildSessionLlmMessages.mockRestore();
+  runStream.mockRestore();
+});
 
 async function insertCompletedTask(suffix: string, result = `result ${suffix}`): Promise<PrefixedString<'ses'>> {
   const childSessionId = `ses_delivery_child_${suffix}` as PrefixedString<'ses'>;
   const originMessageId = `msg_delivery_origin_${suffix}` as PrefixedString<'msg'>;
   const now = Date.now();
-  await getDb().insert(sessions).values({
-    id: childSessionId,
-    title: suffix,
-    parentSessionId,
-    createdAt: now,
-    updatedAt: now,
-  });
-  await getDb().insert(messages).values({
-    id: originMessageId,
-    sessionId: parentSessionId,
-    role: 'assistant',
-    parts: [],
-    modelId: 'model',
-    providerId: 'openai',
-    costUsd: 0,
-    createdAt: now,
-    updatedAt: now,
-    startedAt: now,
-    duration: 0,
-  });
+  await getDb()
+    .insert(sessions)
+    .values({ id: childSessionId, title: suffix, parentSessionId, createdAt: now, updatedAt: now });
+  await getDb()
+    .insert(messages)
+    .values({
+      id: originMessageId,
+      sessionId: parentSessionId,
+      role: 'assistant',
+      parts: [],
+      modelId: 'model',
+      providerId: 'openai',
+      costUsd: 0,
+      createdAt: now,
+      updatedAt: now,
+      startedAt: now,
+      duration: 0,
+    });
   await insertBackgroundTask({
     id: childSessionId,
     parentSessionId,
@@ -73,23 +81,6 @@ async function insertCompletedTask(suffix: string, result = `result ${suffix}`):
 async function setupParent(): Promise<void> {
   const now = Date.now();
   await getDb().insert(sessions).values({ id: parentSessionId, title: 'Parent', createdAt: now, updatedAt: now });
-}
-
-function dependencies(overrides: Partial<ResultDeliveryDependencies> = {}): ResultDeliveryDependencies {
-  let messageCounter = 0;
-  return {
-    claim: async () => [],
-    markDelivered: async () => undefined,
-    release: async () => undefined,
-    loadCredentials: async () => credentials,
-    insertMessage: async () => undefined,
-    buildHistory: async () => [],
-    run: async () => undefined,
-    enqueue: enqueueSessionRun,
-    createMessageId: () => `msg_delivery_generated_${messageCounter++}` as PrefixedString<'msg'>,
-    createPartId: () => 'prt_delivery_result' as PrefixedString<'prt'>,
-    ...overrides,
-  };
 }
 
 async function storedMessages(): Promise<Array<{ id: PrefixedString<'msg'>; parts: StoredPart[] }>> {
@@ -114,47 +105,27 @@ describe('background task result delivery', () => {
     await busyStarted.promise;
 
     let historyMessageIds: string[] = [];
-    const deps = dependencies({
-      claim: async (parentId, messageId) => {
-        return claimPendingBackgroundTasks(parentId, messageId);
-      },
-      markDelivered: async (messageId) => {
-        await markBackgroundTaskClaimsDelivered(messageId);
-      },
-      release: async (messageId) => {
-        await releaseBackgroundTaskClaims(messageId);
-      },
-      insertMessage: async (input) => {
-        const now = Date.now();
-        await getDb().insert(messages).values({
-          id: input.messageId,
-          sessionId: input.parentSessionId,
-          role: 'user',
-          parts: input.parts,
-          modelId: input.modelId,
-          providerId: input.providerId,
-          costUsd: 0,
-          createdAt: now,
-          updatedAt: now,
-          startedAt: now,
-          duration: 0,
-        });
-      },
-      buildHistory: async () => {
-        historyMessageIds = (await storedMessages()).map((message) => message.id);
-        return [{ role: 'user', content: 'rebuilt' }] as ModelMessage[];
-      },
-      run: async () => delivered.resolve(),
+    buildSessionLlmMessages.mockImplementation(async () => {
+      historyMessageIds = (await storedMessages()).map((message) => message.id);
+      return [{ role: 'user', content: 'rebuilt' }] as ModelMessage[];
+    });
+    runStream.mockImplementation(async () => {
+      delivered.resolve();
+      return undefined;
     });
 
-    scheduleBackgroundTaskResult(parentSessionId, deps);
+    scheduleBackgroundTaskResult(parentSessionId);
     await Bun.sleep(0);
     expect((await getBackgroundTask(taskId))?.deliveryStatus).toBe('pending');
 
     busy.resolve();
     await delivered.promise;
     expect((await getBackgroundTask(taskId))?.deliveryStatus).toBe('delivered');
-    expect(historyMessageIds).toContain('msg_delivery_generated_0');
+    const synthetic = (await storedMessages()).find((message) =>
+      message.parts.some((part) => part.type === 'background-task-result'),
+    );
+    expect(synthetic).toBeDefined();
+    if (synthetic) expect(historyMessageIds).toContain(synthetic.id);
   });
 
   test('coalesces pending results and duplicate schedules into one message and wake-up', async () => {
@@ -164,38 +135,14 @@ describe('background task result delivery', () => {
     const woke = Promise.withResolvers<void>();
     let wakeUps = 0;
 
-    const base = dependencies({
-      claim: claimPendingBackgroundTasks,
-      markDelivered: markBackgroundTaskClaimsDelivered,
-      release: releaseBackgroundTaskClaims,
-      insertMessage: async (input) => {
-        const now = Date.now();
-        await getDb()
-          .insert(messages)
-          .values({
-            id: input.messageId,
-            sessionId: input.parentSessionId,
-            role: 'user',
-            parts: input.parts,
-            modelId: input.modelId,
-            providerId: input.providerId,
-            costUsd: 0,
-            createdAt: now,
-            updatedAt: now,
-            startedAt: now,
-            duration: 0,
-          })
-          .onConflictDoNothing();
-      },
-      buildHistory: async () => [{ role: 'user', content: 'rebuilt' }],
-      run: async () => {
-        wakeUps++;
-        woke.resolve();
-      },
+    buildSessionLlmMessages.mockImplementation(async () => [{ role: 'user', content: 'rebuilt' }]);
+    runStream.mockImplementation(async () => {
+      wakeUps++;
+      woke.resolve();
     });
 
-    scheduleBackgroundTaskResult(parentSessionId, base);
-    scheduleBackgroundTaskResult(parentSessionId, base);
+    scheduleBackgroundTaskResult(parentSessionId);
+    scheduleBackgroundTaskResult(parentSessionId);
     await woke.promise;
     await Bun.sleep(0);
 
@@ -213,24 +160,19 @@ describe('background task result delivery', () => {
     const taskId = await insertCompletedTask('setup-failure');
     const failed = Promise.withResolvers<void>();
 
-    scheduleBackgroundTaskResult(
-      parentSessionId,
-      dependencies({
-        claim: claimPendingBackgroundTasks,
-        markDelivered: markBackgroundTaskClaimsDelivered,
-        release: async (messageId) => {
-          await releaseBackgroundTaskClaims(messageId);
-          failed.resolve();
-        },
-        loadCredentials: async () => {
-          throw new Error('Provider missing');
-        },
-      }),
-    );
+    getProviderCredentials.mockImplementation(async () => {
+      failed.resolve();
+      throw new Error('Provider missing');
+    });
+
+    scheduleBackgroundTaskResult(parentSessionId);
     await failed.promise;
+    await Bun.sleep(0);
 
     expect((await getBackgroundTask(taskId))?.deliveryStatus).toBe('pending');
-    expect((await storedMessages()).some((message) => message.parts.some((part) => part.type === 'background-task-result'))).toBe(false);
+    expect(
+      (await storedMessages()).some((message) => message.parts.some((part) => part.type === 'background-task-result')),
+    ).toBe(false);
   });
 
   test('stops safely if the parent is deleted before queued delivery starts', async () => {
@@ -245,15 +187,10 @@ describe('background task result delivery', () => {
     await started.promise;
 
     let wakeUps = 0;
-    scheduleBackgroundTaskResult(
-      parentSessionId,
-      dependencies({
-        claim: claimPendingBackgroundTasks,
-        run: async () => {
-          wakeUps++;
-        },
-      }),
-    );
+    runStream.mockImplementation(async () => {
+      wakeUps++;
+    });
+    scheduleBackgroundTaskResult(parentSessionId);
     await getDb().delete(sessions).where(eq(sessions.parentSessionId, parentSessionId));
     await getDb().delete(sessions).where(eq(sessions.id, parentSessionId));
     gate.resolve();

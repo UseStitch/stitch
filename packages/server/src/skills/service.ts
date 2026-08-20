@@ -75,6 +75,15 @@ const downloadResponseSchema = z.object({
 const SKILLS_API_BASE = 'https://skills.sh';
 const FETCH_TIMEOUT_MS = 10_000;
 
+function toSkill(input: Omit<Skill, 'location'>): Skill {
+  return {
+    ...input,
+    description: input.description.trim(),
+    content: input.content.trim(),
+    location: getSkillMdPath(input.name),
+  };
+}
+
 async function readSkillFromDisk(name: string, type: SkillType, enabled: boolean): Promise<Skill | null> {
   const markdown = await readSkillMdFile(name);
   if (!markdown) return null;
@@ -85,15 +94,7 @@ async function readSkillFromDisk(name: string, type: SkillType, enabled: boolean
   const skillDir = getSkillDir(name);
   const files = await listSkillFiles(skillDir);
 
-  return {
-    name: parsed.name,
-    type,
-    enabled,
-    description: parsed.description,
-    content: parsed.content,
-    location: getSkillMdPath(name),
-    files,
-  };
+  return toSkill({ name: parsed.name, type, enabled, description: parsed.description, content: parsed.content, files });
 }
 
 export async function listSkills(): Promise<Skill[]> {
@@ -148,15 +149,14 @@ export async function createSkill(input: SkillCreateInput): Promise<Skill> {
 
   await writeSkillMdFile(value.name, buildSkillMd(value));
 
-  const skill = {
+  const skill = toSkill({
     name: value.name,
     type: 'custom' as const,
     enabled: true,
-    description: value.description.trim(),
-    content: value.content.trim(),
-    location: getSkillMdPath(value.name),
+    description: value.description,
+    content: value.content,
     files: [],
-  };
+  });
 
   await setSkillType(skill.name, skill.type);
 
@@ -215,15 +215,14 @@ export async function updateSkill(name: string, input: SkillUpdateInput): Promis
   const targetDir = getSkillDir(value.name);
   const files = await listSkillFiles(targetDir);
 
-  const skill = {
+  const skill = toSkill({
     name: value.name,
     type,
     enabled: registration.enabled,
-    description: value.description.trim(),
-    content: value.content.trim(),
-    location: getSkillMdPath(value.name),
+    description: value.description,
+    content: value.content,
     files,
-  };
+  });
 
   internalBus.emit('skill.updated', { name: skill.name, previousName: name });
 
@@ -359,15 +358,14 @@ export async function importSkillFromDirectory(input: SkillImportInput): Promise
 
     const skillFiles = await listSkillFiles(skillDir);
 
-    const skill = {
+    const skill = toSkill({
       name: value.name,
       type: 'external' as const,
       enabled: true,
-      description: value.description.trim(),
-      content: value.content.trim(),
-      location: getSkillMdPath(value.name),
+      description: value.description,
+      content: value.content,
       files: skillFiles,
-    };
+    });
 
     await setSkillType(skill.name, skill.type);
 

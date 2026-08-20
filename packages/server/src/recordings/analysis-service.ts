@@ -150,46 +150,31 @@ export async function startRecordingAnalysis(
   activeRuns.get(id)?.controller.abort();
 
   if (!preserveExistingUntilComplete) {
+    const analysisValues = {
+      id,
+      status: 'pending' as const,
+      title: '',
+      templateId: input.templateId,
+      error: null,
+      transcriptionProviderId: existing?.transcriptionProviderId ?? null,
+      transcriptionModelId: existing?.transcriptionModelId ?? null,
+      analysisProviderId: analysisModel.providerId,
+      analysisModelId: analysisModel.modelId,
+      usage: ZERO_USAGE,
+      startedAt: null,
+      endedAt: null,
+      durationMs: null,
+      updatedAt: now,
+    };
     await db
       .insert(recordingAnalyses)
       .values({
-        id,
+        ...analysisValues,
         recordingId,
-        status: 'pending',
-        title: '',
-        templateId: input.templateId,
-        error: null,
-        transcriptionProviderId: existing?.transcriptionProviderId ?? null,
-        transcriptionModelId: existing?.transcriptionModelId ?? null,
-        analysisProviderId: analysisModel.providerId,
-        analysisModelId: analysisModel.modelId,
-        usage: ZERO_USAGE,
         costUsd: existing?.costUsd ?? 0,
-        startedAt: null,
-        endedAt: null,
-        durationMs: null,
         createdAt: existing?.createdAt ?? now,
-        updatedAt: now,
       })
-      .onConflictDoUpdate({
-        target: recordingAnalyses.recordingId,
-        set: {
-          id,
-          status: 'pending',
-          title: '',
-          templateId: input.templateId,
-          error: null,
-          transcriptionProviderId: existing?.transcriptionProviderId ?? null,
-          transcriptionModelId: existing?.transcriptionModelId ?? null,
-          analysisProviderId: analysisModel.providerId,
-          analysisModelId: analysisModel.modelId,
-          usage: ZERO_USAGE,
-          startedAt: null,
-          endedAt: null,
-          durationMs: null,
-          updatedAt: now,
-        },
-      });
+      .onConflictDoUpdate({ target: recordingAnalyses.recordingId, set: analysisValues });
   }
 
   internalBus.emit('recording.analysis.updated', { recordingId, status: 'pending', title: null });
