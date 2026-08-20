@@ -74,10 +74,6 @@ export async function globPaths(input: z.infer<typeof globInputSchema>): Promise
   return { output: outputLines.join('\n'), path: searchPath };
 }
 
-function createGlobTool() {
-  return tool({ description: DESCRIPTION, inputSchema: globInputSchema, execute: async (input) => globPaths(input) });
-}
-
 function getPatternTargets(input: ToolInput): string[] {
   const target = input.path;
   return typeof target === 'string' && target.length > 0 ? [target] : [];
@@ -90,6 +86,6 @@ function getSuggestion() {
 export const definition: ToolDefinition = {
   name: 'glob',
   displayName: 'File Search',
-  tool: createGlobTool(),
+  tool: tool({ description: DESCRIPTION, inputSchema: globInputSchema, execute: async (input) => globPaths(input) }),
   permission: { getPatternTargets, getSuggestion },
 };

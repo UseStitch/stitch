@@ -23,8 +23,6 @@ import type { ToolContext } from '@/tools/runtime/runtime.js';
 
 const log = Log.create({ service: 'inspect-image-tool' });
 
-const SUPPORTED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp']);
-
 const MIME_MAP: Record<string, string> = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -66,8 +64,9 @@ export function createInspectImageTool(context: ToolContext, deps: InspectImageT
     }),
     execute: async ({ imagePath, prompt }, { toolCallId }) => {
       const ext = path.extname(imagePath).toLowerCase();
-      if (!SUPPORTED_EXTENSIONS.has(ext)) {
-        return toolError(`Unsupported image format "${ext}". Supported: ${[...SUPPORTED_EXTENSIONS].join(', ')}`);
+      const mime = MIME_MAP[ext];
+      if (!mime) {
+        return toolError(`Unsupported image format "${ext}". Supported: ${Object.keys(MIME_MAP).join(', ')}`);
       }
 
       let stat;
@@ -83,7 +82,6 @@ export function createInspectImageTool(context: ToolContext, deps: InspectImageT
         );
       }
 
-      const mime = MIME_MAP[ext] ?? 'application/octet-stream';
       const buffer = await fs.readFile(imagePath);
       const base64 = buffer.toString('base64');
       const dataUrl = `data:${mime};base64,${base64}`;

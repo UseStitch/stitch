@@ -166,10 +166,6 @@ export async function grepContent(input: z.infer<typeof grepInputSchema>): Promi
   return { output: outputLines.join('\n'), pattern: parsed.pattern };
 }
 
-function createGrepTool() {
-  return tool({ description: DESCRIPTION, inputSchema: grepInputSchema, execute: async (input) => grepContent(input) });
-}
-
 function getPatternTargets(input: ToolInput): string[] {
   const target = input.path;
   return typeof target === 'string' && target.length > 0 ? [target] : [];
@@ -182,6 +178,6 @@ function getSuggestion() {
 export const definition: ToolDefinition = {
   name: 'grep',
   displayName: 'Text Search',
-  tool: createGrepTool(),
+  tool: tool({ description: DESCRIPTION, inputSchema: grepInputSchema, execute: async (input) => grepContent(input) }),
   permission: { getPatternTargets, getSuggestion },
 };

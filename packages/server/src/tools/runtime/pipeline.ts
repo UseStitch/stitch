@@ -21,8 +21,6 @@ export type ToolDefinition = {
   source?: RuntimeToolSource;
   permission?: ToolPermissionBehavior;
   truncation?: ToolTruncationLimits;
-  /** Extra middleware applied after the standard stack for this tool. */
-  extraMiddleware?: ToolMiddleware[];
 };
 export class ToolPipeline {
   private constructor(private readonly context: ToolContext) {}
@@ -58,10 +56,6 @@ export class ToolPipeline {
     }
 
     stack.push(truncationMiddleware(def.truncation));
-
-    if (def.extraMiddleware) {
-      stack.push(...def.extraMiddleware);
-    }
 
     return stack;
   }

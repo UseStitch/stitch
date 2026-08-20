@@ -17,8 +17,10 @@ export async function writeFileContent(filePath: string, content: string): Promi
   return targetPath;
 }
 
-function createWriteTool() {
-  return tool({
+export const definition: ToolDefinition = {
+  name: 'write',
+  displayName: 'Write',
+  tool: tool({
     description: `Writes a file to the local filesystem.
 
 Usage:
@@ -35,12 +37,6 @@ Usage:
 
       return { output: `Wrote file: ${targetPath}`, filePath: targetPath };
     },
-  });
-}
-
-export const definition: ToolDefinition = {
-  name: 'write',
-  displayName: 'Write',
-  tool: createWriteTool(),
+  }),
   permission: { getPatternTargets: getFilePathPatternTargets, getSuggestion: getParentDirPermissionSuggestion },
 };

@@ -94,7 +94,7 @@ function createBrowserTool<TInput>(
     description,
     inputSchema,
     execute: async (input, execContext) => {
-      return runBrowserTool(input, execContext, context.sessionId, (signal) => executeAction(input, signal));
+      return runBrowserTool(execContext.abortSignal, context.sessionId, (signal) => executeAction(input, signal));
     },
   });
 }
@@ -152,7 +152,7 @@ function createBatchTool(context: ToolContext) {
     description: BATCH_DESCRIPTION,
     inputSchema: browserBatchInputSchema,
     execute: async (input, execContext) => {
-      return runBrowserTool(input, execContext, context.sessionId, async (signal) => {
+      return runBrowserTool(execContext.abortSignal, context.sessionId, async (signal) => {
         const browser = getBrowserManager();
         const results: Array<{
           index: number;

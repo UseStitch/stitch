@@ -118,8 +118,10 @@ export function extractDomainForPermission(urlInput: string): string | null {
   }
 }
 
-function createWebfetchTool() {
-  return tool({
+export const definition: ToolDefinition = {
+  name: 'webfetch',
+  displayName: 'Web Fetch',
+  tool: tool({
     description: `Fetch content from a specified URL.
 
 Takes a URL and optional format as input.
@@ -201,8 +203,10 @@ Parameter sourcing:
 
       return { output: isHtml ? convertHtmlToMarkdown(content) : content, title, metadata: {} };
     },
-  });
-}
+  }),
+  permission: { getPatternTargets, getSuggestion },
+  truncation: { maxLines: 1200, maxBytes: 24 * 1024 },
+};
 
 function getPatternTargets(input: ToolInput): string[] {
   const url = input.url;
@@ -218,11 +222,3 @@ function getSuggestion(input: ToolInput): PermissionSuggestion | null {
   if (!domain) return null;
   return { message: `Always allow from ${domain}`, pattern: domain };
 }
-
-export const definition: ToolDefinition = {
-  name: 'webfetch',
-  displayName: 'Web Fetch',
-  tool: createWebfetchTool(),
-  permission: { getPatternTargets, getSuggestion },
-  truncation: { maxLines: 1200, maxBytes: 24 * 1024 },
-};

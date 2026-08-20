@@ -58,8 +58,10 @@ export async function editFileContent(input: z.infer<typeof editInputSchema>): P
   return targetPath;
 }
 
-function createEditTool() {
-  return tool({
+export const definition: ToolDefinition = {
+  name: 'edit',
+  displayName: 'Edit',
+  tool: tool({
     description: `Performs exact string replacements in files.
 
 Usage:
@@ -81,12 +83,6 @@ Parameter sourcing:
 
       return { output: `Edited file: ${targetPath}`, filePath: targetPath };
     },
-  });
-}
-
-export const definition: ToolDefinition = {
-  name: 'edit',
-  displayName: 'Edit',
-  tool: createEditTool(),
+  }),
   permission: { getPatternTargets: getFilePathPatternTargets, getSuggestion: getParentDirPermissionSuggestion },
 };
