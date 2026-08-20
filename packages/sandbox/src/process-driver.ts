@@ -123,13 +123,13 @@ async function dispatchToolCall(
  */
 export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions): IsolateDriver {
   const execPath = driverOptions.execPath;
-  const memoryLimitMB = driverOptions.memoryLimit ?? DEFAULT_MEMORY_LIMIT_MB;
-  const memoryLimitBytes = memoryLimitMB * 1024 * 1024;
   const isScript = /\.[mc]?[jt]sx?$/.test(execPath);
   const cmd = isScript ? [process.execPath, '--smol', execPath] : [execPath];
 
   return {
     async createContext(bindings: Record<string, ToolBinding>, options: IsolateOptions = {}): Promise<IsolateContext> {
+      const memoryLimitMB = options.memoryLimit ?? driverOptions.memoryLimit ?? DEFAULT_MEMORY_LIMIT_MB;
+      const memoryLimitBytes = memoryLimitMB * 1024 * 1024;
       const timeoutMs = options.timeout ?? DEFAULT_TIMEOUT_MS;
       const maxToolCalls = options.maxToolCalls ?? DEFAULT_MAX_TOOL_CALLS;
       const maxMessageBytes = options.maxMessageBytes ?? DEFAULT_MAX_MESSAGE_BYTES;

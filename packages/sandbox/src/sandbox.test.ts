@@ -120,8 +120,8 @@ describe('process sandbox', () => {
   });
 
   test('kills process when memory limit is exceeded', async () => {
-    const driver = createProcessSandbox({ execPath: PROCESS_ENTRY, memoryLimit: 64 });
-    const context = await driver.createContext({}, { timeout: 15_000 });
+    const driver = createProcessSandbox({ execPath: PROCESS_ENTRY });
+    const context = await driver.createContext({}, { memoryLimit: 64, timeout: 15_000 });
     try {
       const result = await context.execute(`
         const arrays = [];
