@@ -17,6 +17,11 @@ export function getFilePathPatternTargets(input: ToolInput): string[] {
   return [targetPath];
 }
 
+export function getPathPatternTargets(input: ToolInput): string[] {
+  const target = input.path;
+  return typeof target === 'string' && target.length > 0 ? [target] : [];
+}
+
 export function getParentDirPermissionSuggestion(input: ToolInput): PermissionSuggestion | null {
   const targetPath = resolveAbsoluteFilePath(input);
   if (!targetPath) return null;

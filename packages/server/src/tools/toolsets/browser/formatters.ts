@@ -7,7 +7,10 @@ import type {
 
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
 import type { BrowserTab } from '@/lib/browser/types.js';
-import { serializeBrowserSnapshot } from '@/tools/toolsets/browser/snapshot-serializer.js';
+import {
+  serializeBrowserSnapshot,
+  type SerializedBrowserSnapshot,
+} from '@/tools/toolsets/browser/snapshot-serializer.js';
 
 export function formatTabsOutput(tabs: BrowserTab[]): string {
   const tabList = tabs
@@ -94,6 +97,15 @@ function summarizeValue(value: unknown): string {
   return text.length > 500 ? `${text.slice(0, 500)}...` : text;
 }
 
+export function snapshotFields(compact?: SerializedBrowserSnapshot | null) {
+  return {
+    snapshot: compact?.text,
+    snapshotFingerprint: compact?.fingerprint,
+    snapshotOriginalChars: compact?.originalChars,
+    snapshotTruncated: compact?.truncated,
+  };
+}
+
 export async function withFreshSnapshot(
   result: Record<string, unknown>,
   signal?: AbortSignal,
@@ -105,9 +117,6 @@ export async function withFreshSnapshot(
   return {
     ...result,
     output: `${output}\n\n### Updated Snapshot\n${compactSnapshot.text}`,
-    snapshot: compactSnapshot.text,
-    snapshotFingerprint: compactSnapshot.fingerprint,
-    snapshotOriginalChars: compactSnapshot.originalChars,
-    snapshotTruncated: compactSnapshot.truncated,
+    ...snapshotFields(compactSnapshot),
   };
 }

@@ -1,8 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
-import type { PrefixedString } from '@stitch/shared/id';
-
 import { askQuestion } from '@/question/service.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
@@ -30,11 +28,7 @@ const questionInputSchema = z.object({
   questions: z.array(questionInfoWithoutCustomSchema).describe('Questions to ask the user'),
 });
 
-function createQuestionTool(context: {
-  sessionId: PrefixedString<'ses'>;
-  messageId: PrefixedString<'msg'>;
-  streamRunId: string;
-}) {
+function createQuestionTool(context: ToolContext) {
   return tool({
     description:
       'Ask the user questions during execution. Use this only when you are blocked by missing information or a user decision. Do not use it when a safe default exists or when the answer can be found from context or tools.',
@@ -68,15 +62,11 @@ function getPatternTargets(): string[] {
   return [];
 }
 
-function getSuggestion() {
-  return null;
-}
-
 export function createDefinition(context: ToolContext): ToolDefinition {
   return {
     name: 'question',
     displayName: 'Question',
     tool: createQuestionTool(context),
-    permission: { getPatternTargets, getSuggestion },
+    permission: { getPatternTargets },
   };
 }

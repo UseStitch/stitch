@@ -3,8 +3,8 @@ import fs from 'node:fs/promises';
 import { z } from 'zod';
 
 import { ToolPathValidationError, ToolValidationError } from '@/tools/errors.js';
+import { getPathPatternTargets } from '@/tools/runtime/file-permissions.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
-import type { ToolInput } from '@/tools/runtime/runtime.js';
 import { isTextFileBuffer, truncateLine, validateAbsoluteDirectoryPath } from '@/tools/runtime/shared.js';
 
 const MAX_MATCHES = 100;
@@ -166,18 +166,9 @@ export async function grepContent(input: z.infer<typeof grepInputSchema>): Promi
   return { output: outputLines.join('\n'), pattern: parsed.pattern };
 }
 
-function getPatternTargets(input: ToolInput): string[] {
-  const target = input.path;
-  return typeof target === 'string' && target.length > 0 ? [target] : [];
-}
-
-function getSuggestion() {
-  return null;
-}
-
 export const definition: ToolDefinition = {
   name: 'grep',
   displayName: 'Text Search',
   tool: tool({ description: DESCRIPTION, inputSchema: grepInputSchema, execute: async (input) => grepContent(input) }),
-  permission: { getPatternTargets, getSuggestion },
+  permission: { getPatternTargets: getPathPatternTargets },
 };

@@ -7,6 +7,7 @@ import {
   formatFindElementsSummary,
   formatSearchPageSummary,
   formatTabsOutput,
+  snapshotFields,
 } from '@/tools/toolsets/browser/formatters.js';
 import type { BatchAction, OperationInput } from '@/tools/toolsets/browser/schemas.js';
 import { serializeBrowserSnapshot } from '@/tools/toolsets/browser/snapshot-serializer.js';
@@ -52,13 +53,7 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
   if (input.tool === 'snapshot') {
     const tree = await browser.snapshot(signal);
     const compactSnapshot = serializeBrowserSnapshot(tree);
-    return {
-      output: compactSnapshot.text,
-      snapshot: compactSnapshot.text,
-      snapshotFingerprint: compactSnapshot.fingerprint,
-      snapshotOriginalChars: compactSnapshot.originalChars,
-      snapshotTruncated: compactSnapshot.truncated,
-    };
+    return { output: compactSnapshot.text, ...snapshotFields(compactSnapshot) };
   }
 
   if (input.tool === 'navigate') {

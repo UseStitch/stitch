@@ -20,53 +20,40 @@ import { definition as write } from '@/tools/core/write.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 
-export type CatalogEntry =
-  | { kind: 'static'; definition: ToolDefinition }
-  | {
-      kind: 'contextual';
-      name: string;
-      displayName: string;
-      create: (context: ToolContext) => ToolDefinition;
-      /** If provided, called at assembly time to decide whether to include this tool. */
-      enabled?: () => Promise<boolean> | boolean;
-    };
-
-export function entryMeta(entry: CatalogEntry): { name: string; displayName: string } {
-  if (entry.kind === 'static') {
-    return { name: entry.definition.name, displayName: entry.definition.displayName };
-  }
-  return { name: entry.name, displayName: entry.displayName };
-}
+export type CatalogEntry = {
+  name: string;
+  displayName: string;
+  create: (context: ToolContext) => ToolDefinition;
+  /** If provided, called at assembly time to decide whether to include this tool. */
+  enabled?: () => Promise<boolean> | boolean;
+};
 
 export const CORE_TOOL_CATALOG: CatalogEntry[] = [
-  { kind: 'static', definition: webfetch },
-  { kind: 'static', definition: read },
-  { kind: 'static', definition: bash },
-  { kind: 'static', definition: glob },
-  { kind: 'static', definition: grep },
-  { kind: 'static', definition: edit },
-  { kind: 'static', definition: write },
-  { kind: 'static', definition: renderUi },
-  { kind: 'static', definition: skill },
-  { kind: 'static', definition: createSkill },
-  { kind: 'contextual', name: 'question', displayName: 'Question', create: createQuestionDefinition },
-  { kind: 'contextual', name: 'todo', displayName: 'Todo', create: createTodoDefinition },
+  { name: 'webfetch', displayName: 'Web Fetch', create: () => webfetch },
+  { name: 'read', displayName: 'Read File', create: () => read },
+  { name: 'bash', displayName: 'Command Execution', create: () => bash },
+  { name: 'glob', displayName: 'File Search', create: () => glob },
+  { name: 'grep', displayName: 'Text Search', create: () => grep },
+  { name: 'edit', displayName: 'Edit File', create: () => edit },
+  { name: 'write', displayName: 'Write File', create: () => write },
+  { name: 'render_ui', displayName: 'Render UI', create: () => renderUi },
+  { name: 'skill', displayName: 'Load Skill', create: () => skill },
+  { name: 'create_skill', displayName: 'Create Skill', create: () => createSkill },
+  { name: 'question', displayName: 'Question', create: createQuestionDefinition },
+  { name: 'todo', displayName: 'Todo', create: createTodoDefinition },
   {
-    kind: 'contextual',
     name: 'memory',
     displayName: 'Memory',
     create: createMemoryDefinition,
     enabled: async () => isDbInitialized() && (await getMemoryConfig()).enabled,
   },
   {
-    kind: 'contextual',
     name: 'memory_search',
     displayName: 'Memory Search',
     create: createMemorySearchDefinition,
     enabled: async () => isDbInitialized() && (await getMemoryConfig()).enabled,
   },
   {
-    kind: 'contextual',
     name: 'memory_get',
     displayName: 'Memory Get',
     create: createMemoryGetDefinition,

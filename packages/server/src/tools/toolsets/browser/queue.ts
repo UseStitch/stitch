@@ -1,25 +1,12 @@
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
 import { ToolError } from '@/tools/errors.js';
 
-let queueTail: Promise<void> = Promise.resolve();
+let queueTail: Promise<unknown> = Promise.resolve();
 
 function runSerialized<T>(fn: () => Promise<T>): Promise<T> {
-  const previous = queueTail.catch(() => {});
-  let release: () => void = () => {};
-  queueTail = previous.then(
-    () =>
-      new Promise<void>((resolve) => {
-        release = resolve;
-      }),
-  );
-
-  return previous.then(async () => {
-    try {
-      return await fn();
-    } finally {
-      release();
-    }
-  });
+  const r = queueTail.then(fn, fn);
+  queueTail = r.catch(() => {});
+  return r;
 }
 
 export async function runBrowserTool(

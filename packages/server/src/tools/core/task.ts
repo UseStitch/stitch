@@ -1,23 +1,19 @@
 import { tool } from 'ai';
-import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { extractTextFromParts, type StoredPart } from '@stitch/shared/chat/messages';
+import { type StoredPart } from '@stitch/shared/chat/messages';
 import { createMessageId, createPartId } from '@stitch/shared/id';
-import type { PrefixedString } from '@stitch/shared/id';
-import type { LlmProviderId } from '@stitch/shared/providers/types';
 import { toolError } from '@stitch/shared/tools/types';
 
 import { cancelBackgroundTask, startBackgroundTask } from '@/background-tasks/service.js';
 import { createSession } from '@/chat/session-crud.js';
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema/sessions.js';
-import * as AbortRegistry from '@/lib/abort-registry.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { buildSessionLlmMessages } from '@/llm/session-history.js';
 import { runStream } from '@/llm/stream/runner.js';
-import type { LlmProviderCredentials } from '@/provider/config/schema.js';
+import { runChildSession, type ChildSessionDeps } from '@/tools/core/child-session.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 import type { ToolsetManager } from '@/tools/toolsets/manager.js';
 
@@ -41,14 +37,7 @@ The child starts with only the supplied task and inherited tools. Its output is 
 
 Returns a summary of the completed work. You can also link the user to the child session for full details.`;
 
-type TaskToolDeps = {
-  parentSessionId: PrefixedString<'ses'>;
-  parentAbortSignal: AbortSignal;
-  credentials: LlmProviderCredentials;
-  modelId: string;
-  providerId: LlmProviderId;
-  toolsetManager: ToolsetManager;
-};
+export type TaskToolDeps = ChildSessionDeps & { toolsetManager: ToolsetManager };
 
 export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
   return tool({
@@ -66,12 +55,27 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
         .describe('Additional toolset IDs to activate in the child session beyond inherited ones'),
     }),
     execute: async ({ title, task, background, toolsets: additionalToolsets }, { toolCallId }) => {
+      const now = Date.now();
+      const taskPart: StoredPart = { type: 'text-delta', id: createPartId(), text: task, startedAt: now, endedAt: now };
+      const inheritedToolsetIds = [...deps.toolsetManager.getActiveIds()];
+      const allToolsetIds = [...new Set([...inheritedToolsetIds, ...(additionalToolsets ?? [])])];
+
+      if (!background) {
+        return runChildSession(context, deps, {
+          toolCallId,
+          toolName: 'task',
+          title,
+          parts: [taskPart],
+          toolsetIds: allToolsetIds,
+          excludedToolsetIds: CHILD_SESSION_EXCLUDED_TOOLSETS,
+        });
+      }
+
       const sessionResult = await createSession({ title, parentSessionId: deps.parentSessionId });
       if (sessionResult.error) {
         return toolError(`Task failed: could not create child session - ${sessionResult.error.message}`);
       }
       const childSession = sessionResult.data;
-
       const childSessionId = childSession.id;
 
       internalBus.emit('tool.progress', {
@@ -87,11 +91,7 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
         'child session created for task tool',
       );
 
-      // Insert a user message with the task prompt
       const userMessageId = createMessageId();
-      const now = Date.now();
-      const taskPart: StoredPart = { type: 'text-delta', id: createPartId(), text: task, startedAt: now, endedAt: now };
-
       const db = getDb();
       await db
         .insert(messages)
@@ -109,113 +109,56 @@ export function createTaskTool(context: ToolContext, deps: TaskToolDeps) {
           duration: null,
         });
 
-      // Build history (just the system prompt + user message)
       const llmMessages = await buildSessionLlmMessages(childSessionId, { useBasePrompt: true, systemPrompt: null });
       const assistantMessageId = createMessageId();
-      const inheritedToolsetIds = [...deps.toolsetManager.getActiveIds()];
-      const allToolsetIds = [...new Set([...inheritedToolsetIds, ...(additionalToolsets ?? [])])];
-
-      if (background) {
-        try {
-          await db
-            .insert(messages)
-            .values({
-              id: context.messageId,
-              sessionId: deps.parentSessionId,
-              role: 'assistant',
-              parts: [],
-              modelId: deps.modelId,
-              providerId: deps.providerId,
-              costUsd: 0,
-              createdAt: now,
-              updatedAt: now,
-              startedAt: now,
-              duration: null,
-            })
-            .onConflictDoNothing();
-
-          await startBackgroundTask({
-            taskId: childSessionId,
-            parentSessionId: deps.parentSessionId,
-            childSessionId,
-            childAssistantMessageId: assistantMessageId,
-            originMessageId: context.messageId,
-            originToolCallId: toolCallId,
-            title,
-            providerId: deps.providerId,
-            modelId: deps.modelId,
-            credentials: deps.credentials,
-            activeToolsetIds: allToolsetIds,
-            llmMessages,
-            run: runStream,
-          });
-          if (deps.parentAbortSignal.aborted) await cancelBackgroundTask(childSessionId);
-
-          return {
-            taskId: childSessionId,
-            childSessionId,
-            childSessionName: childSession.title,
-            status: 'running' as const,
-            summary: 'Background task started. You will be notified automatically when it finishes.',
-          };
-        } catch (error) {
-          return toolError(`Task failed: ${Error.isError(error) ? error.message : 'Unknown error'}`, {
-            childSessionId,
-            childSessionName: childSession.title,
-          });
-        }
-      }
-
-      // Create a child abort controller linked to the parent
-      const childAbortSignal = AbortRegistry.register(childSessionId);
-
-      // Cascade parent abort to child
-      const onParentAbort = () => {
-        AbortRegistry.abort(childSessionId);
-      };
-      deps.parentAbortSignal.addEventListener('abort', onParentAbort, { once: true });
 
       try {
-        await runStream({
-          sessionId: childSessionId,
-          assistantMessageId,
+        await db
+          .insert(messages)
+          .values({
+            id: context.messageId,
+            sessionId: deps.parentSessionId,
+            role: 'assistant',
+            parts: [],
+            modelId: deps.modelId,
+            providerId: deps.providerId,
+            costUsd: 0,
+            createdAt: now,
+            updatedAt: now,
+            startedAt: now,
+            duration: null,
+          })
+          .onConflictDoNothing();
+
+        await startBackgroundTask({
+          taskId: childSessionId,
+          parentSessionId: deps.parentSessionId,
+          childSessionId,
+          childAssistantMessageId: assistantMessageId,
+          originMessageId: context.messageId,
+          originToolCallId: toolCallId,
+          title,
+          providerId: deps.providerId,
           modelId: deps.modelId,
-          llmMessages,
           credentials: deps.credentials,
-          abortSignal: childAbortSignal,
           activeToolsetIds: allToolsetIds,
-          allowTaskTool: false,
-          excludedToolsetIds: CHILD_SESSION_EXCLUDED_TOOLSETS,
+          llmMessages,
+          run: runStream,
         });
+        if (deps.parentAbortSignal.aborted) await cancelBackgroundTask(childSessionId);
 
-        log.info(
-          { event: 'task.child_session.completed', parentSessionId: deps.parentSessionId, childSessionId },
-          'child session task completed',
-        );
-
-        // Extract the summary from the child's assistant message
-        const childMessages = await db
-          .select()
-          .from(messages)
-          .where(and(eq(messages.sessionId, childSessionId), eq(messages.id, assistantMessageId)));
-
-        const assistantMessage = childMessages.at(0);
-        const summary = extractTextFromParts(assistantMessage?.parts) || 'Task completed.';
-
-        return { childSessionId, childSessionName: childSession.title, summary };
+        return {
+          taskId: childSessionId,
+          childSessionId,
+          childSessionName: childSession.title,
+          status: 'running' as const,
+          summary: 'Background task started. You will be notified automatically when it finishes.',
+        };
       } catch (error) {
-        log.error(
-          { event: 'task.child_session.failed', parentSessionId: deps.parentSessionId, childSessionId, error },
-          'child session task failed',
-        );
-
         return toolError(`Task failed: ${Error.isError(error) ? error.message : 'Unknown error'}`, {
           childSessionId,
           childSessionName: childSession.title,
         });
-      } finally {
-        deps.parentAbortSignal.removeEventListener('abort', onParentAbort);
-        AbortRegistry.cleanup(childSessionId);
       }
     },
   });

@@ -16,7 +16,7 @@ const LOW_VALUE_PATTERNS = [
 
 type BrowserSnapshotSerializeOptions = { maxChars?: number; maxElements?: number; textPerLineChars?: number };
 
-type SerializedBrowserSnapshot = {
+export type SerializedBrowserSnapshot = {
   text: string;
   fingerprint: string;
   truncated: boolean;

@@ -1,11 +1,11 @@
-import { tool } from 'ai';
+import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 
 import { toolError } from '@stitch/shared/tools/types';
 
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
-import { summarizeOperationResult, withFreshSnapshot } from '@/tools/toolsets/browser/formatters.js';
+import { snapshotFields, summarizeOperationResult, withFreshSnapshot } from '@/tools/toolsets/browser/formatters.js';
 import {
   actionTerminatesSequence,
   executeOperation,
@@ -21,6 +21,7 @@ import {
   browserScreenshotInputSchema,
   browserSnapshotInputSchema,
   browserWaitInputSchema,
+  type OperationInput,
 } from '@/tools/toolsets/browser/schemas.js';
 import { serializeBrowserSnapshot } from '@/tools/toolsets/browser/snapshot-serializer.js';
 import { TOOLSET_SUMMARY_CONTEXT, summarizeTools, type Toolset } from '@/tools/toolsets/types.js';
@@ -84,68 +85,47 @@ const BATCH_DESCRIPTION = `Execute up to 5 browser actions in one serialized cal
 
 Use this for efficient, single-goal chains like type + type + click. Actions execute in order and stop early on error, sequence-terminating actions, or a lightweight DOM/page fingerprint change by default. Results are concise; if the batch changes page state, the result includes an updated snapshot.`;
 
-function createBrowserTool<TInput>(
-  context: ToolContext,
-  description: string,
-  inputSchema: z.ZodType<TInput>,
-  executeAction: (input: TInput, signal?: AbortSignal) => Promise<unknown>,
-) {
-  return tool({
-    description,
-    inputSchema,
-    execute: async (input, execContext) => {
-      return runBrowserTool(execContext.abortSignal, context.sessionId, (signal) => executeAction(input, signal));
-    },
-  });
-}
-
-function createSnapshotTool(context: ToolContext) {
-  return createBrowserTool(context, SNAPSHOT_DESCRIPTION, browserSnapshotInputSchema, (input, signal) =>
-    executeOperation({ ...input, tool: 'snapshot' }, signal),
-  );
-}
-
-function createNavigateTool(context: ToolContext) {
-  return createBrowserTool(context, NAVIGATE_DESCRIPTION, browserNavigateInputSchema, async (input, signal) => {
-    const operation = { ...input, tool: 'navigate' as const, op: input.action };
-    const result = await executeOperation(operation, signal);
-    if (!shouldReturnFreshSnapshot(operation)) return result;
-    return withFreshSnapshot(result as Record<string, unknown>, signal);
-  });
-}
-
-function createInteractTool(context: ToolContext) {
-  return createBrowserTool(context, INTERACT_DESCRIPTION, browserInteractInputSchema, async (input, signal) => {
-    const operation = { ...input, tool: 'interact' as const, op: input.action };
-    const result = await executeOperation(operation, signal);
-    if (!shouldReturnFreshSnapshot(operation)) return result;
-    return withFreshSnapshot(result as Record<string, unknown>, signal);
-  });
-}
-
-function createWaitTool(context: ToolContext) {
-  return createBrowserTool(context, WAIT_DESCRIPTION, browserWaitInputSchema, (input, signal) =>
-    executeOperation({ ...input, tool: 'wait', op: input.mode }, signal),
-  );
-}
-
-function createScreenshotTool(context: ToolContext) {
-  return createBrowserTool(context, SCREENSHOT_DESCRIPTION, browserScreenshotInputSchema, (input, signal) =>
-    executeOperation({ ...input, tool: 'screenshot', op: 'capture' }, signal),
-  );
-}
-
-function createDialogTool(context: ToolContext) {
-  return createBrowserTool(context, DIALOG_DESCRIPTION, browserDialogInputSchema, (input, signal) =>
-    executeOperation({ ...input, tool: 'dialog', op: input.action }, signal),
-  );
-}
-
-function createContentTool(context: ToolContext) {
-  return createBrowserTool(context, CONTENT_DESCRIPTION, browserContentInputSchema, (input, signal) =>
-    executeOperation({ ...input, tool: 'content', op: input.action }, signal),
-  );
-}
+const BROWSER_TOOL_SPECS: Array<
+  [
+    name: string,
+    description: string,
+    schema: z.ZodType,
+    toOperation: (input: Record<string, unknown>) => Record<string, unknown>,
+  ]
+> = [
+  ['browser_snapshot', SNAPSHOT_DESCRIPTION, browserSnapshotInputSchema, (input) => ({ ...input, tool: 'snapshot' })],
+  [
+    'browser_navigate',
+    NAVIGATE_DESCRIPTION,
+    browserNavigateInputSchema,
+    (input) => ({ ...input, tool: 'navigate', op: input.action }),
+  ],
+  [
+    'browser_interact',
+    INTERACT_DESCRIPTION,
+    browserInteractInputSchema,
+    (input) => ({ ...input, tool: 'interact', op: input.action }),
+  ],
+  ['browser_wait', WAIT_DESCRIPTION, browserWaitInputSchema, (input) => ({ ...input, tool: 'wait', op: input.mode })],
+  [
+    'browser_screenshot',
+    SCREENSHOT_DESCRIPTION,
+    browserScreenshotInputSchema,
+    (input) => ({ ...input, tool: 'screenshot', op: 'capture' }),
+  ],
+  [
+    'browser_dialog',
+    DIALOG_DESCRIPTION,
+    browserDialogInputSchema,
+    (input) => ({ ...input, tool: 'dialog', op: input.action }),
+  ],
+  [
+    'browser_content',
+    CONTENT_DESCRIPTION,
+    browserContentInputSchema,
+    (input) => ({ ...input, tool: 'content', op: input.action }),
+  ],
+];
 
 function createBatchTool(context: ToolContext) {
   return tool({
@@ -264,31 +244,30 @@ function createBatchTool(context: ToolContext) {
           return toolError(summary, { results, stoppedReason, executed, skipped });
         }
 
-        return {
-          output: summary,
-          results,
-          stoppedReason,
-          executed,
-          skipped,
-          snapshot: compactSnapshot?.text,
-          snapshotFingerprint: compactSnapshot?.fingerprint,
-          snapshotOriginalChars: compactSnapshot?.originalChars,
-          snapshotTruncated: compactSnapshot?.truncated,
-        };
+        return { output: summary, results, stoppedReason, executed, skipped, ...snapshotFields(compactSnapshot) };
       });
     },
   });
 }
 
-function createBrowserTools(context: ToolContext) {
+function createBrowserTools(context: ToolContext): Record<string, Tool> {
   return {
-    browser_snapshot: createSnapshotTool(context),
-    browser_navigate: createNavigateTool(context),
-    browser_interact: createInteractTool(context),
-    browser_wait: createWaitTool(context),
-    browser_screenshot: createScreenshotTool(context),
-    browser_dialog: createDialogTool(context),
-    browser_content: createContentTool(context),
+    ...Object.fromEntries(
+      BROWSER_TOOL_SPECS.map(([name, description, schema, toOperation]) => [
+        name,
+        tool({
+          description,
+          inputSchema: schema,
+          execute: async (input, execContext) =>
+            runBrowserTool(execContext.abortSignal, context.sessionId, async (signal) => {
+              const operation = toOperation(input as Record<string, unknown>) as OperationInput;
+              const result = await executeOperation(operation, signal);
+              if (!shouldReturnFreshSnapshot(operation)) return result;
+              return withFreshSnapshot(result as Record<string, unknown>, signal);
+            }),
+        }),
+      ]),
+    ),
     browser_batch: createBatchTool(context),
   };
 }

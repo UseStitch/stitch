@@ -13,7 +13,7 @@ export type ToolTruncationLimits = { maxLines?: number; maxBytes?: number };
 
 export type ToolPermissionBehavior = {
   getPatternTargets: (input: ToolInput) => string[];
-  getSuggestion: (input: ToolInput) => PermissionSuggestion | null;
+  getSuggestion?: (input: ToolInput) => PermissionSuggestion | null;
 };
 
 export type RuntimeToolMetadata = {

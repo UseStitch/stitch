@@ -3,8 +3,8 @@ import fs from 'node:fs/promises';
 import { z } from 'zod';
 
 import { ToolPathValidationError } from '@/tools/errors.js';
+import { getPathPatternTargets } from '@/tools/runtime/file-permissions.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
-import type { ToolInput } from '@/tools/runtime/runtime.js';
 import { validateAbsoluteDirectoryPath } from '@/tools/runtime/shared.js';
 
 const MAX_RESULTS = 100;
@@ -74,18 +74,9 @@ export async function globPaths(input: z.infer<typeof globInputSchema>): Promise
   return { output: outputLines.join('\n'), path: searchPath };
 }
 
-function getPatternTargets(input: ToolInput): string[] {
-  const target = input.path;
-  return typeof target === 'string' && target.length > 0 ? [target] : [];
-}
-
-function getSuggestion() {
-  return null;
-}
-
 export const definition: ToolDefinition = {
   name: 'glob',
   displayName: 'File Search',
   tool: tool({ description: DESCRIPTION, inputSchema: globInputSchema, execute: async (input) => globPaths(input) }),
-  permission: { getPatternTargets, getSuggestion },
+  permission: { getPatternTargets: getPathPatternTargets },
 };

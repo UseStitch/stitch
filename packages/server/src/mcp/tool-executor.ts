@@ -50,7 +50,7 @@ async function getToolsForServer(server: McpServerWithTools, context: ToolContex
       displayName: prefixedName,
       tool: toolDef,
       source: 'mcp',
-      permission: { getPatternTargets: () => [], getSuggestion: () => null },
+      permission: { getPatternTargets: () => [] },
     });
   }
   return prefixed;
