@@ -114,7 +114,6 @@ type StreamRunnerState = {
 
 const UNKNOWN_RECOVERY_LIMIT = 1;
 const TOOL_CALL_FINISH_RECOVERY_LIMIT = 1;
-const PRESERVE_RECENT_TOOL_RESULTS = 3;
 
 const DEFAULT_DEPS: StreamRunnerDeps = {
   executeStepWithRetry,
@@ -312,7 +311,7 @@ class StreamRunner {
       }
 
       const stepStartedAt = this.deps.now();
-      const stepConversation = this.buildConversationForStep(step);
+      const stepConversation = compactConversationForStep(this.state.conversation);
 
       const stepResult = await this.deps.executeStepWithRetry({
         ...this.buildStepOptions(step, stepConversation),
@@ -506,17 +505,6 @@ class StreamRunner {
         break;
       }
     }
-  }
-
-  private buildConversationForStep(step: number): ModelMessage[] {
-    if (step === 0) {
-      return compactConversationForStep(this.state.conversation);
-    }
-
-    return compactConversationForStep(this.state.conversation, {
-      preserveRecentToolResults: PRESERVE_RECENT_TOOL_RESULTS,
-      compactToolResults: true,
-    });
   }
 
   private async evaluateCompactionTrigger(): Promise<void> {
