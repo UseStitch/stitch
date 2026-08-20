@@ -1,9 +1,8 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterAll, afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 
 import type { PrefixedString } from '@stitch/shared/id';
 
-import { registerTitleGenerationAdapter } from '@/adapters/title-generation.js';
 import { getDb } from '@/db/client.js';
 import { recordingAnalyses, recordings } from '@/db/schema/recordings.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
@@ -18,6 +17,31 @@ setupTestDb();
 const sessionId = 'ses_title_adapter' as PrefixedString<'ses'>;
 const recordingId = 'rec_title_adapter' as PrefixedString<'rec'>;
 const analysisId = 'recan_title_adapter' as PrefixedString<'recan'>;
+
+type GenerateTitle = typeof import('@/title-generation/generator.js').generateTitleFromContent;
+type RecordLlmUsage = typeof import('@/usage/ledger.js').recordLlmUsage;
+
+const { generateTitleFromContent: actualGenerateTitleFromContent } = await import('@/title-generation/generator.js');
+const { recordLlmUsage: actualRecordLlmUsage } = await import('@/usage/ledger.js');
+let generateTitle: GenerateTitle = async () => null;
+let recordLlmUsage: RecordLlmUsage = actualRecordLlmUsage;
+
+void mock.module('@/title-generation/generator.js', () => ({
+  generateTitleFromContent: (...args: Parameters<GenerateTitle>) => generateTitle(...args),
+}));
+
+void mock.module('@/usage/ledger.js', () => ({
+  recordLlmUsage: (...args: Parameters<RecordLlmUsage>) => recordLlmUsage(...args),
+}));
+
+const { registerTitleGenerationAdapter } = await import('@/adapters/title-generation.js');
+
+afterAll(() => {
+  void mock.module('@/title-generation/generator.js', () => ({
+    generateTitleFromContent: actualGenerateTitleFromContent,
+  }));
+  void mock.module('@/usage/ledger.js', () => ({ recordLlmUsage: actualRecordLlmUsage }));
+});
 
 async function waitFor(assertion: () => Promise<boolean>): Promise<void> {
   const startedAt = Date.now();
@@ -75,6 +99,8 @@ async function seedRecordingAnalysis(): Promise<void> {
 describe('title generation adapter', () => {
   beforeEach(() => {
     internalBus.clear();
+    generateTitle = async () => null;
+    recordLlmUsage = actualRecordLlmUsage;
   });
 
   afterEach(() => {
@@ -85,14 +111,13 @@ describe('title generation adapter', () => {
     await seedSession();
     const emitted: InternalEventMap['session.title.updated'][] = [];
     internalBus.onSync('session.title.updated', (event) => emitted.push(event));
-    registerTitleGenerationAdapter({
-      generateTitle: async (content, fallbackProviderId, fallbackModelId) => ({
-        title: `Title: ${content}`,
-        providerId: fallbackProviderId,
-        modelId: fallbackModelId,
-        usage: ZERO_USAGE,
-      }),
+    generateTitle = async (content, fallbackProviderId, fallbackModelId) => ({
+      title: `Title: ${content}`,
+      providerId: fallbackProviderId,
+      modelId: fallbackModelId,
+      usage: ZERO_USAGE,
     });
+    registerTitleGenerationAdapter();
 
     internalBus.emit('title.generation.chat.requested', {
       sessionId,
@@ -121,14 +146,13 @@ describe('title generation adapter', () => {
     await seedRecordingAnalysis();
     const emitted: InternalEventMap['recording.analysis.updated'][] = [];
     internalBus.onSync('recording.analysis.updated', (event) => emitted.push(event));
-    registerTitleGenerationAdapter({
-      generateTitle: async () => ({
-        title: 'Generated Recording Title',
-        providerId: 'openai',
-        modelId: 'gpt-5',
-        usage: ZERO_USAGE,
-      }),
+    generateTitle = async () => ({
+      title: 'Generated Recording Title',
+      providerId: 'openai',
+      modelId: 'gpt-5',
+      usage: ZERO_USAGE,
     });
+    registerTitleGenerationAdapter();
 
     internalBus.emit('title.generation.recording_analysis.requested', {
       recordingId,
@@ -154,15 +178,14 @@ describe('title generation adapter', () => {
 
   test('increments recording analysis cost by generated title cost', async () => {
     await seedRecordingAnalysis();
-    registerTitleGenerationAdapter({
-      generateTitle: async () => ({
-        title: 'Generated Recording Title',
-        providerId: 'openai',
-        modelId: 'gpt-5',
-        usage: ZERO_USAGE,
-      }),
-      recordTitleUsage: async () => ({ costUsd: 0.25 }),
+    generateTitle = async () => ({
+      title: 'Generated Recording Title',
+      providerId: 'openai',
+      modelId: 'gpt-5',
+      usage: ZERO_USAGE,
     });
+    recordLlmUsage = async () => ({ costUsd: 0.25 });
+    registerTitleGenerationAdapter();
 
     internalBus.emit('title.generation.recording_analysis.requested', {
       recordingId,
@@ -183,11 +206,10 @@ describe('title generation adapter', () => {
 
   test('ignores generator failures', async () => {
     await seedSession();
-    registerTitleGenerationAdapter({
-      generateTitle: async () => {
-        throw new Error('failed');
-      },
-    });
+    generateTitle = async () => {
+      throw new Error('failed');
+    };
+    registerTitleGenerationAdapter();
 
     internalBus.emit('title.generation.chat.requested', {
       sessionId,

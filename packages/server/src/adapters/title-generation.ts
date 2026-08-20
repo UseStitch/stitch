@@ -16,11 +16,6 @@ import type { LanguageModelUsage } from 'ai';
 
 const log = Log.create({ service: 'title-generation-adapter' });
 
-type TitleGenerationAdapterDeps = {
-  generateTitle?: typeof generateTitleFromContent;
-  recordTitleUsage?: typeof recordTitleUsage;
-};
-
 async function recordTitleUsage(input: {
   providerId: string;
   modelId: string;
@@ -42,13 +37,14 @@ async function recordTitleUsage(input: {
   });
 }
 
-export function registerTitleGenerationAdapter(deps: TitleGenerationAdapterDeps = {}): void {
-  const generateTitle = deps.generateTitle ?? generateTitleFromContent;
-  const recordUsage = deps.recordTitleUsage ?? recordTitleUsage;
-
+export function registerTitleGenerationAdapter(): void {
   internalBus.on('title.generation.chat.requested', async (event) => {
     try {
-      const generatedTitle = await generateTitle(event.content, event.fallbackProviderId, event.fallbackModelId);
+      const generatedTitle = await generateTitleFromContent(
+        event.content,
+        event.fallbackProviderId,
+        event.fallbackModelId,
+      );
       if (!generatedTitle) return;
 
       const db = getDb();
@@ -62,7 +58,7 @@ export function registerTitleGenerationAdapter(deps: TitleGenerationAdapterDeps 
         endedAt: now,
       };
 
-      const { costUsd } = await recordUsage({
+      const { costUsd } = await recordTitleUsage({
         providerId: generatedTitle.providerId,
         modelId: generatedTitle.modelId,
         usage: generatedTitle.usage,
@@ -93,10 +89,14 @@ export function registerTitleGenerationAdapter(deps: TitleGenerationAdapterDeps 
 
   internalBus.on('title.generation.recording_analysis.requested', async (event) => {
     try {
-      const generatedTitle = await generateTitle(event.content, event.fallbackProviderId, event.fallbackModelId);
+      const generatedTitle = await generateTitleFromContent(
+        event.content,
+        event.fallbackProviderId,
+        event.fallbackModelId,
+      );
       if (!generatedTitle) return;
 
-      const { costUsd } = await recordUsage({
+      const { costUsd } = await recordTitleUsage({
         providerId: generatedTitle.providerId,
         modelId: generatedTitle.modelId,
         usage: generatedTitle.usage,

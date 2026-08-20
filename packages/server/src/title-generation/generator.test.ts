@@ -1,8 +1,6 @@
 import { APICallError } from 'ai';
 import { MockLanguageModelV3 } from 'ai/test';
-import { beforeEach, describe, expect, mock, test } from 'bun:test';
-
-import { generateTitleFromContent } from '@/title-generation/generator.js';
+import { afterAll, beforeEach, describe, expect, mock, test } from 'bun:test';
 
 const RESOLVED_MODEL = {
   providerId: 'openai' as const,
@@ -24,19 +22,33 @@ function makeMockModel(text: string): MockLanguageModelV3 {
   });
 }
 
+let resolvedModel: typeof RESOLVED_MODEL | null = RESOLVED_MODEL;
+let model = makeMockModel('');
+const { resolveCheapModel: actualResolveCheapModel } = await import('@/llm/resolve-cheap-model.js');
+const { createProvider: actualCreateProvider } = await import('@/llm/provider/provider.js');
+
+void mock.module('@/llm/resolve-cheap-model.js', () => ({ resolveCheapModel: async () => resolvedModel }));
+
+void mock.module('@/llm/provider/provider.js', () => ({ createProvider: () => () => model }));
+
+const { generateTitleFromContent } = await import('@/title-generation/generator.js');
+
+afterAll(() => {
+  void mock.module('@/llm/resolve-cheap-model.js', () => ({ resolveCheapModel: actualResolveCheapModel }));
+  void mock.module('@/llm/provider/provider.js', () => ({ createProvider: actualCreateProvider }));
+});
+
 describe('generateTitleFromContent', () => {
   beforeEach(() => {
-    mock.restore();
+    resolvedModel = RESOLVED_MODEL;
+    model = makeMockModel('');
   });
 
   test('returns normalized title, model metadata, usage, and forwards prompt content unchanged', async () => {
-    const model = makeMockModel('  Project Setup  ');
+    model = makeMockModel('  Project Setup  ');
     const content = 'Caller prepared content with auth-service.ts and meeting notes';
 
-    const result = await generateTitleFromContent(content, 'openai', 'gpt-5', {
-      resolveModel: async () => RESOLVED_MODEL,
-      getModel: () => model,
-    });
+    const result = await generateTitleFromContent(content, 'openai', 'gpt-5');
 
     expect(result?.title).toBe('Project Setup');
     expect(result?.providerId).toBe('openai');
@@ -52,35 +64,28 @@ describe('generateTitleFromContent', () => {
   });
 
   test('strips surrounding quotes from title', async () => {
-    const model = makeMockModel('"Debug Auth Flow"');
-    const result = await generateTitleFromContent('Generate a title for auth debugging', 'openai', 'gpt-5', {
-      resolveModel: async () => RESOLVED_MODEL,
-      getModel: () => model,
-    });
+    model = makeMockModel('"Debug Auth Flow"');
+    const result = await generateTitleFromContent('Generate a title for auth debugging', 'openai', 'gpt-5');
 
     expect(result?.title).toBe('Debug Auth Flow');
   });
 
   test('returns null when model returns empty text', async () => {
-    const model = makeMockModel('   ');
-    const result = await generateTitleFromContent('Generate a title', 'openai', 'gpt-5', {
-      resolveModel: async () => RESOLVED_MODEL,
-      getModel: () => model,
-    });
+    model = makeMockModel('   ');
+    const result = await generateTitleFromContent('Generate a title', 'openai', 'gpt-5');
 
     expect(result).toBeNull();
   });
 
   test('returns null when no cheap model can be resolved', async () => {
-    const result = await generateTitleFromContent('Generate a title', 'openai', 'gpt-5', {
-      resolveModel: async () => null,
-    });
+    resolvedModel = null;
+    const result = await generateTitleFromContent('Generate a title', 'openai', 'gpt-5');
 
     expect(result).toBeNull();
   });
 
   test('returns null on API error and does not throw', async () => {
-    const model = new MockLanguageModelV3({
+    model = new MockLanguageModelV3({
       doGenerate: async () => {
         throw new APICallError({
           message: 'Model not found',
@@ -92,10 +97,7 @@ describe('generateTitleFromContent', () => {
       },
     });
 
-    const result = await generateTitleFromContent('Generate a title', 'openai', 'gpt-5', {
-      resolveModel: async () => RESOLVED_MODEL,
-      getModel: () => model,
-    });
+    const result = await generateTitleFromContent('Generate a title', 'openai', 'gpt-5');
 
     expect(result).toBeNull();
   });
