@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { GmailBatchError } from '../../errors.js';
-import { createGmailBatchRequestBodyForTests, gmailBatchRequest, parseGmailBatchResponse } from './batch.js';
+import { buildMultipartBody, gmailBatchRequest, parseGmailBatchResponse } from './batch.js';
 
 import type { MailProviderContext } from '../../contracts.js';
 
@@ -18,9 +18,7 @@ function createContext(
 
 describe('gmailBatchRequest', () => {
   test('builds multipart request bodies', () => {
-    const body = createGmailBatchRequestBodyForTests('boundary', [
-      { id: 'msg-1', method: 'GET', path: '/messages/msg-1?format=full' },
-    ]);
+    const body = buildMultipartBody('boundary', [{ id: 'msg-1', method: 'GET', path: '/messages/msg-1?format=full' }]);
 
     expect(body).toContain('--boundary\r\nContent-Type: application/http');
     expect(body).toContain('Content-ID: <msg-1>');

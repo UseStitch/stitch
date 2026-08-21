@@ -112,7 +112,7 @@ function base64UrlEncode(value: string): string {
   return Buffer.from(value, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function buildRfc2822Message(draft: OutgoingDraft): { raw: string; threadId: string | undefined } {
+export function buildRfc2822Message(draft: OutgoingDraft): { raw: string; threadId: string | undefined } {
   const headers: string[] = [];
   const to = buildAddressListHeader(draft.to);
   const cc = buildAddressListHeader(draft.cc);
@@ -300,5 +300,3 @@ export const gmailOpsProvider: MailOpsProvider = {
 };
 
 export const gmailProviderModule: MailProviderModule = { sync: gmailSyncProvider, ops: gmailOpsProvider };
-
-export const createGmailRawMessageForTests = buildRfc2822Message;

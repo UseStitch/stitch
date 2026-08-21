@@ -1,7 +1,6 @@
 import { GmailApiError } from '../../errors.js';
 
 import type { MailProviderContext } from '../../contracts.js';
-import type { GmailMessage } from './parse.js';
 
 export const GMAIL_API_BASE = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
@@ -10,7 +9,6 @@ const METADATA_HEADERS = ['From', 'To', 'Cc', 'Bcc', 'Subject', 'Message-ID', 'I
 type GmailProfile = { emailAddress?: string; messagesTotal?: number; threadsTotal?: number; historyId: string };
 type GmailLabel = { id: string; name: string; type?: string; color?: { backgroundColor?: string; textColor?: string } };
 type GmailLabelListResponse = { labels?: GmailLabel[] };
-type GmailMessageListResponse = { messages?: { id: string; threadId: string }[]; nextPageToken?: string };
 type GmailThreadListResponse = { threads?: { id: string }[]; nextPageToken?: string };
 type GmailAttachmentResponse = { data?: string; size?: number };
 export type GmailMessageFormat = 'full' | 'metadata';
@@ -50,16 +48,6 @@ export async function listLabelsRaw(ctx: MailProviderContext): Promise<GmailLabe
   return response.labels ?? [];
 }
 
-export async function listMessages(
-  ctx: MailProviderContext,
-  input: { pageToken?: string; afterEpochSeconds?: number },
-): Promise<GmailMessageListResponse> {
-  const params = new URLSearchParams({ maxResults: '500' });
-  if (input.pageToken) params.set('pageToken', input.pageToken);
-  if (input.afterEpochSeconds !== undefined) params.set('q', `after:${input.afterEpochSeconds}`);
-  return gmailApiRequest<GmailMessageListResponse>(ctx, `/messages?${params.toString()}`);
-}
-
 export async function listThreads(
   ctx: MailProviderContext,
   input: { pageToken?: string; afterEpochSeconds?: number },
@@ -70,28 +58,12 @@ export async function listThreads(
   return gmailApiRequest<GmailThreadListResponse>(ctx, `/threads?${params.toString()}`);
 }
 
-export function buildGetMessagePath(messageId: string, format: GmailMessageFormat): string {
-  const params = new URLSearchParams({ format });
-  if (format === 'metadata') {
-    for (const header of METADATA_HEADERS) params.append('metadataHeaders', header);
-  }
-  return `/messages/${encodeURIComponent(messageId)}?${params.toString()}`;
-}
-
 export function buildGetThreadPath(threadId: string, format: GmailMessageFormat): string {
   const params = new URLSearchParams({ format });
   if (format === 'metadata') {
     for (const header of METADATA_HEADERS) params.append('metadataHeaders', header);
   }
   return `/threads/${encodeURIComponent(threadId)}?${params.toString()}`;
-}
-
-export async function getMessage(
-  ctx: MailProviderContext,
-  messageId: string,
-  format: GmailMessageFormat,
-): Promise<GmailMessage> {
-  return gmailApiRequest<GmailMessage>(ctx, buildGetMessagePath(messageId, format));
 }
 
 export async function listHistory(
