@@ -29,24 +29,16 @@ export class SummaryResolverCalledError extends GoogleConnectorError {
 }
 
 export class RateLimitExceedsCapacityError extends GoogleConnectorError {
-  readonly weight: number;
-  readonly capacity: number;
-  readonly windowMs: number;
   constructor(weight: number, capacity: number, windowMs: number) {
     super(`Requested quota cost (${weight}) exceeds limiter capacity (${capacity}) for ${windowMs}ms window`);
     this.name = 'RateLimitExceedsCapacityError';
-    this.weight = weight;
-    this.capacity = capacity;
-    this.windowMs = windowMs;
   }
 }
 
 export class RateLimitQueueTimeoutError extends GoogleConnectorError {
-  readonly maxWaitMs: number;
   constructor(maxWaitMs: number) {
     super(`Rate limiter queue wait exceeded ${maxWaitMs}ms`);
     this.name = 'RateLimitQueueTimeoutError';
-    this.maxWaitMs = maxWaitMs;
   }
 }
 
@@ -58,22 +50,16 @@ export class GmailMissingTempPathError extends GoogleConnectorError {
 }
 
 export class GmailAttachmentMissingDataError extends GoogleConnectorError {
-  readonly attachmentId: string;
   constructor(attachmentId: string) {
     super(`Gmail attachment ${attachmentId} did not include download data`);
     this.name = 'GmailAttachmentMissingDataError';
-    this.attachmentId = attachmentId;
   }
 }
 
 export class GmailAttachmentSizeLimitError extends GoogleConnectorError {
-  readonly totalBytes: number;
-  readonly maxBytes: number;
   constructor(totalBytes: number, maxBytes: number) {
     super(`Gmail attachments total ${totalBytes} bytes, exceeding the ${maxBytes} byte limit`);
     this.name = 'GmailAttachmentSizeLimitError';
-    this.totalBytes = totalBytes;
-    this.maxBytes = maxBytes;
   }
 }
 

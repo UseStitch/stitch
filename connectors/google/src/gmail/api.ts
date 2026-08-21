@@ -564,20 +564,6 @@ function summarizeFilter(criteria: GmailFilterCriteria, action: GmailFilterActio
     if (effects.length) actions.push(effects.join('; '));
   }
 
-  if (action.removeLabelIds?.length) {
-    const names = action.removeLabelIds.map(labelName);
-
-    const effects: string[] = [];
-    if (names.includes('inbox')) effects.push('skip inbox (archive)');
-    if (names.includes('unread')) effects.push('mark as read');
-    if (names.includes('spam')) effects.push('never spam');
-    if (names.includes('important')) effects.push('never mark important');
-    const remainder = names.filter((n) => n !== 'inbox' && n !== 'unread' && n !== 'spam' && n !== 'important');
-    if (remainder.length) effects.push(`remove labels: ${remainder.join(', ')}`);
-
-    if (effects.length) actions.push(effects.join('; '));
-  }
-
   if (action.forward) actions.push(`forward to ${action.forward}`);
 
   const actionStr = actions.length > 0 ? actions.join(' + ') : 'no action';

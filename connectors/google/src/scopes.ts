@@ -49,6 +49,12 @@ const SERVICE_SCOPE_MAP: Record<GoogleService, readonly string[]> = {
   docs: DOCS_SCOPES,
 };
 
+const SERVICE_WRITE_SCOPE_MAP: Record<Exclude<GoogleService, 'gmail'>, readonly string[]> = {
+  drive: [GOOGLE_SCOPE_DRIVE_FILE, GOOGLE_SCOPE_DRIVE],
+  calendar: [GOOGLE_SCOPE_CALENDAR_EVENTS, GOOGLE_SCOPE_CALENDAR],
+  docs: [GOOGLE_SCOPE_DOCS],
+};
+
 /** Check if the granted scopes include access to a specific Google service. */
 export function hasServiceAccess(grantedScopes: string[], service: GoogleService): boolean {
   const required = SERVICE_SCOPE_MAP[service];
@@ -56,17 +62,9 @@ export function hasServiceAccess(grantedScopes: string[], service: GoogleService
 }
 
 /** Check if the granted scopes include write access for a service. */
-export function hasWriteAccess(grantedScopes: string[], service: GoogleService): boolean {
-  if (service === 'gmail') {
-    return grantedScopes.some((s) => s === GOOGLE_SCOPE_GMAIL_SEND || s === GOOGLE_SCOPE_GMAIL_MODIFY);
-  }
-  if (service === 'drive') {
-    return grantedScopes.some((s) => s === GOOGLE_SCOPE_DRIVE_FILE || s === GOOGLE_SCOPE_DRIVE);
-  }
-  if (service === 'calendar') {
-    return grantedScopes.some((s) => s === GOOGLE_SCOPE_CALENDAR_EVENTS || s === GOOGLE_SCOPE_CALENDAR);
-  }
-  return grantedScopes.some((s) => s === GOOGLE_SCOPE_DOCS);
+export function hasWriteAccess(grantedScopes: string[], service: Exclude<GoogleService, 'gmail'>): boolean {
+  const writeScopes = SERVICE_WRITE_SCOPE_MAP[service];
+  return grantedScopes.some((s) => writeScopes.includes(s));
 }
 
 /** Check if granted scopes can send Gmail messages. */

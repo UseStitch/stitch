@@ -79,12 +79,7 @@ function summarizeToolDescription(description: string | undefined): string {
   );
 }
 
-type BuildGoogleToolsetsInput = {
-  scopes: string[];
-  capabilities?: string[];
-  appliedVersion?: number;
-  tempPath?: string;
-};
+type BuildGoogleToolsetsInput = { scopes: string[]; capabilities?: string[]; tempPath?: string };
 
 const EXACT_TOOL_NAME_INSTRUCTION =
   'Use the exact callable tool names exactly as listed. Do not invent aliases, camelCase variants, or shortened names.';
@@ -93,20 +88,21 @@ function hasCapability(capabilities: string[], capability: string): boolean {
   return capabilities.includes(capability);
 }
 
+type ToolsetAccess = { service: 'gmail' | 'drive' | 'calendar' | 'docs'; readCapability: string };
+
+const TOOLSET_ACCESS = new Map<string, ToolsetAccess>([
+  ['google-gmail', { service: 'gmail', readCapability: GOOGLE_CAPABILITY_GMAIL_READ }],
+  ['google-drive', { service: 'drive', readCapability: GOOGLE_CAPABILITY_DRIVE_READ }],
+  ['google-calendar', { service: 'calendar', readCapability: GOOGLE_CAPABILITY_CALENDAR_READ }],
+  ['google-docs', { service: 'docs', readCapability: GOOGLE_CAPABILITY_DOCS_READ }],
+]);
+
 export function canActivateToolset(toolsetId: string, scopes: string[], capabilities: string[]): boolean {
-  if (toolsetId === 'google-gmail') {
-    return hasServiceAccess(scopes, 'gmail') && hasCapability(capabilities, GOOGLE_CAPABILITY_GMAIL_READ);
+  const access = TOOLSET_ACCESS.get(toolsetId);
+  if (!access) {
+    return false;
   }
-  if (toolsetId === 'google-drive') {
-    return hasServiceAccess(scopes, 'drive') && hasCapability(capabilities, GOOGLE_CAPABILITY_DRIVE_READ);
-  }
-  if (toolsetId === 'google-calendar') {
-    return hasServiceAccess(scopes, 'calendar') && hasCapability(capabilities, GOOGLE_CAPABILITY_CALENDAR_READ);
-  }
-  if (toolsetId === 'google-docs') {
-    return hasServiceAccess(scopes, 'docs') && hasCapability(capabilities, GOOGLE_CAPABILITY_DOCS_READ);
-  }
-  return false;
+  return hasServiceAccess(scopes, access.service) && hasCapability(capabilities, access.readCapability);
 }
 
 function createGmailToolset(
@@ -229,26 +225,22 @@ function createDocsToolset(scopes: string[], capabilities: string[]): GoogleTool
  */
 export function buildGoogleToolsets(input: string[] | BuildGoogleToolsetsInput): GoogleToolsetDefinition[] {
   const normalizedInput: BuildGoogleToolsetsInput = Array.isArray(input) ? { scopes: input } : input;
-  const scopes = normalizedInput.scopes;
   const capabilities = normalizedInput.capabilities ?? [...GOOGLE_DEFAULT_CAPABILITIES];
-  const tempPath = normalizedInput.tempPath;
-  const toolsets: GoogleToolsetDefinition[] = [];
 
-  if (hasServiceAccess(scopes, 'gmail') && hasCapability(capabilities, GOOGLE_CAPABILITY_GMAIL_READ)) {
-    toolsets.push(createGmailToolset(scopes, capabilities, { tempPath }));
-  }
+  const builders: {
+    id: string;
+    create: (scopes: string[], capabilities: string[], tempPath?: string) => GoogleToolsetDefinition;
+  }[] = [
+    {
+      id: 'google-gmail',
+      create: (scopes, capabilities, tempPath) => createGmailToolset(scopes, capabilities, { tempPath }),
+    },
+    { id: 'google-drive', create: createDriveToolset },
+    { id: 'google-calendar', create: createCalendarToolset },
+    { id: 'google-docs', create: createDocsToolset },
+  ];
 
-  if (hasServiceAccess(scopes, 'drive') && hasCapability(capabilities, GOOGLE_CAPABILITY_DRIVE_READ)) {
-    toolsets.push(createDriveToolset(scopes, capabilities));
-  }
-
-  if (hasServiceAccess(scopes, 'calendar') && hasCapability(capabilities, GOOGLE_CAPABILITY_CALENDAR_READ)) {
-    toolsets.push(createCalendarToolset(scopes, capabilities));
-  }
-
-  if (hasServiceAccess(scopes, 'docs') && hasCapability(capabilities, GOOGLE_CAPABILITY_DOCS_READ)) {
-    toolsets.push(createDocsToolset(scopes, capabilities));
-  }
-
-  return toolsets;
+  return builders
+    .filter((builder) => canActivateToolset(builder.id, normalizedInput.scopes, capabilities))
+    .map((builder) => builder.create(normalizedInput.scopes, capabilities, normalizedInput.tempPath));
 }
