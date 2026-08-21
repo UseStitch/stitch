@@ -1,6 +1,6 @@
 import { and, eq, gte, inArray, sql } from 'drizzle-orm';
 
-import { getMailDb, type MailDb } from '../db/client.js';
+import { getMailDb } from '../db/client.js';
 import {
   createMailAttachmentId,
   createMailLabelId,
@@ -22,20 +22,12 @@ const UNREAD_PROVIDER_ID = 'UNREAD';
 const TRASH_PROVIDER_ID = 'TRASH';
 const DRAFT_PROVIDER_ID = 'DRAFT';
 
-function dbOrDefault(db?: MailDb): MailDb {
-  return db ?? getMailDb();
-}
-
-function stringify(value: unknown): string {
-  return JSON.stringify(value);
-}
-
 function unique<T>(values: T[]): T[] {
   return [...new Set(values)];
 }
 
-export async function persistLabels(accountId: MailAccountId, labels: SyncLabel[], dbOption?: MailDb): Promise<void> {
-  const db = dbOrDefault(dbOption);
+export async function persistLabels(accountId: MailAccountId, labels: SyncLabel[]): Promise<void> {
+  const db = getMailDb();
   const nowLabels = labels.map((label) => ({
     id: createMailLabelId(),
     accountId,
@@ -56,11 +48,8 @@ export async function persistLabels(accountId: MailAccountId, labels: SyncLabel[
   }
 }
 
-async function ensureLabels(
-  accountId: MailAccountId,
-  providerLabelIds: string[],
-  db: MailDb,
-): Promise<Map<string, MailLabelId>> {
+async function ensureLabels(accountId: MailAccountId, providerLabelIds: string[]): Promise<Map<string, MailLabelId>> {
+  const db = getMailDb();
   const ids = unique(providerLabelIds);
   for (const providerLabelId of ids) {
     await db
@@ -84,7 +73,8 @@ async function ensureLabels(
   return new Map(labels.map((label) => [label.providerLabelId, label.id]));
 }
 
-async function getOrCreateThread(accountId: MailAccountId, thread: SyncThread, db: MailDb): Promise<MailThreadId> {
+async function getOrCreateThread(accountId: MailAccountId, thread: SyncThread): Promise<MailThreadId> {
+  const db = getMailDb();
   const existing = (
     await db
       .select()
@@ -123,12 +113,8 @@ function latestMessage(messages: SyncMessage[]): SyncMessage | null {
   );
 }
 
-async function upsertMessage(
-  accountId: MailAccountId,
-  threadId: MailThreadId,
-  message: SyncMessage,
-  db: MailDb,
-): Promise<void> {
+async function upsertMessage(accountId: MailAccountId, threadId: MailThreadId, message: SyncMessage): Promise<void> {
+  const db = getMailDb();
   const existing = (
     await db
       .select()
@@ -142,10 +128,10 @@ async function upsertMessage(
     accountId,
     threadId,
     providerMessageId: message.providerMessageId,
-    fromJson: stringify(message.from),
-    toJson: stringify(message.to),
-    ccJson: stringify(message.cc),
-    bccJson: stringify(message.bcc),
+    fromJson: JSON.stringify(message.from),
+    toJson: JSON.stringify(message.to),
+    ccJson: JSON.stringify(message.cc),
+    bccJson: JSON.stringify(message.bcc),
     subject: message.subject,
     snippet: message.snippet,
     internalDate: message.internalDate,
@@ -167,7 +153,7 @@ async function upsertMessage(
     await db.insert(mailMessages).values({ id: messageId, ...values });
   }
 
-  const labelMap = await ensureLabels(accountId, message.labelProviderIds, db);
+  const labelMap = await ensureLabels(accountId, message.labelProviderIds);
   await db.delete(mailMessageLabels).where(eq(mailMessageLabels.messageId, messageId));
   for (const labelId of labelMap.values()) {
     await db.insert(mailMessageLabels).values({ messageId, labelId }).onConflictDoNothing();
@@ -194,23 +180,21 @@ async function upsertMessage(
   }
 }
 
-async function upsertThread(accountId: MailAccountId, thread: SyncThread, db: MailDb): Promise<MailThreadId> {
-  const threadId = await getOrCreateThread(accountId, thread, db);
+async function upsertThread(accountId: MailAccountId, thread: SyncThread): Promise<MailThreadId> {
+  const db = getMailDb();
+  const threadId = await getOrCreateThread(accountId, thread);
   const providerMessageIds = new Set(thread.messages.map((message) => message.providerMessageId));
   const localMessages = await db.select().from(mailMessages).where(eq(mailMessages.threadId, threadId));
   for (const localMessage of localMessages) {
     if (!providerMessageIds.has(localMessage.providerMessageId))
       await db.delete(mailMessages).where(eq(mailMessages.id, localMessage.id));
   }
-  for (const message of thread.messages) await upsertMessage(accountId, threadId, message, db);
+  for (const message of thread.messages) await upsertMessage(accountId, threadId, message);
   return threadId;
 }
 
-async function deleteThread(
-  accountId: MailAccountId,
-  providerThreadId: string,
-  db: MailDb,
-): Promise<MailThreadId | null> {
+async function deleteThread(accountId: MailAccountId, providerThreadId: string): Promise<MailThreadId | null> {
+  const db = getMailDb();
   const thread = (
     await db
       .select()
@@ -223,8 +207,8 @@ async function deleteThread(
   return thread.id;
 }
 
-export async function recomputeThreads(threadIds: MailThreadId[], dbOption?: MailDb): Promise<void> {
-  const db = dbOrDefault(dbOption);
+export async function recomputeThreads(threadIds: MailThreadId[]): Promise<void> {
+  const db = getMailDb();
   for (const threadId of unique(threadIds)) {
     const messages = await db.select().from(mailMessages).where(eq(mailMessages.threadId, threadId));
     if (messages.length === 0) {
@@ -258,8 +242,8 @@ export async function recomputeThreads(threadIds: MailThreadId[], dbOption?: Mai
   }
 }
 
-export async function refreshLabelCounts(accountId: MailAccountId, dbOption?: MailDb): Promise<void> {
-  const db = dbOrDefault(dbOption);
+export async function refreshLabelCounts(accountId: MailAccountId): Promise<void> {
+  const db = getMailDb();
   const labels = await db.select().from(mailLabels).where(eq(mailLabels.accountId, accountId));
   for (const label of labels) {
     const [total] = await db
@@ -285,48 +269,37 @@ export async function refreshLabelCounts(accountId: MailAccountId, dbOption?: Ma
   }
 }
 
-async function persistChanges(accountId: MailAccountId, changes: SyncChange[], db: MailDb): Promise<MailThreadId[]> {
+async function persistChanges(accountId: MailAccountId, changes: SyncChange[]): Promise<MailThreadId[]> {
   const touched: MailThreadId[] = [];
   for (const change of changes) {
-    if (change.kind === 'upsertThread') touched.push(await upsertThread(accountId, change.thread, db));
+    if (change.kind === 'upsertThread') touched.push(await upsertThread(accountId, change.thread));
     if (change.kind === 'deleteThread') {
-      const threadId = await deleteThread(accountId, change.providerThreadId, db);
+      const threadId = await deleteThread(accountId, change.providerThreadId);
       if (threadId) touched.push(threadId);
     }
   }
-  await recomputeThreads(touched, db);
-  await refreshLabelCounts(accountId, db);
+  await recomputeThreads(touched);
+  await refreshLabelCounts(accountId);
   return unique(touched);
 }
 
-export async function persistSyncPage(
-  accountId: MailAccountId,
-  page: SyncPage,
-  dbOption?: MailDb,
-): Promise<MailThreadId[]> {
-  const db = dbOrDefault(dbOption);
+export async function persistSyncPage(accountId: MailAccountId, page: SyncPage): Promise<MailThreadId[]> {
   return persistChanges(
     accountId,
     page.threads.map((thread) => ({ kind: 'upsertThread', thread })),
-    db,
   );
 }
 
-export async function persistSyncChanges(
-  accountId: MailAccountId,
-  changes: SyncChange[],
-  dbOption?: MailDb,
-): Promise<MailThreadId[]> {
-  return persistChanges(accountId, changes, dbOrDefault(dbOption));
+export async function persistSyncChanges(accountId: MailAccountId, changes: SyncChange[]): Promise<MailThreadId[]> {
+  return persistChanges(accountId, changes);
 }
 
 export async function deleteMissingThreadsSince(
   accountId: MailAccountId,
   sinceMs: number,
   providerThreadIds: string[],
-  dbOption?: MailDb,
 ): Promise<MailThreadId[]> {
-  const db = dbOrDefault(dbOption);
+  const db = getMailDb();
   const providerSet = new Set(providerThreadIds);
   const localThreads = await db
     .select()
@@ -338,7 +311,7 @@ export async function deleteMissingThreadsSince(
     await db.delete(mailThreads).where(eq(mailThreads.id, thread.id));
     touched.push(thread.id);
   }
-  await refreshLabelCounts(accountId, db);
+  await refreshLabelCounts(accountId);
   return unique(touched);
 }
 

@@ -8,7 +8,7 @@ const MAX_BATCH_OPERATIONS = 50;
 export type GmailBatchOperation = { id: string; method: 'GET'; path: string };
 export type GmailBatchResult<T = unknown> = { id: string; status: number; body: T | null };
 
-function buildMultipartBody(boundary: string, operations: GmailBatchOperation[]): string {
+export function buildMultipartBody(boundary: string, operations: GmailBatchOperation[]): string {
   return `${operations
     .map(
       (operation) =>
@@ -82,5 +82,3 @@ export async function gmailBatchRequest<T = unknown>(
 
   return parseGmailBatchResponse(response.headers.get('content-type'), await response.text()) as GmailBatchResult<T>[];
 }
-
-export const createGmailBatchRequestBodyForTests = buildMultipartBody;

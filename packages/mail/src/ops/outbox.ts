@@ -225,5 +225,3 @@ export function createOutbox(deps: OutboxDeps): OutboxController {
 
   return { enqueue, flushOutbox };
 }
-
-export const OUTBOX_RETRY = { baseBackoffMs: BASE_BACKOFF_MS, maxBackoffMs: MAX_BACKOFF_MS, maxAttempts: MAX_ATTEMPTS };

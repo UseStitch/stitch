@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { createGmailRawMessageForTests, gmailOpsProvider, gmailProviderModule, gmailSyncProvider } from './provider.js';
+import { buildRfc2822Message, gmailOpsProvider, gmailProviderModule, gmailSyncProvider } from './provider.js';
 
 import type { MailProviderContext, OutgoingDraft } from '../../contracts.js';
 
@@ -38,7 +38,7 @@ describe('gmail provider', () => {
       inReplyTo: { providerMessageId: 'msg-1', providerThreadId: 'thr-1' },
     };
 
-    const message = createGmailRawMessageForTests(draft);
+    const message = buildRfc2822Message(draft);
     const decoded = Buffer.from(message.raw.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
 
     expect(message.threadId).toBe('thr-1');

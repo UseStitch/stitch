@@ -35,10 +35,6 @@ type OperationsDeps = {
   emitThreadsChanged(accountId: MailAccountId, threadIds: MailThreadId[]): void;
 };
 
-function stringifyAddresses(addresses: SyncAddress[]): string {
-  return JSON.stringify(addresses);
-}
-
 async function getAccount(accountId: MailAccountId): Promise<MailAccountRecord> {
   const account = (await getMailDb().select().from(mailAccounts).where(eq(mailAccounts.id, accountId)).limit(1)).at(0);
   if (!account) throw new MailNotFoundError(`Mail account not found: ${accountId}`);
@@ -121,8 +117,8 @@ export function createOperations(deps: OperationsDeps) {
         .update(mailMessages)
         .set({ isUnread: input.markRead ? false : message.isUnread, updatedAt: Date.now() })
         .where(eq(mailMessages.id, message.id));
-      await recomputeThreads([message.threadId], db);
-      await refreshLabelCounts(message.accountId, db);
+      await recomputeThreads([message.threadId]);
+      await refreshLabelCounts(message.accountId);
       await deps.outbox.enqueue(message.accountId, 'modify_labels', {
         messageId,
         providerMessageId: message.providerMessageId,
@@ -149,9 +145,9 @@ export function createOperations(deps: OperationsDeps) {
         .values({
           id,
           accountId: input.accountId,
-          toJson: stringifyAddresses(input.to),
-          ccJson: stringifyAddresses(input.cc),
-          bccJson: stringifyAddresses(input.bcc),
+          toJson: JSON.stringify(input.to),
+          ccJson: JSON.stringify(input.cc),
+          bccJson: JSON.stringify(input.bcc),
           subject: input.subject,
           bodyText: input.bodyText,
           bodyHtml: input.bodyHtml,
@@ -185,9 +181,9 @@ export function createOperations(deps: OperationsDeps) {
       await db
         .update(mailDrafts)
         .set({
-          toJson: stringifyAddresses(next.to),
-          ccJson: stringifyAddresses(next.cc),
-          bccJson: stringifyAddresses(next.bcc),
+          toJson: JSON.stringify(next.to),
+          ccJson: JSON.stringify(next.cc),
+          bccJson: JSON.stringify(next.bcc),
           subject: next.subject,
           bodyText: next.bodyText,
           bodyHtml: next.bodyHtml,
@@ -248,7 +244,7 @@ export function createOperations(deps: OperationsDeps) {
       const provider = getMailProvider(account.provider);
       const hydrated = await provider.sync.getThread(deps.createContext(account), thread.providerThreadId, 'full');
       if (!hydrated) return;
-      const touched = await persistSyncPage(account.id, { threads: [hydrated], nextPageCursor: undefined }, db);
+      const touched = await persistSyncPage(account.id, { threads: [hydrated], nextPageCursor: undefined });
       deps.emitThreadsChanged(account.id, touched);
     },
 
@@ -306,8 +302,8 @@ async function setThreadTrash(threadId: MailThreadId, isTrashed: boolean, deps: 
         .delete(mailMessageLabels)
         .where(and(eq(mailMessageLabels.messageId, message.id), eq(mailMessageLabels.labelId, trashLabel.id)));
   }
-  await recomputeThreads([thread.id], db);
-  await refreshLabelCounts(thread.accountId, db);
+  await recomputeThreads([thread.id]);
+  await refreshLabelCounts(thread.accountId);
   await deps.outbox.enqueue(thread.accountId, isTrashed ? 'trash_thread' : 'untrash_thread', {
     threadId,
     providerThreadId: thread.providerThreadId,

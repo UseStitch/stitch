@@ -22,10 +22,10 @@ export async function runIncremental(
     return { touchedThreadIds: [], queuedReconcile: false };
   }
 
-  await persistLabels(account.id, await provider.listLabels(ctx), db);
+  await persistLabels(account.id, await provider.listLabels(ctx));
   const result = await provider.incrementalSync(ctx, account.syncCursor);
   if (result.status === 'ok') {
-    const touchedThreadIds = await persistSyncChanges(account.id, result.changes, db);
+    const touchedThreadIds = await persistSyncChanges(account.id, result.changes);
     await db
       .update(mailAccounts)
       .set({
@@ -42,7 +42,7 @@ export async function runIncremental(
   const snapshot = await provider.snapshotCursor(ctx);
   const sinceMs = Math.max(0, (account.lastSyncedAt ?? 0) - 86_400_000);
   const threads = await provider.listThreadsSince(ctx, sinceMs);
-  const touchedThreadIds = await persistSyncPage(account.id, { threads, nextPageCursor: undefined }, db);
+  const touchedThreadIds = await persistSyncPage(account.id, { threads, nextPageCursor: undefined });
   await db
     .update(mailAccounts)
     .set({

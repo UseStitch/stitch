@@ -5,7 +5,7 @@ import path from 'node:path';
 import { closeMailDb, getMailDb, initMailDb } from '../db/client.js';
 import { mailAccounts, mailOutbox } from '../db/schema.js';
 import { registerMailProvider } from '../registry.js';
-import { createOutbox, OUTBOX_RETRY } from './outbox.js';
+import { createOutbox } from './outbox.js';
 
 import type { MailProviderModule } from '../contracts.js';
 
@@ -48,8 +48,8 @@ test('flushOutbox marks failed sends with exponential retry delay', async () => 
   expect(row.status).toBe('failed');
   expect(row.attempts).toBe(1);
   expect(row.lastError).toBe('temporary');
-  expect(row.nextAttemptAt).toBeGreaterThanOrEqual(before + OUTBOX_RETRY.baseBackoffMs * 2);
-  expect(row.nextAttemptAt).toBeLessThanOrEqual(Date.now() + OUTBOX_RETRY.baseBackoffMs * 2 + 1000);
+  expect(row.nextAttemptAt).toBeGreaterThanOrEqual(before + 60_000);
+  expect(row.nextAttemptAt).toBeLessThanOrEqual(Date.now() + 60_000 + 1000);
 });
 
 const failingProvider: MailProviderModule = {

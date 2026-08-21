@@ -21,7 +21,7 @@ export async function runBackfill(
   let cursor = account.backfillCursor ?? undefined;
   let processed = 0;
 
-  await persistLabels(account.id, await provider.listLabels(ctx), db);
+  await persistLabels(account.id, await provider.listLabels(ctx));
   await db
     .update(mailAccounts)
     .set({ syncPhase: 'backfill', syncCursor: snapshot, lastError: null, updatedAt: Date.now() })
@@ -29,7 +29,7 @@ export async function runBackfill(
 
   while (!ctx.signal.aborted) {
     const page = await provider.backfillPage(ctx, cursor, fullBodiesAfter);
-    touched.push(...(await persistSyncPage(account.id, page, db)));
+    touched.push(...(await persistSyncPage(account.id, page)));
     processed += page.threads.length;
     cursor = page.nextPageCursor;
     await db
