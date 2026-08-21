@@ -3,7 +3,6 @@ import { toast } from 'sonner';
 import { queryOptions, type MutationOptions, type QueryClient } from '@tanstack/react-query';
 
 import type {
-  ManagedMemoryEntry,
   MemoryConsolidationResult,
   MemoryFileSnapshot,
   MemoryFilesOverview,
@@ -12,8 +11,6 @@ import type {
 } from '@stitch/shared/memory/types';
 
 import { serverRequest } from '@/lib/api';
-
-export type { ManagedMemoryEntry, MemoryFileSnapshot, MemoryTarget };
 
 const keys = {
   all: ['memories'] as const,

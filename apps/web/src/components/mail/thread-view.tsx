@@ -18,8 +18,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { getServerUrl } from '@/lib/api';
 import { getErrorMessage } from '@/lib/errors';
 import { formatDateTime } from '@/lib/format';
-import { useModifyMailMessage, useTrashMailThread, useUntrashMailThread } from '@/lib/queries/mail';
-import { mailLabelsQueryOptions, mailThreadQueryOptions } from '@/lib/queries/mail';
+import {
+  useModifyMailMessage,
+  useTrashMailThread,
+  useUntrashMailThread,
+  mailLabelsQueryOptions,
+  mailThreadQueryOptions,
+} from '@/lib/queries/mail';
 
 type ThreadViewProps = { accountId: MailAccountId; threadId: MailThreadId; onClose: () => void };
 

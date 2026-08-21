@@ -3,13 +3,14 @@ import * as React from 'react';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import type { ManagedMemoryEntry, MemoryFileSnapshot, MemoryTarget } from '@stitch/shared/memory/types';
+
 import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Textarea } from '@/components/ui/textarea';
-import type { ManagedMemoryEntry, MemoryFileSnapshot, MemoryTarget } from '@/lib/queries/memories';
 import { addMemoryEntryMutationOptions, deleteMemoryEntryMutationOptions } from '@/lib/queries/memories';
 
 export function CuratedFile({

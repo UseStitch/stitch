@@ -3,6 +3,8 @@ import * as React from 'react';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import type { ManagedMemoryEntry, MemoryFileSnapshot } from '@stitch/shared/memory/types';
+
 import { ConsolidationLog } from '@/components/memories/consolidation-log';
 import { CuratedFile } from '@/components/memories/curated-file';
 import { MemoryDetailSheet } from '@/components/memories/memory-detail-sheet';
@@ -23,7 +25,6 @@ import {
 } from '@/components/ui/page';
 import { SearchInput } from '@/components/ui/search-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { ManagedMemoryEntry, MemoryFileSnapshot } from '@/lib/queries/memories';
 import {
   consolidateMemoryMutationOptions,
   memoryFilesQueryOptions,

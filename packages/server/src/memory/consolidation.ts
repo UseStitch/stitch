@@ -1,7 +1,11 @@
 import { generateText, Output } from 'ai';
 
-import type { MemoryConsolidationResult } from '@stitch/shared/memory/types';
-import type { ManagedMemoryEntry, MemoryFileSnapshot, MemoryTarget } from '@stitch/shared/memory/types';
+import type {
+  MemoryConsolidationResult,
+  ManagedMemoryEntry,
+  MemoryFileSnapshot,
+  MemoryTarget,
+} from '@stitch/shared/memory/types';
 
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';

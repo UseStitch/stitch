@@ -2,10 +2,10 @@ import { eq, count } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import type { EmbeddingProviderModels } from '@stitch/shared/embedding/types';
-import { isLocalProviderId } from '@stitch/shared/providers/types';
+import { isLocalProviderId, type LocalProviderId } from '@stitch/shared/providers/types';
 
 import { getDb } from '@/db/client.js';
-import { providerConfig, localModels, type LocalProviderId } from '@/db/schema/providers.js';
+import { providerConfig, localModels } from '@/db/schema/providers.js';
 import type { ResolvedEmbeddingModel } from '@/models/embedding/schema.js';
 import * as EmbeddingModels from '@/models/embedding/service.js';
 import * as LocalModels from '@/models/llm/local.js';

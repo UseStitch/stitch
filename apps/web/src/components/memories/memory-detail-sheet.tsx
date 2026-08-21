@@ -2,13 +2,14 @@ import * as React from 'react';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import type { ManagedMemoryEntry, MemoryFileSnapshot } from '@stitch/shared/memory/types';
+
 import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
-import type { ManagedMemoryEntry, MemoryFileSnapshot } from '@/lib/queries/memories';
 import { deleteMemoryEntryMutationOptions, updateMemoryEntryMutationOptions } from '@/lib/queries/memories';
 
 type Props = {

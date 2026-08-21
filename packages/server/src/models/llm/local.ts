@@ -2,8 +2,10 @@ import { and, eq } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 
+import type { LocalProviderId } from '@stitch/shared/providers/types';
+
 import { getDb } from '@/db/client.js';
-import { localModels, providerConfig, type LocalProviderId } from '@/db/schema/providers.js';
+import { localModels, providerConfig } from '@/db/schema/providers.js';
 import { ModelSchema } from '@/models/llm/registry.js';
 
 export type LocalModel = typeof localModels.$inferSelect;
