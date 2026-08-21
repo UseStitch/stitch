@@ -145,7 +145,7 @@ export async function registerGoogleToolsets(): Promise<void> {
     ...connected.map((instance) => (Number.isFinite(instance.appliedVersion) ? instance.appliedVersion : 1)),
   );
 
-  const toolsetDefs = buildGoogleToolsets({ scopes, capabilities, appliedVersion, tempPath: PATHS.tempDir });
+  const toolsetDefs = buildGoogleToolsets({ scopes, capabilities, tempPath: PATHS.tempDir });
 
   for (const def of toolsetDefs) {
     registerToolset(toServerToolset(def));

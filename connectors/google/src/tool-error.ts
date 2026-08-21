@@ -5,23 +5,6 @@ import { GoogleApiError } from './client.js';
 
 import type { Tool } from 'ai';
 
-type GoogleToolErrorClassifier = {
-  code: string;
-  message: string;
-  retryable: boolean;
-  matches: (error: GoogleApiError) => boolean;
-};
-
-const GOOGLE_TOOL_ERROR_CLASSIFIERS: GoogleToolErrorClassifier[] = [
-  {
-    code: 'insufficient_google_permissions',
-    message:
-      "You aren't allowed to perform this action because the connected Google account does not have enough permissions.",
-    retryable: false,
-    matches: isInsufficientScopeError,
-  },
-];
-
 export function wrapGoogleToolErrors(tools: Record<string, Tool>): Record<string, Tool> {
   return Object.fromEntries(
     Object.entries(tools).map(([name, currentTool]) => [name, wrapGoogleToolError(currentTool)]),
@@ -53,16 +36,14 @@ function wrapGoogleToolError(currentTool: Tool): Tool {
 }
 
 export function classifyGoogleToolError(error: unknown): ToolErrorResult | null {
-  if (!(error instanceof GoogleApiError)) {
+  if (!(error instanceof GoogleApiError) || !isInsufficientScopeError(error)) {
     return null;
   }
 
-  const classifier = GOOGLE_TOOL_ERROR_CLASSIFIERS.find((item) => item.matches(error));
-  if (!classifier) {
-    return null;
-  }
-
-  return toolError(classifier.message, { code: classifier.code, retryable: classifier.retryable });
+  return toolError(
+    "You aren't allowed to perform this action because the connected Google account does not have enough permissions.",
+    { code: 'insufficient_google_permissions', retryable: false },
+  );
 }
 
 function isInsufficientScopeError(error: GoogleApiError): boolean {

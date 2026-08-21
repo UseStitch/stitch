@@ -6,11 +6,7 @@
 
 import { noopLogger, type StitchLogger } from '@stitch/shared/logger';
 
-import {
-  DEFAULT_GOOGLE_RATE_LIMIT_CONFIG,
-  GoogleRateLimitCoordinator,
-  type GoogleRateLimitConfig,
-} from './rate-limit.js';
+import { DEFAULT_GOOGLE_RATE_LIMIT_CONFIG, GoogleRateLimitCoordinator } from './rate-limit.js';
 import { sleep } from './utils.js';
 
 type GoogleClientConfig = {
@@ -20,8 +16,6 @@ type GoogleClientConfig = {
   logger?: StitchLogger;
   /** Stable per-account key for account-level quota limiting. */
   quotaAccountKey?: string | null;
-  /** Optional overrides for the built-in Google API limiter config. */
-  rateLimits?: Partial<GoogleRateLimitConfig>;
 };
 
 export class GoogleApiError extends Error {
@@ -59,9 +53,7 @@ type GoogleErrorResponse = {
 };
 
 function mergeHeaders(base: RequestInit['headers'] | undefined, extra: Record<string, string>): Record<string, string> {
-  const headers = new Headers(base);
-  for (const [key, value] of Object.entries(extra)) headers.set(key, value);
-  return { ...Object.fromEntries(headers.entries()), ...extra };
+  return { ...Object.fromEntries(new Headers(base).entries()), ...extra };
 }
 
 export class GoogleClient {
@@ -78,7 +70,7 @@ export class GoogleClient {
     this.authAccountKey = config.quotaAccountKey ?? null;
     this.log = config.logger ?? noopLogger;
     this.rateLimitCoordinator = new GoogleRateLimitCoordinator(
-      mergeRateLimitConfig(config.rateLimits),
+      DEFAULT_GOOGLE_RATE_LIMIT_CONFIG,
       config.quotaAccountKey,
     );
   }
@@ -207,22 +199,6 @@ type ParsedApiError = {
   authChallenge: string | undefined;
   retryAfterMs: number | undefined;
 };
-
-function mergeRateLimitConfig(overrides: Partial<GoogleRateLimitConfig> | undefined): GoogleRateLimitConfig {
-  if (!overrides) return DEFAULT_GOOGLE_RATE_LIMIT_CONFIG;
-
-  const services = { ...DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.services };
-  if (overrides.services) {
-    for (const key of Object.keys(services) as (keyof typeof services)[]) {
-      services[key] = {
-        project: overrides.services[key]?.project ?? services[key].project,
-        account: overrides.services[key]?.account ?? services[key].account,
-      };
-    }
-  }
-
-  return { maxQueueWaitMs: overrides.maxQueueWaitMs ?? DEFAULT_GOOGLE_RATE_LIMIT_CONFIG.maxQueueWaitMs, services };
-}
 
 async function parseGoogleApiError(response: Response): Promise<ParsedApiError> {
   const fallbackMessage = `Google API error: ${response.status} ${response.statusText}`;

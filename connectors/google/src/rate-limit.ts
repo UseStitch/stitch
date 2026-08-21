@@ -236,10 +236,6 @@ class SlidingWindowLimiter {
     }
   }
 
-  private used(): number {
-    return this.usedWeight;
-  }
-
   private async acquireInternal(weight: number, options: AcquireOptions): Promise<number> {
     let waitedMs = 0;
 
@@ -247,7 +243,7 @@ class SlidingWindowLimiter {
       const now = Date.now();
       this.pruneExpired(now);
 
-      if (this.used() + weight <= this.capacity) {
+      if (this.usedWeight + weight <= this.capacity) {
         this.events.push({ timestamp: now, weight });
         this.usedWeight += weight;
         return waitedMs;
