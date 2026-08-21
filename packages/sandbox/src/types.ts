@@ -17,8 +17,6 @@ export type SandboxLibrary = { specifier: string; globalName?: string; inject?: 
 export type SandboxProcessDriverOptions = {
   /** Path to the compiled sandbox process binary. */
   execPath: string;
-  /** Memory limit in MB for the sandbox process (default: 512). */
-  memoryLimit?: number;
 };
 
 export type IsolateOptions = {
@@ -30,8 +28,6 @@ export type IsolateOptions = {
   abortSignal?: AbortSignal;
   /** Maximum host tool calls allowed during one execution (default: 100) */
   maxToolCalls?: number;
-  /** Maximum postMessage payload size in bytes (default: 512 KiB) */
-  maxMessageBytes?: number;
   /** Host-approved libraries injected into sandbox code by variable name. */
   libraries?: Record<string, SandboxLibrary>;
 };

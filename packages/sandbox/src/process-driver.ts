@@ -1,15 +1,7 @@
-import {
-  SandboxMemoryError,
-  SandboxMessageTooLargeError,
-  SandboxSecurityError,
-  SandboxTimeoutError,
-  SandboxToolLimitError,
-  SandboxUnknownToolError,
-  toErrorMessage,
-} from './errors.js';
+import { SandboxError, toErrorMessage } from './errors.js';
 import { DANGEROUS_GLOBALS } from './hardening.js';
 import { isWorkerMessage } from './protocol.js';
-import { createAbortRace, createExecutionTimeoutRace, createPausableTimer, createToolTimeoutRace } from './timer.js';
+import { createAbortRace, createExecutionTimeoutRace, createPausableTimer, createTimeoutRace } from './timer.js';
 
 import type { HostMessage, WorkerMessage } from './protocol.js';
 import type {
@@ -34,7 +26,6 @@ const encoder = new TextEncoder();
 type ToolCallContext = {
   bindings: Record<string, ToolBinding>;
   maxToolCalls: number;
-  maxMessageBytes: number;
   toolTimeoutMs: number;
   abortSignal: AbortSignal | undefined;
   proc: { send(message: unknown): void };
@@ -42,7 +33,7 @@ type ToolCallContext = {
   incrementToolCallCount: () => number;
 };
 
-function assertMessageSize(message: unknown, maxMessageBytes: number): void {
+function assertMessageSize(message: unknown): void {
   // Serialization failure counts as oversized — can't trust it won't blow up the IPC channel.
   let size: number;
   try {
@@ -50,21 +41,21 @@ function assertMessageSize(message: unknown, maxMessageBytes: number): void {
   } catch {
     size = Number.POSITIVE_INFINITY;
   }
-  if (size > maxMessageBytes) {
-    throw new SandboxMessageTooLargeError(maxMessageBytes);
+  if (size > DEFAULT_MAX_MESSAGE_BYTES) {
+    throw new SandboxError(`Sandbox message exceeded ${DEFAULT_MAX_MESSAGE_BYTES} bytes`);
   }
 }
 
 function validateLibraryNames(libraries: IsolateOptions['libraries']): void {
   for (const [name, library] of Object.entries(libraries ?? {})) {
     if (!IDENTIFIER_PATTERN.test(name) || RESERVED_LIBRARY_NAMES.has(name)) {
-      throw new SandboxSecurityError(`Invalid sandbox library name: ${name}`);
+      throw new SandboxError(`Invalid sandbox library name: ${name}`);
     }
     if (
       library.globalName !== undefined &&
       (!IDENTIFIER_PATTERN.test(library.globalName) || RESERVED_LIBRARY_NAMES.has(library.globalName))
     ) {
-      throw new SandboxSecurityError(`Invalid sandbox library global name: ${library.globalName}`);
+      throw new SandboxError(`Invalid sandbox library global name: ${library.globalName}`);
     }
   }
 }
@@ -77,32 +68,34 @@ async function dispatchToolCall(
   try {
     const count = ctx.incrementToolCallCount();
     if (count > ctx.maxToolCalls) {
-      ctx.proc.send({ type: 'tool_error', id: message.id, error: new SandboxToolLimitError(ctx.maxToolCalls).message });
+      ctx.proc.send({ type: 'tool_error', id: message.id, error: `Exceeded maximum tool calls (${ctx.maxToolCalls})` });
       return;
     }
 
-    assertMessageSize(message, ctx.maxMessageBytes);
+    assertMessageSize(message);
 
     const binding = ctx.bindings[message.name] as ToolBinding | undefined;
     if (!binding) {
-      ctx.proc.send({ type: 'tool_error', id: message.id, error: new SandboxUnknownToolError(message.name).message });
+      ctx.proc.send({ type: 'tool_error', id: message.id, error: `Unknown tool: ${message.name}` });
       return;
     }
 
-    const timeoutRace = createToolTimeoutRace(
-      ctx.toolTimeoutMs,
-      ctx.abortSignal,
-      `Tool call timed out after ${ctx.toolTimeoutMs}ms`,
-    );
+    const timeoutRace = createTimeoutRace(ctx.toolTimeoutMs, `Tool call timed out after ${ctx.toolTimeoutMs}ms`);
+    const abortRace = createAbortRace(ctx.abortSignal, 'Tool call aborted');
     try {
       await binding.validateInput(message.args);
-      const result = await Promise.race([binding.execute(message.args, ctx.abortSignal), timeoutRace.promise]);
+      const result = await Promise.race([
+        binding.execute(message.args, ctx.abortSignal),
+        timeoutRace.promise,
+        abortRace.promise,
+      ]);
 
       const response: HostMessage = { type: 'tool_result', id: message.id, result };
-      assertMessageSize(response, ctx.maxMessageBytes);
+      assertMessageSize(response);
       ctx.proc.send(response);
     } finally {
       timeoutRace.cleanup();
+      abortRace.cleanup();
     }
   } catch (err) {
     ctx.proc.send({ type: 'tool_error', id: message.id, error: toErrorMessage(err) });
@@ -128,11 +121,10 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
 
   return {
     async createContext(bindings: Record<string, ToolBinding>, options: IsolateOptions = {}): Promise<IsolateContext> {
-      const memoryLimitMB = options.memoryLimit ?? driverOptions.memoryLimit ?? DEFAULT_MEMORY_LIMIT_MB;
+      const memoryLimitMB = options.memoryLimit ?? DEFAULT_MEMORY_LIMIT_MB;
       const memoryLimitBytes = memoryLimitMB * 1024 * 1024;
       const timeoutMs = options.timeout ?? DEFAULT_TIMEOUT_MS;
       const maxToolCalls = options.maxToolCalls ?? DEFAULT_MAX_TOOL_CALLS;
-      const maxMessageBytes = options.maxMessageBytes ?? DEFAULT_MAX_MESSAGE_BYTES;
       const libraries = options.libraries ?? {};
       const abortSignal = options.abortSignal;
       const toolTimeoutMs = Math.max(1_000, timeoutMs - TOOL_TIMEOUT_BUFFER_MS);
@@ -173,7 +165,6 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
       const toolCallCtx: ToolCallContext = {
         bindings,
         maxToolCalls,
-        maxMessageBytes,
         toolTimeoutMs,
         abortSignal,
         proc,
@@ -207,7 +198,7 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
                 if (message.rss > memoryLimitBytes) {
                   cleanup();
                   terminate();
-                  settle({ ok: false, error: new SandboxMemoryError(memoryLimitMB).message, logs: [] });
+                  settle({ ok: false, error: `Sandbox memory limit exceeded (${memoryLimitMB}MB)`, logs: [] });
                 }
                 return;
               }
@@ -248,7 +239,7 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
             terminate();
             return {
               ok: false,
-              error: timeoutRace.isTimedOut() ? new SandboxTimeoutError(timeoutMs).message : toErrorMessage(err),
+              error: timeoutRace.isTimedOut() ? `Execution timed out after ${timeoutMs}ms` : toErrorMessage(err),
               logs: [],
             };
           } finally {

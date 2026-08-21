@@ -1,4 +1,4 @@
-import { SandboxAbsoluteTimeoutError, SandboxAbortError, SandboxTimeoutError, SandboxToolError } from './errors.js';
+import { SandboxError } from './errors.js';
 
 const ABSOLUTE_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -13,10 +13,7 @@ export function createPausableTimer(): PausableTimer {
       if (pausedAt === null) pausedAt = Date.now();
     },
     resume() {
-      if (!(pausedAt !== null)) {
-        return;
-      }
-
+      if (pausedAt === null) return;
       totalPausedMs += Date.now() - pausedAt;
       pausedAt = null;
     },
@@ -38,18 +35,15 @@ export function createAbortRace(abortSignal: AbortSignal | undefined, message: s
 
   const promise = new Promise<never>((_, reject) => {
     if (abortSignal.aborted) {
-      reject(new SandboxAbortError(message));
+      reject(new SandboxError(message));
       return;
     }
-    onAbort = () => reject(new SandboxAbortError(message));
+    onAbort = () => reject(new SandboxError(message));
     abortSignal.addEventListener('abort', onAbort, { once: true });
   });
 
   const cleanup = () => {
-    if (!(onAbort !== null)) {
-      return;
-    }
-
+    if (onAbort === null) return;
     abortSignal.removeEventListener('abort', onAbort);
     onAbort = null;
   };
@@ -57,36 +51,15 @@ export function createAbortRace(abortSignal: AbortSignal | undefined, message: s
   return { promise, cleanup };
 }
 
-export function createToolTimeoutRace(
-  timeoutMs: number,
-  abortSignal: AbortSignal | undefined,
-  message: string,
-): AbortRace {
-  if (abortSignal?.aborted)
-    return { promise: Promise.reject(new SandboxAbortError('Tool call aborted')), cleanup: () => {} };
-
+export function createTimeoutRace(timeoutMs: number, message: string): AbortRace {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
   const promise = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => reject(new SandboxToolError(message)), timeoutMs);
-
-    if (abortSignal) {
-      abortSignal.addEventListener(
-        'abort',
-        () => {
-          if (timeoutId !== null) clearTimeout(timeoutId);
-          reject(new SandboxAbortError('Tool call aborted'));
-        },
-        { once: true },
-      );
-    }
+    timeoutId = setTimeout(() => reject(new SandboxError(message)), timeoutMs);
   });
 
   const cleanup = () => {
-    if (!(timeoutId !== null)) {
-      return;
-    }
-
+    if (timeoutId === null) return;
     clearTimeout(timeoutId);
     timeoutId = null;
   };
@@ -114,7 +87,7 @@ export function createExecutionTimeoutRace(
       if (elapsed >= timeoutMs) {
         timedOut = true;
         onTimeout();
-        reject(new SandboxTimeoutError(timeoutMs));
+        reject(new SandboxError(`Execution timed out after ${timeoutMs}ms`));
       } else {
         pausableTimeoutId = setTimeout(checkPausable, 100);
       }
@@ -124,7 +97,7 @@ export function createExecutionTimeoutRace(
     absoluteTimeoutId = setTimeout(() => {
       timedOut = true;
       onTimeout();
-      reject(new SandboxAbsoluteTimeoutError(ABSOLUTE_TIMEOUT_MS));
+      reject(new SandboxError(`Sandbox execution exceeded absolute limit of ${ABSOLUTE_TIMEOUT_MS}ms`));
     }, ABSOLUTE_TIMEOUT_MS);
   });
 

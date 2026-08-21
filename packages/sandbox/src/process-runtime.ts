@@ -1,4 +1,4 @@
-import { SandboxError, SandboxToolError, toErrorMessage } from './errors.js';
+import { SandboxError, toErrorMessage } from './errors.js';
 import { assertSafeCode, DANGEROUS_GLOBALS, harden } from './hardening.js';
 import { isHostMessage } from './protocol.js';
 
@@ -134,8 +134,7 @@ export function startProcessRuntime(preloadedModules: Record<string, Record<stri
     libraries = initData.libraries;
     injectedLibraries = await loadLibraries();
     // Pre-import allowed modules before hardening freezes globals.
-    await importLibrary('node:fs');
-    await importLibrary('node:fs/promises');
+    await Promise.all([importLibrary('node:fs'), importLibrary('node:fs/promises')]);
     harden();
     registerToolProxies();
 
@@ -164,7 +163,7 @@ export function startProcessRuntime(preloadedModules: Record<string, Record<stri
   }
 
   function handleToolError(msg: Extract<HostMessage, { type: 'tool_error' }>): void {
-    pendingCalls.get(msg.id)?.reject(new SandboxToolError(msg.error));
+    pendingCalls.get(msg.id)?.reject(new SandboxError(msg.error));
     pendingCalls.delete(msg.id);
   }
 

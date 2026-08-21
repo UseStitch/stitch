@@ -1,4 +1,4 @@
-import { SandboxSecurityError } from './errors.js';
+import { SandboxError } from './errors.js';
 
 export const DANGEROUS_GLOBALS = [
   'Bun',
@@ -59,7 +59,7 @@ function assertSafeDynamicImports(code: string): void {
     const specifier = match.at(1)?.trim();
     const literal = specifier?.match(/^['"]([^'"]+)['"]$/);
     if (!literal || !ALLOWED_DYNAMIC_IMPORTS.has(literal.at(1) ?? '')) {
-      throw new SandboxSecurityError('dynamic import is only available for node:fs and node:fs/promises');
+      throw new SandboxError('dynamic import is only available for node:fs and node:fs/promises');
     }
   }
 }
@@ -111,6 +111,6 @@ export function assertSafeCode(code: string): void {
   assertSafeDynamicImports(code);
 
   for (const [pattern, message] of forbiddenPatterns) {
-    if (pattern.test(code)) throw new SandboxSecurityError(message);
+    if (pattern.test(code)) throw new SandboxError(message);
   }
 }
