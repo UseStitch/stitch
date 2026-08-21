@@ -1,6 +1,6 @@
-import type { StitchLogger } from '@stitch/shared/logger';
+import { CronExpressionParser } from 'cron-parser';
 
-import { getNextCronRunMs } from './cron.js';
+import type { StitchLogger } from '@stitch/shared/logger';
 
 import type { CatchupPolicy, JobSchedule, PersistedJobRun, RegisteredJob, SchedulerStore } from './types.js';
 
@@ -10,14 +10,15 @@ const DEFAULT_CATCHUP_MAX_RUNS = 100;
 
 type SchedulerOptions = { logger: StitchLogger; store: SchedulerStore; pollIntervalMs?: number };
 
-type RegisteredJobInternal = Omit<Required<RegisteredJob>, 'callback' | 'schedule'> & {
-  callback: RegisteredJob['callback'];
-  schedule: JobSchedule;
-};
-
 function calculateNextRunMs(schedule: JobSchedule, afterMs: number): number {
   if (schedule.type === 'interval') return afterMs + schedule.everyMs;
-  return getNextCronRunMs(schedule.expression, afterMs, schedule.timezone ?? 'UTC');
+  return CronExpressionParser.parse(schedule.expression, {
+    currentDate: new Date(afterMs),
+    tz: schedule.timezone ?? 'UTC',
+  })
+    .next()
+    .toDate()
+    .getTime();
 }
 
 function calculateNextDueRunMs(schedule: JobSchedule, nextRunAt: number, dueCount: number): number {
@@ -71,12 +72,11 @@ export function createScheduler(options: SchedulerOptions) {
   const store = options.store;
   const pollIntervalMs = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
 
-  const jobs = new Map<string, RegisteredJobInternal>();
+  const jobs = new Map<string, Required<RegisteredJob>>();
   const jobLocks = new Set<string>();
   const inFlightRuns = new Set<Promise<void>>();
 
   let timer: ReturnType<typeof setInterval> | null = null;
-  let stopped = false;
 
   async function executeCallback(
     jobKey: string,
@@ -118,7 +118,7 @@ export function createScheduler(options: SchedulerOptions) {
       if (availableSlots <= 0) return;
 
       const now = Date.now();
-      const dueTimes = calculateDueTimes(job.schedule, state.nextRunAt, now, Math.max(1, job.catchupMaxRuns));
+      const dueTimes = calculateDueTimes(job.schedule, state.nextRunAt, now, job.catchupMaxRuns);
       const selectedRuns = selectRunsToStart(dueTimes, job.catchup, job.catchupMaxRuns, availableSlots);
 
       if (!selectedRuns) return;
@@ -156,7 +156,7 @@ export function createScheduler(options: SchedulerOptions) {
       throw new Error('interval schedule everyMs must be greater than zero');
     }
 
-    const normalized: RegisteredJobInternal = {
+    const normalized: Required<RegisteredJob> = {
       ...job,
       enabled: job.enabled ?? true,
       immediate: job.immediate ?? false,
@@ -196,10 +196,9 @@ export function createScheduler(options: SchedulerOptions) {
 
   async function start(): Promise<void> {
     if (timer) return;
-    stopped = false;
 
     timer = setInterval(() => {
-      if (!stopped) void tick();
+      void tick();
     }, pollIntervalMs);
 
     await tick();
@@ -208,8 +207,6 @@ export function createScheduler(options: SchedulerOptions) {
   }
 
   async function stop(): Promise<void> {
-    stopped = true;
-
     if (timer) {
       clearInterval(timer);
       timer = null;

@@ -11,19 +11,7 @@ export function validateCronExpression(expression: string): { valid: true } | { 
   }
 }
 
-export function getNextCronRunMs(expression: string, afterMs: number, timezone: string = DEFAULT_TIMEZONE): number {
-  return CronExpressionParser.parse(expression, { currentDate: new Date(afterMs), tz: timezone })
-    .next()
-    .toDate()
-    .getTime();
-}
-
-export function getUpcomingCronRuns(
-  expression: string,
-  count: number,
-  timezone: string = DEFAULT_TIMEZONE,
-  afterMs: number = Date.now(),
-): Date[] {
-  const interval = CronExpressionParser.parse(expression, { currentDate: new Date(afterMs), tz: timezone });
+export function getUpcomingCronRuns(expression: string, count: number, timezone: string = DEFAULT_TIMEZONE): Date[] {
+  const interval = CronExpressionParser.parse(expression, { currentDate: new Date(), tz: timezone });
   return Array.from({ length: count }, () => interval.next().toDate());
 }
