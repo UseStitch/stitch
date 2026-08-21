@@ -15,8 +15,7 @@ import { buildAuthHeaders } from '@/mcp/auth.js';
 import { requestMcpElicitation } from '@/mcp/elicitation-service.js';
 import { McpOAuthProvider, setMcpAuthStatus } from '@/mcp/oauth-provider.js';
 import type { Tool as McpTool } from '@modelcontextprotocol/sdk/types.js';
-import type { JSONSchema7 } from 'ai';
-import type { Tool } from 'ai';
+import type { JSONSchema7, Tool } from 'ai';
 
 const log = Log.create({ service: 'mcp-client' });
 

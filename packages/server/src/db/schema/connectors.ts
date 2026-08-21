@@ -1,8 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { blob, check, index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
-import type { ConnectorStatus } from '@stitch/shared/connectors/types';
-import type { ConnectorAuthType } from '@stitch/shared/connectors/types';
+import type { ConnectorStatus, ConnectorAuthType } from '@stitch/shared/connectors/types';
 import type { PrefixedString } from '@stitch/shared/id';
 
 export const connectors = sqliteTable(

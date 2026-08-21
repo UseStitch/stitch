@@ -5,7 +5,6 @@ import type { LocalProviderId } from '@stitch/shared/providers/types';
 import type { RawModel } from '@/models/llm/registry.js';
 import type { ProviderCredentials } from '@/provider/config/schema.js';
 
-export type { LocalProviderId } from '@stitch/shared/providers/types';
 type LocalModality = NonNullable<RawModel['modalities']>['input'][number];
 
 export const providerConfig = sqliteTable('provider_config', {

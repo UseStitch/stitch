@@ -1,9 +1,8 @@
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 
-import { isLocalProviderId } from '@stitch/shared/providers/types';
+import { isLocalProviderId, type LocalProviderId } from '@stitch/shared/providers/types';
 
-import type { LocalProviderId } from '@/db/schema/providers.js';
 import {
   LocalModelInputSchema,
   checkHealth as checkProviderHealth,
