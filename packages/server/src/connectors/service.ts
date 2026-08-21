@@ -537,10 +537,6 @@ export async function deleteConnectorInstance(instanceId: string): Promise<void>
 
   await db.delete(connectorInstances).where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
 
-  const module = getConnectorModule(existing.connectorId);
-  if (module?.hooks?.onDeleted) {
-    await module.hooks.onDeleted({ instance: existing, logger: log });
-  }
   internalBus.emit('connector.removed', { instanceId, connectorId: existing.connectorId });
 
   log.info({ event: 'connector.deleted', instanceId }, `Connector instance deleted: ${existing.label}`);

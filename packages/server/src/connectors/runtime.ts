@@ -47,11 +47,6 @@ export async function initConnectorRuntime(): Promise<void> {
 
   for (const module of modules) {
     const context = getLifecycleContext(module.definition.id);
-    await module.lifecycle?.register?.(context);
-  }
-
-  for (const module of modules) {
-    const context = getLifecycleContext(module.definition.id);
     await module.lifecycle?.init?.(context);
   }
 
@@ -62,11 +57,6 @@ export async function initConnectorRuntime(): Promise<void> {
 }
 
 export async function shutdownConnectorRuntime(): Promise<void> {
-  const modules = [...modulesById.values()];
-  for (const module of modules) {
-    const context = getLifecycleContext(module.definition.id);
-    await module.lifecycle?.shutdown?.(context);
-  }
   modulesById.clear();
   log.info({ event: 'connector-runtime.stopped' }, 'connector runtime stopped');
 }

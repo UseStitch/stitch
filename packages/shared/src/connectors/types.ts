@@ -100,17 +100,19 @@ export type ConnectorInstance = {
   updatedAt: number;
 };
 
+export type ConnectorUpgradeState = {
+  available: boolean;
+  fromVersion: number;
+  toVersion: number;
+  actions: ConnectorUpgradeAction[];
+  title: string;
+  description: string;
+  missingScopes: string[];
+  newCapabilities: string[];
+} | null;
+
 export type ConnectorInstanceSafe = Omit<ConnectorInstance, 'accessToken' | 'refreshToken'> & {
   hasAccessToken: boolean;
   hasRefreshToken: boolean;
-  upgrade: {
-    available: boolean;
-    fromVersion: number;
-    toVersion: number;
-    actions: ConnectorUpgradeAction[];
-    title: string;
-    description: string;
-    missingScopes: string[];
-    newCapabilities: string[];
-  } | null;
+  upgrade: ConnectorUpgradeState;
 };

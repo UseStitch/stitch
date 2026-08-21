@@ -4,9 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./upgrade": "./src/upgrade.ts",
-    "./types": "./src/types.ts"
+    ".": "./src/types.ts",
+    "./upgrade": "./src/upgrade.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
