@@ -11,7 +11,7 @@ import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
-import { memoryFileStore, type CuratedEntryInput, type MemoryFileStore } from '@/memory/file-store.js';
+import { MemoryStore, memoryFileStore, type CuratedEntryInput } from '@/memory/file-store.js';
 import { buildConsolidationPrompt, consolidationSchema, type ConsolidationProposal } from '@/memory/prompts.js';
 
 const log = Log.create({ service: 'memory-consolidation' });
@@ -126,7 +126,7 @@ export function validateConsolidationProposal(input: ValidationInput): {
 }
 
 async function eligibleCandidates(
-  store: MemoryFileStore,
+  store: MemoryStore,
   checkpoint: ConsolidationCheckpoint | null,
   curatedIds: Set<string>,
   maxCandidates: number,
@@ -195,7 +195,7 @@ function auditMarkdown(result: MemoryConsolidationResult): string {
 }
 
 async function recordRejected(
-  store: MemoryFileStore,
+  store: MemoryStore,
   result: MemoryConsolidationResult,
 ): Promise<MemoryConsolidationResult> {
   await store
@@ -206,7 +206,7 @@ async function recordRejected(
 
 export async function consolidateMemories(
   options: {
-    store?: MemoryFileStore;
+    store?: MemoryStore;
     maxCandidates?: number;
     propose?: (prompt: string) => Promise<ConsolidationProposal>;
   } = {},
