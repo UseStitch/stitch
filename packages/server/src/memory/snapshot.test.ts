@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { MemoryFileStore } from '@/memory/file-store.js';
+import { MemoryStore } from '@/memory/file-store.js';
 import { clearMemorySnapshotCache, readMemoryFilesForPrompt } from '@/memory/snapshot.js';
 
 const roots: string[] = [];
@@ -11,7 +11,7 @@ const roots: string[] = [];
 async function createStore(limits: { memoryCharLimit?: number; userCharLimit?: number } = {}) {
   const rootDir = await mkdtemp(path.join(os.tmpdir(), 'stitch-memory-snapshot-'));
   roots.push(rootDir);
-  return new MemoryFileStore({ rootDir, ...limits });
+  return new MemoryStore({ rootDir, ...limits });
 }
 
 afterEach(async () => {

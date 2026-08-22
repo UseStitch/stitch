@@ -3,22 +3,22 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { MemoryCapacityError, MemoryConflictError, MemoryFileStore, MemoryPathError } from '@/memory/file-store.js';
+import { MemoryCapacityError, MemoryConflictError, MemoryStore, MemoryPathError } from '@/memory/file-store.js';
 
 const roots: string[] = [];
 const NOW = new Date('2026-08-04T12:00:00.000Z');
 
-async function createStore(options: { memoryCharLimit?: number } = {}): Promise<MemoryFileStore> {
+async function createStore(options: { memoryCharLimit?: number } = {}): Promise<MemoryStore> {
   const rootDir = await mkdtemp(path.join(os.tmpdir(), 'stitch-memory-'));
   roots.push(rootDir);
-  return new MemoryFileStore({ rootDir, now: () => NOW, ...options });
+  return new MemoryStore({ rootDir, now: () => NOW, ...options });
 }
 
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-describe('MemoryFileStore', () => {
+describe('MemoryStore', () => {
   test('creates empty canonical files lazily', async () => {
     const store = await createStore();
 

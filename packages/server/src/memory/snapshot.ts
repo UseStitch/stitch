@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import * as Log from '@/lib/log.js';
 import { getMemoryConfig } from '@/memory/config.js';
-import { memoryFileStore, type MemoryFileStore } from '@/memory/file-store.js';
+import { MemoryStore, memoryFileStore } from '@/memory/file-store.js';
 
 const log = Log.create({ service: 'memory-snapshot' });
 
@@ -13,7 +13,7 @@ type CacheEntry = { mtimeMs: number; contentHash: string; content: string | null
 const cache = new Map<string, CacheEntry>();
 
 async function readBounded(
-  store: MemoryFileStore,
+  store: MemoryStore,
   target: 'memory' | 'user',
 ): Promise<{ content: string | null; truncated: boolean }> {
   const name = target === 'memory' ? 'MEMORY.md' : 'USER.md';
