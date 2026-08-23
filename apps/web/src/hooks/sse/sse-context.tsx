@@ -34,14 +34,6 @@ type SseContextValue = {
 
 const SseContext = React.createContext<SseContextValue | null>(null);
 
-function parseJson(raw: string): unknown {
-  try {
-    return JSON.parse(raw) as unknown;
-  } catch {
-    return raw;
-  }
-}
-
 /** `never` makes this a supertype of every `(data: SseEventPayloadMap[K]) => void`. */
 type StoredSseHandler = (data: never) => void;
 
@@ -119,7 +111,7 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
         // meaningful for remote servers whose clock is skewed from the client's.
         if (eventName === 'heartbeat') setLastHeartbeat(new Date());
 
-        const payload = parseJson(raw);
+        const payload = JSON.parse(raw) as unknown;
         handlersRef.current.get(eventName)?.forEach((handler) => callHandler(handler, payload));
       },
     });

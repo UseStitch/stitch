@@ -13,11 +13,6 @@ type ParsedSlashCommand = {
  * slash command so callers can fall through to sending a normal message.
  */
 export function parseSlashCommand(input: string): ParsedSlashCommand | null {
-  if (input[0] !== '/') return null;
-
-  const withoutSlash = input.slice(1);
-  const match = /^(\S+)(?:\s+([\s\S]*))?$/.exec(withoutSlash);
-  if (!match) return null;
-
-  return { name: match[1].toLowerCase(), args: match[2]?.trim() ?? '' };
+  const m = input.match(/^\/(\S+)(?:\s+([\s\S]*))?$/);
+  return m ? { name: m[1].toLowerCase(), args: (m[2] ?? '').trim() } : null;
 }

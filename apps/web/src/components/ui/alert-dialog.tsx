@@ -3,7 +3,6 @@ import { cn } from 'cnfast';
 import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
-import { overlayClassName } from '@/components/ui/overlay-styles';
 
 function AlertDialog({ ...props }: AlertDialogPrimitive.Root.Props) {
   return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />;
@@ -22,7 +21,7 @@ function AlertDialogOverlay({ className, ...props }: AlertDialogPrimitive.Backdr
     <AlertDialogPrimitive.Backdrop
       data-slot="alert-dialog-overlay"
       className={cn(
-        overlayClassName,
+        'bg-border-subtle supports-backdrop-filter:backdrop-blur-xs fixed inset-0 z-50',
         'isolate duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
         className,
       )}
