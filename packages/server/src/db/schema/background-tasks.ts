@@ -1,9 +1,6 @@
 import { blob, index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
-import type {
-  BackgroundTaskDeliveryStatus,
-  BackgroundTaskStatus,
-} from '@stitch/shared/background-tasks/types';
+import type { BackgroundTaskDeliveryStatus, BackgroundTaskStatus } from '@stitch/shared/background-tasks/types';
 import type { PrefixedString } from '@stitch/shared/id';
 
 import { messages, sessions } from '@/db/schema/sessions.js';

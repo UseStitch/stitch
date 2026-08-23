@@ -6,11 +6,7 @@ export const TOOL_ENABLED_SCOPES = ['tool', 'toolset', 'mcp_tool', 'app', 'skill
 
 export type ToolEnabledScope = (typeof TOOL_ENABLED_SCOPES)[number];
 
-export type ToolEnabledState = {
-  scope: ToolEnabledScope;
-  identifier: string;
-  enabled: boolean;
-};
+export type ToolEnabledState = { scope: ToolEnabledScope; identifier: string; enabled: boolean };
 
 type ToolDataResult = { data: unknown; error?: never; details?: never };
 

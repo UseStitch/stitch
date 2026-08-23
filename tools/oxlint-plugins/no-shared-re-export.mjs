@@ -43,7 +43,10 @@ const noSharedReExport = {
             context.report({
               node,
               messageId: 'directReExport',
-              data: { names: node.specifiers.map((specifier) => nameOf(specifier.exported)).join(', '), source: node.source.value },
+              data: {
+                names: node.specifiers.map((specifier) => nameOf(specifier.exported)).join(', '),
+                source: node.source.value,
+              },
             });
           }
           return;

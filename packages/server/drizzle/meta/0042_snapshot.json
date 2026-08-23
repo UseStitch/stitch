@@ -7,27 +7,9 @@
     "agenda_items": {
       "name": "agenda_items",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "list_id": {
-          "name": "list_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "list_id": { "name": "list_id", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "title": { "name": "title", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "description": {
           "name": "description",
           "type": "text",
@@ -112,32 +94,12 @@
         }
       },
       "indexes": {
-        "agenda_items_list_id_idx": {
-          "name": "agenda_items_list_id_idx",
-          "columns": [
-            "list_id"
-          ],
-          "isUnique": false
-        },
-        "agenda_items_status_idx": {
-          "name": "agenda_items_status_idx",
-          "columns": [
-            "status"
-          ],
-          "isUnique": false
-        },
-        "agenda_items_due_at_idx": {
-          "name": "agenda_items_due_at_idx",
-          "columns": [
-            "due_at"
-          ],
-          "isUnique": false
-        },
+        "agenda_items_list_id_idx": { "name": "agenda_items_list_id_idx", "columns": ["list_id"], "isUnique": false },
+        "agenda_items_status_idx": { "name": "agenda_items_status_idx", "columns": ["status"], "isUnique": false },
+        "agenda_items_due_at_idx": { "name": "agenda_items_due_at_idx", "columns": ["due_at"], "isUnique": false },
         "agenda_items_created_at_idx": {
           "name": "agenda_items_created_at_idx",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         }
       },
@@ -146,12 +108,8 @@
           "name": "agenda_items_list_id_agenda_lists_id_fk",
           "tableFrom": "agenda_items",
           "tableTo": "agenda_lists",
-          "columnsFrom": [
-            "list_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["list_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -176,20 +134,8 @@
     "agenda_lists": {
       "name": "agenda_lists",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "name": { "name": "name", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "description": {
           "name": "description",
           "type": "text",
@@ -198,13 +144,7 @@
           "autoincrement": false,
           "default": "''"
         },
-        "color": {
-          "name": "color",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "color": { "name": "color", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
         "position": {
           "name": "position",
           "type": "integer",
@@ -237,18 +177,10 @@
         }
       },
       "indexes": {
-        "agenda_lists_name_uidx": {
-          "name": "agenda_lists_name_uidx",
-          "columns": [
-            "name"
-          ],
-          "isUnique": true
-        },
+        "agenda_lists_name_uidx": { "name": "agenda_lists_name_uidx", "columns": ["name"], "isUnique": true },
         "agenda_lists_created_at_idx": {
           "name": "agenda_lists_created_at_idx",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         }
       },
@@ -260,13 +192,7 @@
     "automations": {
       "name": "automations",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "provider_id": {
           "name": "provider_id",
           "type": "text",
@@ -288,13 +214,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "title": { "name": "title", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "schedule": {
           "name": "schedule",
           "type": "blob",
@@ -334,13 +254,7 @@
     "background_tasks": {
       "name": "background_tasks",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "parent_session_id": {
           "name": "parent_session_id",
           "type": "text",
@@ -369,13 +283,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "title": { "name": "title", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "status": {
           "name": "status",
           "type": "text",
@@ -399,20 +307,8 @@
           "notNull": false,
           "autoincrement": false
         },
-        "result": {
-          "name": "result",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "error": {
-          "name": "error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "result": { "name": "result", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
+        "error": { "name": "error", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
         "provider_id": {
           "name": "provider_id",
           "type": "text",
@@ -466,33 +362,22 @@
       "indexes": {
         "background_tasks_parent_status_idx": {
           "name": "background_tasks_parent_status_idx",
-          "columns": [
-            "parent_session_id",
-            "status"
-          ],
+          "columns": ["parent_session_id", "status"],
           "isUnique": false
         },
         "background_tasks_parent_delivery_idx": {
           "name": "background_tasks_parent_delivery_idx",
-          "columns": [
-            "parent_session_id",
-            "delivery_status"
-          ],
+          "columns": ["parent_session_id", "delivery_status"],
           "isUnique": false
         },
         "background_tasks_child_session_id_unique": {
           "name": "background_tasks_child_session_id_unique",
-          "columns": [
-            "child_session_id"
-          ],
+          "columns": ["child_session_id"],
           "isUnique": true
         },
         "background_tasks_origin_idx": {
           "name": "background_tasks_origin_idx",
-          "columns": [
-            "origin_message_id",
-            "origin_tool_call_id"
-          ],
+          "columns": ["origin_message_id", "origin_tool_call_id"],
           "isUnique": false
         }
       },
@@ -501,12 +386,8 @@
           "name": "background_tasks_parent_session_id_sessions_id_fk",
           "tableFrom": "background_tasks",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "parent_session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -514,12 +395,8 @@
           "name": "background_tasks_child_session_id_sessions_id_fk",
           "tableFrom": "background_tasks",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "child_session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["child_session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -527,12 +404,8 @@
           "name": "background_tasks_origin_message_id_messages_id_fk",
           "tableFrom": "background_tasks",
           "tableTo": "messages",
-          "columnsFrom": [
-            "origin_message_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["origin_message_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -544,13 +417,7 @@
     "connector_instances": {
       "name": "connector_instances",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "connector_id": {
           "name": "connector_id",
           "type": "text",
@@ -565,13 +432,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "label": {
-          "name": "label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "label": { "name": "label", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "applied_version": {
           "name": "applied_version",
           "type": "integer",
@@ -609,13 +470,7 @@
           "notNull": false,
           "autoincrement": false
         },
-        "scopes": {
-          "name": "scopes",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "scopes": { "name": "scopes", "type": "blob", "primaryKey": false, "notNull": false, "autoincrement": false },
         "status": {
           "name": "status",
           "type": "text",
@@ -663,16 +518,12 @@
       "indexes": {
         "connector_instances_connector_id_idx": {
           "name": "connector_instances_connector_id_idx",
-          "columns": [
-            "connector_id"
-          ],
+          "columns": ["connector_id"],
           "isUnique": false
         },
         "connector_instances_connector_ref_id_idx": {
           "name": "connector_instances_connector_ref_id_idx",
-          "columns": [
-            "connector_ref_id"
-          ],
+          "columns": ["connector_ref_id"],
           "isUnique": false
         }
       },
@@ -681,12 +532,8 @@
           "name": "connector_instances_connector_ref_id_connectors_id_fk",
           "tableFrom": "connector_instances",
           "tableTo": "connectors",
-          "columnsFrom": [
-            "connector_ref_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["connector_ref_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -703,13 +550,7 @@
     "connectors": {
       "name": "connectors",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "connector_id": {
           "name": "connector_id",
           "type": "text",
@@ -724,13 +565,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "label": {
-          "name": "label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "label": { "name": "label", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "client_id": {
           "name": "client_id",
           "type": "text",
@@ -745,13 +580,7 @@
           "notNull": false,
           "autoincrement": false
         },
-        "api_key": {
-          "name": "api_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "api_key": { "name": "api_key", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -770,9 +599,7 @@
       "indexes": {
         "connectors_connector_id_idx": {
           "name": "connectors_connector_id_idx",
-          "columns": [
-            "connector_id"
-          ],
+          "columns": ["connector_id"],
           "isUnique": false
         }
       },
@@ -789,13 +616,7 @@
     "mcp_elicitations": {
       "name": "mcp_elicitations",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "session_id": {
           "name": "session_id",
           "type": "text",
@@ -817,20 +638,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "mode": {
-          "name": "mode",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "message": {
-          "name": "message",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "mode": { "name": "mode", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "message": { "name": "message", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "requested_schema": {
           "name": "requested_schema",
           "type": "blob",
@@ -838,13 +647,7 @@
           "notNull": false,
           "autoincrement": false
         },
-        "url": {
-          "name": "url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "url": { "name": "url", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
         "external_elicitation_id": {
           "name": "external_elicitation_id",
           "type": "text",
@@ -860,13 +663,7 @@
           "autoincrement": false,
           "default": "'pending'"
         },
-        "content": {
-          "name": "content",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "content": { "name": "content", "type": "blob", "primaryKey": false, "notNull": false, "autoincrement": false },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -888,12 +685,8 @@
           "name": "mcp_elicitations_session_id_sessions_id_fk",
           "tableFrom": "mcp_elicitations",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -901,12 +694,8 @@
           "name": "mcp_elicitations_server_id_mcp_servers_id_fk",
           "tableFrom": "mcp_elicitations",
           "tableTo": "mcp_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -932,13 +721,7 @@
           "notNull": false,
           "autoincrement": false
         },
-        "tokens": {
-          "name": "tokens",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "tokens": { "name": "tokens", "type": "blob", "primaryKey": false, "notNull": false, "autoincrement": false },
         "code_verifier": {
           "name": "code_verifier",
           "type": "text",
@@ -953,13 +736,7 @@
           "notNull": false,
           "autoincrement": false
         },
-        "state": {
-          "name": "state",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "state": { "name": "state", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -981,12 +758,8 @@
           "name": "mcp_oauth_sessions_server_id_mcp_servers_id_fk",
           "tableFrom": "mcp_oauth_sessions",
           "tableTo": "mcp_servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["server_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -998,20 +771,8 @@
     "mcp_servers": {
       "name": "mcp_servers",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "name": { "name": "name", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "transport": {
           "name": "transport",
           "type": "text",
@@ -1020,13 +781,7 @@
           "autoincrement": false,
           "default": "'http'"
         },
-        "url": {
-          "name": "url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "url": { "name": "url", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "auth_config": {
           "name": "auth_config",
           "type": "blob",
@@ -1042,13 +797,7 @@
           "autoincrement": false,
           "default": "'none'"
         },
-        "tools": {
-          "name": "tools",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "tools": { "name": "tools", "type": "blob", "primaryKey": false, "notNull": false, "autoincrement": false },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -1073,13 +822,7 @@
     "tool_enabled": {
       "name": "tool_enabled",
       "columns": {
-        "scope": {
-          "name": "scope",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "scope": { "name": "scope", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "identifier": {
           "name": "identifier",
           "type": "text",
@@ -1113,10 +856,7 @@
       "indexes": {
         "tool_enabled_scope_identifier_uidx": {
           "name": "tool_enabled_scope_identifier_uidx",
-          "columns": [
-            "scope",
-            "identifier"
-          ],
+          "columns": ["scope", "identifier"],
           "isUnique": true
         }
       },
@@ -1128,13 +868,7 @@
     "tool_permissions": {
       "name": "tool_permissions",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "tool_name": {
           "name": "tool_name",
           "type": "text",
@@ -1142,13 +876,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "pattern": {
-          "name": "pattern",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "pattern": { "name": "pattern", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
         "permission": {
           "name": "permission",
           "type": "text",
@@ -1174,10 +902,7 @@
       "indexes": {
         "tool_permissions_tool_pattern_idx": {
           "name": "tool_permissions_tool_pattern_idx",
-          "columns": [
-            "tool_name",
-            "pattern"
-          ],
+          "columns": ["tool_name", "pattern"],
           "isUnique": true
         }
       },
@@ -1196,20 +921,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "name": { "name": "name", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "context_window": {
           "name": "context_window",
           "type": "integer",
@@ -1321,13 +1034,7 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {
-        "local_models_provider_id_pk": {
-          "columns": [
-            "provider",
-            "id"
-          ],
-          "name": "local_models_provider_id_pk"
-        }
+        "local_models_provider_id_pk": { "columns": ["provider", "id"], "name": "local_models_provider_id_pk" }
       },
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -1367,10 +1074,7 @@
       "indexes": {
         "model_visibility_provider_model_idx": {
           "name": "model_visibility_provider_model_idx",
-          "columns": [
-            "provider_id",
-            "model_id"
-          ],
+          "columns": ["provider_id", "model_id"],
           "isUnique": true
         }
       },
@@ -1420,13 +1124,7 @@
     "questions": {
       "name": "questions",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "session_id": {
           "name": "session_id",
           "type": "text",
@@ -1441,13 +1139,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "answers": {
-          "name": "answers",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "answers": { "name": "answers", "type": "blob", "primaryKey": false, "notNull": false, "autoincrement": false },
         "status": {
           "name": "status",
           "type": "text",
@@ -1491,12 +1183,8 @@
           "name": "questions_session_id_sessions_id_fk",
           "tableFrom": "questions",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1508,27 +1196,9 @@
     "meeting_note_templates": {
       "name": "meeting_note_templates",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "content": {
-          "name": "content",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "name": { "name": "name", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "content": { "name": "content", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -1547,9 +1217,7 @@
       "indexes": {
         "meeting_note_templates_updated_at_idx": {
           "name": "meeting_note_templates_updated_at_idx",
-          "columns": [
-            "updated_at"
-          ],
+          "columns": ["updated_at"],
           "isUnique": false
         }
       },
@@ -1561,13 +1229,7 @@
     "recording_analyses": {
       "name": "recording_analyses",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "recording_id": {
           "name": "recording_id",
           "type": "text",
@@ -1598,13 +1260,7 @@
           "notNull": false,
           "autoincrement": false
         },
-        "error": {
-          "name": "error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "error": { "name": "error", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
         "transcription_provider_id": {
           "name": "transcription_provider_id",
           "type": "text",
@@ -1633,13 +1289,7 @@
           "notNull": false,
           "autoincrement": false
         },
-        "usage": {
-          "name": "usage",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "usage": { "name": "usage", "type": "blob", "primaryKey": false, "notNull": false, "autoincrement": false },
         "cost_usd": {
           "name": "cost_usd",
           "type": "real",
@@ -1687,16 +1337,12 @@
       "indexes": {
         "recording_analyses_recording_id_uidx": {
           "name": "recording_analyses_recording_id_uidx",
-          "columns": [
-            "recording_id"
-          ],
+          "columns": ["recording_id"],
           "isUnique": true
         },
         "recording_analyses_status_idx": {
           "name": "recording_analyses_status_idx",
-          "columns": [
-            "status"
-          ],
+          "columns": ["status"],
           "isUnique": false
         }
       },
@@ -1705,12 +1351,8 @@
           "name": "recording_analyses_recording_id_recordings_id_fk",
           "tableFrom": "recording_analyses",
           "tableTo": "recordings",
-          "columnsFrom": [
-            "recording_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["recording_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1727,20 +1369,8 @@
     "recordings": {
       "name": "recordings",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "title": { "name": "title", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "source": {
           "name": "source",
           "type": "text",
@@ -1786,13 +1416,7 @@
           "notNull": false,
           "autoincrement": false
         },
-        "error": {
-          "name": "error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "error": { "name": "error", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -1811,18 +1435,10 @@
       "indexes": {
         "recordings_created_at_idx": {
           "name": "recordings_created_at_idx",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         },
-        "recordings_status_idx": {
-          "name": "recordings_status_idx",
-          "columns": [
-            "status"
-          ],
-          "isUnique": false
-        }
+        "recordings_status_idx": { "name": "recordings_status_idx", "columns": ["status"], "isUnique": false }
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
@@ -1837,27 +1453,9 @@
     "scheduled_job_runs": {
       "name": "scheduled_job_runs",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "job_id": {
-          "name": "job_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "key": {
-          "name": "key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "job_id": { "name": "job_id", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "key": { "name": "key", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "status": {
           "name": "status",
           "type": "text",
@@ -1905,30 +1503,18 @@
       "indexes": {
         "scheduled_job_runs_job_id_idx": {
           "name": "scheduled_job_runs_job_id_idx",
-          "columns": [
-            "job_id"
-          ],
+          "columns": ["job_id"],
           "isUnique": false
         },
-        "scheduled_job_runs_key_idx": {
-          "name": "scheduled_job_runs_key_idx",
-          "columns": [
-            "key"
-          ],
-          "isUnique": false
-        }
+        "scheduled_job_runs_key_idx": { "name": "scheduled_job_runs_key_idx", "columns": ["key"], "isUnique": false }
       },
       "foreignKeys": {
         "scheduled_job_runs_job_id_scheduled_jobs_id_fk": {
           "name": "scheduled_job_runs_job_id_scheduled_jobs_id_fk",
           "tableFrom": "scheduled_job_runs",
           "tableTo": "scheduled_jobs",
-          "columnsFrom": [
-            "job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["job_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1945,20 +1531,8 @@
     "scheduled_jobs": {
       "name": "scheduled_jobs",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "key": {
-          "name": "key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "key": { "name": "key", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "schedule": {
           "name": "schedule",
           "type": "blob",
@@ -2073,18 +1647,10 @@
         }
       },
       "indexes": {
-        "scheduled_jobs_key_uidx": {
-          "name": "scheduled_jobs_key_uidx",
-          "columns": [
-            "key"
-          ],
-          "isUnique": true
-        },
+        "scheduled_jobs_key_uidx": { "name": "scheduled_jobs_key_uidx", "columns": ["key"], "isUnique": true },
         "scheduled_jobs_next_run_at_idx": {
           "name": "scheduled_jobs_next_run_at_idx",
-          "columns": [
-            "next_run_at"
-          ],
+          "columns": ["next_run_at"],
           "isUnique": false
         }
       },
@@ -2101,13 +1667,7 @@
     "messages": {
       "name": "messages",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "session_id": {
           "name": "session_id",
           "type": "text",
@@ -2115,20 +1675,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "role": {
-          "name": "role",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "parts": {
-          "name": "parts",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "role": { "name": "role", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "parts": { "name": "parts", "type": "blob", "primaryKey": false, "notNull": true, "autoincrement": false },
         "model_id": {
           "name": "model_id",
           "type": "text",
@@ -2143,13 +1691,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "usage": {
-          "name": "usage",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "usage": { "name": "usage", "type": "blob", "primaryKey": false, "notNull": false, "autoincrement": false },
         "cost_usd": {
           "name": "cost_usd",
           "type": "real",
@@ -2222,12 +1764,8 @@
           "name": "messages_session_id_sessions_id_fk",
           "tableFrom": "messages",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2239,13 +1777,7 @@
     "session_todos": {
       "name": "session_todos",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "session_id": {
           "name": "session_id",
           "type": "text",
@@ -2253,20 +1785,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "content": {
-          "name": "content",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "content": { "name": "content", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
+        "status": { "name": "status", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "priority": {
           "name": "priority",
           "type": "text",
@@ -2299,17 +1819,12 @@
       "indexes": {
         "session_todos_session_id_idx": {
           "name": "session_todos_session_id_idx",
-          "columns": [
-            "session_id"
-          ],
+          "columns": ["session_id"],
           "isUnique": false
         },
         "session_todos_order_idx": {
           "name": "session_todos_order_idx",
-          "columns": [
-            "session_id",
-            "sort_order"
-          ],
+          "columns": ["session_id", "sort_order"],
           "isUnique": false
         }
       },
@@ -2318,12 +1833,8 @@
           "name": "session_todos_session_id_sessions_id_fk",
           "tableFrom": "session_todos",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2335,20 +1846,8 @@
     "sessions": {
       "name": "sessions",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "title": { "name": "title", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
         "type": {
           "name": "type",
           "type": "text",
@@ -2421,12 +1920,8 @@
           "name": "sessions_automation_id_automations_id_fk",
           "tableFrom": "sessions",
           "tableTo": "automations",
-          "columnsFrom": [
-            "automation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["automation_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2434,12 +1929,8 @@
           "name": "sessions_parent_session_id_sessions_id_fk",
           "tableFrom": "sessions",
           "tableTo": "sessions",
-          "columnsFrom": [
-            "parent_session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_session_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2458,13 +1949,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "hotkey": {
-          "name": "hotkey",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "hotkey": { "name": "hotkey", "type": "text", "primaryKey": false, "notNull": false, "autoincrement": false },
         "is_sequence": {
           "name": "is_sequence",
           "type": "integer",
@@ -2513,20 +1998,8 @@
     "user_settings": {
       "name": "user_settings",
       "columns": {
-        "key": {
-          "name": "key",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "value": {
-          "name": "value",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "key": { "name": "key", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "value": { "name": "value", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "description": {
           "name": "description",
           "type": "text",
@@ -2559,20 +2032,8 @@
     "skills": {
       "name": "skills",
       "columns": {
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "type": {
-          "name": "type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "name": { "name": "name", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "type": { "name": "type", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "enabled": {
           "name": "enabled",
           "type": "integer",
@@ -2591,13 +2052,7 @@
     "embedding_usage_events": {
       "name": "embedding_usage_events",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "provider_id": {
           "name": "provider_id",
           "type": "text",
@@ -2646,17 +2101,12 @@
       "indexes": {
         "embedding_usage_events_created_at_idx": {
           "name": "embedding_usage_events_created_at_idx",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         },
         "embedding_usage_events_provider_model_idx": {
           "name": "embedding_usage_events_provider_model_idx",
-          "columns": [
-            "provider_id",
-            "model_id"
-          ],
+          "columns": ["provider_id", "model_id"],
           "isUnique": false
         }
       },
@@ -2668,20 +2118,8 @@
     "llm_usage_events": {
       "name": "llm_usage_events",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "source": {
-          "name": "source",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
+        "source": { "name": "source", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "status": {
           "name": "status",
           "type": "text",
@@ -2704,13 +2142,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "usage": {
-          "name": "usage",
-          "type": "blob",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
+        "usage": { "name": "usage", "type": "blob", "primaryKey": false, "notNull": false, "autoincrement": false },
         "metadata": {
           "name": "metadata",
           "type": "blob",
@@ -2813,24 +2245,17 @@
       "indexes": {
         "llm_usage_events_source_idx": {
           "name": "llm_usage_events_source_idx",
-          "columns": [
-            "source"
-          ],
+          "columns": ["source"],
           "isUnique": false
         },
         "llm_usage_events_created_at_idx": {
           "name": "llm_usage_events_created_at_idx",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         },
         "llm_usage_events_provider_model_idx": {
           "name": "llm_usage_events_provider_model_idx",
-          "columns": [
-            "provider_id",
-            "model_id"
-          ],
+          "columns": ["provider_id", "model_id"],
           "isUnique": false
         }
       },
@@ -2842,13 +2267,7 @@
     "stt_usage_events": {
       "name": "stt_usage_events",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "id": { "name": "id", "type": "text", "primaryKey": true, "notNull": true, "autoincrement": false },
         "provider_id": {
           "name": "provider_id",
           "type": "text",
@@ -2863,13 +2282,7 @@
           "notNull": true,
           "autoincrement": false
         },
-        "service": {
-          "name": "service",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
+        "service": { "name": "service", "type": "text", "primaryKey": false, "notNull": true, "autoincrement": false },
         "cost_usd": {
           "name": "cost_usd",
           "type": "real",
@@ -2917,24 +2330,17 @@
       "indexes": {
         "stt_usage_events_service_idx": {
           "name": "stt_usage_events_service_idx",
-          "columns": [
-            "service"
-          ],
+          "columns": ["service"],
           "isUnique": false
         },
         "stt_usage_events_created_at_idx": {
           "name": "stt_usage_events_created_at_idx",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         },
         "stt_usage_events_provider_model_idx": {
           "name": "stt_usage_events_provider_model_idx",
-          "columns": [
-            "provider_id",
-            "model_id"
-          ],
+          "columns": ["provider_id", "model_id"],
           "isUnique": false
         }
       },
@@ -2951,12 +2357,6 @@
   },
   "views": {},
   "enums": {},
-  "_meta": {
-    "schemas": {},
-    "tables": {},
-    "columns": {}
-  },
-  "internal": {
-    "indexes": {}
-  }
+  "_meta": { "schemas": {}, "tables": {}, "columns": {} },
+  "internal": { "indexes": {} }
 }

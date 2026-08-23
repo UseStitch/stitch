@@ -1,17 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "formatter": {
-    "oxfmt": {
-      "command": [
-        "bun",
-        "fmt"
-      ]
-    }
-  },
+  "formatter": { "oxfmt": { "command": ["bun", "fmt"] } },
   "lsp": false,
-  "permission": {
-    "skill": {
-      "*": "allow"
-    }
-  }
+  "permission": { "skill": { "*": "allow" } }
 }

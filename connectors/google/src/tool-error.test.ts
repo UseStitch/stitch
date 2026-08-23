@@ -1,11 +1,11 @@
+import { tool } from 'ai';
 import { describe, expect, test } from 'bun:test';
+import { z } from 'zod';
+
 import { isToolErrorResult } from '@stitch/shared/tools/types';
 
 import { GoogleApiError } from './client.js';
 import { classifyGoogleToolError, wrapGoogleToolErrors } from './tool-error.js';
-
-import { tool } from 'ai';
-import { z } from 'zod';
 
 const insufficientScope = new GoogleApiError(403, 'Request had insufficient authentication scopes.', {
   reasons: ['ACCESS_TOKEN_SCOPE_INSUFFICIENT'],

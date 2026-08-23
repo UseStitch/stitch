@@ -23,19 +23,21 @@ async function setupTasks(): Promise<[PrefixedString<'ses'>, PrefixedString<'ses
       { id: olderId, title: 'Older', parentSessionId, createdAt: 1, updatedAt: 1 },
       { id: newerId, title: 'Newer', parentSessionId, createdAt: 2, updatedAt: 2 },
     ]);
-  await getDb().insert(messages).values({
-    id: originMessageId,
-    sessionId: parentSessionId,
-    role: 'assistant',
-    parts: [],
-    modelId: 'model',
-    providerId: 'provider',
-    costUsd: 0,
-    createdAt: 1,
-    updatedAt: 1,
-    startedAt: 1,
-    duration: null,
-  });
+  await getDb()
+    .insert(messages)
+    .values({
+      id: originMessageId,
+      sessionId: parentSessionId,
+      role: 'assistant',
+      parts: [],
+      modelId: 'model',
+      providerId: 'provider',
+      costUsd: 0,
+      createdAt: 1,
+      updatedAt: 1,
+      startedAt: 1,
+      duration: null,
+    });
 
   for (const [id, startedAt] of [
     [olderId, 1],

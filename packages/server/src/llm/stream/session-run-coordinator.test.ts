@@ -71,7 +71,7 @@ describe('session run coordinator', () => {
       return Promise.resolve();
     });
 
-     expect(first).rejects.toThrow('failed');
+    expect(first).rejects.toThrow('failed');
     await second;
     expect(events).toEqual(['second']);
   });

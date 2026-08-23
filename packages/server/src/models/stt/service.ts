@@ -5,11 +5,7 @@ import type { ModelDescriptor } from '@/stt/types.js';
 type CatalogEntry = { providerId: string; providerName: string; models: ModelDescriptor[] };
 
 function toCatalogEntry(provider: SttProvider): CatalogEntry {
-  return {
-    providerId: provider.providerId,
-    providerName: provider.providerName,
-    models: provider.models,
-  };
+  return { providerId: provider.providerId, providerName: provider.providerName, models: provider.models };
 }
 
 export async function getModelCatalog(): Promise<CatalogEntry[]> {

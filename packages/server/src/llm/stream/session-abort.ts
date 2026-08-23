@@ -9,9 +9,5 @@ import { abortQuestions } from '@/question/service.js';
 export async function abortSessionInteractions(sessionId: PrefixedString<'ses'>): Promise<void> {
   AbortRegistry.abort(sessionId);
   resolveDecision(sessionId, 'stop');
-  await Promise.all([
-    abortQuestions(sessionId),
-    abortPermissionResponses(sessionId),
-    abortMcpElicitations(sessionId),
-  ]);
+  await Promise.all([abortQuestions(sessionId), abortPermissionResponses(sessionId), abortMcpElicitations(sessionId)]);
 }

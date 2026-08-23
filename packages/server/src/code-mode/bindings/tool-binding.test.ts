@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'bun:test';
 import { jsonSchema, tool } from 'ai';
+import { describe, expect, test } from 'bun:test';
 
 import { toolsToBindings } from '@/code-mode/bindings/tool-binding.js';
 

@@ -1,8 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-
 import { normalizeMcpToolResult } from '@/mcp/client.js';
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
 describe('normalizeMcpToolResult', () => {
   test('converts MCP text errors to the shared tool error shape', () => {
@@ -14,17 +13,11 @@ describe('normalizeMcpToolResult', () => {
       ],
     };
 
-    expect(normalizeMcpToolResult(result)).toEqual({
-      error: 'Request failed\nTry a different query',
-      details: result,
-    });
+    expect(normalizeMcpToolResult(result)).toEqual({ error: 'Request failed\nTry a different query', details: result });
   });
 
   test('uses a fallback message when error content has no text', () => {
-    const result: CallToolResult = {
-      isError: true,
-      content: [{ type: 'image', data: 'abc', mimeType: 'image/png' }],
-    };
+    const result: CallToolResult = { isError: true, content: [{ type: 'image', data: 'abc', mimeType: 'image/png' }] };
 
     expect(normalizeMcpToolResult(result)).toEqual({ error: 'MCP tool call failed', details: result });
   });

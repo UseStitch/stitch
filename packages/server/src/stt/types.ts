@@ -1,10 +1,6 @@
 import type { AudioFormat, CapabilityResolution, STTCapability } from '@stitch/shared/stt/types';
 
-export type BufferConfig = {
-  maxChunkBytes: number;
-  flushIntervalMs: number;
-  maxBufferedMs: number;
-};
+export type BufferConfig = { maxChunkBytes: number; flushIntervalMs: number; maxBufferedMs: number };
 
 export type ReconnectConfig = {
   enabled: boolean;

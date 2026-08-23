@@ -1,34 +1,13 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": [
-    "unicorn",
-    "typescript",
-    "oxc",
-    "import",
-    "react",
-    "jsx-a11y"
-  ],
+  "plugins": ["unicorn", "typescript", "oxc", "import", "react", "jsx-a11y"],
   "jsPlugins": [
-    {
-      "name": "stitch",
-      "specifier": "./tools/oxlint-plugins/index.mjs"
-    },
-    {
-      "name": "@stitch/query",
-      "specifier": "./tools/oxlint-plugins/tanstack/index.mjs"
-    },
-    {
-      "name": "unicorn-js",
-      "specifier": "eslint-plugin-unicorn"
-    },
-    {
-      "name": "react-doctor",
-      "specifier": "oxlint-plugin-react-doctor"
-    }
+    { "name": "stitch", "specifier": "./tools/oxlint-plugins/index.mjs" },
+    { "name": "@stitch/query", "specifier": "./tools/oxlint-plugins/tanstack/index.mjs" },
+    { "name": "unicorn-js", "specifier": "eslint-plugin-unicorn" },
+    { "name": "react-doctor", "specifier": "oxlint-plugin-react-doctor" }
   ],
-  "options": {
-    "typeAware": true
-  },
+  "options": { "typeAware": true },
   "rules": {
     "unicorn/no-useless-fallback-in-spread": "error",
     "unicorn/prefer-set-has": "error",
@@ -46,12 +25,7 @@
     "typescript/no-unnecessary-condition": "error",
     "typescript/no-floating-promises": "error",
     "typescript/no-non-null-assertion": "error",
-    "import/no-dynamic-require": [
-      "error",
-      {
-        "esmodule": true
-      }
-    ],
+    "import/no-dynamic-require": ["error", { "esmodule": true }],
     "import/no-duplicates": "error",
     "react/jsx-key": "error",
     "react/no-direct-mutation-state": "error",
@@ -77,18 +51,10 @@
   },
   "overrides": [
     {
-      "files": [
-        "apps/web/**/*.{ts,tsx}"
-      ],
+      "files": ["apps/web/**/*.{ts,tsx}"],
       "jsPlugins": [
-        {
-          "name": "@tanstack/query",
-          "specifier": "@tanstack/eslint-plugin-query"
-        },
-        {
-          "name": "@tanstack/router",
-          "specifier": "@tanstack/eslint-plugin-router"
-        }
+        { "name": "@tanstack/query", "specifier": "@tanstack/eslint-plugin-query" },
+        { "name": "@tanstack/router", "specifier": "@tanstack/eslint-plugin-router" }
       ],
       "rules": {
         "@tanstack/query/exhaustive-deps": "error",
@@ -198,31 +164,15 @@
         "react-doctor/client-passive-event-listeners": "error"
       }
     },
-    {
-      "files": [
-        "**/*.test.{ts,tsx}"
-      ],
-      "rules": {
-        "stitch/no-call-only-assertions": "error"
-      }
-    },
-    {
-      "files": [
-        "apps/web/src/components/ui/**/*.{ts,tsx}"
-      ],
-      "rules": {
-        "stitch/no-native-button": "off"
-      }
-    },
+    { "files": ["**/*.test.{ts,tsx}"], "rules": { "stitch/no-call-only-assertions": "error" } },
+    { "files": ["apps/web/src/components/ui/**/*.{ts,tsx}"], "rules": { "stitch/no-native-button": "off" } },
     {
       "files": [
         "apps/web/src/components/chat/message-list.tsx",
         "apps/web/src/components/mail/thread-list.tsx",
         "apps/web/src/components/recordings/analysis/transcript-sidebar.tsx"
       ],
-      "rules": {
-        "react/react-compiler": "off"
-      }
+      "rules": { "react/react-compiler": "off" }
     },
     {
       "files": [
@@ -230,38 +180,17 @@
         "apps/web/src/components/ui/input-group.tsx",
         "apps/web/src/components/ui/textarea-completions.tsx"
       ],
-      "rules": {
-        "jsx-a11y/prefer-tag-over-role": "off"
-      }
+      "rules": { "jsx-a11y/prefer-tag-over-role": "off" }
     },
+    { "files": ["apps/web/src/components/ui/label.tsx"], "rules": { "jsx-a11y/label-has-associated-control": "off" } },
     {
-      "files": [
-        "apps/web/src/components/ui/label.tsx"
-      ],
-      "rules": {
-        "jsx-a11y/label-has-associated-control": "off"
-      }
-    },
-    {
-      "files": [
-        "apps/web/src/components/ui/input-group.tsx"
-      ],
+      "files": ["apps/web/src/components/ui/input-group.tsx"],
       "rules": {
         "jsx-a11y/click-events-have-key-events": "off",
         "jsx-a11y/no-noninteractive-element-interactions": "off"
       }
     }
   ],
-  "ignorePatterns": [
-    "node_modules",
-    "dist",
-    "out",
-    "dist-electron",
-    ".turbo"
-  ],
-  "env": {
-    "browser": true,
-    "node": true,
-    "es2022": true
-  }
+  "ignorePatterns": ["node_modules", "dist", "out", "dist-electron", ".turbo"],
+  "env": { "browser": true, "node": true, "es2022": true }
 }
