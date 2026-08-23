@@ -10,7 +10,13 @@ type UseChatModelResult = { selectedModel: ModelSpec | null; handleModelChange: 
 type UseChatModelInput = { lastUsedModel?: ModelSpec | null };
 
 export function useChatModel(input?: UseChatModelInput): UseChatModelResult {
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => ({
+      'model.default.providerId': data['model.default.providerId'],
+      'model.default.modelId': data['model.default.modelId'],
+    }),
+  });
   const [modelOverride, setModelOverride] = React.useState<ModelSpec | null>(null);
 
   const providerId = settings['model.default.providerId']?.trim();

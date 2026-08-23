@@ -29,9 +29,12 @@ const LOCAL_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
 export function SessionPage({ sessionId }: SessionPageProps) {
   const navigate = useNavigate();
   const { mutate: markReadMutate } = useMarkSessionRead();
-  const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
-  const { data: appEnabledStates } = useQuery(appEnabledStatesQueryOptions);
-  const { data: settings } = useQuery(settingsQueryOptions);
+  const { data: providerModels } = useSuspenseQuery({ ...visibleProviderModelsQueryOptions, select: (data) => data });
+  const { data: appEnabledStates } = useQuery({
+    ...appEnabledStatesQueryOptions,
+    select: (data) => data.map((state) => ({ appId: state.appId, enabled: state.enabled })),
+  });
+  const { data: settings } = useQuery({ ...settingsQueryOptions, select: (data) => data['profile.timezone'] });
   const createAutomation = useCreateAutomation();
   const generateAutomation = useGenerateAutomationDraft();
   const details = useSessionDetailsStats(sessionId);
@@ -41,7 +44,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
   const [automationDialogOpen, setAutomationDialogOpen] = React.useState(false);
   const [generatedDraft, setGeneratedDraft] = React.useState<GeneratedAutomationDraft | null>(null);
   const lastReadCompletedMessageIdRef = React.useRef<string | null>(null);
-  const timezone = settings?.['profile.timezone']?.trim() || LOCAL_TIMEZONE;
+  const timezone = settings?.trim() || LOCAL_TIMEZONE;
 
   const browserAppEnabled = appEnabledStates?.find((state) => state.appId === 'browser')?.enabled ?? true;
   const hasBrowser = browserAppEnabled;

@@ -61,7 +61,7 @@ function ToolPermissionEditor({
   getEnabled: (scope: 'tool' | 'toolset' | 'mcp_tool', identifier: string) => boolean;
   onToggleEnabled: (scope: 'tool' | 'toolset' | 'mcp_tool', identifier: string, enabled: boolean) => void;
 }) {
-  const { data: permissions } = useSuspenseQuery(toolPermissionsQueryOptions);
+  const { data: permissions } = useSuspenseQuery({ ...toolPermissionsQueryOptions, select: (data) => data });
   const upsertPermission = useUpsertToolPermission();
   const deletePermission = useDeleteToolPermission();
 

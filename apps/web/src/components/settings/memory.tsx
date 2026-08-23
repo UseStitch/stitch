@@ -15,7 +15,10 @@ import { saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/
 
 function MemoryToggles() {
   const queryClient = useQueryClient();
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => ({ 'memory.enabled': data['memory.enabled'], 'memory.autoExtract': data['memory.autoExtract'] }),
+  });
   const saveEnabled = useMutation(saveSettingMutationOptions('memory.enabled', queryClient, { silent: true }));
   const saveAutoExtract = useMutation(saveSettingMutationOptions('memory.autoExtract', queryClient, { silent: true }));
   const enabled = settings['memory.enabled'] !== 'false';
@@ -48,7 +51,16 @@ function MemoryToggles() {
 }
 
 function CaptureSettings() {
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => ({
+      'memory.extraction.maxFactsPerTurn': data['memory.extraction.maxFactsPerTurn'],
+      'memory.extraction.minMessageLength': data['memory.extraction.minMessageLength'],
+      'memory.extraction.maxFactsPerSession': data['memory.extraction.maxFactsPerSession'],
+      'memory.extraction.minTurnsBetweenWrites': data['memory.extraction.minTurnsBetweenWrites'],
+      'memory.extraction.fromAutomations': data['memory.extraction.fromAutomations'],
+    }),
+  });
   return (
     <SettingRows>
       <NumberSettingRow
@@ -94,7 +106,15 @@ function CaptureSettings() {
 }
 
 function CurationSettings() {
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => ({
+      'memory.curated.memoryCharLimit': data['memory.curated.memoryCharLimit'],
+      'memory.curated.userCharLimit': data['memory.curated.userCharLimit'],
+      'memory.consolidation.enabled': data['memory.consolidation.enabled'],
+      'memory.consolidation.maxCandidatesPerRun': data['memory.consolidation.maxCandidatesPerRun'],
+    }),
+  });
   return (
     <SettingRows>
       <NumberSettingRow

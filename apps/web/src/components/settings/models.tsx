@@ -34,8 +34,11 @@ function ModelRow({ modelName, checked, onToggle }: ModelRowProps) {
 }
 
 function ModelsListContent() {
-  const { data: allProviderModels } = useSuspenseQuery(enabledProviderModelsQueryOptions);
-  const { data: overridesList } = useSuspenseQuery(modelVisibilityQueryOptions);
+  const { data: allProviderModels } = useSuspenseQuery({
+    ...enabledProviderModelsQueryOptions,
+    select: (data) => data,
+  });
+  const { data: overridesList } = useSuspenseQuery({ ...modelVisibilityQueryOptions, select: (data) => data });
 
   const setVisibility = useSetModelVisibility();
   const resetVisibility = useResetModelVisibility();

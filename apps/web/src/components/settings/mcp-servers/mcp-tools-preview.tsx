@@ -12,7 +12,15 @@ import { getErrorMessage } from '@/lib/errors';
 import { mcpToolsQueryOptions } from '@/lib/queries/mcp';
 
 export function McpToolsPreview({ server, onBack }: { server: McpServer; onBack: () => void }) {
-  const { data: tools, isLoading, isError, error } = useQuery(mcpToolsQueryOptions(server.id));
+  const {
+    data: tools,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    ...mcpToolsQueryOptions(server.id),
+    select: (data) => data.map((tool) => ({ name: tool.name, title: tool.title, description: tool.description })),
+  });
 
   return (
     <SettingSubPage title={server.name} onBack={onBack} backLabel="Back to MCP servers">

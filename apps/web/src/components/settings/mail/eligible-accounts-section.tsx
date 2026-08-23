@@ -14,7 +14,15 @@ import { getErrorMessage } from '@/lib/errors';
 import { useEnrollMailAccount, eligibleMailAccountsQueryOptions } from '@/lib/queries/mail';
 
 export function EligibleAccountsSection() {
-  const { data: eligibleAccounts, isLoading, error } = useQuery(eligibleMailAccountsQueryOptions);
+  const {
+    data: eligibleAccounts,
+    isLoading,
+    error,
+  } = useQuery({
+    ...eligibleMailAccountsQueryOptions,
+    select: (data) =>
+      data.map((account) => ({ connectorInstanceId: account.connectorInstanceId, email: account.email })),
+  });
   const enrollMutation = useEnrollMailAccount();
 
   function handleEnroll(connectorInstanceId: string) {

@@ -26,8 +26,19 @@ type OnboardingState = {
 
 export function useOnboardingState(): OnboardingState {
   const queryClient = useQueryClient();
-  const { data: settings, isPending: isSettingsPending } = useQuery(settingsQueryOptions);
-  const { data: providers, isPending: isProvidersPending } = useQuery(providersQueryOptions);
+  const { data: settings, isPending: isSettingsPending } = useQuery({
+    ...settingsQueryOptions,
+    select: (data) => ({
+      'profile.name': data['profile.name'],
+      'profile.timezone': data['profile.timezone'],
+      'onboarding.status': data['onboarding.status'],
+      'onboarding.version': data['onboarding.version'],
+    }),
+  });
+  const { data: providers, isPending: isProvidersPending } = useQuery({
+    ...providersQueryOptions,
+    select: (data) => data.map((provider) => ({ enabled: provider.enabled })),
+  });
 
   const [step, setStep] = React.useState<OnboardingStep>('welcome');
   const [dismissed, setDismissed] = React.useState(false);
@@ -43,8 +54,8 @@ export function useOnboardingState(): OnboardingState {
     saveSettingMutationOptions('profile.timezone', queryClient, { silent: true }),
   );
 
-  const profileName = settings?.['profile.name']?.trim() ?? '';
-  const profileTimezone = settings?.['profile.timezone']?.trim() ?? '';
+  const profileName = settings?.['profile.name'].trim() ?? '';
+  const profileTimezone = settings?.['profile.timezone'].trim() ?? '';
   const hasEnabledProvider = (providers ?? []).some((provider) => provider.enabled);
 
   const isOnboardingComplete =

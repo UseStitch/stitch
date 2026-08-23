@@ -36,7 +36,7 @@ const AUTH_STATUS_BADGE: Record<
 };
 
 export function McpServerList({ onAdd, onPreview }: { onAdd: () => void; onPreview: (server: McpServer) => void }) {
-  const { data: servers } = useSuspenseQuery(mcpServersQueryOptions);
+  const { data: servers } = useSuspenseQuery({ ...mcpServersQueryOptions, select: (data) => data });
   const deleteServer = useDeleteMcpServer();
   const refreshServers = useRefreshMcpServers();
   const startAuth = useStartMcpAuth();

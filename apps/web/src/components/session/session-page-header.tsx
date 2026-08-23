@@ -48,7 +48,10 @@ export function SessionPageHeader({
   generateAutomationPending = false,
 }: SessionPageHeaderProps) {
   const { setRenameSessionOpen } = useDialogContext();
-  const { data: session } = useSuspenseQuery(sessionQueryOptions(sessionId));
+  const { data: session } = useSuspenseQuery({
+    ...sessionQueryOptions(sessionId),
+    select: (data) => ({ parentSessionId: data.parentSessionId, title: data.title }),
+  });
 
   const parentSessionId = session.parentSessionId;
   const isChildSession = parentSessionId !== null;

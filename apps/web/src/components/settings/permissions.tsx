@@ -49,7 +49,13 @@ const TOOLSET_SCOPE_OPTIONS: Array<{ value: ToolsetDefaultScope; label: string }
 
 function ToolsetActivationSettings() {
   const queryClient = useQueryClient();
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => ({
+      'toolsets.defaultScope': data['toolsets.defaultScope'],
+      'toolsets.ttlTurns': data['toolsets.ttlTurns'],
+    }),
+  });
   const saveDefaultScope = useMutation(
     saveSettingMutationOptions('toolsets.defaultScope', queryClient, { silent: true }),
   );
@@ -101,10 +107,10 @@ function ToolsetActivationSettings() {
 export function ToolsSettings() {
   const page = SETTINGS_PAGE_BY_ID.tools;
   const Icon = page.icon;
-  const { data: knownTools } = useSuspenseQuery(knownToolsQueryOptions);
-  const { data: knownMcpTools } = useSuspenseQuery(knownMcpToolsQueryOptions);
-  const { data: knownToolsets } = useSuspenseQuery(knownToolsetsQueryOptions);
-  const { data: enabledStates } = useSuspenseQuery(toolEnabledStatesQueryOptions);
+  const { data: knownTools } = useSuspenseQuery({ ...knownToolsQueryOptions, select: (data) => data });
+  const { data: knownMcpTools } = useSuspenseQuery({ ...knownMcpToolsQueryOptions, select: (data) => data });
+  const { data: knownToolsets } = useSuspenseQuery({ ...knownToolsetsQueryOptions, select: (data) => data });
+  const { data: enabledStates } = useSuspenseQuery({ ...toolEnabledStatesQueryOptions, select: (data) => data });
   const setToolEnabledState = useSetToolEnabledState();
 
   const [search, setSearch] = React.useState('');

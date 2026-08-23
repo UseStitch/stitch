@@ -130,8 +130,14 @@ function NavLink({
 
 export function ActivityBar() {
   const currentPath = useRouterState({ select: (state) => state.location.pathname });
-  const { data: appEnabledStates = [] } = useQuery(appEnabledStatesQueryOptions);
-  const { data: connectorInstances = [] } = useQuery(connectorInstancesQueryOptions);
+  const { data: appEnabledStates = [] } = useQuery({
+    ...appEnabledStatesQueryOptions,
+    select: (data) => data.map((state) => ({ appId: state.appId, enabled: state.enabled })),
+  });
+  const { data: connectorInstances = [] } = useQuery({
+    ...connectorInstancesQueryOptions,
+    select: (data) => data.map((instance) => ({ upgrade: instance.upgrade })),
+  });
   const pendingConnectorUpdates = connectorInstances.filter((instance) => instance.upgrade?.available).length;
   const updaterStatus = useUpdaterStore((state) => state.updater.status);
   const showSettingsUpdateIndicator = hasUpdaterBadge(updaterStatus);

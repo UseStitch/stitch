@@ -327,8 +327,11 @@ export function MessageBody({
   collapseQuotedReplies?: boolean;
   fillAvailableHeight?: boolean;
 }) {
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-  const alwaysLoadRemoteImages = settings['mail.alwaysLoadRemoteImages'] !== 'false';
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => data['mail.alwaysLoadRemoteImages'],
+  });
+  const alwaysLoadRemoteImages = settings !== 'false';
   const [loadImagesForMessage, setLoadImagesForMessage] = React.useState(false);
   const loadImages = alwaysLoadRemoteImages || loadImagesForMessage;
   const iframeRef = React.useRef<HTMLIFrameElement>(null);

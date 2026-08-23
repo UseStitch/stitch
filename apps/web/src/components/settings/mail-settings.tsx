@@ -13,9 +13,12 @@ import { settingsQueryOptions } from '@/lib/queries/settings';
 
 export function MailSettings() {
   const page = SETTINGS_PAGE_BY_ID.mail;
-  const { data: accounts, isLoading, error } = useQuery(mailAccountsQueryOptions);
-  const { data: statuses } = useQuery(mailSyncStatusQueryOptions);
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: accounts, isLoading, error } = useQuery({ ...mailAccountsQueryOptions, select: (data) => data });
+  const { data: statuses } = useQuery({ ...mailSyncStatusQueryOptions, select: (data) => data });
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => data['mail.alwaysLoadRemoteImages'],
+  });
 
   return (
     <SettingPage title={page.title} description={page.description} icon={<page.icon />}>
@@ -36,7 +39,7 @@ export function MailSettings() {
                 settingKey="mail.alwaysLoadRemoteImages"
                 label="Always load remote images"
                 description="Automatically load remote images in message bodies instead of showing a per-message load button."
-                checked={settings['mail.alwaysLoadRemoteImages'] !== 'false'}
+                checked={settings !== 'false'}
               />
             </SettingRows>
           </SettingSection>

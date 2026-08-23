@@ -24,7 +24,15 @@ export type ModelOption = {
 };
 
 export function useUsageDashboardData() {
-  const { data: providerModels } = useSuspenseQuery(enabledProviderModelsQueryOptions);
+  const { data: providerModels } = useSuspenseQuery({
+    ...enabledProviderModelsQueryOptions,
+    select: (data) =>
+      data.map((provider) => ({
+        providerId: provider.providerId,
+        providerName: provider.providerName,
+        models: provider.models.map((m) => ({ id: m.id, name: m.name })),
+      })),
+  });
 
   const [selectedProvider, setProviderFilter] = React.useState<string>(ALL_FILTER);
   const [selectedModel, setModelFilter] = React.useState<string>(ALL_FILTER);
@@ -33,6 +41,7 @@ export function useUsageDashboardData() {
   const { data: usageRangeData } = useQuery({
     ...usageDashboardQueryOptions({ range: rangeFilter }),
     placeholderData: keepPreviousData,
+    select: (data) => ({ usedProviders: data.usedProviders, usedModels: data.usedModels }),
   });
 
   const providerById = new Map(providerModels.map((provider) => [provider.providerId, provider] as const));
@@ -84,6 +93,7 @@ export function useUsageDashboardData() {
   const { data: usageData, isFetching } = useQuery({
     ...usageDashboardQueryOptions(usageFilters),
     placeholderData: keepPreviousData,
+    select: (data) => data,
   });
 
   const providerLabelById = new Map(availableProviders.map((p) => [p.providerId, p.providerName] as const));

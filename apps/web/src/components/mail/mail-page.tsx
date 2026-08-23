@@ -3,7 +3,7 @@ import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
-import type { MailAccountId, MailAccountView, MailLabelId, MailThreadId } from '@stitch/shared/mail/types';
+import type { MailAccountId, MailLabelId, MailThreadId } from '@stitch/shared/mail/types';
 
 import { Composer } from '@/components/mail/composer';
 import { useMailStore } from '@/components/mail/mail-store';
@@ -17,8 +17,11 @@ import { getDefaultMailLabel, mailAccountsQueryOptions, mailLabelsQueryOptions }
 
 export function MailPage() {
   const { selectedAccountId, selectedLabelId } = useMailStore();
-  const { data: accounts } = useSuspenseQuery(mailAccountsQueryOptions);
-  const accountId = selectedAccountId ?? (accounts[0] as MailAccountView | undefined)?.id ?? null;
+  const { data: accounts } = useSuspenseQuery({
+    ...mailAccountsQueryOptions,
+    select: (data) => data.map((account) => account.id),
+  });
+  const accountId = selectedAccountId ?? (accounts[0] as MailAccountId | undefined) ?? null;
 
   if (!accountId) return <NoMailAccounts />;
 
@@ -48,7 +51,7 @@ function MailPageContent({
   accountId: MailAccountId;
   selectedLabelId: MailLabelId | null;
 }) {
-  const { data: labels } = useSuspenseQuery(mailLabelsQueryOptions(accountId));
+  const { data: labels } = useSuspenseQuery({ ...mailLabelsQueryOptions(accountId), select: (data) => data });
   const labelId = selectedLabelId ?? getDefaultMailLabel(labels)?.id ?? null;
   const [selectedThreadId, setSelectedThreadId] = React.useState<MailThreadId | null>(null);
   const [composerOpen, setComposerOpen] = React.useState(false);

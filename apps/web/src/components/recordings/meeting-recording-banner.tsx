@@ -35,7 +35,10 @@ const WARNING_LABELS: Record<string, string> = {
 const UNRECOVERABLE_WARNING_CODE = 'capture_restart_failed';
 
 export function RecordingEventListener() {
-  const { data } = useQuery(activeRecordingQueryOptions);
+  const { data } = useQuery({
+    ...activeRecordingQueryOptions,
+    select: (data) => ({ activeRecordingId: data.activeRecordingId }),
+  });
   const activeRecordingId = data?.activeRecordingId ?? null;
   const stopRecording = useStopRecording();
 
@@ -86,9 +89,18 @@ export function MeetingRecordingBanner() {
   const [dismissedKeys, setDismissedKeys] = React.useState<Set<string>>(new Set());
 
   const startRecording = useStartRecording();
-  const { data } = useQuery(activeRecordingQueryOptions);
-  const { data: sttProviders } = useSuspenseQuery(sttProviderModelsQueryOptions);
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data } = useQuery({
+    ...activeRecordingQueryOptions,
+    select: (data) => ({ activeRecordingId: data.activeRecordingId }),
+  });
+  const { data: sttProviders } = useSuspenseQuery({ ...sttProviderModelsQueryOptions, select: (data) => data });
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => ({
+      'recordings.transcription.providerId': data['recordings.transcription.providerId'],
+      'recordings.transcription.modelId': data['recordings.transcription.modelId'],
+    }),
+  });
   const activeRecordingId = data?.activeRecordingId ?? null;
 
   const defaultSttModel: SttModelSelection | null =

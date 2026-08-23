@@ -28,9 +28,12 @@ function resolveLeaderHotkey(hotkey: string, leaderKey: string): { leader: Hotke
 export function useGlobalHotkeys(actions: Action[]) {
   const shortcuts = useShortcuts();
   const actionMap = new Map(actions.map((a) => [a.id, a]));
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => data['shortcuts.leaderKey'],
+  });
 
-  const leaderKey = settings['shortcuts.leaderKey'] || defaultLeaderKey;
+  const leaderKey = settings || defaultLeaderKey;
 
   const commandPalette = shortcuts.get('command-palette');
   const openSettings = shortcuts.get('open-settings');

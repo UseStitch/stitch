@@ -415,7 +415,7 @@ function ModelForm({
 
 export function LocalModelsPanel({ provider }: Props) {
   const queryClient = useQueryClient();
-  const { data: models = [], isLoading } = useQuery(localModelsQueryOptions(provider));
+  const { data: models = [], isLoading } = useQuery({ ...localModelsQueryOptions(provider), select: (data) => data });
   const discoverQuery = useQuery(discoverLocalModelsQueryOptions(provider));
 
   const [editingId, setEditingId] = React.useState<string | null>(null);

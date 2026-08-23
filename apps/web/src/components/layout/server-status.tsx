@@ -62,6 +62,7 @@ export function ServerStatus() {
     refetchInterval: HEALTH_POLL_INTERVAL_MS,
     refetchIntervalInBackground: true,
     retry: false,
+    select: (data) => data,
   });
 
   const { status: sseStatus, lastHeartbeat } = useSSE();

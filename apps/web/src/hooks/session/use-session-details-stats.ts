@@ -29,6 +29,6 @@ const EMPTY_STATS: SessionStats = {
 };
 
 export function useSessionDetailsStats(sessionId: string): SessionStats {
-  const { data } = useQuery(sessionStatsQueryOptions(sessionId));
+  const { data } = useQuery({ ...sessionStatsQueryOptions(sessionId), select: (data) => data });
   return data ?? EMPTY_STATS;
 }

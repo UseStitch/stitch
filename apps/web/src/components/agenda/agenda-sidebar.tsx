@@ -76,8 +76,8 @@ export function AgendaSidebarContent() {
   const params = useParams({ strict: false });
   const selectedListId = typeof params.listId === 'string' ? params.listId : null;
 
-  const { data } = useQuery(agendaListsQueryOptions());
-  const lists = data?.lists ?? [];
+  const { data } = useQuery({ ...agendaListsQueryOptions(), select: (data) => data.lists });
+  const lists = data ?? [];
 
   const createListMutation = useCreateAgendaList();
 

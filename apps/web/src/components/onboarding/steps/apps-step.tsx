@@ -13,7 +13,7 @@ import { appEnabledStatesQueryOptions, useSetAppEnabledState } from '@/lib/queri
 type Props = { onContinue: () => void };
 
 export function AppsStep({ onContinue }: Props) {
-  const { data: appEnabledStates } = useQuery(appEnabledStatesQueryOptions);
+  const { data: appEnabledStates } = useQuery({ ...appEnabledStatesQueryOptions, select: (data) => data });
   const setAppEnabledState = useSetAppEnabledState();
 
   function isEnabled(appId: AppId): boolean {

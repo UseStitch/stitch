@@ -5,8 +5,8 @@ import { settingsQueryOptions } from '@/lib/queries/settings';
 const LOCAL_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export function useUserTimezone(): string {
-  const { data: settings } = useQuery(settingsQueryOptions);
-  return settings?.['profile.timezone'] || LOCAL_TIME_ZONE;
+  const { data: settings } = useQuery({ ...settingsQueryOptions, select: (data) => data['profile.timezone'] });
+  return settings || LOCAL_TIME_ZONE;
 }
 
 export function formatDateInTz(ts: number, timeZone: string): string {

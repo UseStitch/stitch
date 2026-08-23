@@ -12,12 +12,12 @@ const SETTING_KEY = 'agents.customInstructions';
 export function AgentsSettings() {
   const page = SETTINGS_PAGE_BY_ID.agents;
   const Icon = page.icon;
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: settings } = useSuspenseQuery({ ...settingsQueryOptions, select: (data) => data[SETTING_KEY] });
   const queryClient = useQueryClient();
   const saveMutation = useMutation(
     saveSettingMutationOptions(SETTING_KEY, queryClient, { successMessage: 'Custom instructions saved' }),
   );
-  const savedInstructions = settings[SETTING_KEY] ?? '';
+  const savedInstructions = settings;
   const [instructions, setInstructions] = React.useState(savedInstructions);
   const [syncedInstructions, setSyncedInstructions] = React.useState(savedInstructions);
 

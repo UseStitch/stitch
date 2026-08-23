@@ -87,7 +87,10 @@ const meetingNoteTemplateSchema = z.object({
 });
 
 function PermissionStatus() {
-  const { data: permissions, refetch } = useQuery(audioPermissionsQueryOptions);
+  const { data: permissions, refetch } = useQuery({
+    ...audioPermissionsQueryOptions,
+    select: (data) => ({ microphone: data.microphone, screenCapture: data.screenCapture }),
+  });
   const [requesting, setRequesting] = React.useState(false);
 
   if (!permissions) return null;
@@ -145,8 +148,17 @@ function PermissionStatus() {
 
 function AudioDeviceSettings() {
   const queryClient = useQueryClient();
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-  const { data: devices } = useQuery(audioDevicesQueryOptions);
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => ({
+      'recordings.inputDeviceId': data['recordings.inputDeviceId'],
+      'recordings.outputDeviceId': data['recordings.outputDeviceId'],
+    }),
+  });
+  const { data: devices } = useQuery({
+    ...audioDevicesQueryOptions,
+    select: (data) => ({ microphoneDevices: data.microphoneDevices, speakerDevices: data.speakerDevices }),
+  });
 
   const saveInputDeviceMutation = useMutation(
     saveSettingMutationOptions('recordings.inputDeviceId', queryClient, { silent: true }),
@@ -223,10 +235,26 @@ function AudioDeviceSettings() {
 
 function RecordingsContent() {
   const queryClient = useQueryClient();
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-  const { data: sttProviderModels } = useSuspenseQuery(sttProviderModelsQueryOptions);
-  const { data: llmProviderModels } = useSuspenseQuery(enabledProviderModelsQueryOptions);
-  const { data: templateData } = useSuspenseQuery(meetingNoteTemplatesQueryOptions);
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => ({
+      'recordings.autoAnalyze': data['recordings.autoAnalyze'],
+      'recordings.analysis.defaultTemplateId': data['recordings.analysis.defaultTemplateId'],
+      'recordings.transcription.providerId': data['recordings.transcription.providerId'],
+      'recordings.transcription.modelId': data['recordings.transcription.modelId'],
+      'recordings.analysis.providerId': data['recordings.analysis.providerId'],
+      'recordings.analysis.modelId': data['recordings.analysis.modelId'],
+    }),
+  });
+  const { data: sttProviderModels } = useSuspenseQuery({ ...sttProviderModelsQueryOptions, select: (data) => data });
+  const { data: llmProviderModels } = useSuspenseQuery({
+    ...enabledProviderModelsQueryOptions,
+    select: (data) => data,
+  });
+  const { data: templateData } = useSuspenseQuery({
+    ...meetingNoteTemplatesQueryOptions,
+    select: (data) => ({ templates: data.templates }),
+  });
   const saveAutoAnalyzeMutation = useMutation(
     saveSettingMutationOptions('recordings.autoAnalyze', queryClient, { silent: true }),
   );
@@ -362,7 +390,10 @@ function MarkdownHelpDialog() {
 }
 
 function MeetingNoteTemplatesSettings() {
-  const { data } = useSuspenseQuery(meetingNoteTemplatesQueryOptions);
+  const { data } = useSuspenseQuery({
+    ...meetingNoteTemplatesQueryOptions,
+    select: (data) => ({ templates: data.templates }),
+  });
   const createMutation = useCreateMeetingNoteTemplate();
   const updateMutation = useUpdateMeetingNoteTemplate();
   const deleteMutation = useDeleteMeetingNoteTemplate();

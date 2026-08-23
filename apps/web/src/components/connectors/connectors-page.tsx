@@ -31,9 +31,9 @@ import {
 } from '@/lib/queries/connectors';
 
 export function ConnectorsPage() {
-  const { data: definitions } = useSuspenseQuery(connectorDefinitionsQueryOptions);
-  const { data: connectors } = useSuspenseQuery(connectorsQueryOptions);
-  const { data: instances } = useSuspenseQuery(connectorInstancesQueryOptions);
+  const { data: definitions } = useSuspenseQuery({ ...connectorDefinitionsQueryOptions, select: (data) => data });
+  const { data: connectors } = useSuspenseQuery({ ...connectorsQueryOptions, select: (data) => data });
+  const { data: instances } = useSuspenseQuery({ ...connectorInstancesQueryOptions, select: (data) => data });
   const [setupConnector, setSetupConnector] = useState<ConnectorDefinition | null>(null);
   const [search, setSearch] = useState('');
   const pendingUpdates = instances.filter((instance) => instance.upgrade?.available).length;

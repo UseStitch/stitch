@@ -74,6 +74,7 @@ export function ToolCallGroup({ calls, onAbort }: ToolCallGroupProps) {
   const { data: backgroundTasks } = useQuery({
     ...backgroundTasksQueryOptions(sessionId ?? ''),
     enabled: Boolean(sessionId && hasBackgroundTask),
+    select: (data) => data,
   });
   const backgroundTasksBySessionId = new Map<string, BackgroundTask>(
     backgroundTasks?.map((task) => [task.childSessionId, task]),

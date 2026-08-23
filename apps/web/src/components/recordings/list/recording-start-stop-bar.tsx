@@ -35,8 +35,14 @@ export function RecordingStartStopBar({
   onStart,
   onStop,
 }: RecordingStartStopBarProps) {
-  const { data: sttProviders } = useSuspenseQuery(sttProviderModelsQueryOptions);
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: sttProviders } = useSuspenseQuery({ ...sttProviderModelsQueryOptions, select: (data) => data });
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => ({
+      'recordings.transcription.providerId': data['recordings.transcription.providerId'],
+      'recordings.transcription.modelId': data['recordings.transcription.modelId'],
+    }),
+  });
 
   const defaultSttModel: SttModelSelection | null =
     settings['recordings.transcription.providerId'] && settings['recordings.transcription.modelId']

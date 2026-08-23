@@ -243,7 +243,7 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
 export function SkillsSettings() {
   const page = SETTINGS_PAGE_BY_ID.skills;
   const PageIcon = page.icon;
-  const { data: skills } = useSuspenseQuery(skillsQueryOptions);
+  const { data: skills } = useSuspenseQuery({ ...skillsQueryOptions, select: (data) => data });
   const deleteSkill = useDeleteSkill();
   const setSkillEnabled = useSetSkillEnabled();
   const [view, setView] = React.useState<SkillView>({ type: 'list' });

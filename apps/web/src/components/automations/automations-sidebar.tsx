@@ -15,7 +15,10 @@ export function AutomationsSidebarContent() {
 
   const openCreateDialog = useAutomationStore((state) => state.openCreateDialog);
 
-  const { data: automations = [] } = useQuery(automationsSidebarListQueryOptions);
+  const { data: automations = [] } = useQuery({
+    ...automationsSidebarListQueryOptions,
+    select: (data) => data.map((automation) => ({ id: automation.id, title: automation.title })),
+  });
   const selectedAutomationId = typeof params.automationId === 'string' ? params.automationId : null;
 
   return (

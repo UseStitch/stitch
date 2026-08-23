@@ -27,9 +27,22 @@ import {
 import { settingsQueryOptions } from '@/lib/queries/settings';
 
 export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) {
-  const { data } = useSuspenseQuery(recordingDetailsQueryOptions(recordingId));
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-  const { data: templateData } = useSuspenseQuery(meetingNoteTemplatesQueryOptions);
+  const { data } = useSuspenseQuery({
+    ...recordingDetailsQueryOptions(recordingId),
+    select: (data) => ({
+      analysis: data.analysis,
+      recording: data.recording,
+      activeRecordingId: data.activeRecordingId,
+    }),
+  });
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => ({ 'recordings.analysis.defaultTemplateId': data['recordings.analysis.defaultTemplateId'] }),
+  });
+  const { data: templateData } = useSuspenseQuery({
+    ...meetingNoteTemplatesQueryOptions,
+    select: (data) => ({ templates: data.templates }),
+  });
 
   const startAnalysis = useStartRecordingAnalysis();
   const cancelAnalysis = useCancelRecordingAnalysis();

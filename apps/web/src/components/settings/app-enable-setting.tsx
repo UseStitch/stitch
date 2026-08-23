@@ -10,7 +10,10 @@ import { getErrorMessage } from '@/lib/errors';
 import { appEnabledStatesQueryOptions, useSetAppEnabledState } from '@/lib/queries/apps';
 
 export function AppEnableSetting({ appId, label }: { appId: AppId; label: string }) {
-  const { data: enabledStates } = useSuspenseQuery(appEnabledStatesQueryOptions);
+  const { data: enabledStates } = useSuspenseQuery({
+    ...appEnabledStatesQueryOptions,
+    select: (data) => data.map((state) => ({ appId: state.appId, enabled: state.enabled })),
+  });
   const setAppEnabledState = useSetAppEnabledState();
   const enabled = enabledStates.find((state) => state.appId === appId)?.enabled ?? true;
   const toggleId = `${appId}-app-toggle`;

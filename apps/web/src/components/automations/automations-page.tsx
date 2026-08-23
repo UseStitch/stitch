@@ -49,15 +49,27 @@ const LOCAL_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const navigate = useNavigate();
-  const { data: sidebarAutomations } = useSuspenseQuery(automationsSidebarListQueryOptions);
+  const { data: sidebarAutomations } = useSuspenseQuery({
+    ...automationsSidebarListQueryOptions,
+    select: (data) => data,
+  });
   const [page, setPage] = useState(1);
   const pageSize = 15;
-  const { data: automationsPage } = useSuspenseQuery(automationsPageQueryOptions({ page, pageSize }));
-  const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
-  const { data: settings } = useQuery(settingsQueryOptions);
+  const { data: automationsPage } = useSuspenseQuery({
+    ...automationsPageQueryOptions({ page, pageSize }),
+    select: (data) => ({
+      automations: data.automations,
+      page: data.page,
+      total: data.total,
+      totalPages: data.totalPages,
+    }),
+  });
+  const { data: providerModels } = useSuspenseQuery({ ...visibleProviderModelsQueryOptions, select: (data) => data });
+  const { data: settings } = useQuery({ ...settingsQueryOptions, select: (data) => data['profile.timezone'] });
   const { data: automationDetail = null } = useQuery({
     ...automationQueryOptions(automationId ?? ''),
     enabled: automationId !== undefined,
+    select: (data) => data,
   });
 
   const createAutomation = useCreateAutomation();
@@ -83,6 +95,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const { data: automationSessions = [] } = useQuery({
     ...automationSessionsQueryOptions(selectedAutomation?.id ?? ''),
     enabled: selectedAutomation !== null,
+    select: (data) => data,
   });
 
   const [automationToDelete, setAutomationToDelete] = useState<Automation | null>(null);
@@ -140,7 +153,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const pageDescription = selectedAutomation
     ? 'Automation details and run history.'
     : 'Manage reusable prompts and model presets for recurring tasks.';
-  const timezone = settings?.['profile.timezone']?.trim() || LOCAL_TIME_ZONE || 'UTC';
+  const timezone = settings?.trim() || LOCAL_TIME_ZONE || 'UTC';
   const selectedScheduleLabel = selectedAutomation ? getAutomationScheduleLabel(selectedAutomation.schedule) : 'Manual';
   const upcomingRuns = selectedAutomation ? getUpcomingRuns(selectedAutomation.schedule, 3, timezone) : [];
 

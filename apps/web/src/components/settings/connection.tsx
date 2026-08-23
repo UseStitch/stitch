@@ -27,7 +27,10 @@ const MODE_OPTIONS: { mode: ServerMode; label: string; description: string }[] =
 export function ConnectionSettings() {
   const page = SETTINGS_PAGE_BY_ID.connection;
   const Icon = page.icon;
-  const { data: config } = useSuspenseQuery(serverConfigQueryOptions);
+  const { data: config } = useSuspenseQuery({
+    ...serverConfigQueryOptions,
+    select: (data) => ({ mode: data.mode, remoteUrl: data.remoteUrl }),
+  });
   const testRemote = useTestRemoteConnection();
   const saveConfig = useSaveServerConfig();
 

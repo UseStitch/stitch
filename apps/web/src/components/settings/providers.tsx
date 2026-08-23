@@ -13,7 +13,7 @@ import { SettingPage, SettingSection } from '@/components/settings/settings-ui';
 import { providersQueryOptions, type ProviderSummary } from '@/lib/queries/providers';
 
 function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => void }) {
-  const { data: providers } = useSuspenseQuery(providersQueryOptions);
+  const { data: providers } = useSuspenseQuery({ ...providersQueryOptions, select: (data) => data });
 
   const providersWithEnabledAuth = providers.filter((provider) => {
     if (!(PROVIDER_IDS as readonly string[]).includes(provider.id)) return false;

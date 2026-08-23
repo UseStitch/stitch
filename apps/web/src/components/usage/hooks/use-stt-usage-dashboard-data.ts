@@ -18,7 +18,15 @@ type SttProviderOption = { providerId: string; providerName: string };
 type SttModelOption = { label: string; providerId: string; providerName: string; modelId: string; modelName: string };
 
 export function useSttUsageDashboardData(rangeFilter: UsageDateRange) {
-  const { data: sttProviderModels } = useSuspenseQuery(sttProviderModelsQueryOptions);
+  const { data: sttProviderModels } = useSuspenseQuery({
+    ...sttProviderModelsQueryOptions,
+    select: (data) =>
+      data.map((p) => ({
+        providerId: p.providerId,
+        providerName: p.providerName,
+        models: p.models.map((m) => ({ id: m.id, name: m.name })),
+      })),
+  });
 
   const [selectedProvider, setProviderFilter] = React.useState<string>(ALL_FILTER);
   const [selectedModel, setModelFilter] = React.useState<string>(ALL_FILTER);
@@ -26,6 +34,7 @@ export function useSttUsageDashboardData(rangeFilter: UsageDateRange) {
   const { data: usageRangeData } = useQuery({
     ...sttUsageDashboardQueryOptions({ range: rangeFilter }),
     placeholderData: keepPreviousData,
+    select: (data) => ({ usedProviders: data.usedProviders, usedModels: data.usedModels }),
   });
 
   const providerById = new Map(sttProviderModels.map((p) => [p.providerId, p] as const));
@@ -75,6 +84,7 @@ export function useSttUsageDashboardData(rangeFilter: UsageDateRange) {
   const { data: usageData, isFetching } = useQuery({
     ...sttUsageDashboardQueryOptions(usageFilters),
     placeholderData: keepPreviousData,
+    select: (data) => data,
   });
 
   const providerLabelById = new Map(availableProviders.map((p) => [p.providerId, p.providerName] as const));

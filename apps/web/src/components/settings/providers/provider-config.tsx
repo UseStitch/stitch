@@ -82,7 +82,10 @@ function createProviderConfigSchema(extraFields: FieldDef[], method: string, met
 }
 
 function LocalProviderStatusBadge({ provider }: { provider: LocalProviderId }) {
-  const { data } = useQuery(localProviderHealthQueryOptions(provider));
+  const { data } = useQuery({
+    ...localProviderHealthQueryOptions(provider),
+    select: (data) => ({ reachable: data.reachable }),
+  });
   if (!data) return null;
   if (data.reachable) {
     return (
@@ -135,7 +138,11 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
     : undefined;
   const enabledAuthMethods = React.useMemo(() => meta?.authMethods.filter((method) => method.enabled) ?? [], [meta]);
   const queryClient = useQueryClient();
-  const { data: existingConfig } = useQuery({ ...providerConfigQueryOptions(provider.id), enabled: provider.enabled });
+  const { data: existingConfig } = useQuery({
+    ...providerConfigQueryOptions(provider.id),
+    enabled: provider.enabled,
+    select: (data) => data,
+  });
 
   const existingMethod = (existingConfig?.auth as { method?: string } | undefined)?.method;
   const defaultMethod = resolveDefaultAuthMethod(existingMethod, enabledAuthMethods);

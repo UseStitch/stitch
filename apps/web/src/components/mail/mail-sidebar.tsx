@@ -287,7 +287,7 @@ function UserLabelTreeItem({
 
 function MailLabelList({ accountId }: { accountId: MailAccountId }) {
   const { selectedLabelId, setSelectedLabelId } = useMailStore();
-  const { data: labels = [] } = useQuery(mailLabelsQueryOptions(accountId));
+  const { data: labels = [] } = useQuery({ ...mailLabelsQueryOptions(accountId), select: (data) => data });
   const sortedLabels = sortLabels(labels);
   const initialCollapsedState = readCollapsedLabelState(accountId);
   const [collapsedLabels, setCollapsedLabels] = React.useState<Set<string>>(
@@ -389,9 +389,13 @@ function MailLabelList({ accountId }: { accountId: MailAccountId }) {
 
 export function MailSidebarContent() {
   const { selectedAccountId, setSelectedAccountId } = useMailStore();
-  const { data: accounts = [] } = useQuery(mailAccountsQueryOptions);
+  const { data: accounts = [] } = useQuery({
+    ...mailAccountsQueryOptions,
+    select: (data) => data.map((account) => ({ id: account.id, email: account.email })),
+  });
   const selectedAccount =
-    accounts.find((account) => account.id === selectedAccountId) ?? (accounts[0] as MailAccountView | undefined);
+    accounts.find((account) => account.id === selectedAccountId) ??
+    (accounts[0] as Pick<MailAccountView, 'id' | 'email'> | undefined);
 
   React.useEffect(() => {
     if (!selectedAccountId && accounts[0]) setSelectedAccountId(accounts[0].id);

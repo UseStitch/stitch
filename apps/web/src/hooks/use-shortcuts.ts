@@ -9,7 +9,11 @@ interface ShortcutInfo {
 }
 
 export function useShortcuts(): Map<string, ShortcutInfo> {
-  const { data: shortcuts } = useSuspenseQuery(shortcutsQueryOptions);
+  const { data: shortcuts } = useSuspenseQuery({
+    ...shortcutsQueryOptions,
+    select: (data) =>
+      data.map((entry) => ({ actionId: entry.actionId, hotkey: entry.hotkey, isSequence: entry.isSequence })),
+  });
 
   const resolved = new Map<string, ShortcutInfo>();
   for (const entry of shortcuts) {

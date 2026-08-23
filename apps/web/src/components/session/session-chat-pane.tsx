@@ -39,10 +39,10 @@ type SessionChatPaneProps = { sessionId: string; onGenerateAutomation?: () => Pr
 export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChatPaneProps) {
   const id = sessionId;
   const navigate = useNavigate();
-  const { data: session } = useSuspenseQuery(sessionQueryOptions(id));
-  const isChildSession = session.parentSessionId !== null;
+  const { data: session } = useSuspenseQuery({ ...sessionQueryOptions(id), select: (data) => data.parentSessionId });
+  const isChildSession = session !== null;
   const messagesQuery = useSuspenseInfiniteQuery(sessionMessagesInfiniteQueryOptions(id));
-  const { data: todos } = useSuspenseQuery(sessionTodosQueryOptions(id));
+  const { data: todos } = useSuspenseQuery({ ...sessionTodosQueryOptions(id), select: (data) => data });
   const messages = flattenMessages(messagesQuery.data);
 
   const lastUsedModel = findLastUsedModel(messages);

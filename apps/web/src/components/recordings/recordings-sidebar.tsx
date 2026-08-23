@@ -24,7 +24,10 @@ export function RecordingsSidebarContent() {
   const selectedRecordingId = typeof params.id === 'string' ? params.id : null;
   const loadMoreRef = React.useRef<HTMLDivElement>(null);
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery(recordingsInfiniteQueryOptions());
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+    ...recordingsInfiniteQueryOptions(),
+    select: (data) => ({ ...data, pages: data.pages.map((page) => ({ recordings: page.recordings })) }),
+  });
   const recordings = data?.pages.flatMap((page) => page.recordings) ?? [];
 
   React.useEffect(() => {

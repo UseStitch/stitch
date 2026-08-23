@@ -161,8 +161,8 @@ function MessageCard({
 }
 
 export function ThreadView({ accountId, threadId, onClose }: ThreadViewProps) {
-  const { data: thread, isLoading } = useQuery(mailThreadQueryOptions(threadId));
-  const { data: labels = [] } = useQuery(mailLabelsQueryOptions(accountId));
+  const { data: thread, isLoading } = useQuery({ ...mailThreadQueryOptions(threadId), select: (data) => data });
+  const { data: labels = [] } = useQuery({ ...mailLabelsQueryOptions(accountId), select: (data) => data });
   const modifyMutation = useModifyMailMessage();
   const trashMutation = useTrashMailThread();
   const untrashMutation = useUntrashMailThread();

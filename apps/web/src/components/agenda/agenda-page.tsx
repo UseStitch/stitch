@@ -44,8 +44,8 @@ export function AgendaPage({ listId }: { listId?: string }) {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [newTitle, setNewTitle] = React.useState('');
 
-  const { data: listsData } = useQuery(agendaListsQueryOptions());
-  const lists = listsData?.lists ?? [];
+  const { data: listsData } = useQuery({ ...agendaListsQueryOptions(), select: (data) => data.lists });
+  const lists = listsData ?? [];
 
   const currentList = listId ? lists.find((l) => l.id === listId) : null;
   const filterStatus = columnFilters.find((filter) => filter.id === 'status')?.value as AgendaItemStatus | undefined;
@@ -53,9 +53,10 @@ export function AgendaPage({ listId }: { listId?: string }) {
     | AgendaItemPriority
     | undefined;
 
-  const { data: itemsData, isLoading } = useQuery(
-    agendaItemsQueryOptions({ page, pageSize, listId, status: filterStatus, priority: filterPriority }),
-  );
+  const { data: itemsData, isLoading } = useQuery({
+    ...agendaItemsQueryOptions({ page, pageSize, listId, status: filterStatus, priority: filterPriority }),
+    select: (data) => ({ items: data.items, page: data.page, total: data.total, totalPages: data.totalPages }),
+  });
 
   const all = itemsData?.items ?? [];
   const active = all.filter((i) => i.status !== 'done' && i.status !== 'cancelled');

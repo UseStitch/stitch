@@ -46,8 +46,14 @@ const MODEL_PREFERENCES = [
 
 function SttModelSelect() {
   const queryClient = useQueryClient();
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-  const { data: sttProviders } = useSuspenseQuery(sttProviderModelsQueryOptions);
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => ({
+      'stt.default.providerId': data['stt.default.providerId'],
+      'stt.default.modelId': data['stt.default.modelId'],
+    }),
+  });
+  const { data: sttProviders } = useSuspenseQuery({ ...sttProviderModelsQueryOptions, select: (data) => data });
 
   const saveProviderMutation = useMutation(
     saveSettingMutationOptions('stt.default.providerId', queryClient, { silent: true }),
@@ -96,8 +102,18 @@ function SttModelSelect() {
 }
 
 function ModelsContent() {
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-  const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => ({
+      'model.default.providerId': data['model.default.providerId'],
+      'model.default.modelId': data['model.default.modelId'],
+      'model.compaction.providerId': data['model.compaction.providerId'],
+      'model.compaction.modelId': data['model.compaction.modelId'],
+      'model.title.providerId': data['model.title.providerId'],
+      'model.title.modelId': data['model.title.modelId'],
+    }),
+  });
+  const { data: providerModels } = useSuspenseQuery({ ...visibleProviderModelsQueryOptions, select: (data) => data });
 
   if (providerModels.length === 0) {
     return (
@@ -229,7 +245,10 @@ function AutoUpdatesContent() {
 }
 
 function NotificationsContent() {
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => ({ 'notifications.sound.enabled': data['notifications.sound.enabled'] }),
+  });
 
   return (
     <SwitchSettingRow
@@ -242,7 +261,10 @@ function NotificationsContent() {
 }
 
 function DictationContent() {
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => ({ 'stt.holdToTalk': data['stt.holdToTalk'] }),
+  });
 
   return (
     <SettingRows>

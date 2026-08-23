@@ -9,7 +9,10 @@ import { getTheme, getAppearanceMode, applyTheme, applyAppearanceMode, DEFAULT_T
 
 export function useTheme() {
   const queryClient = useQueryClient();
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => ({ 'appearance.mode': data['appearance.mode'], 'appearance.theme': data['appearance.theme'] }),
+  });
 
   const mode = getAppearanceMode(settings['appearance.mode']);
   const themeName = settings['appearance.theme'] ?? DEFAULT_THEME;

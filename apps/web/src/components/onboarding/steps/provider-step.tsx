@@ -49,7 +49,7 @@ function ProviderRow({ provider, onSelect }: ProviderRowProps) {
 }
 
 export function ProviderStep({ onConnected }: Props) {
-  const { data: providers } = useQuery(providersQueryOptions);
+  const { data: providers } = useQuery({ ...providersQueryOptions, select: (data) => data });
   const [selected, setSelected] = React.useState<ProviderSummary | null>(null);
   const [search, setSearch] = React.useState('');
 

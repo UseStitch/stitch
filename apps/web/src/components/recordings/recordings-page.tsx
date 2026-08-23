@@ -43,6 +43,11 @@ export function RecordingsPage() {
   const { data } = useSuspenseQuery({
     ...recordingsQueryOptions({ page, pageSize: PAGE_SIZE }),
     refetchInterval: (query) => (query.state.data?.activeRecordingId ? 1_000 : false),
+    select: (data) => ({
+      recordings: data.recordings,
+      activeRecordingId: data.activeRecordingId,
+      totalPages: data.totalPages,
+    }),
   });
   const startRecording = useStartRecording();
   const stopRecording = useStopRecording();

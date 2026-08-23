@@ -25,7 +25,7 @@ export function McpRegistryList({
   onAddCustom: () => void;
   onInstall: (server: McpRegistryServer) => void;
 }) {
-  const { data: registryServers } = useSuspenseQuery(mcpRegistryQueryOptions);
+  const { data: registryServers } = useSuspenseQuery({ ...mcpRegistryQueryOptions, select: (data) => data });
   const refreshRegistry = useRefreshMcpRegistry();
   const [search, setSearch] = React.useState('');
 

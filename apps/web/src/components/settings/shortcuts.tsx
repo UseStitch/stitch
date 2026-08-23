@@ -157,14 +157,17 @@ function ShortcutRow({
 
 function ShortcutsContent() {
   const queryClient = useQueryClient();
-  const { data: shortcuts } = useSuspenseQuery(shortcutsQueryOptions);
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
+  const { data: shortcuts } = useSuspenseQuery({ ...shortcutsQueryOptions, select: (data) => data });
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => data['shortcuts.leaderKey'],
+  });
   const saveShortcut = useSaveShortcut();
   const deleteShortcut = useDeleteShortcut();
   const resetAll = useResetAllShortcuts();
   const saveLeaderKey = useMutation(saveSettingMutationOptions('shortcuts.leaderKey', queryClient, { silent: true }));
 
-  const leaderKey = settings['shortcuts.leaderKey'] || defaultLeaderKey;
+  const leaderKey = settings || defaultLeaderKey;
 
   const [search, setSearch] = React.useState('');
   const [recordingId, setRecordingId] = React.useState<string | null>(null);

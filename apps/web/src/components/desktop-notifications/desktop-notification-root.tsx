@@ -83,7 +83,10 @@ export function DesktopNotificationRoot() {
 }
 
 function useDesktopNotificationTheme(): void {
-  const { data: settings } = useQuery(settingsQueryOptions);
+  const { data: settings } = useQuery({
+    ...settingsQueryOptions,
+    select: (data) => ({ 'appearance.theme': data['appearance.theme'], 'appearance.mode': data['appearance.mode'] }),
+  });
   const themeName = settings?.['appearance.theme'] ?? DEFAULT_THEME;
   const mode = getAppearanceMode(settings?.['appearance.mode']);
 

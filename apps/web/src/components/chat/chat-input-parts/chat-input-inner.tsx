@@ -69,9 +69,16 @@ export function ChatInputInner({
   onPendingAttachmentsConsumed,
   completionGroups = EMPTY_COMPLETION_GROUPS,
 }: ChatInputInnerProps) {
-  const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
-  const { data: settings } = useSuspenseQuery(settingsQueryOptions);
-  const { data: sttProviders } = useSuspenseQuery(sttProviderModelsQueryOptions);
+  const { data: providerModels } = useSuspenseQuery({ ...visibleProviderModelsQueryOptions, select: (data) => data });
+  const { data: settings } = useSuspenseQuery({
+    ...settingsQueryOptions,
+    select: (data) => ({
+      'stt.default.providerId': data['stt.default.providerId'],
+      'stt.default.modelId': data['stt.default.modelId'],
+      'stt.holdToTalk': data['stt.holdToTalk'],
+    }),
+  });
+  const { data: sttProviders } = useSuspenseQuery({ ...sttProviderModelsQueryOptions, select: (data) => data });
   const shortcuts = useShortcuts();
   const heldKeys = useHeldKeys();
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
