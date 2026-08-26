@@ -49,7 +49,7 @@ const PROVIDER_CAPABILITIES = {
   anthropic: ['llm'],
   assemblyai: ['stt'],
   elevenlabs: ['stt'],
-  google: ['llm', 'embedding'],
+  google: ['llm', 'stt', 'embedding'],
   'google-vertex': ['llm'],
   lmstudio_local: ['llm'],
   nvidia: ['llm', 'embedding'],

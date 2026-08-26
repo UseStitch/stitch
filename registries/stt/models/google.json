@@ -1,0 +1,26 @@
+{
+  "$schema": "https://usestitch.ai/schemas/stt-provider.schema.json",
+  "providerId": "google",
+  "providerName": "Google Gemini",
+  "models": [
+    {
+      "modelId": "gemini-3.5-transcribe-live",
+      "displayName": "Gemini 3.5 Transcribe Live",
+      "deprecated": false,
+      "capabilities": {
+        "partials": true,
+        "word_timestamps": false,
+        "utterance_timestamps": false,
+        "diarization": false,
+        "native_vad": true,
+        "language_detection": true,
+        "keyterm_biasing": true
+      },
+      "inputFormat": { "encoding": "pcm_s16le", "sampleRateHz": 16000, "channels": 1 },
+      "partialStrategy": "cumulative",
+      "buffer": { "maxChunkBytes": 32768, "flushIntervalMs": 100, "maxBufferedMs": 30000, "paceRealtime": false },
+      "reconnect": { "enabled": true, "maxRetries": 5, "backoffMs": 500 },
+      "pricing": { "type": "token", "perMillionTokens": { "audioInput": 3.5, "textOutput": 21 } }
+    }
+  ]
+}

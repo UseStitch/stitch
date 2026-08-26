@@ -83,6 +83,36 @@ afterEach(() => {
 });
 
 describe('createWsTransport', () => {
+  test('waits for an optional server readiness message', async () => {
+    globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+    let resolved = false;
+
+    const transportPromise = createWsTransport(
+      {
+        url: 'wss://example.test/stt',
+        headers: {},
+        onReady: () => ['setup'],
+        parseMessage: () => null,
+        isReadyMessage: (data) => data === 'ready',
+        label: 'Test',
+      },
+      () => 'audio',
+      () => 'commit',
+    ).then((transport) => {
+      resolved = true;
+      return transport;
+    });
+    FakeWebSocket.last?.open();
+    await Promise.resolve();
+
+    expect(FakeWebSocket.last?.sent).toEqual(['setup']);
+    expect(resolved).toBe(false);
+
+    FakeWebSocket.last?.message('ready');
+    await transportPromise;
+    expect(resolved).toBe(true);
+  });
+
   test('emits a typed error and closes when a pong is missing', async () => {
     globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
 
