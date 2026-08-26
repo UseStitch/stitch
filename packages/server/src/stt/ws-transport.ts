@@ -12,6 +12,8 @@ type WsTransportConfig = {
   onReady?: () => string[];
   /** Parse an incoming message. Return events to dispatch, or null to skip. */
   parseMessage: (data: string) => WsMessageResult | null;
+  /** If provided, wait for a matching server message before resolving the transport. */
+  isReadyMessage?: (data: string) => boolean;
   /** Log label for diagnostics. */
   label: string;
   pingIntervalMs?: number;
@@ -41,7 +43,7 @@ export function createWsTransport(
 
     const ws = new WebSocket(config.url, { headers: config.headers });
 
-    let opened = false;
+    let ready = false;
     let closed = false;
     let pingTimer: ReturnType<typeof setInterval> | null = null;
     let pongTimer: ReturnType<typeof setTimeout> | null = null;
@@ -123,7 +125,6 @@ export function createWsTransport(
     }
 
     function handleOpen(): void {
-      opened = true;
       log.debug({ label: config.label }, 'WebSocket opened');
 
       if (config.onReady) {
@@ -131,6 +132,13 @@ export function createWsTransport(
           ws.send(msg);
         }
       }
+
+      if (!config.isReadyMessage) resolveTransport();
+    }
+
+    function resolveTransport(): void {
+      if (ready) return;
+      ready = true;
 
       const transport: STTTransport = {
         sendAudio(chunk) {
@@ -178,7 +186,10 @@ export function createWsTransport(
     function handleMessage(event: MessageEvent): void {
       markAlive();
       try {
-        const result = config.parseMessage(String(event.data));
+        const data = String(event.data);
+        if (config.isReadyMessage?.(data)) resolveTransport();
+
+        const result = config.parseMessage(data);
         if (!result) return;
 
         if (result.transcript) {
@@ -203,7 +214,7 @@ export function createWsTransport(
       const err = new Error(`${config.label} WebSocket closed: ${event.code} ${event.reason}`);
       (err as Error & { code?: string }).code = String(event.code);
 
-      if (!opened) {
+      if (!ready) {
         reject(err);
         return;
       }
@@ -218,7 +229,7 @@ export function createWsTransport(
     function handleError(event: Event): void {
       const message = (event as { message?: string }).message ?? 'unknown';
       const err = new Error(`${config.label} WebSocket error: ${message}`);
-      if (!opened) {
+      if (!ready) {
         reject(err);
         return;
       }

@@ -78,7 +78,7 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     displayName: 'Google AI',
     description: 'Access to Gemini and other Google AI models',
     api: 'https://generativelanguage.googleapis.com',
-    capabilities: ['llm', 'embedding'],
+    capabilities: ['llm', 'stt', 'embedding'],
     extraFields: [],
     authMethods: [
       {
