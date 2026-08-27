@@ -45,7 +45,7 @@ test('hydrateThread refreshes the complete provider thread', async () => {
   const db = getMailDb();
   const [account] = await db
     .insert(mailAccounts)
-    .values({ connectorInstanceId: 'ci_1', provider: 'gmail', email: 'a@example.com' })
+    .values({ connectorInstanceId: 'conn_1', provider: 'gmail', email: 'a@example.com' })
     .returning();
   await persistLabels(account.id, [{ providerLabelId: 'INBOX', name: 'Inbox', kind: 'system', color: null }]);
   const [threadId] = await persistSyncPage(account.id, {

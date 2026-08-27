@@ -163,10 +163,12 @@ type _ActionsCoveredByResultMap = AssertExtends<
   keyof ElectronBrowserCommandResultMap
 >;
 
+import type { PrefixedString } from '../id/index.js';
+
 export type ElectronBrowserCommandMessage = {
   id: string;
   type: 'browser:command';
-  sessionId: string;
+  sessionId: PrefixedString<'ses'>;
   command: ElectronBrowserCommand;
 };
 

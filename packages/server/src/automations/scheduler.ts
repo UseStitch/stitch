@@ -1,5 +1,6 @@
 import type { JobSchedule } from '@stitch/scheduler';
 import type { Automation, AutomationSchedule } from '@stitch/shared/automations/types';
+import type { PrefixedString } from '@stitch/shared/id';
 
 import { listAutomations, runAutomation } from './service.js';
 
@@ -11,7 +12,7 @@ import { getSettings } from '@/settings/service.js';
 const AUTOMATION_JOB_KEY_PREFIX = 'automation:';
 const DEFAULT_TIMEZONE = 'UTC';
 
-function getAutomationJobKey(automationId: string): string {
+function getAutomationJobKey(automationId: PrefixedString<'auto'>): string {
   return `${AUTOMATION_JOB_KEY_PREFIX}${automationId}`;
 }
 
@@ -70,7 +71,7 @@ export async function syncAutomationSchedule(automation: Automation): Promise<vo
   await registerAutomationJob(automation, await resolveUserTimezone());
 }
 
-export async function unregisterAutomationSchedule(automationId: string): Promise<void> {
+export async function unregisterAutomationSchedule(automationId: PrefixedString<'auto'>): Promise<void> {
   await unregisterSchedulerJob(getAutomationJobKey(automationId));
 }
 

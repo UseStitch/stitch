@@ -2,6 +2,8 @@ import { and, eq, lte, or } from 'drizzle-orm';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { PrefixedString } from '@stitch/shared/id';
+
 import { getMailDb } from '../db/client.js';
 import {
   mailAccounts,
@@ -35,14 +37,14 @@ export type MailEngineEvent =
   | { type: 'threads.changed'; accountId: MailAccountId; threadIds: MailThreadId[] };
 
 type MailEngineDeps = {
-  createHttpClient(connectorInstanceId: string): MailHttpClient;
+  createHttpClient(connectorInstanceId: PrefixedString<'conn'>): MailHttpClient;
   logger: MailLogger;
   attachmentsDir: string;
   emit(event: MailEngineEvent): void;
 };
 
 type EnrollInput = {
-  connectorInstanceId: string;
+  connectorInstanceId: PrefixedString<'conn'>;
   provider: MailProviderId;
   email: string;
   backfillDays?: number;

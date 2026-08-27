@@ -45,7 +45,7 @@ test('runIncremental follows cursor-expired recovery ladder', async () => {
   const [account] = await db
     .insert(mailAccounts)
     .values({
-      connectorInstanceId: 'ci_1',
+      connectorInstanceId: 'conn_1',
       provider: 'gmail',
       email: 'a@example.com',
       syncPhase: 'incremental',

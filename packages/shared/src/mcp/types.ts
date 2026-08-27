@@ -156,15 +156,15 @@ export type McpElicitationRequest = {
 const MCP_SERVER_ID_LENGTH = 30; // "mcp_" (4) + 26 body chars
 
 /** Formats a tool name for the AI SDK tools map by combining the server ID and tool name. */
-export function formatMcpToolName(serverId: string, toolName: string): string {
+export function formatMcpToolName(serverId: PrefixedString<'mcp'>, toolName: string): string {
   return `${serverId}_${toolName}`;
 }
 
 /** Parses a tool name back into its components. Returns null if not an MCP tool name. */
-export function parseMcpToolName(prefixedName: string): { serverId: string; toolName: string } | null {
+export function parseMcpToolName(prefixedName: string): { serverId: PrefixedString<'mcp'>; toolName: string } | null {
   if (!prefixedName.startsWith('mcp_')) return null;
   if (prefixedName.length <= MCP_SERVER_ID_LENGTH + 1) return null;
-  const serverId = prefixedName.slice(0, MCP_SERVER_ID_LENGTH);
+  const serverId = prefixedName.slice(0, MCP_SERVER_ID_LENGTH) as PrefixedString<'mcp'>;
   const sep = prefixedName[MCP_SERVER_ID_LENGTH];
   if (sep !== '_') return null;
   const toolName = prefixedName.slice(MCP_SERVER_ID_LENGTH + 1);

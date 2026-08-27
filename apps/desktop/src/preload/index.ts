@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 import type { ElectronBrowserState } from '@stitch/shared/browser/electron';
 import type { DesktopBridge, ElectronBridge } from '@stitch/shared/desktop/bridge';
+import { PrefixedString } from '@stitch/shared/id';
 import type {
   IpcContract,
   IpcEventContract,
@@ -115,9 +116,9 @@ const api = {
   },
   browser: {
     getState: () => invokeIpc('browser:getState'),
-    registerWebview: (webContentsId: number, sessionId: string) =>
+    registerWebview: (webContentsId: number, sessionId: PrefixedString<'ses'>) =>
       invokeIpc('browser:registerWebview', webContentsId, sessionId),
-    switchSession: (sessionId: string) => invokeIpc('browser:switchSession', sessionId),
+    switchSession: (sessionId: PrefixedString<'ses'>) => invokeIpc('browser:switchSession', sessionId),
     show: () => invokeIpc('browser:show'),
     hide: () => invokeIpc('browser:hide'),
     userNavigate: (url: string): Promise<BrowserNavigateResult> => invokeIpc('browser:userNavigate', url),

@@ -24,6 +24,7 @@ export const routeSchemas = {
   permissionRuleId: prefixedId(ID_PREFIXES.permissionRule),
   mcpServerId: prefixedId(ID_PREFIXES.mcpServer),
   mcpElicitationId: prefixedId(ID_PREFIXES.mcpElicitation),
+  connectorId: prefixedId(ID_PREFIXES.connector),
   connectorInstanceId: prefixedId(ID_PREFIXES.connectorInstance),
   automationId: prefixedId(ID_PREFIXES.automation),
   scheduledJobId: prefixedId(ID_PREFIXES.scheduledJob),

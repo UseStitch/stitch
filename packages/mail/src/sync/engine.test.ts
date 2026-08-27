@@ -23,7 +23,7 @@ describe('mail engine enrollment', () => {
     });
 
     const accountId = await engine.accounts.enroll({
-      connectorInstanceId: 'ci_1',
+      connectorInstanceId: 'conn_1',
       provider: 'gmail',
       email: 'a@example.com',
     });

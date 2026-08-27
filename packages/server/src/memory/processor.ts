@@ -20,7 +20,7 @@ const TASK_PATTERN = /\b(?:remind me|todo|to-do|deadline|due (?:today|tomorrow|o
 
 type Candidate = { content: string; target: MemoryTarget; durability: 'ephemeral' | 'session' | 'long_term' };
 type SessionWriteState = { factsWritten: number; lastWriteTurn: number; turnCount: number };
-const sessionWriteState = new Map<string, SessionWriteState>();
+const sessionWriteState = new Map<PrefixedString<'ses'>, SessionWriteState>();
 
 export function filterCaptureCandidates(candidates: Candidate[], existing: Set<string>, limit: number): Candidate[] {
   const accepted: Candidate[] = [];
@@ -55,7 +55,7 @@ async function existingCandidateKeys(): Promise<Set<string>> {
   );
 }
 
-function incrementTurn(sessionId: string): SessionWriteState {
+function incrementTurn(sessionId: PrefixedString<'ses'>): SessionWriteState {
   const state = sessionWriteState.get(sessionId) ?? { factsWritten: 0, lastWriteTurn: -1, turnCount: 0 };
   state.turnCount += 1;
   sessionWriteState.set(sessionId, state);
@@ -63,7 +63,7 @@ function incrementTurn(sessionId: string): SessionWriteState {
 }
 
 export async function processMemories(input: {
-  sessionId: string;
+  sessionId: PrefixedString<'ses'>;
   userMessage: string;
   assistantMessage: string;
   providerId: string;
@@ -130,14 +130,13 @@ export async function processMemories(input: {
   }
 }
 
-async function resolveMemorySource(sessionId: string, override: MemorySource | undefined): Promise<MemorySource> {
+async function resolveMemorySource(
+  sessionId: PrefixedString<'ses'>,
+  override: MemorySource | undefined,
+): Promise<MemorySource> {
   if (override) return override;
   const session = (
-    await getDb()
-      .select({ type: sessions.type })
-      .from(sessions)
-      .where(eq(sessions.id, sessionId as PrefixedString<'ses'>))
-      .limit(1)
+    await getDb().select({ type: sessions.type }).from(sessions).where(eq(sessions.id, sessionId)).limit(1)
   ).at(0);
   return session?.type === 'automation' ? 'automation' : 'chat';
 }

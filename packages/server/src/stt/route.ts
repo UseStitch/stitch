@@ -6,6 +6,7 @@ import type { SttOutboundMessage } from '@stitch/shared/stt/types';
 
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
+import { routeSchemas } from '@/lib/route-schemas.js';
 import { pushTranscriptEvent, startTranscriptCollection } from '@/recordings/transcript-store.js';
 import { createSTTSession, STTSessionError, type STTSession } from '@/stt/session.js';
 import type { createNodeWebSocket } from '@hono/node-ws';
@@ -20,7 +21,7 @@ const startMessageSchema = z.object({
   providerId: z.string().min(1),
   modelId: z.string().min(1),
   service: z.enum(['chat-input', 'meeting-recording']),
-  recordingId: z.string().min(1),
+  recordingId: routeSchemas.recordingId.optional(),
   capabilityRequest: z
     .record(z.string(), z.enum(['required', 'preferred']))
     .optional()
@@ -105,7 +106,11 @@ function send(ws: WsSender, msg: SttOutboundMessage): void {
   ws.send(JSON.stringify(msg));
 }
 
-type SessionState = { session: STTSession | null; inputEncoding: 'f32le' | 'pcm_s16le'; recordingId: string | null };
+type SessionState = {
+  session: STTSession | null;
+  inputEncoding: 'f32le' | 'pcm_s16le';
+  recordingId: PrefixedString<'rec'> | null;
+};
 
 async function handleStart(
   message: z.infer<typeof startMessageSchema>,
@@ -123,7 +128,7 @@ async function handleStart(
   }
 
   state.inputEncoding = message.audioChunkConfig.encoding;
-  state.recordingId = message.recordingId;
+  state.recordingId = message.recordingId ?? null;
 
   try {
     const session = await createSTTSession({
@@ -142,7 +147,7 @@ async function handleStart(
 
     // Start in-memory transcript collection for meeting recordings
     if (message.service === 'meeting-recording' && state.recordingId) {
-      startTranscriptCollection(state.recordingId as PrefixedString<'rec'>);
+      startTranscriptCollection(state.recordingId);
     }
 
     session.onTranscript((evt) => {
@@ -172,7 +177,7 @@ async function handleStart(
         });
 
         // Accumulate all transcript events (partial + final) in the store for DB persistence
-        pushTranscriptEvent(state.recordingId as PrefixedString<'rec'>, {
+        pushTranscriptEvent(state.recordingId, {
           kind: evt.kind,
           source,
           speaker: typeof evt.speaker === 'string' ? evt.speaker : 'Unknown',
@@ -192,10 +197,7 @@ async function handleStart(
       send(ws, { type: 'unrecoverable', sttSessionId: message.sttSessionId, reason });
 
       if (message.service === 'meeting-recording' && state.recordingId) {
-        internalBus.emit('recording.unrecoverable', {
-          recordingId: state.recordingId as PrefixedString<'rec'>,
-          reason,
-        });
+        internalBus.emit('recording.unrecoverable', { recordingId: state.recordingId, reason });
       }
     });
 

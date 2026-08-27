@@ -18,6 +18,7 @@ import {
   upgradeConnectorInstance,
 } from '@/connectors/service.js';
 import * as Log from '@/lib/log.js';
+import { routeSchemas } from '@/lib/route-schemas.js';
 
 export const connectorsRouter = new Hono();
 const log = Log.create({ service: 'connectors-route' });
@@ -55,15 +56,18 @@ connectorsRouter.get('/instances', async (c) => {
 });
 
 // Get a specific connector instance
-connectorsRouter.get('/instances/:id', async (c) => {
-  const id = c.req.param('id');
+const connectorInstanceIdParamSchema = z.object({ id: routeSchemas.connectorInstanceId });
+const connectorIdParamSchema = z.object({ id: routeSchemas.connectorId });
+
+connectorsRouter.get('/instances/:id', zValidator('param', connectorInstanceIdParamSchema), async (c) => {
+  const id = c.req.valid('param').id;
   const result = await getConnectorInstance(id);
   return c.json(result);
 });
 
 // Create an OAuth connector instance
 const createOAuthSchema = z.object({
-  connectorRefId: z.string().min(1),
+  connectorRefId: routeSchemas.connectorId,
   label: z.string().min(1),
   scopes: z.array(z.string()).min(1),
 });
@@ -88,8 +92,8 @@ connectorsRouter.post('/instances/api-key', zValidator('json', createApiKeySchem
 });
 
 // Start OAuth authorization flow for an instance
-connectorsRouter.post('/instances/:id/authorize', async (c) => {
-  const id = c.req.param('id');
+connectorsRouter.post('/instances/:id/authorize', zValidator('param', connectorInstanceIdParamSchema), async (c) => {
+  const id = c.req.valid('param').id;
   const result = await authorizeOAuthInstance(id);
 
   const { waitForTokens } = result;
@@ -109,38 +113,48 @@ const updateSchema = z.object({ label: z.string().min(1).optional(), scopes: z.a
 
 const upgradeSchema = z.object({ apiKey: z.string().min(1).optional() });
 
-connectorsRouter.patch('/instances/:id', zValidator('json', updateSchema), async (c) => {
-  const id = c.req.param('id');
-  const body = c.req.valid('json');
-  const result = await updateConnectorInstance(id, body);
-  return c.json(result);
-});
+connectorsRouter.patch(
+  '/instances/:id',
+  zValidator('param', connectorInstanceIdParamSchema),
+  zValidator('json', updateSchema),
+  async (c) => {
+    const id = c.req.valid('param').id;
+    const body = c.req.valid('json');
+    const result = await updateConnectorInstance(id, body);
+    return c.json(result);
+  },
+);
 
 // Delete a connector instance
-connectorsRouter.delete('/instances/:id', async (c) => {
-  const id = c.req.param('id');
+connectorsRouter.delete('/instances/:id', zValidator('param', connectorInstanceIdParamSchema), async (c) => {
+  const id = c.req.valid('param').id;
   await deleteConnectorInstance(id);
   return c.body(null, 204);
 });
 
 // Delete connector credentials and all linked accounts
-connectorsRouter.delete('/:id', async (c) => {
-  const id = c.req.param('id');
+connectorsRouter.delete('/:id', zValidator('param', connectorIdParamSchema), async (c) => {
+  const id = c.req.valid('param').id;
   await deleteConnector(id);
   return c.body(null, 204);
 });
 
 // Test a connector instance connection
-connectorsRouter.post('/instances/:id/test', async (c) => {
-  const id = c.req.param('id');
+connectorsRouter.post('/instances/:id/test', zValidator('param', connectorInstanceIdParamSchema), async (c) => {
+  const id = c.req.valid('param').id;
   await testConnectorInstance(id);
   return c.json({ success: true });
 });
 
 // Upgrade a connector instance to the latest connector version
-connectorsRouter.post('/instances/:id/upgrade', zValidator('json', upgradeSchema), async (c) => {
-  const id = c.req.param('id');
-  const body = c.req.valid('json');
-  const result = await upgradeConnectorInstance(id, body);
-  return c.json(result);
-});
+connectorsRouter.post(
+  '/instances/:id/upgrade',
+  zValidator('param', connectorInstanceIdParamSchema),
+  zValidator('json', upgradeSchema),
+  async (c) => {
+    const id = c.req.valid('param').id;
+    const body = c.req.valid('json');
+    const result = await upgradeConnectorInstance(id, body);
+    return c.json(result);
+  },
+);

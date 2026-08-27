@@ -9,8 +9,10 @@ const DEFAULT_PORT = 19876;
 const CALLBACK_PATH = '/mcp/oauth/callback';
 const AUTH_TIMEOUT_MS = 5 * 60_000;
 
+import type { PrefixedString } from '@stitch/shared/id';
+
 type PendingAuth = {
-  serverId: string;
+  serverId: PrefixedString<'mcp'>;
   resolve: (code: string) => void;
   reject: (error: Error) => void;
   timeout: ReturnType<typeof setTimeout>;
@@ -94,7 +96,7 @@ export async function ensureRunning(): Promise<void> {
  * Register a pending auth keyed by `state` and return a promise that resolves
  * with the authorization code once the callback fires (or rejects on timeout).
  */
-export function registerPendingAuth(input: { state: string; serverId: string }): Promise<string> {
+export function registerPendingAuth(input: { state: string; serverId: PrefixedString<'mcp'> }): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     const timeout = setTimeout(() => {
       pending.delete(input.state);
@@ -107,7 +109,7 @@ export function registerPendingAuth(input: { state: string; serverId: string }):
 }
 
 /** Reject and remove the single pending auth for a server (clears its timer). */
-export function cancelPending(serverId: string): void {
+export function cancelPending(serverId: PrefixedString<'mcp'>): void {
   for (const [state, entry] of pending.entries()) {
     if (entry.serverId !== serverId) continue;
     clearTimeout(entry.timeout);

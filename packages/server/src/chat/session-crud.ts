@@ -16,7 +16,7 @@ type CreateSessionInput = {
   title?: string;
   type?: 'chat' | 'automation';
   automationId?: PrefixedString<'auto'>;
-  parentSessionId?: string;
+  parentSessionId?: PrefixedString<'ses'>;
 };
 
 export async function createSession(input: CreateSessionInput): Promise<typeof sessions.$inferSelect> {
@@ -32,7 +32,7 @@ export async function createSession(input: CreateSessionInput): Promise<typeof s
       title,
       type: input.type ?? 'chat',
       automationId: input.automationId ?? null,
-      parentSessionId: (input.parentSessionId ?? null) as PrefixedString<'ses'> | null,
+      parentSessionId: input.parentSessionId ?? null,
       createdAt: now,
       updatedAt: now,
     })

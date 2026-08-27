@@ -80,8 +80,8 @@ export type ChatTitleGenerationLlmUsageMetadata = {
 export type RecordingTitleGenerationLlmUsageMetadata = {
   source: 'title_generation';
   target: 'recording-analysis';
-  recordingId: string;
-  analysisId: string;
+  recordingId: PrefixedString<'rec'>;
+  analysisId: PrefixedString<'recan'>;
 };
 
 export type TitleGenerationLlmUsageMetadata =
@@ -96,8 +96,8 @@ export type AutomationGenerationLlmUsageMetadata = {
 
 export type RecordingAnalysisLlmUsageMetadata = {
   source: 'recording_analysis';
-  recordingId: string;
-  analysisId: string;
+  recordingId: PrefixedString<'rec'>;
+  analysisId: PrefixedString<'recan'>;
 };
 
 export type MemoryExtractionPhase = 'extraction' | 'deduplication' | 'consolidation';

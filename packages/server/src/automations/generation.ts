@@ -145,12 +145,9 @@ function normalizeDraft(
   };
 }
 
-export async function generateAutomationDraft(sessionId: string): Promise<GeneratedAutomationDraft> {
+export async function generateAutomationDraft(sessionId: PrefixedString<'ses'>): Promise<GeneratedAutomationDraft> {
   const db = getDb();
-  const [session] = await db
-    .select()
-    .from(sessions)
-    .where(eq(sessions.id, sessionId as PrefixedString<'ses'>));
+  const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId));
 
   const messageList = await db
     .select()

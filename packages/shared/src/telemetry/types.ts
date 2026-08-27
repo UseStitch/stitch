@@ -1,8 +1,10 @@
+import type { PrefixedString } from '../id/index.js';
+
 /**
  * Client telemetry state persisted locally (Electron userData or localStorage).
  */
 export type TelemetryState = {
-  clientInstallationId: string;
+  clientInstallationId: PrefixedString<'tcli'>;
   enabled: boolean;
   lastActiveDate: string | null;
   lastMessageDate: string | null;

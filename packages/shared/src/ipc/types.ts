@@ -1,4 +1,5 @@
 import type { ElectronBrowserState } from '../browser/electron.js';
+import type { PrefixedString } from '../id/index.js';
 import type { RecordingDeviceChangedPayload, RecordingWarningPayload } from '../recordings/events.js';
 import type { MeetingCallDetectedPayload, MeetingCallEndedPayload } from '../recordings/meeting-ipc.js';
 import type { StartRecordingInput, StartRecordingResponse, StopRecordingResponse } from '../recordings/types.js';
@@ -83,8 +84,11 @@ export interface IpcContract {
   'notifications:dismiss': { args: [id: string]; return: void };
   'notifications:set-height': { args: [height: number]; return: void };
   'browser:getState': { args: []; return: ElectronBrowserState };
-  'browser:registerWebview': { args: [webContentsId: number, sessionId: string]; return: ElectronBrowserState };
-  'browser:switchSession': { args: [sessionId: string]; return: ElectronBrowserState };
+  'browser:registerWebview': {
+    args: [webContentsId: number, sessionId: PrefixedString<'ses'>];
+    return: ElectronBrowserState;
+  };
+  'browser:switchSession': { args: [sessionId: PrefixedString<'ses'>]; return: ElectronBrowserState };
   'browser:show': { args: []; return: ElectronBrowserState };
   'browser:hide': { args: []; return: ElectronBrowserState };
   'browser:userNavigate': { args: [url: string]; return: BrowserNavigateResult };

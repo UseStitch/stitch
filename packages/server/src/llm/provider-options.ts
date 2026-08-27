@@ -1,3 +1,4 @@
+import type { PrefixedString } from '@stitch/shared/id';
 import type { LlmProviderId } from '@stitch/shared/providers/types';
 
 import type { JSONValue } from 'ai';
@@ -5,7 +6,7 @@ import type { JSONValue } from 'ai';
 /** Returns provider-level options for `streamText`. */
 export function getProviderOptions(
   providerId: LlmProviderId,
-  sessionId: string,
+  sessionId: PrefixedString<'ses'>,
 ): Record<string, Record<string, JSONValue>> | undefined {
   switch (providerId) {
     case 'openai':

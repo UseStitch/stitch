@@ -2,11 +2,11 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import type { PrefixedString } from '@stitch/shared/id';
 import { formatMcpToolName } from '@stitch/shared/mcp/types';
 import { TOOL_ENABLED_SCOPES } from '@stitch/shared/tools/types';
 
 import { getAppEnabledStates } from '@/apps/service.js';
+import { routeSchemas } from '@/lib/route-schemas.js';
 import { getMcpServersWithCachedTools } from '@/mcp/service.js';
 import { getMcpServerPresentation } from '@/mcp/tool-executor.js';
 import { deletePerm, getPerms, upsertPerm } from '@/permission/service.js';
@@ -103,8 +103,12 @@ configRouter.put('/permissions', zValidator('json', upsertPermissionSchema), asy
   return c.body(null, 204);
 });
 
-configRouter.delete('/permissions/:permissionId', async (c) => {
-  const permissionId = c.req.param('permissionId') as PrefixedString<'perm'>;
-  await deletePerm(permissionId);
-  return c.body(null, 204);
-});
+configRouter.delete(
+  '/permissions/:permissionId',
+  zValidator('param', z.object({ permissionId: routeSchemas.permissionRuleId })),
+  async (c) => {
+    const permissionId = c.req.valid('param').permissionId;
+    await deletePerm(permissionId);
+    return c.body(null, 204);
+  },
+);

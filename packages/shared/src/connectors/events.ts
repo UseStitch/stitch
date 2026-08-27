@@ -1,3 +1,5 @@
+import type { PrefixedString } from '../id/index.js';
+
 export const CONNECTOR_EVENT_NAMES = [
   'connector.token.refreshed',
   'connector.auth.failed',
@@ -6,8 +8,8 @@ export const CONNECTOR_EVENT_NAMES = [
 ] as const;
 
 export type ConnectorEvents = {
-  'connector.token.refreshed': { instanceId: string };
-  'connector.auth.failed': { instanceId: string };
-  'connector.authorized': { instanceId: string; connectorId: string };
-  'connector.removed': { instanceId: string | null; connectorId: string };
+  'connector.token.refreshed': { instanceId: PrefixedString<'conn'> };
+  'connector.auth.failed': { instanceId: PrefixedString<'conn'> };
+  'connector.authorized': { instanceId: PrefixedString<'conn'>; connectorId: string };
+  'connector.removed': { instanceId: PrefixedString<'conn'> | null; connectorId: string };
 };

@@ -80,14 +80,9 @@ export async function listAutomations(input: { page: number; pageSize: number })
   };
 }
 
-export async function getAutomation(automationId: string): Promise<Automation> {
+export async function getAutomation(automationId: PrefixedString<'auto'>): Promise<Automation> {
   const db = getDb();
-  const automation = (
-    await db
-      .select()
-      .from(automations)
-      .where(eq(automations.id, automationId as PrefixedString<'auto'>))
-  ).at(0);
+  const automation = (await db.select().from(automations).where(eq(automations.id, automationId))).at(0);
 
   if (!automation) {
     throw new HTTPException(404, { message: 'Automation not found' });
@@ -135,14 +130,12 @@ export async function createAutomationAndSync(
   }
 }
 
-async function updateAutomation(automationId: string, input: UpdateAutomationInput): Promise<Automation> {
+async function updateAutomation(
+  automationId: PrefixedString<'auto'>,
+  input: UpdateAutomationInput,
+): Promise<Automation> {
   const db = getDb();
-  const existing = (
-    await db
-      .select()
-      .from(automations)
-      .where(eq(automations.id, automationId as PrefixedString<'auto'>))
-  ).at(0);
+  const existing = (await db.select().from(automations).where(eq(automations.id, automationId))).at(0);
   if (!existing) {
     throw new HTTPException(404, { message: 'Automation not found' });
   }
@@ -173,7 +166,7 @@ async function updateAutomation(automationId: string, input: UpdateAutomationInp
         schedule: serializeAutomationSchedule(schedule),
         updatedAt: Date.now(),
       })
-      .where(eq(automations.id, automationId as PrefixedString<'auto'>))
+      .where(eq(automations.id, automationId))
       .returning()
   ).at(0);
 
@@ -185,7 +178,7 @@ async function updateAutomation(automationId: string, input: UpdateAutomationInp
 }
 
 export async function updateAutomationAndSync(
-  automationId: string,
+  automationId: PrefixedString<'auto'>,
   input: UpdateAutomationInput,
   syncSchedule: SyncAutomationSchedule,
 ): Promise<Automation> {
@@ -206,7 +199,7 @@ export async function updateAutomationAndSync(
         schedule: serializeAutomationSchedule(before.schedule),
         updatedAt: before.updatedAt,
       })
-      .where(eq(automations.id, automationId as PrefixedString<'auto'>));
+      .where(eq(automations.id, automationId));
 
     await syncSchedule(before).catch((syncError) => {
       log.error(
@@ -224,11 +217,11 @@ export async function updateAutomationAndSync(
 }
 
 export async function deleteAutomation(
-  automationId: string,
+  automationId: PrefixedString<'auto'>,
   input: DeleteAutomationInput = { archiveSessions: false },
 ): Promise<void> {
   const db = getDb();
-  const typedId = automationId as PrefixedString<'auto'>;
+  const typedId = automationId;
 
   const deleted = await db.transaction(async (tx) => {
     const now = Date.now();
@@ -249,13 +242,10 @@ export async function deleteAutomation(
   }
 }
 
-export async function listAutomationSessions(automationId: string): Promise<Session[]> {
+export async function listAutomationSessions(automationId: PrefixedString<'auto'>): Promise<Session[]> {
   const db = getDb();
   const existing = (
-    await db
-      .select({ id: automations.id })
-      .from(automations)
-      .where(eq(automations.id, automationId as PrefixedString<'auto'>))
+    await db.select({ id: automations.id }).from(automations).where(eq(automations.id, automationId))
   ).at(0);
   if (!existing) {
     throw new HTTPException(404, { message: 'Automation not found' });
@@ -264,25 +254,14 @@ export async function listAutomationSessions(automationId: string): Promise<Sess
   return db
     .select()
     .from(sessions)
-    .where(
-      and(
-        eq(sessions.type, 'automation'),
-        eq(sessions.automationId, automationId as PrefixedString<'auto'>),
-        isNull(sessions.archivedAt),
-      ),
-    )
+    .where(and(eq(sessions.type, 'automation'), eq(sessions.automationId, automationId), isNull(sessions.archivedAt)))
     .orderBy(desc(sessions.updatedAt));
 }
 
-export async function runAutomation(automationId: string): Promise<RunAutomationResponse> {
+export async function runAutomation(automationId: PrefixedString<'auto'>): Promise<RunAutomationResponse> {
   const db = getDb();
 
-  const automation = (
-    await db
-      .select()
-      .from(automations)
-      .where(eq(automations.id, automationId as PrefixedString<'auto'>))
-  ).at(0);
+  const automation = (await db.select().from(automations).where(eq(automations.id, automationId))).at(0);
   if (!automation) {
     throw new HTTPException(404, { message: 'Automation not found' });
   }
@@ -303,7 +282,7 @@ export async function runAutomation(automationId: string): Promise<RunAutomation
       modelId: automation.modelId,
       assistantMessageId,
     });
-    userMessageId = sendResult.userMessageId as PrefixedString<'msg'>;
+    userMessageId = sendResult.userMessageId;
   } catch (error) {
     const message = Error.isError(error) ? error.message : String(error);
     internalBus.emit('automation.run.failed', { automationId: automation.id, error: message });

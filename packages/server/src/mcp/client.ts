@@ -34,7 +34,7 @@ const clientCache = new Map<string, Promise<Client>>();
  * in-memory PKCE/code-verifier linkage); a fresh transport would re-trigger
  * discovery and break the exchange.
  */
-const pendingOAuthTransports = new Map<string, StreamableHTTPClientTransport>();
+const pendingOAuthTransports = new Map<PrefixedString<'mcp'>, StreamableHTTPClientTransport>();
 
 export function normalizeMcpToolResult<T>(result: T): T | ToolErrorResult {
   if (
@@ -65,15 +65,18 @@ export function normalizeMcpToolResult<T>(result: T): T | ToolErrorResult {
   return toolError(error || 'MCP tool call failed', result);
 }
 
-export function registerPendingOAuthTransport(serverId: string, transport: StreamableHTTPClientTransport): void {
+export function registerPendingOAuthTransport(
+  serverId: PrefixedString<'mcp'>,
+  transport: StreamableHTTPClientTransport,
+): void {
   pendingOAuthTransports.set(serverId, transport);
 }
 
-export function getPendingOAuthTransport(serverId: string): StreamableHTTPClientTransport | undefined {
+export function getPendingOAuthTransport(serverId: PrefixedString<'mcp'>): StreamableHTTPClientTransport | undefined {
   return pendingOAuthTransports.get(serverId);
 }
 
-export function clearPendingOAuthTransport(serverId: string): void {
+export function clearPendingOAuthTransport(serverId: PrefixedString<'mcp'>): void {
   pendingOAuthTransports.delete(serverId);
 }
 
@@ -119,7 +122,7 @@ export async function listMcpAiTools(
   return Object.fromEntries(result.tools.map((tool) => [tool.name, createAiTool(server, tool, sessionId)]));
 }
 
-function clientCacheKey(serverId: string, sessionId?: string): string {
+function clientCacheKey(serverId: PrefixedString<'mcp'>, sessionId?: PrefixedString<'ses'>): string {
   return sessionId ? `${serverId}:${sessionId}` : serverId;
 }
 
@@ -196,7 +199,7 @@ export function getMcpClient(server: McpServerRef, sessionId?: PrefixedString<'s
 }
 
 /** Evict a cached client, forcing reconnect on next use. */
-export function evictMcpClient(serverId: string): void {
+export function evictMcpClient(serverId: PrefixedString<'mcp'>): void {
   for (const [key, cached] of clientCache) {
     if (key !== serverId && !key.startsWith(`${serverId}:`)) continue;
     clientCache.delete(key);

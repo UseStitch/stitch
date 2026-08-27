@@ -35,7 +35,7 @@ export async function createMcpServer(input: {
   transport: McpTransport;
   url: string;
   authConfig: McpAuthConfig;
-}): Promise<{ id: string }> {
+}): Promise<{ id: PrefixedString<'mcp'> }> {
   const db = getDb();
   const id = createMcpServerId();
   await db
@@ -44,21 +44,18 @@ export async function createMcpServer(input: {
   return { id };
 }
 
-export async function deleteMcpServer(serverId: string): Promise<void> {
+export async function deleteMcpServer(serverId: PrefixedString<'mcp'>): Promise<void> {
   const db = getDb();
   const toolsetId = `mcp:${serverId}`;
   const mcpToolPrefix = `${serverId}_%`;
 
-  const existingRows = await db
-    .select()
-    .from(mcpServers)
-    .where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
+  const existingRows = await db.select().from(mcpServers).where(eq(mcpServers.id, serverId));
   const existing = existingRows.at(0);
   if (!existing) {
     throw new HTTPException(404, { message: 'MCP server not found' });
   }
 
-  await db.delete(mcpServers).where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
+  await db.delete(mcpServers).where(eq(mcpServers.id, serverId));
   await db
     .delete(toolEnabled)
     .where(
@@ -70,12 +67,9 @@ export async function deleteMcpServer(serverId: string): Promise<void> {
   await db.delete(toolPermissions).where(like(toolPermissions.toolName, mcpToolPrefix));
 }
 
-export async function fetchMcpTools(serverId: string): Promise<McpTool[]> {
+export async function fetchMcpTools(serverId: PrefixedString<'mcp'>): Promise<McpTool[]> {
   const db = getDb();
-  const serverRows = await db
-    .select()
-    .from(mcpServers)
-    .where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
+  const serverRows = await db.select().from(mcpServers).where(eq(mcpServers.id, serverId));
   const server = serverRows.at(0);
   if (!server) {
     throw new HTTPException(404, { message: 'MCP server not found' });
@@ -110,10 +104,7 @@ export async function fetchMcpTools(serverId: string): Promise<McpTool[]> {
   });
 
   // Persist tools to cache
-  await db
-    .update(mcpServers)
-    .set({ tools, updatedAt: Date.now() })
-    .where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
+  await db.update(mcpServers).set({ tools, updatedAt: Date.now() }).where(eq(mcpServers.id, serverId));
 
   return tools;
 }
@@ -148,13 +139,10 @@ function isClientRegistrationError(error: unknown): boolean {
 }
 
 async function loadOAuthServer(
-  serverId: string,
+  serverId: PrefixedString<'mcp'>,
 ): Promise<{ id: PrefixedString<'mcp'>; url: string; authConfig: OAuthAuth }> {
   const db = getDb();
-  const serverRows = await db
-    .select()
-    .from(mcpServers)
-    .where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
+  const serverRows = await db.select().from(mcpServers).where(eq(mcpServers.id, serverId));
   const server = serverRows.at(0);
   if (!server) {
     throw new HTTPException(404, { message: 'MCP server not found' });
@@ -170,7 +158,9 @@ async function loadOAuthServer(
  * registers the transport so `finishAuth` can later run on the same instance,
  * then lets the SDK perform discovery + DCR and capture the authorization URL.
  */
-export async function startMcpAuth(serverId: string): Promise<{ authUrl: string; waitForTokens: () => Promise<void> }> {
+export async function startMcpAuth(
+  serverId: PrefixedString<'mcp'>,
+): Promise<{ authUrl: string; waitForTokens: () => Promise<void> }> {
   const server = await loadOAuthServer(serverId);
 
   await OAuthCallback.ensureRunning();
@@ -238,7 +228,7 @@ export async function startMcpAuth(serverId: string): Promise<{ authUrl: string;
 }
 
 /** Clear OAuth credentials and tear down any in-flight auth for a server. */
-export async function logoutMcpAuth(serverId: string): Promise<void> {
+export async function logoutMcpAuth(serverId: PrefixedString<'mcp'>): Promise<void> {
   const server = await loadOAuthServer(serverId);
 
   OAuthCallback.cancelPending(serverId);
@@ -248,12 +238,14 @@ export async function logoutMcpAuth(serverId: string): Promise<void> {
   await setMcpAuthStatus(server.id, 'none');
 }
 
-export async function getMcpAuthStatus(serverId: string): Promise<{ authStatus: McpServerRow['authStatus'] }> {
+export async function getMcpAuthStatus(
+  serverId: PrefixedString<'mcp'>,
+): Promise<{ authStatus: McpServerRow['authStatus'] }> {
   const db = getDb();
   const serverRows = await db
     .select({ authStatus: mcpServers.authStatus })
     .from(mcpServers)
-    .where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
+    .where(eq(mcpServers.id, serverId));
   const server = serverRows.at(0);
   if (!server) {
     throw new HTTPException(404, { message: 'MCP server not found' });

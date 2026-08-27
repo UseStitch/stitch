@@ -1,4 +1,5 @@
 import type { ElectronBrowserState } from '../browser/electron.js';
+import type { PrefixedString } from '../id/index.js';
 import type {
   BrowserNavigateResult,
   DesktopNotificationEvent,
@@ -73,8 +74,8 @@ export type DesktopBridge = {
   };
   browser: {
     getState: () => Promise<ElectronBrowserState>;
-    registerWebview: (webContentsId: number, sessionId: string) => Promise<ElectronBrowserState>;
-    switchSession: (sessionId: string) => Promise<ElectronBrowserState>;
+    registerWebview: (webContentsId: number, sessionId: PrefixedString<'ses'>) => Promise<ElectronBrowserState>;
+    switchSession: (sessionId: PrefixedString<'ses'>) => Promise<ElectronBrowserState>;
     show: () => Promise<ElectronBrowserState>;
     hide: () => Promise<ElectronBrowserState>;
     userNavigate: (url: string) => Promise<BrowserNavigateResult>;
