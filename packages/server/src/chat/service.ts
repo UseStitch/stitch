@@ -29,6 +29,7 @@ import * as LocalModels from '@/models/llm/local.js';
 import * as Models from '@/models/llm/registry.js';
 import { isLlmProviderCredentials, type LlmProviderCredentials } from '@/provider/config/schema.js';
 import { listProvidersWithCapabilities } from '@/provider/service.js';
+import { buildChatTitleContent } from '@/title-generation/service.js';
 import { normalizeUsage } from '@/utils/usage.js';
 
 const log = Log.create({ service: 'chat-service' });
@@ -106,24 +107,6 @@ async function buildUserMessageParts(input: {
   );
 
   return [userPart, ...(input.existingAttachmentParts ?? []), ...attachmentParts];
-}
-
-function buildChatTitleContent(firstMessage: string, filenames: string[] = []): string {
-  const normalizedFilenames = filenames.map((name) => name.trim()).filter(Boolean);
-  const filenameContext =
-    normalizedFilenames.length > 0
-      ? `\nAttached filenames:\n${normalizedFilenames.map((name) => `- ${name}`).join('\n')}`
-      : '';
-
-  return `
-Generate a short, descriptive title (30 chars max) for a conversation.
-If attached filenames are provided, prefer using them when they add useful context.
-
-First message:
-"${firstMessage}"${filenameContext}
-
-Return only the title.
-`;
 }
 
 async function maybeGenerateTitle(input: {

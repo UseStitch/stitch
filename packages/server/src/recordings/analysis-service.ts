@@ -22,6 +22,7 @@ import type { LlmProviderCredentials } from '@/provider/config/schema.js';
 import { RecordingAnalysisEmptyResponseError } from '@/recordings/errors.js';
 import { readRecordingAnalysis, readRecordingTranscript, writeRecordingAnalysis } from '@/recordings/file-store.js';
 import { getMeetingNoteTemplate } from '@/recordings/meeting-note-templates.js';
+import { buildRecordingTitleContent } from '@/title-generation/service.js';
 import { recordLlmUsage } from '@/usage/ledger.js';
 import { ZERO_USAGE } from '@/utils/usage.js';
 
@@ -48,18 +49,6 @@ function buildAnalysisPrompt(template: string): string {
 
 function formatTranscriptForAnalysis(entries: RecordingTranscriptEntry[]): string {
   return entries.map((entry, index) => `[${index}] ${entry.speaker}: ${entry.content}`).join('\n');
-}
-
-function buildRecordingTitleContent(analysis: string): string {
-  return `
-Generate a short, descriptive title (60 chars max) for these meeting notes.
-Use neutral language and do not invent details.
-
-Meeting notes:
-${analysis}
-
-Return only the title.
-`;
 }
 
 export async function toRecordingAnalysis(row: typeof recordingAnalyses.$inferSelect): Promise<RecordingAnalysis> {
