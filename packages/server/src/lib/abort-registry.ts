@@ -1,10 +1,12 @@
+import type { PrefixedString } from '@stitch/shared/id';
+
 import * as Log from '@/lib/log.js';
 
 const log = Log.create({ service: 'abort-registry' });
 
-const registry = new Map<string, AbortController>();
+const registry = new Map<PrefixedString<'ses'>, AbortController>();
 
-export function register(sessionId: string): AbortSignal {
+export function register(sessionId: PrefixedString<'ses'>): AbortSignal {
   const existing = registry.get(sessionId);
   if (existing) {
     log.warn(
@@ -19,7 +21,7 @@ export function register(sessionId: string): AbortSignal {
   return controller.signal;
 }
 
-export function abort(sessionId: string): void {
+export function abort(sessionId: PrefixedString<'ses'>): void {
   const controller = registry.get(sessionId);
   if (!controller) return;
   log.info({ event: 'stream.abort.registry_abort', sessionId }, 'aborting session');
@@ -27,6 +29,6 @@ export function abort(sessionId: string): void {
   registry.delete(sessionId);
 }
 
-export function cleanup(sessionId: string): void {
+export function cleanup(sessionId: PrefixedString<'ses'>): void {
   registry.delete(sessionId);
 }

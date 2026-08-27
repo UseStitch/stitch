@@ -8,6 +8,7 @@ import type { MailAccountId } from '@stitch/mail/db/schema';
 import { createMailEngine, type MailEngine, type MailEngineEvent } from '@stitch/mail/engine';
 import { gmailOpsProvider, gmailSyncProvider } from '@stitch/mail/providers/gmail';
 import { registerMailProvider } from '@stitch/mail/registry';
+import { PrefixedString } from '@stitch/shared/id';
 
 import { isAppEnabled } from '@/apps/service.js';
 import { ensureFreshAccessToken } from '@/connectors/auth/token-vault.js';
@@ -19,7 +20,7 @@ import { PATHS } from '@/lib/paths.js';
 const log = Log.create({ service: 'mail' });
 
 let mailEngine: MailEngine | null = null;
-const syncProgressByAccount = new Map<string, { processed: number; estimatedTotal: number }>();
+const syncProgressByAccount = new Map<MailAccountId, { processed: number; estimatedTotal: number }>();
 
 function emitMailEvent(event: MailEngineEvent): void {
   if (event.type === 'sync.progress') {
@@ -46,7 +47,7 @@ export function registerMailProviders(): void {
   registerMailProvider({ sync: gmailSyncProvider, ops: gmailOpsProvider });
 }
 
-function createMailHttpClient(connectorInstanceId: string): MailHttpClient {
+function createMailHttpClient(connectorInstanceId: PrefixedString<'conn'>): MailHttpClient {
   const client = new GoogleClient({
     getAccessToken: (options) => getGoogleAccessToken(connectorInstanceId, options?.forceRefresh === true),
     logger: log,
@@ -75,7 +76,9 @@ export async function stopMailEngine(): Promise<void> {
   mailEngine = null;
 }
 
-export function getMailSyncProgress(accountId: string): { processed: number; estimatedTotal: number } | undefined {
+export function getMailSyncProgress(
+  accountId: MailAccountId,
+): { processed: number; estimatedTotal: number } | undefined {
   return syncProgressByAccount.get(accountId);
 }
 
@@ -93,7 +96,10 @@ export async function removeMailAccount(accountId: MailAccountId): Promise<void>
   await fs.promises.rm(attachmentDir, { recursive: true, force: true });
 }
 
-async function getGoogleAccessToken(connectorInstanceId: string, forceRefresh: boolean): Promise<string> {
+async function getGoogleAccessToken(
+  connectorInstanceId: PrefixedString<'conn'>,
+  forceRefresh: boolean,
+): Promise<string> {
   const token = await ensureFreshAccessToken(connectorInstanceId, { forceRefresh });
   if (!token) throw new GoogleAccountNoAccessTokenError('google', connectorInstanceId);
   return token;

@@ -22,7 +22,7 @@ type RecordingStoppedPayload = { recordingId: PrefixedString<'rec'> };
 type RecordingUnrecoverablePayload = { recordingId: PrefixedString<'rec'>; reason: string };
 
 type RecordingTranscriptEntryPayload = {
-  recordingId: string;
+  recordingId: PrefixedString<'rec'>;
   kind: 'partial' | 'final';
   source: 'mic' | 'speaker';
   speaker: string;

@@ -39,7 +39,7 @@ type SendMessageInput = {
   attachments?: Array<{ path: string; mime: string; filename: string }>;
   providerId: string;
   modelId: string;
-  assistantMessageId: string;
+  assistantMessageId: PrefixedString<'msg'>;
 };
 
 type RedoMessageInput = SendMessageInput & { editedMessageId: PrefixedString<'msg'> };
@@ -177,7 +177,7 @@ async function loadTurnContext(
 
 function runTurn(input: {
   sessionId: PrefixedString<'ses'>;
-  assistantMessageId: string;
+  assistantMessageId: PrefixedString<'msg'>;
   session: TurnSession;
   config: LlmTurnConfig;
   modelId: string;
@@ -188,7 +188,7 @@ function runTurn(input: {
     const llmMessages = await buildSessionLlmMessages(input.sessionId, { useBasePrompt: true, systemPrompt: null });
     await runStream({
       sessionId: input.sessionId,
-      assistantMessageId: input.assistantMessageId as PrefixedString<'msg'>,
+      assistantMessageId: input.assistantMessageId,
       modelId: input.modelId,
       llmMessages,
       credentials: input.config.credentials,
@@ -204,7 +204,9 @@ function runTurn(input: {
   });
 }
 
-export async function sendMessage(input: SendMessageInput): Promise<{ messageId: string; userMessageId: string }> {
+export async function sendMessage(
+  input: SendMessageInput,
+): Promise<{ messageId: PrefixedString<'msg'>; userMessageId: PrefixedString<'msg'> }> {
   const db = getDb();
 
   const context = await loadTurnContext(input.sessionId, input.providerId);
@@ -250,7 +252,9 @@ export async function sendMessage(input: SendMessageInput): Promise<{ messageId:
   return { messageId: input.assistantMessageId, userMessageId };
 }
 
-export async function redoMessage(input: RedoMessageInput): Promise<{ messageId: string; userMessageId: string }> {
+export async function redoMessage(
+  input: RedoMessageInput,
+): Promise<{ messageId: PrefixedString<'msg'>; userMessageId: PrefixedString<'msg'> }> {
   const db = getDb();
 
   const context = await loadTurnContext(input.sessionId, input.providerId);

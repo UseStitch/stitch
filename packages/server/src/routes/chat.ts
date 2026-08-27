@@ -32,7 +32,7 @@ const splitParamSchema = z.object({ id: routeSchemas.sessionId, msgId: routeSche
 
 const createSessionSchema = z.object({
   title: z.string().trim().min(1).optional(),
-  parentSessionId: z.string().optional(),
+  parentSessionId: routeSchemas.sessionId.optional(),
 });
 
 const listSessionsQuerySchema = z.object({

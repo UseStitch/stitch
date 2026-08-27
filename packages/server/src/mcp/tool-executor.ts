@@ -1,3 +1,4 @@
+import type { PrefixedString } from '@stitch/shared/id';
 import { formatMcpToolName } from '@stitch/shared/mcp/types';
 import type { McpRegistryServer } from '@stitch/shared/mcp/types';
 
@@ -84,7 +85,7 @@ async function fetchServerPrompts(server: McpServerWithTools): Promise<ToolsetPr
   }
 }
 
-function buildMcpToolsetId(serverId: string): string {
+function buildMcpToolsetId(serverId: PrefixedString<'mcp'>): string {
   return `mcp:${serverId}`;
 }
 
@@ -168,7 +169,7 @@ function createMcpToolset(
 }
 
 async function refreshMcpToolsetsInternal(
-  options?: { serverIds?: string[]; refreshTools?: boolean },
+  options?: { serverIds?: PrefixedString<'mcp'>[]; refreshTools?: boolean },
   deps: McpToolExecutorDeps = DEFAULT_DEPS,
 ): Promise<void> {
   const refreshTools = options?.refreshTools ?? true;
@@ -255,7 +256,7 @@ async function refreshMcpToolsetsInternal(
 }
 
 export async function refreshMcpToolsets(
-  options?: { serverIds?: string[]; refreshTools?: boolean },
+  options?: { serverIds?: PrefixedString<'mcp'>[]; refreshTools?: boolean },
   deps?: Partial<McpToolExecutorDeps>,
 ): Promise<void> {
   const resolvedDeps: McpToolExecutorDeps = { ...DEFAULT_DEPS, ...deps };
@@ -276,7 +277,7 @@ export async function refreshMcpToolsets(
   return refreshInFlight;
 }
 
-export function getMcpServerPresentation(serverId: string): McpServerPresentation | undefined {
+export function getMcpServerPresentation(serverId: PrefixedString<'mcp'>): McpServerPresentation | undefined {
   return getToolset(buildMcpToolsetId(serverId))?.presentation;
 }
 

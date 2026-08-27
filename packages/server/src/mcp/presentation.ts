@@ -1,3 +1,4 @@
+import type { PrefixedString } from '@stitch/shared/id';
 import type { McpIcon, McpRegistryServer } from '@stitch/shared/mcp/types';
 
 import { cacheMcpIcon } from '@/mcp/icons.js';
@@ -14,7 +15,7 @@ export type McpServerLiveInfo = {
 type McpToolPresentation = { title?: string; iconPath?: string };
 
 export type McpServerPresentation = {
-  serverId: string;
+  serverId: PrefixedString<'mcp'>;
   name: string;
   title?: string;
   description?: string;

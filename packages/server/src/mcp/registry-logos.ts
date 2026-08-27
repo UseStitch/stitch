@@ -69,12 +69,9 @@ export async function getMcpRegistryLogo(
   return fetchAndCacheLogo(server, filePath, cacheDir, options.fetchImpl ?? fetch);
 }
 
-export async function getMcpInstalledServerRegistryLogo(serverId: string): Promise<string | undefined> {
+export async function getMcpInstalledServerRegistryLogo(serverId: PrefixedString<'mcp'>): Promise<string | undefined> {
   const db = getDb();
-  const serverRows = await db
-    .select()
-    .from(mcpServers)
-    .where(eq(mcpServers.id, serverId as PrefixedString<'mcp'>));
+  const serverRows = await db.select().from(mcpServers).where(eq(mcpServers.id, serverId));
   const server = serverRows.at(0);
   if (!server) return undefined;
 

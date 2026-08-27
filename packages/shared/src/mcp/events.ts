@@ -9,8 +9,8 @@ export const MCP_EVENT_NAMES = [
 ] as const;
 
 export type McpEvents = {
-  'mcp.tools.changed': { serverId: string; serverName: string; toolCount: number | null };
-  'mcp.auth.status_changed': { serverId: string; authStatus: McpAuthStatus };
+  'mcp.tools.changed': { serverId: PrefixedString<'mcp'>; serverName: string; toolCount: number | null };
+  'mcp.auth.status_changed': { serverId: PrefixedString<'mcp'>; authStatus: McpAuthStatus };
   'mcp.elicitation.requested': { elicitation: McpElicitationRequest };
   'mcp.elicitation.resolved': {
     elicitationId: PrefixedString<'mcpel'>;

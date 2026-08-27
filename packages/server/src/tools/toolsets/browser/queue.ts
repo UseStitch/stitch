@@ -1,3 +1,5 @@
+import { PrefixedString } from '@stitch/shared/id';
+
 import { getBrowserManager } from '@/lib/browser/browser-manager.js';
 import { ToolError } from '@/tools/errors.js';
 
@@ -11,7 +13,7 @@ function runSerialized<T>(fn: () => Promise<T>): Promise<T> {
 
 export async function runBrowserTool(
   abortSignal: AbortSignal | undefined,
-  sessionId: string,
+  sessionId: PrefixedString<'ses'>,
   execute: (signal?: AbortSignal) => Promise<unknown>,
 ): Promise<unknown> {
   return runSerialized(async () => {

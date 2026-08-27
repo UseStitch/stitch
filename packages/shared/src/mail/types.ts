@@ -14,7 +14,7 @@ export type MailAddressView = { name: string | null; email: string };
 
 export type MailAccountView = {
   id: MailAccountId;
-  connectorInstanceId: string;
+  connectorInstanceId: PrefixedString<'conn'>;
   provider: 'gmail';
   email: string;
   enabled: boolean;

@@ -23,7 +23,7 @@ test('flushOutbox marks failed sends with exponential retry delay', async () => 
   const db = getMailDb();
   const [account] = await db
     .insert(mailAccounts)
-    .values({ connectorInstanceId: 'ci_1', provider: 'gmail', email: 'a@example.com' })
+    .values({ connectorInstanceId: 'conn_1', provider: 'gmail', email: 'a@example.com' })
     .returning();
   registerMailProvider(failingProvider);
   const outbox = createOutbox({

@@ -2,6 +2,7 @@ import { and, eq, isNotNull, lt } from 'drizzle-orm';
 import { scheduler } from 'node:timers/promises';
 
 import type { OAuthConfig } from '@stitch/shared/connectors/types';
+import type { PrefixedString } from '@stitch/shared/id';
 
 import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
 import {
@@ -132,7 +133,10 @@ export type TokenRefreshOpts = { forceRefresh?: boolean };
  * no token can be obtained (missing instance, missing refresh token, or a
  * refresh failure — which is thrown).
  */
-export async function ensureFreshAccessToken(instanceId: string, opts: TokenRefreshOpts = {}): Promise<string | null> {
+export async function ensureFreshAccessToken(
+  instanceId: PrefixedString<'conn'>,
+  opts: TokenRefreshOpts = {},
+): Promise<string | null> {
   const db = getDb();
   const [row] = await db
     .select()

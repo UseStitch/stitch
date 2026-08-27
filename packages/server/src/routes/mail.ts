@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { getMailDb } from '@stitch/mail/db/client';
 import { getAccount, getThread, listAccounts, listDrafts, listLabels, listThreads } from '@stitch/mail/db/queries';
 import { mailAccounts } from '@stitch/mail/db/schema';
+import type { PrefixedString } from '@stitch/shared/id';
 
 import { getDb } from '@/db/client.js';
 import { connectorInstances } from '@/db/schema/connectors.js';
@@ -28,7 +29,7 @@ const accountPatchSchema = z.object({
 });
 
 const enrollSchema = z.object({
-  connectorInstanceId: z.string().min(1),
+  connectorInstanceId: routeSchemas.connectorInstanceId,
   backfillDays: z.number().int().positive().optional(),
   syncFrequencySeconds: z.number().int().min(30).optional(),
 });
@@ -63,7 +64,6 @@ const draftSchema = z.object({
 const draftPatchSchema = draftSchema.partial().omit({ accountId: true });
 
 export const mailRouter = new Hono();
-type ConnectorInstanceId = (typeof connectorInstances.$inferSelect)['id'];
 
 function errorResponse(c: Context, error: unknown, status: 400 | 404 | 500 = 500): Response {
   return c.json({ error: Error.isError(error) ? error.message : String(error) }, status);
@@ -82,8 +82,8 @@ function getConnectorInstances(where: SQL | undefined) {
     .where(where);
 }
 
-async function connectorInstanceById(connectorInstanceId: string) {
-  const [instance] = await getConnectorInstances(eq(connectorInstances.id, connectorInstanceId as ConnectorInstanceId));
+async function connectorInstanceById(connectorInstanceId: PrefixedString<'conn'>) {
+  const [instance] = await getConnectorInstances(eq(connectorInstances.id, connectorInstanceId));
   return instance;
 }
 

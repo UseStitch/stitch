@@ -6,6 +6,7 @@ import { MCP_TRANSPORT_TYPES } from '@stitch/shared/mcp/types';
 
 import { ICON_CACHE_CONTROL, SVG_CONTENT_TYPE } from '@/lib/icon-cache.js';
 import * as Log from '@/lib/log.js';
+import { routeSchemas } from '@/lib/route-schemas.js';
 import { evictMcpClient } from '@/mcp/client.js';
 import * as OAuthCallback from '@/mcp/oauth-callback.js';
 import { getMcpInstalledServerRegistryLogo, getMcpRegistryLogo } from '@/mcp/registry-logos.js';
@@ -45,6 +46,8 @@ const createMcpServerSchema = z.object({
   url: z.url(),
   authConfig: authConfigSchema,
 });
+
+const mcpServerIdParamSchema = z.object({ id: routeSchemas.mcpServerId });
 
 export const mcpRouter = new Hono();
 
@@ -87,15 +90,15 @@ mcpRouter.get('/registry/:registryId/logo', async (c) => {
   return c.body(logo, 200);
 });
 
-mcpRouter.get('/:id/tools', async (c) => {
-  const id = c.req.param('id');
+mcpRouter.get('/:id/tools', zValidator('param', mcpServerIdParamSchema), async (c) => {
+  const id = c.req.valid('param').id;
   const result = await fetchMcpTools(id);
   await refreshMcpToolsets({ serverIds: [id], refreshTools: false });
   return c.json(result);
 });
 
-mcpRouter.get('/:id/logo', async (c) => {
-  const id = c.req.param('id');
+mcpRouter.get('/:id/logo', zValidator('param', mcpServerIdParamSchema), async (c) => {
+  const id = c.req.valid('param').id;
   const logo = await getMcpInstalledServerRegistryLogo(id);
   if (!logo) {
     return c.json({ error: 'MCP server logo not found' }, 404);
@@ -111,14 +114,14 @@ mcpRouter.post('/refresh', async (c) => {
   return c.body(null, 204);
 });
 
-mcpRouter.post('/:id/refresh', async (c) => {
-  const id = c.req.param('id');
+mcpRouter.post('/:id/refresh', zValidator('param', mcpServerIdParamSchema), async (c) => {
+  const id = c.req.valid('param').id;
   await refreshMcpToolsets({ serverIds: [id], refreshTools: true });
   return c.body(null, 204);
 });
 
-mcpRouter.delete('/:id', async (c) => {
-  const id = c.req.param('id');
+mcpRouter.delete('/:id', zValidator('param', mcpServerIdParamSchema), async (c) => {
+  const id = c.req.valid('param').id;
   await deleteMcpServer(id);
   OAuthCallback.cancelPending(id);
   evictMcpClient(id);
@@ -126,8 +129,8 @@ mcpRouter.delete('/:id', async (c) => {
   return c.body(null, 204);
 });
 
-mcpRouter.post('/:id/auth', async (c) => {
-  const id = c.req.param('id');
+mcpRouter.post('/:id/auth', zValidator('param', mcpServerIdParamSchema), async (c) => {
+  const id = c.req.valid('param').id;
   const result = await startMcpAuth(id);
 
   const { waitForTokens } = result;
@@ -139,14 +142,14 @@ mcpRouter.post('/:id/auth', async (c) => {
   return c.json({ authUrl: result.authUrl });
 });
 
-mcpRouter.get('/:id/auth/status', async (c) => {
-  const id = c.req.param('id');
+mcpRouter.get('/:id/auth/status', zValidator('param', mcpServerIdParamSchema), async (c) => {
+  const id = c.req.valid('param').id;
   const result = await getMcpAuthStatus(id);
   return c.json(result);
 });
 
-mcpRouter.post('/:id/auth/logout', async (c) => {
-  const id = c.req.param('id');
+mcpRouter.post('/:id/auth/logout', zValidator('param', mcpServerIdParamSchema), async (c) => {
+  const id = c.req.valid('param').id;
   await logoutMcpAuth(id);
   evictMcpClient(id);
   await refreshMcpToolsets({ serverIds: [id], refreshTools: false });

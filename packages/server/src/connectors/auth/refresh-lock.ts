@@ -1,6 +1,8 @@
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-const refreshInFlight = new Map<string, Promise<unknown>>();
+import type { PrefixedString } from '@stitch/shared/id';
+
+const refreshInFlight = new Map<PrefixedString<'conn'>, Promise<unknown>>();
 
 async function withTimeout<T>(promise: Promise<T>): Promise<T> {
   let timeout: ReturnType<typeof setTimeout> | undefined;
@@ -18,7 +20,7 @@ async function withTimeout<T>(promise: Promise<T>): Promise<T> {
   }
 }
 
-export async function withRefreshLock<T>(instanceId: string, refresh: () => Promise<T>): Promise<T> {
+export async function withRefreshLock<T>(instanceId: PrefixedString<'conn'>, refresh: () => Promise<T>): Promise<T> {
   const inFlight = refreshInFlight.get(instanceId) as Promise<T> | undefined;
   if (inFlight) return inFlight;
 

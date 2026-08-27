@@ -52,7 +52,7 @@ export const mailAccounts = sqliteTable(
   'mail_accounts',
   {
     id: text('id').$type<MailAccountId>().primaryKey().$defaultFn(createMailAccountId),
-    connectorInstanceId: text('connector_instance_id').notNull(),
+    connectorInstanceId: text('connector_instance_id').$type<PrefixedString<'conn'>>().notNull(),
     provider: text('provider').$type<MailProviderId>().notNull(),
     email: text('email').notNull(),
     enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),

@@ -43,7 +43,7 @@ test('persistSyncPage recomputes thread denorms and label counts', async () => {
   const db = getMailDb();
   const [account] = await db
     .insert(mailAccounts)
-    .values({ connectorInstanceId: 'ci_1', provider: 'gmail', email: 'a@example.com' })
+    .values({ connectorInstanceId: 'conn_1', provider: 'gmail', email: 'a@example.com' })
     .returning();
   await persistLabels(account.id, [
     { providerLabelId: 'INBOX', name: 'Inbox', kind: 'system', color: null },
@@ -89,7 +89,7 @@ test('persistSyncPage treats fetched thread membership as authoritative', async 
   const db = getMailDb();
   const [account] = await db
     .insert(mailAccounts)
-    .values({ connectorInstanceId: 'ci_1', provider: 'gmail', email: 'a@example.com' })
+    .values({ connectorInstanceId: 'conn_1', provider: 'gmail', email: 'a@example.com' })
     .returning();
   await persistLabels(account.id, [{ providerLabelId: 'INBOX', name: 'Inbox', kind: 'system', color: null }]);
 

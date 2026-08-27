@@ -3,6 +3,7 @@ import { ArrowLeftIcon, ArrowRightIcon, PlusIcon, RotateCwIcon, XIcon } from 'lu
 import * as React from 'react';
 
 import type { ElectronBrowserDownload, ElectronBrowserState } from '@stitch/shared/browser/electron';
+import type { PrefixedString } from '@stitch/shared/id';
 
 import { Icon } from '@/components/primitives/icon';
 import { Stack } from '@/components/primitives/stack';
@@ -11,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-type BrowserPanelProps = { sessionId: string; onClose: () => void };
+type BrowserPanelProps = { sessionId: PrefixedString<'ses'>; onClose: () => void };
 
 type WebviewElement = HTMLElement & { getWebContentsId: () => number; getURL: () => string };
 

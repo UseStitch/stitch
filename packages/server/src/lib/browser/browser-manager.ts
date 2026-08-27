@@ -4,6 +4,7 @@ import type {
   ElectronBrowserErrorMessage,
   ElectronBrowserResultMessage,
 } from '@stitch/shared/browser/electron';
+import type { PrefixedString } from '@stitch/shared/id';
 
 import {
   BrowserBridgeNotConfiguredError,
@@ -23,7 +24,7 @@ class DesktopBrowserBridge {
 
   async send<C extends ElectronBrowserCommand>(
     command: C,
-    sessionId: string,
+    sessionId: PrefixedString<'ses'>,
     signal?: AbortSignal,
   ): Promise<ElectronBrowserCommandResult<C['action']>> {
     await this.connect();
@@ -129,13 +130,13 @@ class DesktopBrowserBridge {
 
 class BrowserManager {
   private bridge = new DesktopBrowserBridge();
-  private _sessionId: string | null = null;
+  private _sessionId: PrefixedString<'ses'> | null = null;
 
-  set sessionId(id: string) {
+  set sessionId(id: PrefixedString<'ses'>) {
     this._sessionId = id;
   }
 
-  private getSessionId(): string {
+  private getSessionId(): PrefixedString<'ses'> {
     if (!this._sessionId) throw new BrowserSessionNotSetError();
     return this._sessionId;
   }
@@ -154,7 +155,7 @@ class BrowserManager {
 
 let singleton: BrowserManager | null = null;
 
-export function getBrowserManager(sessionId?: string): BrowserManager {
+export function getBrowserManager(sessionId?: PrefixedString<'ses'>): BrowserManager {
   singleton ??= new BrowserManager();
   if (sessionId) singleton.sessionId = sessionId;
   return singleton;

@@ -140,9 +140,9 @@ export async function createOAuthConnector(input: {
   return toConnectorSafe(toConnector(row));
 }
 
-export async function deleteConnector(connectorRefId: string): Promise<void> {
+export async function deleteConnector(connectorRefId: PrefixedString<'cnr'>): Promise<void> {
   const db = getDb();
-  const typedConnectorRefId = connectorRefId as PrefixedString<'cnr'>;
+  const typedConnectorRefId = connectorRefId;
   const existing = (await db.select().from(connectors).where(eq(connectors.id, typedConnectorRefId))).at(0);
 
   if (!existing) throw new HTTPException(404, { message: 'Connector not found' });
@@ -165,14 +165,9 @@ export async function listConnectorInstances(): Promise<ConnectorInstanceSafe[]>
   });
 }
 
-export async function getConnectorInstance(id: string): Promise<ConnectorInstanceSafe> {
+export async function getConnectorInstance(id: PrefixedString<'conn'>): Promise<ConnectorInstanceSafe> {
   const db = getDb();
-  const row = (
-    await db
-      .select()
-      .from(connectorInstances)
-      .where(eq(connectorInstances.id, id as PrefixedString<'conn'>))
-  ).at(0);
+  const row = (await db.select().from(connectorInstances).where(eq(connectorInstances.id, id))).at(0);
 
   if (!row) throw new HTTPException(404, { message: 'Connector instance not found' });
   const instance = row as ConnectorInstance;
@@ -180,17 +175,12 @@ export async function getConnectorInstance(id: string): Promise<ConnectorInstanc
 }
 
 export async function createOAuthConnectorInstance(input: {
-  connectorRefId: string;
+  connectorRefId: PrefixedString<'cnr'>;
   label: string;
   scopes: string[];
 }): Promise<ConnectorInstanceSafe> {
   const db = getDb();
-  const connector = (
-    await db
-      .select()
-      .from(connectors)
-      .where(eq(connectors.id, input.connectorRefId as PrefixedString<'cnr'>))
-  ).at(0);
+  const connector = (await db.select().from(connectors).where(eq(connectors.id, input.connectorRefId))).at(0);
 
   if (!connector) throw new HTTPException(404, { message: 'Connector not found' });
 
@@ -291,17 +281,12 @@ export async function createApiKeyConnectorInstance(input: {
 }
 
 export async function authorizeOAuthInstance(
-  instanceId: string,
+  instanceId: PrefixedString<'conn'>,
   deps?: { startOAuthFlow?: typeof StartOAuthFlowFn },
   options?: { scopes?: string[]; additionalParams?: Record<string, string> },
 ): Promise<{ authUrl: string; waitForTokens: () => Promise<void> }> {
   const db = getDb();
-  const instance = (
-    await db
-      .select()
-      .from(connectorInstances)
-      .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>))
-  ).at(0);
+  const instance = (await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId))).at(0);
 
   if (!instance) throw new HTTPException(404, { message: 'Connector instance not found' });
 
@@ -358,18 +343,18 @@ export async function authorizeOAuthInstance(
           capabilities: getCapabilitiesForVersion(definition, definition.currentVersion),
           updatedAt: now,
         })
-        .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
+        .where(eq(connectorInstances.id, instanceId));
 
       log.info({ event: 'connector.authorized', instanceId, accountEmail }, `Connector authorized: ${instance.label}`);
-      internalBus.emit('connector.authorized', { instanceId, connectorId: instance.connectorId });
+      internalBus.emit('connector.authorized', { instanceId: instanceId, connectorId: instance.connectorId });
     } catch (error) {
       const message = Error.isError(error) ? error.message : String(error);
       await db
         .update(connectorInstances)
         .set({ status: 'error' as ConnectorStatus, authIssue: 'temporary_failure', updatedAt: Date.now() })
-        .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
+        .where(eq(connectorInstances.id, instanceId));
       log.warn({ event: 'connector.authorize.failed', instanceId, error: message }, 'connector authorization failed');
-      internalBus.emit('connector.auth.failed', { instanceId });
+      internalBus.emit('connector.auth.failed', { instanceId: instanceId });
       throw error;
     }
   };
@@ -378,16 +363,11 @@ export async function authorizeOAuthInstance(
 }
 
 export async function updateConnectorInstance(
-  instanceId: string,
+  instanceId: PrefixedString<'conn'>,
   updates: { label?: string; scopes?: string[] },
 ): Promise<ConnectorInstanceSafe> {
   const db = getDb();
-  const existing = (
-    await db
-      .select()
-      .from(connectorInstances)
-      .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>))
-  ).at(0);
+  const existing = (await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId))).at(0);
 
   if (!existing) throw new HTTPException(404, { message: 'Connector instance not found' });
 
@@ -395,27 +375,21 @@ export async function updateConnectorInstance(
   if (updates.label !== undefined) setValues['label'] = updates.label;
   if (updates.scopes !== undefined) setValues['scopes'] = updates.scopes;
 
-  await db
-    .update(connectorInstances)
-    .set(setValues)
-    .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
+  await db.update(connectorInstances).set(setValues).where(eq(connectorInstances.id, instanceId));
 
-  const [row] = await db
-    .select()
-    .from(connectorInstances)
-    .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
+  const [row] = await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId));
 
   const instance = row as ConnectorInstance;
   return toSafe(instance, getConnectorDefinition(instance.connectorId));
 }
 
 export async function upgradeConnectorInstance(
-  instanceId: string,
+  instanceId: PrefixedString<'conn'>,
   input: { apiKey?: string },
   deps?: { startOAuthFlow?: typeof StartOAuthFlowFn },
 ): Promise<{ type: 'reauthorize'; authUrl: string } | { type: 'updated' }> {
   const db = getDb();
-  const typedInstanceId = instanceId as PrefixedString<'conn'>;
+  const typedInstanceId = instanceId;
   const instance = (await db.select().from(connectorInstances).where(eq(connectorInstances.id, typedInstanceId))).at(0);
 
   if (!instance) throw new HTTPException(404, { message: 'Connector instance not found' });
@@ -443,7 +417,7 @@ export async function upgradeConnectorInstance(
         updatedAt: now,
       })
       .where(eq(connectorInstances.id, typedInstanceId));
-    internalBus.emit('connector.authorized', { instanceId, connectorId: instance.connectorId });
+    internalBus.emit('connector.authorized', { instanceId: instanceId, connectorId: instance.connectorId });
     return { type: 'updated' };
   }
 
@@ -471,7 +445,7 @@ export async function upgradeConnectorInstance(
       })
       .where(eq(connectorInstances.id, typedInstanceId));
 
-    internalBus.emit('connector.authorized', { instanceId, connectorId: instance.connectorId });
+    internalBus.emit('connector.authorized', { instanceId: instanceId, connectorId: instance.connectorId });
 
     return { type: 'updated' };
   }
@@ -524,32 +498,22 @@ export async function upgradeConnectorInstance(
   throw new HTTPException(400, { message: 'Unsupported upgrade action for connector' });
 }
 
-export async function deleteConnectorInstance(instanceId: string): Promise<void> {
+export async function deleteConnectorInstance(instanceId: PrefixedString<'conn'>): Promise<void> {
   const db = getDb();
-  const existing = (
-    await db
-      .select()
-      .from(connectorInstances)
-      .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>))
-  ).at(0);
+  const existing = (await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId))).at(0);
 
   if (!existing) throw new HTTPException(404, { message: 'Connector instance not found' });
 
-  await db.delete(connectorInstances).where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
+  await db.delete(connectorInstances).where(eq(connectorInstances.id, instanceId));
 
-  internalBus.emit('connector.removed', { instanceId, connectorId: existing.connectorId });
+  internalBus.emit('connector.removed', { instanceId: instanceId, connectorId: existing.connectorId });
 
   log.info({ event: 'connector.deleted', instanceId }, `Connector instance deleted: ${existing.label}`);
 }
 
-export async function testConnectorInstance(instanceId: string): Promise<boolean> {
+export async function testConnectorInstance(instanceId: PrefixedString<'conn'>): Promise<boolean> {
   const db = getDb();
-  const instance = (
-    await db
-      .select()
-      .from(connectorInstances)
-      .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>))
-  ).at(0);
+  const instance = (await db.select().from(connectorInstances).where(eq(connectorInstances.id, instanceId))).at(0);
 
   if (!instance) throw new HTTPException(404, { message: 'Connector instance not found' });
 
@@ -584,8 +548,8 @@ export async function testConnectorInstance(instanceId: string): Promise<boolean
             authIssue: null,
             updatedAt: now,
           })
-          .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
-        internalBus.emit('connector.token.refreshed', { instanceId });
+          .where(eq(connectorInstances.id, instanceId));
+        internalBus.emit('connector.token.refreshed', { instanceId: instanceId });
         testedInstance = {
           ...instance,
           accessToken: refreshed.accessToken,
@@ -619,8 +583,8 @@ export async function testConnectorInstance(instanceId: string): Promise<boolean
       await db
         .update(connectorInstances)
         .set({ status: 'error' as ConnectorStatus, authIssue: 'reauthorization_required', updatedAt: Date.now() })
-        .where(eq(connectorInstances.id, instanceId as PrefixedString<'conn'>));
-      internalBus.emit('connector.auth.failed', { instanceId });
+        .where(eq(connectorInstances.id, instanceId));
+      internalBus.emit('connector.auth.failed', { instanceId: instanceId });
     }
 
     throw new HTTPException(400, {
