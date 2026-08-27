@@ -2,8 +2,12 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { createCodeModeTool } from '@/code-mode/tool.js';
 import * as Log from '@/lib/log.js';
-import { PromptComposer } from '@/llm/prompt/composer.js';
-import { buildActiveToolsetInstructionsBlock } from '@/llm/session-summary.js';
+import {
+  buildActiveToolsetInstructionsBlock,
+  buildAvailableToolsetsPrompt as buildAvailableToolsetsPromptFromAssembly,
+  buildExpiredToolsetsPrompt as buildExpiredToolsetsPromptFromAssembly,
+  composeWithFragments,
+} from '@/llm/prompt/assembly.js';
 import {
   getCurrentSessionToolsetState,
   getSessionToolsetState,
@@ -40,44 +44,11 @@ type AssembledResult = { messages: ModelMessage[]; tools: Record<string, Tool>; 
 
 async function buildAvailableToolsetsPrompt(manager: ToolsetManager): Promise<string> {
   const catalog = await manager.getCatalogWithState({ includeTools: true });
-  if (catalog.length === 0) return '';
-
-  const lines = catalog.map((item) => {
-    const tools = (item.tools ?? [])
-      .slice(0, 3)
-      .map((tool) => `${tool.name}: ${tool.description}`)
-      .join('; ');
-    const active = item.active ? 'active' : 'inactive';
-    const toolSummary = tools ? ` Tools: ${tools}.` : '';
-    return `- ${item.name} (${item.id}, ${active}): ${item.description}.${toolSummary}`;
-  });
-
-  return [
-    '## Available Toolsets',
-    '',
-    'Use `activate_toolset` when a listed toolset clearly matches the task. Prefer matching domain-specific data toolsets over generic web search: financial data for stock prices, earnings, and financials; email for email; calendar for calendar; GitHub/repository-knowledge for GitHub repository questions; databases for database questions. Use web search only when no specialized toolset can provide the needed facts. Do not activate unrelated toolsets. If a toolset is already active, call its tools directly; do not re-activate it. Do not deactivate a toolset you are likely to use again this session; only deactivate to free context when switching to an unrelated domain.',
-    '',
-    ...lines,
-  ].join('\n');
+  return buildAvailableToolsetsPromptFromAssembly(catalog);
 }
 
 export function buildExpiredToolsetsPrompt(expired: SessionExpiredToolset[]): string {
-  if (expired.length === 0) return '';
-
-  const lines = expired.map((entry) => {
-    const toolset = getToolset(entry.id);
-    const name = toolset?.name ?? entry.id;
-    const tools = entry.toolNames.length > 0 ? ` Tools no longer available: ${entry.toolNames.join(', ')}.` : '';
-    return `- ${name} (${entry.id}) expired at the last turn boundary.${tools}`;
-  });
-
-  return [
-    '## Toolset Expiry Notice',
-    '',
-    'These toolsets were active in the previous run but are not loaded for this turn. Do not call their tools unless you first call `activate_toolset` again.',
-    '',
-    ...lines,
-  ].join('\n');
+  return buildExpiredToolsetsPromptFromAssembly(expired);
 }
 
 export async function assembleSessionContext(opts: SessionContextOptions): Promise<AssembledResult> {
@@ -120,22 +91,22 @@ export async function assembleSessionContext(opts: SessionContextOptions): Promi
   const toolsetsPrompt = await buildAvailableToolsetsPrompt(toolsetManager);
   const skillsPrompt = await buildSkillsSystemPrompt();
 
-  const composer = new PromptComposer();
-  composer
-    .add('semiStatic', codeModeResult.getSystemPrompt())
-    .add('semiStatic', expiredPrompt)
-    .add('semiStatic', toolsetsPrompt)
-    .add('semiStatic', skillsPrompt);
-
   const instructionsBlock = buildActiveToolsetInstructionsBlock(opts.sessionId);
-  composer.add('dynamic', instructionsBlock);
+
+  const messages = composeWithFragments(opts.llmMessages, [
+    { layer: 'semiStatic', content: codeModeResult.getSystemPrompt() },
+    { layer: 'semiStatic', content: expiredPrompt },
+    { layer: 'semiStatic', content: toolsetsPrompt },
+    { layer: 'semiStatic', content: skillsPrompt },
+    { layer: 'dynamic', content: instructionsBlock },
+  ]);
 
   const tools = {
     ...mergeTools({ staticTools: { ...coreTools, ...metaTools }, taskTool, inspectImageTool, dynamicTools: {} }),
     execute_typescript: codeModeResult.tool,
   };
 
-  return { messages: composer.compose(opts.llmMessages), tools, toolsetManager };
+  return { messages, tools, toolsetManager };
 }
 
 function getToolNames(toolsetId: string): string[] {
