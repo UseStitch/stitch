@@ -77,6 +77,12 @@ export const browserScreenshotInputSchema = z.object({
   format: z.enum(['png', 'jpeg']).optional().describe('Screenshot format. Default png.'),
   quality: z.number().optional().describe('Screenshot quality 0-100 for jpeg.'),
   fullPage: z.boolean().optional().describe('Capture full page screenshot.'),
+  path: z
+    .string()
+    .optional()
+    .describe(
+      'File path to save the screenshot to. If provided, the screenshot is written to disk at this path. Parent directories are created if needed. Supports absolute or relative paths.',
+    ),
 });
 
 export const browserDialogInputSchema = z.object({

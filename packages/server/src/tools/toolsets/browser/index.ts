@@ -66,7 +66,7 @@ Use timeoutMs to cap the maximum wait.`;
 
 const SCREENSHOT_DESCRIPTION = `Take a browser screenshot.
 
-Supports viewport, full-page, and element screenshots (via ref). Returns base64 PNG or JPEG image data and format.`;
+Supports viewport, full-page, and element screenshots (via ref). Returns base64 PNG or JPEG image data and format. Optionally save to disk via path - parent directories are created if needed.`;
 
 const DIALOG_DESCRIPTION = `Inspect and control browser dialogs (alert/confirm/prompt).
 

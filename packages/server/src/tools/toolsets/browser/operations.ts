@@ -1,3 +1,6 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
+
 import { sendBrowserCommand } from '@/lib/browser/browser-manager.js';
 import type { ScrollDirection } from '@/lib/browser/types.js';
 import { BrowserInvalidOpError, BrowserMissingFieldError } from '@/tools/toolsets/browser/errors.js';
@@ -209,6 +212,20 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
       { action: 'screenshot', format: input.format, quality: input.quality, fullPage: input.fullPage, ref: input.ref },
       signal,
     );
+    if (input.path) {
+      const buffer = Buffer.from(result.data, 'base64');
+      const dir = dirname(input.path);
+      if (dir && dir !== '.') {
+        await mkdir(dir, { recursive: true });
+      }
+      await writeFile(input.path, buffer);
+      return {
+        output: `Screenshot taken (${result.format}) and saved to ${input.path}`,
+        data: result.data,
+        format: result.format,
+        path: input.path,
+      };
+    }
     return { output: `Screenshot taken (${result.format})`, data: result.data, format: result.format };
   }
 
