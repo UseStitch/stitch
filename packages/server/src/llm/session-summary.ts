@@ -14,7 +14,7 @@ import * as Log from '@/lib/log.js';
 import { addCacheControlToMessages } from '@/llm/cache-control.js';
 import { CompactionModelNotFoundError } from '@/llm/errors.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
-import { getPromptUserContext } from '@/llm/prompt/assembly.js';
+import { getPromptUserContext } from '@/llm/prompt/builder.js';
 import { getProviderOptions } from '@/llm/provider-options.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';

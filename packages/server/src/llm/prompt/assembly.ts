@@ -1,14 +1,12 @@
 import type { PrefixedString } from '@stitch/shared/id';
 
-import { getToolset } from '@/tools/toolsets/registry.js';
-import type { ModelMessage } from 'ai';
-
 import { buildSystemPromptLayers } from '@/llm/prompt/builder.js';
 import type { PromptConfig } from '@/llm/prompt/builder.js';
 import { getSessionToolsetState } from '@/llm/stream/session-toolsets.js';
+import { getToolset } from '@/tools/toolsets/registry.js';
+import type { ModelMessage } from 'ai';
 
 export type { PromptConfig } from '@/llm/prompt/builder.js';
-export { getPromptUserContext } from '@/llm/prompt/builder.js';
 
 export type PromptFragment = { layer: 'semiStatic' | 'dynamic'; content: string };
 
@@ -18,7 +16,9 @@ function getStringContent(message: ModelMessage): string {
 
 export function renderSystemPrompt(promptConfig: PromptConfig): string {
   const layers = buildSystemPromptLayers(promptConfig);
-  return [layers.static, layers.semiStatic, layers.dynamic].filter(Boolean).join('\n\n');
+  const parts = [layers.static, layers.semiStatic];
+  if (layers.dynamic) parts.push(layers.dynamic);
+  return parts.join('\n\n');
 }
 
 export function composeWithFragments(messages: ModelMessage[], fragments: PromptFragment[]): ModelMessage[] {
@@ -32,9 +32,15 @@ export function composeWithFragments(messages: ModelMessage[], fragments: Prompt
 
   if (semiStaticFragments.length > 0) {
     const semiStaticIndex = result.findIndex((msg, i) => i > 0 && msg.role === 'system');
-    const targetIndex = semiStaticIndex !== -1 ? semiStaticIndex : 0;
-    const existing = getStringContent(result[targetIndex]);
-    result[targetIndex] = { role: 'system', content: `${existing}\n\n${semiStaticFragments.join('\n\n')}` };
+    if (semiStaticIndex !== -1) {
+      const existing = getStringContent(result[semiStaticIndex]);
+      result[semiStaticIndex] = { role: 'system', content: `${existing}\n\n${semiStaticFragments.join('\n\n')}` };
+    } else if (result[0]?.role === 'system') {
+      const existing = getStringContent(result[0]);
+      result[0] = { role: 'system', content: `${existing}\n\n${semiStaticFragments.join('\n\n')}` };
+    } else {
+      result.unshift({ role: 'system', content: semiStaticFragments.join('\n\n') });
+    }
   }
 
   if (dynamicFragments.length > 0) {
@@ -42,6 +48,8 @@ export function composeWithFragments(messages: ModelMessage[], fragments: Prompt
     if (dynamicIndex !== -1) {
       const existing = getStringContent(result[dynamicIndex]);
       result[dynamicIndex] = { role: 'system', content: `${existing}\n\n${dynamicFragments.join('\n\n')}` };
+    } else if (result.length > 0) {
+      result.unshift({ role: 'system', content: dynamicFragments.join('\n\n') });
     }
   }
 
@@ -60,7 +68,13 @@ export function buildActiveToolsetInstructionsBlock(sessionId: PrefixedString<'s
 }
 
 export function buildAvailableToolsetsPrompt(
-  catalog: Array<{ id: string; name: string; description: string; active: boolean; tools?: Array<{ name: string; description: string }> }>,
+  catalog: Array<{
+    id: string;
+    name: string;
+    description: string;
+    active: boolean;
+    tools?: Array<{ name: string; description: string }>;
+  }>,
 ): string {
   if (catalog.length === 0) return '';
 
@@ -83,7 +97,9 @@ export function buildAvailableToolsetsPrompt(
   ].join('\n');
 }
 
-export function buildExpiredToolsetsPrompt(expired: Array<{ id: string; expiredAtTurn: number; toolNames: string[] }>): string {
+export function buildExpiredToolsetsPrompt(
+  expired: Array<{ id: string; expiredAtTurn: number; toolNames: string[] }>,
+): string {
   if (expired.length === 0) return '';
 
   const lines = expired.map((entry) => {

@@ -11,7 +11,7 @@ import type { PrefixedString } from '@stitch/shared/id';
 import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
-import { getPromptUserContext } from '@/llm/prompt/assembly.js';
+import { getPromptUserContext } from '@/llm/prompt/builder.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { resolveCheapModel } from '@/llm/resolve-cheap-model.js';
 import { listToolsets } from '@/tools/toolsets/registry.js';

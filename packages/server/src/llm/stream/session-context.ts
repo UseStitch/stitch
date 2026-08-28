@@ -4,8 +4,8 @@ import { createCodeModeTool } from '@/code-mode/tool.js';
 import * as Log from '@/lib/log.js';
 import {
   buildActiveToolsetInstructionsBlock,
-  buildAvailableToolsetsPrompt as buildAvailableToolsetsPromptFromAssembly,
-  buildExpiredToolsetsPrompt as buildExpiredToolsetsPromptFromAssembly,
+  buildAvailableToolsetsPrompt,
+  buildExpiredToolsetsPrompt as buildExpiredToolsetsPromptInternal,
   composeWithFragments,
 } from '@/llm/prompt/assembly.js';
 import {
@@ -42,13 +42,8 @@ type SessionContextOptions = {
 
 type AssembledResult = { messages: ModelMessage[]; tools: Record<string, Tool>; toolsetManager: ToolsetManager };
 
-async function buildAvailableToolsetsPrompt(manager: ToolsetManager): Promise<string> {
-  const catalog = await manager.getCatalogWithState({ includeTools: true });
-  return buildAvailableToolsetsPromptFromAssembly(catalog);
-}
-
 export function buildExpiredToolsetsPrompt(expired: SessionExpiredToolset[]): string {
-  return buildExpiredToolsetsPromptFromAssembly(expired);
+  return buildExpiredToolsetsPromptInternal(expired);
 }
 
 export async function assembleSessionContext(opts: SessionContextOptions): Promise<AssembledResult> {
@@ -64,7 +59,7 @@ export async function assembleSessionContext(opts: SessionContextOptions): Promi
     ? opts.activeToolsetIds.map((id) => ({ id, scope: 'until_deactivated' as const }))
     : currentSessionState.active;
   const expiredEntries = opts.activeToolsetIds ? [] : currentSessionState.expired;
-  const expiredPrompt = opts.activeToolsetIds ? '' : buildExpiredToolsetsPrompt(expiredEntries);
+  const expiredPrompt = opts.activeToolsetIds ? '' : buildExpiredToolsetsPromptInternal(expiredEntries);
 
   const toolsetManager = new ToolsetManager(toolContext, activeEntries, {
     excludedToolsetIds: opts.excludedToolsetIds,
@@ -88,7 +83,8 @@ export async function assembleSessionContext(opts: SessionContextOptions): Promi
       }),
     abortSignal: opts.abortSignal,
   });
-  const toolsetsPrompt = await buildAvailableToolsetsPrompt(toolsetManager);
+  const toolsetsCatalog = await toolsetManager.getCatalogWithState({ includeTools: true });
+  const toolsetsPrompt = buildAvailableToolsetsPrompt(toolsetsCatalog);
   const skillsPrompt = await buildSkillsSystemPrompt();
 
   const instructionsBlock = buildActiveToolsetInstructionsBlock(opts.sessionId);
