@@ -3,8 +3,8 @@ import type { Message, StoredPart } from '@stitch/shared/chat/messages';
 import * as Log from '@/lib/log.js';
 import { compactToolResultOutput, isToolResultError } from '@/llm/context-budget.js';
 import { HistoryMessagesEmptyError } from '@/llm/errors.js';
-import { buildSystemPromptLayers } from '@/llm/prompt/builder.js';
-import type { PromptConfig } from '@/llm/prompt/builder.js';
+import { renderSystemPrompt } from '@/llm/prompt/assembly.js';
+import type { PromptConfig } from '@/llm/prompt/assembly.js';
 import type { ModelMessage } from 'ai';
 
 const log = Log.create({ service: 'history-messages' });
@@ -241,12 +241,7 @@ export function buildHistoryMessages(
   }
 
   if (llmMessages.at(0)?.role !== 'system') {
-    const layers = buildSystemPromptLayers(promptConfig);
-    const parts = [layers.static, layers.semiStatic];
-    if (layers.dynamic) {
-      parts.push(layers.dynamic);
-    }
-    llmMessages.unshift({ role: 'system', content: parts.join('\n\n') });
+    llmMessages.unshift({ role: 'system', content: renderSystemPrompt(promptConfig) });
   }
 
   return llmMessages;

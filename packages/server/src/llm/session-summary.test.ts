@@ -6,7 +6,8 @@ import { getDb } from '@/db/client.js';
 import { sessions } from '@/db/schema/sessions.js';
 import { setupTestDb } from '@/db/test-helpers.js';
 import { buildHistoryMessages } from '@/llm/history-messages.js';
-import { isOverflow, buildActiveToolsetInstructionsBlock } from '@/llm/session-summary.js';
+import { buildActiveToolsetInstructionsBlock } from '@/llm/prompt/assembly.js';
+import { isOverflow } from '@/llm/session-summary.js';
 import { setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { registerToolset, unregisterToolset, listToolsets } from '@/tools/toolsets/registry.js';
 
