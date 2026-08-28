@@ -6,7 +6,7 @@ import path from 'node:path';
 import type { ManagedMemoryEntry, MemoryFileSnapshot } from '@stitch/shared/memory/types';
 
 import { consolidateMemories, validateConsolidationProposal } from '@/memory/consolidation.js';
-import { MemoryConflictError, MemoryFileStore } from '@/memory/file-store.js';
+import { MemoryConflictError, MemoryStore } from '@/memory/file-store.js';
 import { filterCaptureCandidates } from '@/memory/processor.js';
 
 const roots: string[] = [];
@@ -15,7 +15,7 @@ const NOW = new Date('2026-08-04T12:00:00.000Z');
 async function createStore(options: { memoryCharLimit?: number } = {}) {
   const rootDir = await mkdtemp(path.join(os.tmpdir(), 'stitch-consolidation-'));
   roots.push(rootDir);
-  return new MemoryFileStore({ rootDir, now: () => NOW, ...options });
+  return new MemoryStore({ rootDir, now: () => NOW, ...options });
 }
 
 afterEach(async () => {
