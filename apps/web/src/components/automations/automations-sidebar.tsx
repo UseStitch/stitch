@@ -1,12 +1,14 @@
 import { BotIcon, PlusIcon } from 'lucide-react';
 
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { Link, useParams } from '@tanstack/react-router';
 
 import { InternalSidebar } from '@/components/navigation/internal-sidebar';
 import { Icon } from '@/components/primitives/icon';
 import { Text } from '@/components/primitives/text';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { InfiniteLoadTrigger } from '@/components/ui/infinite-load-trigger';
+import { useInfiniteLoadObserver } from '@/hooks/use-infinite-load-observer';
 import { automationsSidebarListQueryOptions } from '@/lib/queries/automations';
 import { useAutomationStore } from '@/stores/automation-store';
 
@@ -15,7 +17,13 @@ export function AutomationsSidebarContent() {
 
   const openCreateDialog = useAutomationStore((state) => state.openCreateDialog);
 
-  const { data: automations = [] } = useQuery(automationsSidebarListQueryOptions);
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery(automationsSidebarListQueryOptions);
+  const automations = data?.pages.flatMap((result) => result.automations) ?? [];
+  const loadMoreRef = useInfiniteLoadObserver({
+    hasMore: hasNextPage,
+    isLoading: isFetchingNextPage,
+    onLoadMore: () => void fetchNextPage(),
+  });
   const selectedAutomationId = typeof params.automationId === 'string' ? params.automationId : null;
 
   return (
@@ -55,6 +63,7 @@ export function AutomationsSidebarContent() {
                 </InternalSidebar.Item>
               ))}
             </InternalSidebar.List>
+            {hasNextPage ? <InfiniteLoadTrigger sentinelRef={loadMoreRef} isLoading={isFetchingNextPage} /> : null}
           </InternalSidebar.Group>
         ) : (
           <Empty size="compact">

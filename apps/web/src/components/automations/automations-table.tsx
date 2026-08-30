@@ -9,15 +9,7 @@ import type { Automation } from '@stitch/shared/automations/types';
 import { Icon } from '@/components/primitives/icon';
 import { Button } from '@/components/ui/button';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
+import { NumberedPagination } from '@/components/ui/numbered-pagination';
 import { Table } from '@/components/ui/table';
 import { createAppColumnHelper, useAppTable } from '@/hooks/table-hook';
 import { getAutomationScheduleLabel } from '@/lib/automations/schedule-label';
@@ -28,9 +20,11 @@ type AutomationsTableProps = {
   providerModels: ProviderModels[];
   page: number;
   totalPages: number;
+  sorting: SortingState;
   runPending: boolean;
   deletePending: boolean;
   onPageChange: (page: number) => void;
+  onSortingChange: React.Dispatch<React.SetStateAction<SortingState>>;
   onRun: (automation: Automation) => void;
   onEdit: (automationId: string) => void;
   onDelete: (automation: Automation) => void;
@@ -119,15 +113,15 @@ export function AutomationsTable({
   providerModels,
   page,
   totalPages,
+  sorting,
   runPending,
   deletePending,
   onPageChange,
+  onSortingChange,
   onRun,
   onEdit,
   onDelete,
 }: AutomationsTableProps) {
-  const [sorting, setSorting] = React.useState<SortingState>([{ id: 'updatedAt', desc: true }]);
-
   const modelLabelByKey = (() => {
     const map = new Map<string, string>();
     for (const provider of providerModels) {
@@ -142,28 +136,12 @@ export function AutomationsTable({
     data: automations,
     columns,
     state: { sorting },
-    onSortingChange: setSorting,
+    onSortingChange,
+    manualSorting: true,
+    enableMultiSort: false,
+    enableSortingRemoval: false,
     meta: { modelLabelByKey, runPending, deletePending, onRun, onEdit, onDelete },
   });
-
-  const currentPage = page - 1;
-  const pageNumbers = (() => {
-    if (totalPages <= 1) {
-      return [] as number[];
-    }
-
-    const firstPage = 0;
-    const lastPage = totalPages - 1;
-    const start = Math.max(firstPage, currentPage - 1);
-    const end = Math.min(lastPage, currentPage + 1);
-
-    const pages = new Set<number>([firstPage, lastPage]);
-    for (let index = start; index <= end; index += 1) {
-      pages.add(index);
-    }
-
-    return [...pages].toSorted((a, b) => a - b);
-  })();
 
   return (
     <Table.Container>
@@ -210,64 +188,7 @@ export function AutomationsTable({
         </Table.Root>
       </Table.Scroller>
 
-      {totalPages > 1 ? (
-        <div className="border-t border-border px-space-l py-space-l">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  href="#"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    if (page > 1) {
-                      onPageChange(page - 1);
-                    }
-                  }}
-                  className={page <= 1 ? 'pointer-events-none opacity-50' : undefined}
-                />
-              </PaginationItem>
-
-              {pageNumbers.map((pageNumber, index) => {
-                const previousPage = pageNumbers[index - 1];
-                const showGap = pageNumber - previousPage > 1;
-                return (
-                  <React.Fragment key={`page-${pageNumber}`}>
-                    {showGap ? (
-                      <PaginationItem>
-                        <PaginationEllipsis />
-                      </PaginationItem>
-                    ) : null}
-                    <PaginationItem>
-                      <PaginationLink
-                        href="#"
-                        isActive={pageNumber === currentPage}
-                        onClick={(event) => {
-                          event.preventDefault();
-                          onPageChange(pageNumber + 1);
-                        }}>
-                        {pageNumber + 1}
-                      </PaginationLink>
-                    </PaginationItem>
-                  </React.Fragment>
-                );
-              })}
-
-              <PaginationItem>
-                <PaginationNext
-                  href="#"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    if (page < totalPages) {
-                      onPageChange(page + 1);
-                    }
-                  }}
-                  className={page >= totalPages ? 'pointer-events-none opacity-50' : undefined}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      ) : null}
+      <NumberedPagination page={page} totalPages={totalPages} onPageChange={onPageChange} />
     </Table.Container>
   );
 }

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useCallback, useEffect } from 'react';
+import { useMemo, useRef, useCallback } from 'react';
 
 import { useVirtualizer } from '@tanstack/react-virtual';
 
@@ -8,6 +8,7 @@ import { RowContent } from '@/components/chat/message-list/row-content';
 import { ALWAYS_UNVIRTUALIZED_TAIL_ROWS, buildRows, estimateRowHeight } from '@/components/chat/message-list/rows';
 import { Stack } from '@/components/primitives/stack.js';
 import { Text } from '@/components/primitives/text.js';
+import { useInfiniteLoadObserver } from '@/hooks/use-infinite-load-observer';
 import type { SessionStreamState } from '@/stores/stream-store';
 
 type MessageListProps = {
@@ -32,7 +33,6 @@ export function MessageList({
   onEdit,
 }: MessageListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const rows = useMemo(
     () => buildRows(messages, streamState, hasMore, isFetchingMore),
@@ -41,24 +41,7 @@ export function MessageList({
 
   const hasStreamContent = streamState.isStreaming || streamState.partIds.length > 0 || streamState.error !== null;
 
-  // Auto-load more when the sentinel becomes visible
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel || !hasMore || isFetchingMore) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (entry.isIntersecting) {
-          onLoadMore();
-        }
-      },
-      { threshold: 0.1 },
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasMore, isFetchingMore, onLoadMore]);
+  const sentinelRef = useInfiniteLoadObserver({ hasMore, isLoading: isFetchingMore, onLoadMore, threshold: 0.1 });
 
   const firstUnvirtualizedRowIndex = Math.max(rows.length - ALWAYS_UNVIRTUALIZED_TAIL_ROWS, 0);
   const virtualizedRowCount = Math.min(firstUnvirtualizedRowIndex, rows.length);

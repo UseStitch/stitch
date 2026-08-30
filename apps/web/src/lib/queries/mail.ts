@@ -14,7 +14,7 @@ import type {
   MailSyncPhase,
   MailThreadDetail,
   MailThreadId,
-  MailThreadListItem,
+  MailThreadsPage,
 } from '@stitch/shared/mail/types';
 
 import { serverRequest } from '@/lib/api';
@@ -57,8 +57,6 @@ export const mailSyncStatusQueryOptions = queryOptions({
     return statuses.some((status) => ACTIVE_SYNC_PHASES.has(status.syncPhase)) ? 3_000 : 15_000;
   },
 });
-
-export type MailThreadsPage = { threads: MailThreadListItem[]; nextCursor: string | null };
 
 export const mailDataKeys = {
   labels: (accountId: MailAccountId) => [...mailKeys.all, 'labels', accountId] as const,

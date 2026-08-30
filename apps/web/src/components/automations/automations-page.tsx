@@ -1,11 +1,12 @@
 import { BotIcon, PencilIcon, PlayIcon, PlusIcon, Trash2Icon } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import { toast } from 'sonner';
 
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { useQuery, useSuspenseInfiniteQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
+import type { SortingState } from '@tanstack/react-table';
 
-import type { Automation } from '@stitch/shared/automations/types';
+import type { Automation, AutomationSortField } from '@stitch/shared/automations/types';
 
 import { AutomationDialog } from '@/components/automations/automation-dialog';
 import { AutomationRunsTable } from '@/components/automations/automation-runs-table';
@@ -18,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Empty, EmptyDescription, EmptyTitle } from '@/components/ui/empty';
+import { clampPaginationPage } from '@/components/ui/numbered-pagination';
 import {
   Page,
   PageContent,
@@ -49,10 +51,16 @@ const LOCAL_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const navigate = useNavigate();
-  const { data: sidebarAutomations } = useSuspenseQuery(automationsSidebarListQueryOptions);
+  const { data: sidebarAutomationPages } = useSuspenseInfiniteQuery(automationsSidebarListQueryOptions);
+  const sidebarAutomations = sidebarAutomationPages.pages.flatMap((result) => result.automations);
   const [page, setPage] = useState(1);
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'updatedAt', desc: true }]);
   const pageSize = 15;
-  const { data: automationsPage } = useSuspenseQuery(automationsPageQueryOptions({ page, pageSize }));
+  const sort = (sorting[0]?.id ?? 'updatedAt') as AutomationSortField;
+  const sortDirection = sorting[0]?.desc === false ? 'asc' : 'desc';
+  const { data: automationsPage } = useSuspenseQuery(
+    automationsPageQueryOptions({ page, pageSize, sort, sortDirection }),
+  );
   const { data: providerModels } = useSuspenseQuery(visibleProviderModelsQueryOptions);
   const { data: settings } = useQuery(settingsQueryOptions);
   const { data: automationDetail = null } = useQuery({
@@ -88,16 +96,17 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const [automationToDelete, setAutomationToDelete] = useState<Automation | null>(null);
   const [archiveDeletedAutomationSessions, setArchiveDeletedAutomationSessions] = useState(false);
 
-  // Clamp the requested page during render when the result set shrinks
-  if (automationsPage.totalPages === 0 && page !== 1) {
-    setPage(1);
-  } else if (automationsPage.totalPages > 0 && page > automationsPage.totalPages) {
-    setPage(automationsPage.totalPages);
-  }
+  const clampedPage = clampPaginationPage(page, automationsPage.totalPages);
+  if (clampedPage !== page) setPage(clampedPage);
 
   const handleDelete = (automation: Automation) => {
     setArchiveDeletedAutomationSessions(false);
     setAutomationToDelete(automation);
+  };
+
+  const handleSortingChange: Dispatch<SetStateAction<SortingState>> = (updater) => {
+    setSorting((current) => (typeof updater === 'function' ? updater(current) : updater));
+    setPage(1);
   };
 
   const confirmDelete = async () => {
@@ -169,9 +178,11 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
             providerModels={providerModels}
             page={1}
             totalPages={0}
+            sorting={sorting}
             runPending={runAutomation.isPending}
             deletePending={deleteAutomation.isPending}
             onPageChange={setPage}
+            onSortingChange={handleSortingChange}
             onRun={(automation) => void handleRun(automation)}
             onEdit={openEditDialog}
             onDelete={(automation) => handleDelete(automation)}
@@ -250,9 +261,11 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
             providerModels={providerModels}
             page={automationsPage.page}
             totalPages={automationsPage.totalPages}
+            sorting={sorting}
             runPending={runAutomation.isPending}
             deletePending={deleteAutomation.isPending}
             onPageChange={setPage}
+            onSortingChange={handleSortingChange}
             onRun={(automation) => void handleRun(automation)}
             onEdit={openEditDialog}
             onDelete={(automation) => handleDelete(automation)}

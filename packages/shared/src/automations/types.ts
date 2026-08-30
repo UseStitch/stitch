@@ -1,4 +1,5 @@
 import type { PrefixedString } from '@stitch/shared/id';
+import type { PaginationMetadata, SortDirection } from '@stitch/shared/pagination';
 
 export type Automation = {
   id: PrefixedString<'auto'>;
@@ -43,10 +44,13 @@ export type GeneratedAutomationDraft = {
   modelId: string;
 };
 
-export type ListAutomationsResponse = {
-  automations: Automation[];
+export type ListAutomationsResponse = PaginationMetadata & { automations: Automation[] };
+
+export type AutomationSortField = 'title' | 'runCount' | 'createdAt' | 'updatedAt';
+
+export type ListAutomationsInput = {
   page: number;
   pageSize: number;
-  total: number;
-  totalPages: number;
+  sort: AutomationSortField;
+  sortDirection: SortDirection;
 };

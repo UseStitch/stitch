@@ -1,4 +1,4 @@
-type PaginatedResult<T> = { items: T[]; page: number; pageSize: number; total: number; totalPages: number };
+import type { PaginatedResult } from '@stitch/shared/pagination';
 
 /**
  * Compute totalPages from a total count and pageSize.

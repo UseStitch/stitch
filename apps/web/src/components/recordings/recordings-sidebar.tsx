@@ -1,5 +1,4 @@
 import { LibraryIcon, MicIcon } from 'lucide-react';
-import * as React from 'react';
 
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Link, useParams } from '@tanstack/react-router';
@@ -16,30 +15,22 @@ import { Icon } from '@/components/primitives/icon';
 import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
-import { Spinner } from '@/components/ui/spinner';
+import { InfiniteLoadTrigger } from '@/components/ui/infinite-load-trigger';
+import { useInfiniteLoadObserver } from '@/hooks/use-infinite-load-observer';
 import { recordingsInfiniteQueryOptions } from '@/lib/queries/recordings';
 
 export function RecordingsSidebarContent() {
   const params = useParams({ strict: false });
   const selectedRecordingId = typeof params.id === 'string' ? params.id : null;
-  const loadMoreRef = React.useRef<HTMLDivElement>(null);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery(recordingsInfiniteQueryOptions());
   const recordings = data?.pages.flatMap((page) => page.recordings) ?? [];
 
-  React.useEffect(() => {
-    const node = loadMoreRef.current;
-    if (!node || !hasNextPage) return;
-
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.at(0)?.isIntersecting && !isFetchingNextPage) {
-        void fetchNextPage();
-      }
-    });
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+  const loadMoreRef = useInfiniteLoadObserver({
+    hasMore: hasNextPage,
+    isLoading: isFetchingNextPage,
+    onLoadMore: () => void fetchNextPage(),
+  });
 
   return (
     <>
@@ -104,11 +95,7 @@ export function RecordingsSidebarContent() {
                 );
               })}
             </InternalSidebar.List>
-            {hasNextPage ? (
-              <div ref={loadMoreRef} className="flex h-9 items-center justify-center">
-                {isFetchingNextPage ? <Spinner tone="muted" /> : null}
-              </div>
-            ) : null}
+            {hasNextPage ? <InfiniteLoadTrigger sentinelRef={loadMoreRef} isLoading={isFetchingNextPage} /> : null}
           </InternalSidebar.Group>
         ) : (
           <Empty size="compact">

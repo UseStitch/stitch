@@ -1,9 +1,10 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { createRecordingAnalysisId, createRecordingId, type PrefixedString } from '@stitch/shared/id';
 import type {
   ActiveRecordingResponse,
+  ListRecordingsInput,
   ListRecordingsResponse,
   Recording,
   RecordingDetailsResponse,
@@ -111,8 +112,17 @@ function toRecording(
   };
 }
 
-export async function listRecordings(input: { page: number; pageSize: number }): Promise<ListRecordingsResponse> {
+export async function listRecordings(input: ListRecordingsInput): Promise<ListRecordingsResponse> {
   const db = getDb();
+  const direction = input.sortDirection === 'asc' ? asc : desc;
+  const displayTitle = sql<string>`coalesce(nullif(${recordingAnalyses.title}, ''), ${recordings.title})`;
+  const sortColumn = {
+    title: displayTitle,
+    platform: recordings.platform,
+    status: recordings.status,
+    startedAt: recordings.startedAt,
+    costUsd: recordingAnalyses.costUsd,
+  }[input.sort];
   const result = await paginatedQuery({
     dataQuery: db
       .select({
@@ -122,7 +132,7 @@ export async function listRecordings(input: { page: number; pageSize: number }):
       })
       .from(recordings)
       .leftJoin(recordingAnalyses, eq(recordingAnalyses.recordingId, recordings.id))
-      .orderBy(desc(recordings.createdAt)),
+      .orderBy(direction(sortColumn), direction(recordings.id)),
     count: db.$count(recordings),
     page: input.page,
     pageSize: input.pageSize,

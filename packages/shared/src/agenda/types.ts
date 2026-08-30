@@ -1,4 +1,5 @@
 import type { PrefixedString } from '../id/index.js';
+import type { PaginatedResult } from '../pagination.js';
 
 export const AGENDA_ITEM_STATUSES = ['open', 'in_progress', 'done', 'cancelled'] as const;
 export type AgendaItemStatus = (typeof AGENDA_ITEM_STATUSES)[number];
@@ -76,10 +77,4 @@ export type AgendaListWithCounts = AgendaList & {
   };
 };
 
-export type ListAgendaItemsResponse = {
-  items: AgendaItem[];
-  page: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
-};
+export type ListAgendaItemsResponse = PaginatedResult<AgendaItem>;

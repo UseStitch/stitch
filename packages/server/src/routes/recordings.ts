@@ -43,11 +43,16 @@ const analyzeQuerySchema = z.object({ force: z.enum(['1', 'true']).optional() })
 
 const analyzeBodySchema = z.object({ templateId: routeSchemas.meetingNoteTemplateId });
 
+const listRecordingsQuerySchema = paginationQuerySchema({ pageSize: 10 }).extend({
+  sort: z.enum(['title', 'platform', 'status', 'startedAt', 'costUsd']).default('startedAt'),
+  sortDirection: z.enum(['asc', 'desc']).default('desc'),
+});
+
 export const recordingsRouter = new Hono();
 
-recordingsRouter.get('/', zValidator('query', paginationQuerySchema({ pageSize: 10 })), async (c) => {
-  const { page, pageSize } = c.req.valid('query');
-  const result = await listRecordings({ page, pageSize });
+recordingsRouter.get('/', zValidator('query', listRecordingsQuerySchema), async (c) => {
+  const input = c.req.valid('query');
+  const result = await listRecordings(input);
   return c.json(result);
 });
 

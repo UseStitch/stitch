@@ -1,4 +1,5 @@
 import type { PrefixedString } from '../id/index.js';
+import type { PaginationMetadata, SortDirection } from '../pagination.js';
 
 export type RecordingStatus = 'recording' | 'completed' | 'failed';
 
@@ -60,13 +61,18 @@ export type StopRecordingInput = { durationMs: number | null };
 
 export type StopRecordingResponse = { recording: Recording };
 
-export type ListRecordingsResponse = {
+export type ListRecordingsResponse = PaginationMetadata & {
   recordings: Recording[];
   activeRecordingId: PrefixedString<'rec'> | null;
+};
+
+export type RecordingSortField = 'title' | 'platform' | 'status' | 'startedAt' | 'costUsd';
+
+export type ListRecordingsInput = {
   page: number;
   pageSize: number;
-  total: number;
-  totalPages: number;
+  sort: RecordingSortField;
+  sortDirection: SortDirection;
 };
 
 export type RecordingTranscriptEntry = {

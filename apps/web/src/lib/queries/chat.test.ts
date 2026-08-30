@@ -28,7 +28,7 @@ describe('findSessionInListCache', () => {
     const session = createSession('ses_found');
 
     queryClient.setQueryData(sessionKeys.infiniteList(''), {
-      pages: [{ sessions: [session], hasMore: false }],
+      pages: [{ sessions: [session], nextCursor: null }],
       pageParams: [undefined],
     });
 

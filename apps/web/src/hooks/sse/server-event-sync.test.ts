@@ -50,7 +50,7 @@ describe('background task SSE synchronization', () => {
       { ...completedTask(), status: 'running', completedAt: null },
     ]);
     queryClient.setQueryData(sessionKeys.infiniteList(''), {
-      pages: [{ sessions: [parent], hasMore: false }],
+      pages: [{ sessions: [parent], nextCursor: null }],
       pageParams: [undefined],
     });
     let sounds = 0;

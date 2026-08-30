@@ -1,5 +1,6 @@
-import { and, desc, eq, isNull, like, lt } from 'drizzle-orm';
+import { and, desc, eq, isNull, like, lt, or } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
+import { z } from 'zod';
 
 import { ARCHIVE_REASONS } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
@@ -8,9 +9,32 @@ import { createSessionId } from '@stitch/shared/id';
 import { cancelBackgroundTasksForParent } from '@/background-tasks/service.js';
 import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
+import { createCursorPage, decodeCursor, encodeCursor } from '@/lib/cursor-pagination.js';
 
 const DEFAULT_PAGE_SIZE = 50;
 const DEFAULT_SESSION_PAGE_SIZE = 30;
+
+const sessionCursorSchema = z.object({ createdAt: z.number().int(), id: z.string().min(1) });
+
+function encodeSessionCursor(session: { createdAt: number; id: PrefixedString<'ses'> }): string {
+  return encodeCursor({ createdAt: session.createdAt, id: session.id });
+}
+
+function decodeSessionCursor(cursor: string): { createdAt: number; id: PrefixedString<'ses'> } {
+  const decoded = decodeCursor(cursor, sessionCursorSchema);
+  return { createdAt: decoded.createdAt, id: decoded.id as PrefixedString<'ses'> };
+}
+
+const messageCursorSchema = z.object({ createdAt: z.number().int(), id: z.string().min(1) });
+
+function encodeMessageCursor(message: { createdAt: number; id: PrefixedString<'msg'> }): string {
+  return encodeCursor({ createdAt: message.createdAt, id: message.id });
+}
+
+function decodeMessageCursor(cursor: string): { createdAt: number; id: PrefixedString<'msg'> } {
+  const decoded = decodeCursor(cursor, messageCursorSchema);
+  return { createdAt: decoded.createdAt, id: decoded.id as PrefixedString<'msg'> };
+}
 
 type CreateSessionInput = {
   title?: string;
@@ -43,14 +67,19 @@ export async function createSession(input: CreateSessionInput): Promise<typeof s
 
 export async function listSessions(
   type: 'chat' | 'automation' = 'chat',
-  options: { limit?: number; cursor?: number; search?: string } = {},
-): Promise<{ sessions: (typeof sessions.$inferSelect)[]; hasMore: boolean }> {
+  options: { limit?: number; cursor?: string; search?: string } = {},
+): Promise<{ sessions: (typeof sessions.$inferSelect)[]; nextCursor: string | null }> {
   const db = getDb();
   const pageSize = options.limit ? Math.min(Math.max(options.limit, 1), 100) : DEFAULT_SESSION_PAGE_SIZE;
 
   const conditions = [eq(sessions.type, type)];
-  if (options.cursor !== undefined) {
-    conditions.push(lt(sessions.createdAt, options.cursor));
+  if (options.cursor) {
+    const cursor = decodeSessionCursor(options.cursor);
+    const cursorCondition = or(
+      lt(sessions.createdAt, cursor.createdAt),
+      and(eq(sessions.createdAt, cursor.createdAt), lt(sessions.id, cursor.id)),
+    );
+    if (cursorCondition) conditions.push(cursorCondition);
   }
   if (options.search) {
     conditions.push(like(sessions.title, `%${options.search}%`));
@@ -64,12 +93,11 @@ export async function listSessions(
     .select()
     .from(sessions)
     .where(and(...conditions))
-    .orderBy(desc(sessions.createdAt))
+    .orderBy(desc(sessions.createdAt), desc(sessions.id))
     .limit(pageSize + 1);
 
-  const hasMore = rows.length > pageSize;
-  const page = hasMore ? rows.slice(0, pageSize) : rows;
-  return { sessions: page, hasMore };
+  const page = createCursorPage(rows, pageSize, encodeSessionCursor);
+  return { sessions: page.items, nextCursor: page.nextCursor };
 }
 
 export async function getSessionById(sessionId: PrefixedString<'ses'>): Promise<typeof sessions.$inferSelect> {
@@ -82,27 +110,31 @@ export async function getSessionById(sessionId: PrefixedString<'ses'>): Promise<
 export async function listSessionMessages(
   sessionId: PrefixedString<'ses'>,
   limit?: number,
-  cursor?: number,
-): Promise<{ messages: (typeof messages.$inferSelect)[]; hasMore: boolean }> {
+  cursor?: string,
+): Promise<{ messages: (typeof messages.$inferSelect)[]; nextCursor: string | null }> {
   const db = getDb();
   const pageSize = limit ? Math.min(Math.max(limit, 1), 200) : DEFAULT_PAGE_SIZE;
 
   const conditions = [eq(messages.sessionId, sessionId), isNull(messages.archivedAt)];
-  if (cursor !== undefined) {
-    conditions.push(lt(messages.createdAt, cursor));
+  if (cursor) {
+    const decoded = decodeMessageCursor(cursor);
+    const cursorCondition = or(
+      lt(messages.createdAt, decoded.createdAt),
+      and(eq(messages.createdAt, decoded.createdAt), lt(messages.id, decoded.id)),
+    );
+    if (cursorCondition) conditions.push(cursorCondition);
   }
 
   const rows = await db
     .select()
     .from(messages)
     .where(and(...conditions))
-    .orderBy(desc(messages.createdAt))
+    .orderBy(desc(messages.createdAt), desc(messages.id))
     .limit(pageSize + 1);
 
-  const hasMore = rows.length > pageSize;
-  const page = hasMore ? rows.slice(0, pageSize) : rows;
-  page.reverse();
-  return { messages: page, hasMore };
+  const page = createCursorPage(rows, pageSize, encodeMessageCursor);
+  page.items.reverse();
+  return { messages: page.items, nextCursor: page.nextCursor };
 }
 
 async function deleteSessionTree(sessionId: PrefixedString<'ses'>): Promise<{ id: string }> {

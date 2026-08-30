@@ -46,7 +46,7 @@ export function NewSessionPage() {
     queryClient.setQueryData<Session>(sessionKeys.detail(session.id), session);
 
     queryClient.setQueryData<InfiniteData<MessagesPage>>(sessionKeys.messages(session.id), {
-      pages: [{ messages: [], hasMore: false }],
+      pages: [{ messages: [], nextCursor: null }],
       pageParams: [undefined],
     });
     queryClient.setQueryData(todoKeys.list(session.id), []);

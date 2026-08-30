@@ -8,7 +8,7 @@ import type {
   MailLabelView,
   MailMessageView,
   MailThreadDetail,
-  MailThreadListItem,
+  MailThreadsPage,
 } from '@stitch/shared/mail/types';
 
 import { getMailDb, type MailDb } from './client.js';
@@ -36,8 +36,6 @@ type ListThreadsOptions = {
   limit?: number;
   db?: MailDb;
 };
-
-type ListThreadsResult = { threads: MailThreadListItem[]; nextCursor: string | null };
 
 type ThreadCursor = { lastMessageAt: number; id: MailThreadId };
 
@@ -139,7 +137,7 @@ async function sendersForThreads(
   return sendersByThread;
 }
 
-export async function listThreads(options: ListThreadsOptions): Promise<ListThreadsResult> {
+export async function listThreads(options: ListThreadsOptions): Promise<MailThreadsPage> {
   const db = dbOrDefault(options.db);
   const limit = Math.min(Math.max(options.limit ?? 50, 1), 100);
   const cursor = parseThreadCursor(options.cursor);
