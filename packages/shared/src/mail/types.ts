@@ -1,4 +1,5 @@
 import type { PrefixedString } from '../id/index.js';
+import type { CursorPaginationMetadata } from '../pagination.js';
 
 export type MailAccountId = PrefixedString<'macc'>;
 export type MailLabelId = PrefixedString<'mlbl'>;
@@ -55,6 +56,8 @@ export type MailThreadListItem = {
   isTrashed: boolean;
   labels: MailLabelView[];
 };
+
+export type MailThreadsPage = CursorPaginationMetadata & { threads: MailThreadListItem[] };
 
 export type MailAttachmentView = {
   id: MailAttachmentId;

@@ -10,15 +10,15 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 
-function getPageNumbers(currentPage: number, pageCount: number): number[] {
-  if (pageCount <= 1) {
+export function getPaginationPageNumbers(page: number, totalPages: number): number[] {
+  if (totalPages <= 1) {
     return [];
   }
 
-  const firstPage = 0;
-  const lastPage = pageCount - 1;
-  const start = Math.max(firstPage, currentPage - 1);
-  const end = Math.min(lastPage, currentPage + 1);
+  const firstPage = 1;
+  const lastPage = totalPages;
+  const start = Math.max(firstPage, page - 1);
+  const end = Math.min(lastPage, page + 1);
 
   const pages = new Set<number>([firstPage, lastPage]);
   for (let index = start; index <= end; index += 1) {
@@ -28,19 +28,24 @@ function getPageNumbers(currentPage: number, pageCount: number): number[] {
   return [...pages].toSorted((a, b) => a - b);
 }
 
-export function RecordingsPagination({
-  page,
-  pageCount,
-  onPageChange,
-}: {
-  page: number;
-  pageCount: number;
-  onPageChange: (page: number) => void;
-}) {
-  const currentPage = page - 1;
-  const pageNumbers = getPageNumbers(currentPage, pageCount);
+export function clampPaginationPage(page: number, totalPages: number): number {
+  return Math.min(Math.max(page, 1), Math.max(totalPages, 1));
+}
 
-  if (pageCount <= 1) return null;
+type NumberedPaginationProps = {
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+};
+
+export function NumberedPagination({ page, totalPages, onPageChange }: NumberedPaginationProps) {
+  if (totalPages <= 1) {
+    return null;
+  }
+
+  const pageNumbers = getPaginationPageNumbers(page, totalPages);
+  const isFirstPage = page <= 1;
+  const isLastPage = page >= totalPages;
 
   return (
     <div className="border-t border-border px-space-l py-space-l">
@@ -49,19 +54,18 @@ export function RecordingsPagination({
           <PaginationItem>
             <PaginationPrevious
               href="#"
+              aria-disabled={isFirstPage}
               onClick={(event) => {
                 event.preventDefault();
-                if (page > 1) {
-                  onPageChange(page - 1);
-                }
+                if (!isFirstPage) onPageChange(page - 1);
               }}
-              className={page <= 1 ? 'pointer-events-none opacity-50' : undefined}
+              className={isFirstPage ? 'pointer-events-none opacity-50' : undefined}
             />
           </PaginationItem>
 
           {pageNumbers.map((pageNumber, index) => {
             const previousPage = pageNumbers[index - 1];
-            const showGap = pageNumber - previousPage > 1;
+            const showGap = index > 0 && pageNumber - previousPage > 1;
             return (
               <React.Fragment key={`page-${pageNumber}`}>
                 {showGap ? (
@@ -72,12 +76,12 @@ export function RecordingsPagination({
                 <PaginationItem>
                   <PaginationLink
                     href="#"
-                    isActive={pageNumber === currentPage}
+                    isActive={pageNumber === page}
                     onClick={(event) => {
                       event.preventDefault();
-                      onPageChange(pageNumber + 1);
+                      onPageChange(pageNumber);
                     }}>
-                    {pageNumber + 1}
+                    {pageNumber}
                   </PaginationLink>
                 </PaginationItem>
               </React.Fragment>
@@ -87,13 +91,12 @@ export function RecordingsPagination({
           <PaginationItem>
             <PaginationNext
               href="#"
+              aria-disabled={isLastPage}
               onClick={(event) => {
                 event.preventDefault();
-                if (page < pageCount) {
-                  onPageChange(page + 1);
-                }
+                if (!isLastPage) onPageChange(page + 1);
               }}
-              className={page >= pageCount ? 'pointer-events-none opacity-50' : undefined}
+              className={isLastPage ? 'pointer-events-none opacity-50' : undefined}
             />
           </PaginationItem>
         </PaginationContent>

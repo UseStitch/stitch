@@ -10,15 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
+import { NumberedPagination } from '@/components/ui/numbered-pagination';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table } from '@/components/ui/table';
 
@@ -28,7 +20,6 @@ type AgendaItemsTableProps = {
   showListColumn: boolean;
   timeZone: string;
   page: number;
-  currentPage: number;
   totalPages: number;
   deletingItemId?: string;
   onPageChange: (page: number) => void;
@@ -44,7 +35,6 @@ export function AgendaItemsTable({
   showListColumn,
   timeZone,
   page,
-  currentPage,
   totalPages,
   deletingItemId,
   onPageChange,
@@ -53,21 +43,6 @@ export function AgendaItemsTable({
   onDelete,
   onDateChange,
 }: AgendaItemsTableProps) {
-  let pageNumbers: number[];
-  if (totalPages <= 1) {
-    pageNumbers = [];
-  } else {
-    const firstPage = 0;
-    const lastPage = totalPages - 1;
-    const start = Math.max(firstPage, currentPage - 1);
-    const end = Math.min(lastPage, currentPage + 1);
-    const pages = new Set<number>([firstPage, lastPage]);
-    for (let index = start; index <= end; index += 1) {
-      pages.add(index);
-    }
-    pageNumbers = [...pages].toSorted((a, b) => a - b);
-  }
-
   return (
     <Table.Container>
       <Table.Scroller>
@@ -125,58 +100,7 @@ export function AgendaItemsTable({
         </Table.Root>
       </Table.Scroller>
 
-      {totalPages > 1 ? (
-        <div className="border-t border-border px-space-l py-space-l">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  href="#"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    if (page > 1) onPageChange(page - 1);
-                  }}
-                  className={page <= 1 ? 'pointer-events-none opacity-50' : undefined}
-                />
-              </PaginationItem>
-              {pageNumbers.map((pageNumber, index) => {
-                const previousPage = pageNumbers[index - 1];
-                const showGap = pageNumber - previousPage > 1;
-                return (
-                  <React.Fragment key={`page-${pageNumber}`}>
-                    {showGap ? (
-                      <PaginationItem>
-                        <PaginationEllipsis />
-                      </PaginationItem>
-                    ) : null}
-                    <PaginationItem>
-                      <PaginationLink
-                        href="#"
-                        isActive={pageNumber === currentPage}
-                        onClick={(event) => {
-                          event.preventDefault();
-                          onPageChange(pageNumber + 1);
-                        }}>
-                        {pageNumber + 1}
-                      </PaginationLink>
-                    </PaginationItem>
-                  </React.Fragment>
-                );
-              })}
-              <PaginationItem>
-                <PaginationNext
-                  href="#"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    if (page < totalPages) onPageChange(page + 1);
-                  }}
-                  className={page >= totalPages ? 'pointer-events-none opacity-50' : undefined}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      ) : null}
+      <NumberedPagination page={page} totalPages={totalPages} onPageChange={onPageChange} />
     </Table.Container>
   );
 }

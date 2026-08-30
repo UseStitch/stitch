@@ -82,7 +82,7 @@ export async function syncAllAutomationSchedules(): Promise<void> {
   let page = 1;
 
   for (;;) {
-    const result = await listAutomations({ page, pageSize });
+    const result = await listAutomations({ page, pageSize, sort: 'createdAt', sortDirection: 'asc' });
     automationList.push(...result.automations);
 
     if (result.totalPages === 0 || page >= result.totalPages) {

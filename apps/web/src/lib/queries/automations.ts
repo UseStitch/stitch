@@ -1,7 +1,14 @@
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  infiniteQueryOptions,
+  keepPreviousData,
+  queryOptions,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import type {
   Automation,
+  AutomationSortField,
   CreateAutomationInput,
   DeleteAutomationInput,
   ListAutomationsResponse,
@@ -9,32 +16,44 @@ import type {
   UpdateAutomationInput,
 } from '@stitch/shared/automations/types';
 import type { Session } from '@stitch/shared/chat/messages';
+import type { SortDirection } from '@stitch/shared/pagination';
 
 import { serverRequest } from '@/lib/api';
 
 const automationKeys = {
   all: ['automations'] as const,
-  page: (page: number, pageSize: number) => [...automationKeys.all, 'page', page, pageSize] as const,
+  page: (input: { page: number; pageSize: number; sort: AutomationSortField; sortDirection: SortDirection }) =>
+    [...automationKeys.all, 'page', input] as const,
   detail: (automationId: string) => [...automationKeys.all, 'detail', automationId] as const,
-  sidebarList: () => [...automationKeys.all, 'sidebar-list'] as const,
+  sidebarList: () => [...automationKeys.all, 'sidebar-list', 'updatedAt', 'desc'] as const,
   sessions: (automationId: string) => [...automationKeys.all, 'sessions', automationId] as const,
 };
 
-export function automationsPageQueryOptions(input: { page: number; pageSize: number }) {
+export function automationsPageQueryOptions(input: {
+  page: number;
+  pageSize: number;
+  sort: AutomationSortField;
+  sortDirection: SortDirection;
+}) {
   return queryOptions({
-    queryKey: automationKeys.page(input.page, input.pageSize),
-    queryFn: () =>
-      serverRequest<ListAutomationsResponse>('/automations', {
-        params: { page: input.page, pageSize: input.pageSize },
-      }),
+    queryKey: automationKeys.page(input),
+    queryFn: () => serverRequest<ListAutomationsResponse>('/automations', { params: input }),
+    placeholderData: keepPreviousData,
   });
 }
 
-export const automationsSidebarListQueryOptions = queryOptions({
+const AUTOMATIONS_SIDEBAR_PAGE_SIZE = 50;
+
+export const automationsSidebarListQueryOptions = infiniteQueryOptions({
   queryKey: automationKeys.sidebarList(),
-  queryFn: async (): Promise<Automation[]> => {
-    const data = await serverRequest<ListAutomationsResponse>('/automations', { params: { page: 1, pageSize: 100 } });
-    return data.automations;
+  queryFn: ({ pageParam }) =>
+    serverRequest<ListAutomationsResponse>('/automations', {
+      params: { page: pageParam, pageSize: AUTOMATIONS_SIDEBAR_PAGE_SIZE, sort: 'updatedAt', sortDirection: 'desc' },
+    }),
+  initialPageParam: 1,
+  getNextPageParam: (lastPage) => {
+    if (lastPage.page >= lastPage.totalPages) return undefined;
+    return lastPage.page + 1;
   },
 });
 

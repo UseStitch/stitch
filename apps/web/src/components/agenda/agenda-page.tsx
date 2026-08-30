@@ -20,6 +20,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { MetricCard } from '@/components/ui/metric-card';
+import { clampPaginationPage } from '@/components/ui/numbered-pagination';
 import { Page, PageContent, PageDescription, PageHeader, PageHeaderContent, PageIcon } from '@/components/ui/page';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import {
@@ -63,6 +64,9 @@ export function AgendaPage({ listId }: { listId?: string }) {
   const items = [...active, ...completed];
   const totalPages = itemsData?.totalPages ?? 0;
   const total = itemsData?.total ?? 0;
+
+  const clampedPage = clampPaginationPage(page, totalPages);
+  if (itemsData && clampedPage !== page) setPage(clampedPage);
 
   // Adjust paging during render when the selected list changes
   const viewKey = listId ?? '';
@@ -152,7 +156,6 @@ export function AgendaPage({ listId }: { listId?: string }) {
     }
   }
 
-  const currentPage = (itemsData?.page ?? page) - 1;
   const totalOpen = lists.reduce((sum, l) => sum + l.itemCounts.open, 0);
   const totalInProgress = lists.reduce((sum, l) => sum + l.itemCounts.in_progress, 0);
   const totalOverdue = lists.reduce((sum, l) => sum + l.itemCounts.overdue, 0);
@@ -283,7 +286,6 @@ export function AgendaPage({ listId }: { listId?: string }) {
           showListColumn={!listId}
           timeZone={timeZone}
           page={page}
-          currentPage={currentPage}
           totalPages={totalPages}
           deletingItemId={deleteMutation.isPending ? deleteMutation.variables : undefined}
           onPageChange={setPage}

@@ -14,8 +14,9 @@ import { Text } from '@/components/primitives/text.js';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
-import { Spinner } from '@/components/ui/spinner';
+import { InfiniteLoadTrigger } from '@/components/ui/infinite-load-trigger';
 import { StatusDot } from '@/components/ui/status-dot';
+import { useInfiniteLoadObserver } from '@/hooks/use-infinite-load-observer';
 import { useStreamingSessionIds } from '@/hooks/use-session-stream-state';
 import { sessionsInfiniteQueryOptions, useArchiveSession, useDeleteSession } from '@/lib/queries/chat';
 
@@ -33,7 +34,6 @@ export function ChatSidebarContent() {
   const [search, setSearch] = React.useState('');
   const [deletingSessionId, setDeletingSessionId] = React.useState<string | null>(null);
   const deferredSearch = React.useDeferredValue(search.trim());
-  const loadMoreRef = React.useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     ...sessionsInfiniteQueryOptions(deferredSearch),
@@ -71,19 +71,11 @@ export function ChatSidebarContent() {
     setDeletingSessionId(null);
   }
 
-  React.useEffect(() => {
-    const node = loadMoreRef.current;
-    if (!node || !hasNextPage) return;
-
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.at(0)?.isIntersecting && !isFetchingNextPage) {
-        void fetchNextPage();
-      }
-    });
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+  const loadMoreRef = useInfiniteLoadObserver({
+    hasMore: hasNextPage,
+    isLoading: isFetchingNextPage,
+    onLoadMore: () => void fetchNextPage(),
+  });
 
   return (
     <>
@@ -159,11 +151,7 @@ export function ChatSidebarContent() {
                 );
               })}
             </InternalSidebar.List>
-            {hasNextPage ? (
-              <div ref={loadMoreRef} className="flex h-9 items-center justify-center">
-                {isFetchingNextPage ? <Spinner tone="muted" /> : null}
-              </div>
-            ) : null}
+            {hasNextPage ? <InfiniteLoadTrigger sentinelRef={loadMoreRef} isLoading={isFetchingNextPage} /> : null}
           </InternalSidebar.Group>
         ) : (
           <Empty size="compact">

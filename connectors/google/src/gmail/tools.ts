@@ -2,6 +2,7 @@ import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 
 import { GmailMissingTempPathError } from '../errors.js';
+import { paginationFields } from '../pagination.js';
 import * as GmailApi from './api.js';
 
 import type { GoogleClient } from '../client.js';
@@ -12,8 +13,7 @@ const gmailSearchSchema = z.object({
     .optional()
     .describe('Optional account email or label when multiple Google accounts are connected'),
   query: z.string().describe('Gmail search query (same syntax as Gmail search bar)'),
-  maxResults: z.number().optional().default(10).describe('Max results to return (default 10)'),
-  pageToken: z.string().optional().describe('Pagination token from a previous search'),
+  ...paginationFields(),
   idsOnly: z
     .boolean()
     .optional()

@@ -101,6 +101,9 @@ export function RecordingsTable({
     getRowId: (row) => row.id,
     state: { sorting },
     onSortingChange,
+    manualSorting: true,
+    enableMultiSort: false,
+    enableSortingRemoval: false,
     meta: { activeRecordingId, onDelete },
   });
 

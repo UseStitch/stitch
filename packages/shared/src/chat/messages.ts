@@ -1,5 +1,6 @@
 import type { StreamErrorDetails } from '../chat/errors.js';
 import type { PrefixedString } from '../id/index.js';
+import type { CursorPaginationMetadata } from '../pagination.js';
 import type { LanguageModelV3Source } from '@ai-sdk/provider';
 import type { LanguageModelUsage, TextStreamPart, ToolSet } from 'ai';
 
@@ -130,9 +131,9 @@ export type Session = {
   updatedAt: number;
 };
 
-export type MessagesPage = { messages: Message[]; hasMore: boolean };
+export type MessagesPage = CursorPaginationMetadata & { messages: Message[] };
 
-export type SessionsPage = { sessions: Session[]; hasMore: boolean };
+export type SessionsPage = CursorPaginationMetadata & { sessions: Session[] };
 
 export type SessionStats = {
   sessionTitle: string;

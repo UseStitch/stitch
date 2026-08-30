@@ -8,12 +8,14 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 
+import type { SortDirection } from '@stitch/shared/pagination';
 import type {
   ActiveRecordingResponse,
   ListMeetingNoteTemplatesResponse,
   ListRecordingsResponse,
   MeetingNoteTemplateInput,
   MeetingNoteTemplateResponse,
+  RecordingSortField,
   RecordingDetailsResponse,
   StartRecordingInput,
   StartRecordingAnalysisResponse,
@@ -26,8 +28,9 @@ import { serverRequest } from '@/lib/api';
 export const recordingsKeys = {
   all: ['recordings'] as const,
   lists: () => [...recordingsKeys.all, 'list'] as const,
-  list: (page: number, pageSize: number) => [...recordingsKeys.lists(), page, pageSize] as const,
-  infiniteList: (pageSize: number) => [...recordingsKeys.lists(), 'infinite', pageSize] as const,
+  list: (input: { page: number; pageSize: number; sort: RecordingSortField; sortDirection: SortDirection }) =>
+    [...recordingsKeys.lists(), input] as const,
+  infiniteList: (pageSize: number) => [...recordingsKeys.lists(), 'infinite', pageSize, 'startedAt', 'desc'] as const,
   details: () => [...recordingsKeys.all, 'detail'] as const,
   detail: (recordingId: string) => [...recordingsKeys.details(), recordingId] as const,
   active: () => [...recordingsKeys.all, 'active'] as const,
@@ -38,11 +41,15 @@ export const recordingsKeys = {
 
 const RECORDINGS_PAGE_SIZE = 12;
 
-export function recordingsQueryOptions(input: { page: number; pageSize: number }) {
+export function recordingsQueryOptions(input: {
+  page: number;
+  pageSize: number;
+  sort: RecordingSortField;
+  sortDirection: SortDirection;
+}) {
   return queryOptions({
-    queryKey: recordingsKeys.list(input.page, input.pageSize),
-    queryFn: () =>
-      serverRequest<ListRecordingsResponse>('/recordings', { params: { page: input.page, pageSize: input.pageSize } }),
+    queryKey: recordingsKeys.list(input),
+    queryFn: () => serverRequest<ListRecordingsResponse>('/recordings', { params: input }),
     placeholderData: keepPreviousData,
   });
 }
@@ -52,7 +59,7 @@ export const recordingsInfiniteQueryOptions = () =>
     queryKey: recordingsKeys.infiniteList(RECORDINGS_PAGE_SIZE),
     queryFn: ({ pageParam }) =>
       serverRequest<ListRecordingsResponse>('/recordings', {
-        params: { page: pageParam, pageSize: RECORDINGS_PAGE_SIZE },
+        params: { page: pageParam, pageSize: RECORDINGS_PAGE_SIZE, sort: 'startedAt', sortDirection: 'desc' },
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {

@@ -23,7 +23,7 @@ import {
   markSessionRead,
   renameSession,
 } from '@/chat/session-crud.js';
-import { routeSchemas } from '@/lib/route-schemas.js';
+import { cursorQuerySchema, routeSchemas } from '@/lib/route-schemas.js';
 import { listSessionTodos } from '@/todos/service.js';
 
 const sessionIdParamSchema = z.object({ id: routeSchemas.sessionId });
@@ -35,17 +35,12 @@ const createSessionSchema = z.object({
   parentSessionId: routeSchemas.sessionId.optional(),
 });
 
-const listSessionsQuerySchema = z.object({
+const listSessionsQuerySchema = cursorQuerySchema({ limit: 30, maxLimit: 100 }).extend({
   type: z.enum(['chat', 'automation']).optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional(),
-  cursor: z.coerce.number().int().optional(),
   q: z.string().trim().optional(),
 });
 
-const listMessagesQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(200).optional(),
-  cursor: z.coerce.number().int().optional(),
-});
+const listMessagesQuerySchema = cursorQuerySchema({ limit: 50, maxLimit: 200 });
 
 const renameSessionSchema = z.object({ title: z.string().trim().min(1) });
 

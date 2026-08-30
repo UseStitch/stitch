@@ -224,6 +224,59 @@ describe('listSessionMessages', () => {
 
     expect(result.messages.map((message) => message.id)).toEqual([liveMessageId]);
   });
+
+  test('traverses messages with equal timestamps exactly once across pages', async () => {
+    const sessionId = 'ses_list_equal_timestamps' as never;
+    const now = Date.now();
+    const messageIds = ['msg_equal_a', 'msg_equal_b', 'msg_equal_c', 'msg_equal_d', 'msg_equal_e'] as const;
+
+    await getDb()
+      .insert(sessions)
+      .values({
+        id: sessionId,
+        title: 'Equal Timestamps',
+        type: 'chat',
+        automationId: null,
+        parentSessionId: null,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+    await getDb()
+      .insert(messages)
+      .values(
+        messageIds.map(
+          (id) =>
+            ({
+              id,
+              sessionId,
+              role: 'user',
+              parts: [textPart(id, now)],
+              modelId: 'test-model',
+              providerId: 'test-provider',
+              costUsd: 0,
+              finishReason: null,
+              isSummary: false,
+              createdAt: now,
+              updatedAt: now,
+              startedAt: now,
+              duration: null,
+            }) as never,
+        ),
+      );
+
+    const seen: string[] = [];
+    let cursor: string | undefined;
+    for (let page = 0; page < messageIds.length + 1; page++) {
+      const result = await listSessionMessages(sessionId, 2, cursor);
+      seen.push(...result.messages.map((message) => message.id));
+      if (!result.nextCursor) break;
+      cursor = result.nextCursor;
+    }
+
+    expect(seen.toSorted()).toEqual([...messageIds].toSorted());
+    expect(new Set(seen).size).toBe(messageIds.length);
+  });
 });
 
 describe('listSessions', () => {
@@ -260,5 +313,39 @@ describe('listSessions', () => {
 
     expect(archiveResult.archivedReason).toBe('archive_session');
     expect(result.sessions.map((session) => session.id)).toEqual([visibleSessionId]);
+  });
+
+  test('traverses sessions with equal timestamps exactly once across pages', async () => {
+    const now = Date.now();
+    const sessionIds = ['ses_equal_a', 'ses_equal_b', 'ses_equal_c', 'ses_equal_d', 'ses_equal_e'] as const;
+
+    await getDb()
+      .insert(sessions)
+      .values(
+        sessionIds.map(
+          (id) =>
+            ({
+              id,
+              title: 'Equal Timestamps Session',
+              type: 'chat',
+              automationId: null,
+              parentSessionId: null,
+              createdAt: now,
+              updatedAt: now,
+            }) as never,
+        ),
+      );
+
+    const seen: string[] = [];
+    let cursor: string | undefined;
+    for (let page = 0; page < sessionIds.length + 1; page++) {
+      const result = await listSessions('chat', { limit: 2, cursor });
+      seen.push(...result.sessions.map((session) => session.id));
+      if (!result.nextCursor) break;
+      cursor = result.nextCursor;
+    }
+
+    expect(seen.toSorted()).toEqual([...sessionIds].toSorted());
+    expect(new Set(seen).size).toBe(sessionIds.length);
   });
 });

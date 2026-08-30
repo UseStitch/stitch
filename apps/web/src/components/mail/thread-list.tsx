@@ -11,6 +11,7 @@ import { Icon } from '@/components/primitives/icon';
 import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
 import { Button } from '@/components/ui/button';
+import { useInfiniteLoadObserver } from '@/hooks/use-infinite-load-observer';
 import { mailThreadsInfiniteQueryOptions } from '@/lib/queries/mail';
 
 type ThreadListProps = {
@@ -74,7 +75,6 @@ function ThreadRow({ thread, active, onClick }: { thread: MailThreadListItem; ac
 
 export function ThreadList({ accountId, labelId, selectedThreadId, onSelectThread }: ThreadListProps) {
   const parentRef = React.useRef<HTMLDivElement>(null);
-  const loadMoreRef = React.useRef<HTMLDivElement>(null);
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useSuspenseInfiniteQuery(
     mailThreadsInfiniteQueryOptions(accountId, labelId),
   );
@@ -86,16 +86,11 @@ export function ThreadList({ accountId, labelId, selectedThreadId, onSelectThrea
     overscan: 8,
   });
 
-  React.useEffect(() => {
-    const el = loadMoreRef.current;
-    if (!el || !hasNextPage || isFetchingNextPage) return;
-
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.at(0)?.isIntersecting) void fetchNextPage();
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+  const loadMoreRef = useInfiniteLoadObserver({
+    hasMore: hasNextPage,
+    isLoading: isFetchingNextPage,
+    onLoadMore: () => void fetchNextPage(),
+  });
 
   if (threads.length === 0) {
     return (

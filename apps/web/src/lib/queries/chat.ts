@@ -50,14 +50,8 @@ export const sessionsInfiniteQueryOptions = (search: string) =>
       serverRequest<SessionsPage>('/chat/sessions', {
         params: { type: 'chat', limit: SESSION_PAGE_SIZE, q: search || undefined, cursor: pageParam },
       }),
-    initialPageParam: undefined as number | undefined,
-    getNextPageParam: (lastPage, _allPages, lastPageParam) => {
-      if (!lastPage.hasMore || lastPage.sessions.length === 0) return undefined;
-      const oldest = lastPage.sessions.at(-1);
-      if (!oldest) return undefined;
-      if (lastPageParam !== undefined && oldest.createdAt === lastPageParam) return undefined;
-      return oldest.createdAt;
-    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     placeholderData: keepPreviousData,
   });
 
@@ -110,16 +104,8 @@ export const sessionMessagesInfiniteQueryOptions = (id: string) =>
     queryKey: sessionKeys.messages(id),
     queryFn: ({ pageParam }): Promise<MessagesPage> =>
       serverRequest<MessagesPage>(`/chat/sessions/${id}/messages`, { params: { limit: PAGE_SIZE, cursor: pageParam } }),
-    initialPageParam: undefined as number | undefined,
-    getNextPageParam: (lastPage, _allPages, lastPageParam) => {
-      if (!lastPage.hasMore || lastPage.messages.length === 0) return undefined;
-      // The cursor is the createdAt of the oldest message in this page
-      // (messages are returned chronologically, so oldest is first)
-      const oldest = lastPage.messages[0];
-      // Guard against infinite loops: if cursor hasn't changed, stop
-      if (lastPageParam !== undefined && oldest.createdAt === lastPageParam) return undefined;
-      return oldest.createdAt;
-    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
 
 /** Flatten all pages into a single chronological message array. */

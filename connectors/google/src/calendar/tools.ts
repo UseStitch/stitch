@@ -1,6 +1,7 @@
 import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 
+import { paginationFields } from '../pagination.js';
 import * as CalendarApi from './api.js';
 
 import type { GoogleClient } from '../client.js';
@@ -22,7 +23,7 @@ const calendarListSchema = z.object({
     .describe(
       'IANA time zone (e.g. "America/New_York"). Pass the user\'s local timezone so "today" is interpreted correctly.',
     ),
-  maxResults: z.number().optional().default(10).describe('Max events to return (default 10)'),
+  ...paginationFields('Max events to return (default 10)'),
   calendarId: z.string().optional().describe('Calendar ID to query (defaults to primary calendar)'),
 });
 
@@ -105,6 +106,7 @@ export function createCalendarTools(
           timeMax: input.timeMax,
           timeZone: input.timeZone,
           maxResults: input.maxResults,
+          pageToken: input.pageToken,
           calendarId: input.calendarId,
         });
         return { ...result, usedAccount };

@@ -2,11 +2,24 @@ import { z } from 'zod';
 
 import { ID_PREFIXES, type IdPrefix, type PrefixedString } from '@stitch/shared/id';
 
-export function paginationQuerySchema(defaults: { pageSize?: number } = {}) {
+export function paginationQuerySchema(defaults: { pageSize?: number; maxPageSize?: number } = {}) {
   const defaultPageSize = defaults.pageSize ?? 20;
+  const maxPageSize = defaults.maxPageSize ?? 100;
   return z.object({
     page: z.coerce.number().int().min(1).default(1),
-    pageSize: z.coerce.number().int().min(1).max(100).default(defaultPageSize),
+    pageSize: z.coerce.number().int().min(1).max(maxPageSize).default(defaultPageSize),
+  });
+}
+
+export function cursorQuerySchema(defaults: { limit?: number; maxLimit?: number } = {}) {
+  return z.object({
+    cursor: z.string().min(1).optional(),
+    limit: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(defaults.maxLimit ?? 100)
+      .default(defaults.limit ?? 20),
   });
 }
 

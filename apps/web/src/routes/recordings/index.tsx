@@ -6,7 +6,9 @@ import { recordingsInfiniteQueryOptions, recordingsQueryOptions } from '@/lib/qu
 export const Route = createFileRoute('/recordings/')({
   loader: ({ context }) =>
     Promise.all([
-      context.queryClient.ensureQueryData(recordingsQueryOptions({ page: 1, pageSize: 12 })),
+      context.queryClient.ensureQueryData(
+        recordingsQueryOptions({ page: 1, pageSize: 12, sort: 'startedAt', sortDirection: 'desc' }),
+      ),
       context.queryClient.ensureInfiniteQueryData(recordingsInfiniteQueryOptions()),
     ]),
   component: RecordingsPage,

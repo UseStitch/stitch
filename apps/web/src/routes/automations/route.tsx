@@ -6,8 +6,10 @@ import { visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
 export const Route = createFileRoute('/automations')({
   loader: ({ context }) =>
     Promise.all([
-      context.queryClient.ensureQueryData(automationsSidebarListQueryOptions),
-      context.queryClient.ensureQueryData(automationsPageQueryOptions({ page: 1, pageSize: 15 })),
+      context.queryClient.ensureInfiniteQueryData(automationsSidebarListQueryOptions),
+      context.queryClient.ensureQueryData(
+        automationsPageQueryOptions({ page: 1, pageSize: 15, sort: 'updatedAt', sortDirection: 'desc' }),
+      ),
       context.queryClient.ensureQueryData(visibleProviderModelsQueryOptions),
     ]),
   component: Outlet,

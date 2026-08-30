@@ -6,15 +6,15 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import type { SortingState } from '@tanstack/react-table';
 
-import type { Recording } from '@stitch/shared/recordings/types';
+import type { Recording, RecordingSortField } from '@stitch/shared/recordings/types';
 
 import { RecordingStartStopBar } from './list/recording-start-stop-bar';
-import { RecordingsPagination } from './list/recordings-pagination';
 import { RecordingsTable } from './list/recordings-table';
 import { DeleteRecordingDialog } from './shared/delete-recording-dialog';
 
 import type { SttModelSelection } from '@/components/model-selectors/stt-model-selector-popover';
 import { Icon } from '@/components/primitives/icon';
+import { clampPaginationPage, NumberedPagination } from '@/components/ui/numbered-pagination';
 import {
   Page,
   PageContent,
@@ -39,15 +39,20 @@ export function RecordingsPage() {
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'startedAt', desc: true }]);
   const [title, setTitle] = React.useState('');
   const [recordingToDelete, setRecordingToDelete] = React.useState<Recording | null>(null);
+  const sort = (sorting[0]?.id ?? 'startedAt') as RecordingSortField;
+  const sortDirection = sorting[0]?.desc === false ? 'asc' : 'desc';
 
   const { data } = useSuspenseQuery({
-    ...recordingsQueryOptions({ page, pageSize: PAGE_SIZE }),
+    ...recordingsQueryOptions({ page, pageSize: PAGE_SIZE, sort, sortDirection }),
     refetchInterval: (query) => (query.state.data?.activeRecordingId ? 1_000 : false),
   });
   const startRecording = useStartRecording();
   const stopRecording = useStopRecording();
   const deleteRecording = useDeleteRecording();
   const navigate = useNavigate();
+
+  const clampedPage = clampPaginationPage(page, data.totalPages);
+  if (clampedPage !== page) setPage(clampedPage);
 
   const activeRecording = data.recordings.find((recording) => recording.id === data.activeRecordingId);
 
@@ -63,6 +68,11 @@ export function RecordingsPage() {
 
   const handleDelete = (recording: Recording) => {
     setRecordingToDelete(recording);
+  };
+
+  const handleSortingChange: React.Dispatch<React.SetStateAction<SortingState>> = (updater) => {
+    setSorting((current) => (typeof updater === 'function' ? updater(current) : updater));
+    setPage(1);
   };
 
   return (
@@ -118,13 +128,13 @@ export function RecordingsPage() {
             recordings={data.recordings}
             activeRecordingId={data.activeRecordingId}
             sorting={sorting}
-            onSortingChange={setSorting}
+            onSortingChange={handleSortingChange}
             onDelete={handleDelete}
             onNavigate={(recordingId) => {
               void navigate({ to: '/recordings/$id', params: { id: recordingId } });
             }}
           />
-          <RecordingsPagination page={page} pageCount={data.totalPages} onPageChange={setPage} />
+          <NumberedPagination page={page} totalPages={data.totalPages} onPageChange={setPage} />
         </div>
       </PageContent>
 

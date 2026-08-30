@@ -43,9 +43,14 @@ const automationIdParamSchema = z.object({ id: routeSchemas.automationId });
 
 export const automationsRouter = new Hono();
 
-automationsRouter.get('/', zValidator('query', paginationQuerySchema({ pageSize: 10 })), async (c) => {
-  const { page, pageSize } = c.req.valid('query');
-  const result = await listAutomations({ page, pageSize });
+const listAutomationsQuerySchema = paginationQuerySchema({ pageSize: 10 }).extend({
+  sort: z.enum(['title', 'runCount', 'createdAt', 'updatedAt']).default('updatedAt'),
+  sortDirection: z.enum(['asc', 'desc']).default('desc'),
+});
+
+automationsRouter.get('/', zValidator('query', listAutomationsQuerySchema), async (c) => {
+  const input = c.req.valid('query');
+  const result = await listAutomations(input);
   return c.json(result);
 });
 

@@ -6,6 +6,7 @@ import type {
   Automation,
   DeleteAutomationInput,
   ListAutomationsResponse,
+  ListAutomationsInput,
   AutomationSchedule,
   AutomationScheduleBlob,
   CreateAutomationInput,
@@ -61,11 +62,18 @@ function toAutomationRow(row: AutomationDbRow): Automation {
   return { ...row, schedule: deserializeAutomationSchedule(row.schedule) };
 }
 
-export async function listAutomations(input: { page: number; pageSize: number }): Promise<ListAutomationsResponse> {
+export async function listAutomations(input: ListAutomationsInput): Promise<ListAutomationsResponse> {
   const db = getDb();
+  const direction = input.sortDirection === 'asc' ? asc : desc;
+  const sortColumn = {
+    title: automations.title,
+    runCount: automations.runCount,
+    createdAt: automations.createdAt,
+    updatedAt: automations.updatedAt,
+  }[input.sort];
 
   const result = await paginatedQuery({
-    dataQuery: db.select().from(automations).orderBy(asc(automations.createdAt)),
+    dataQuery: db.select().from(automations).orderBy(direction(sortColumn), direction(automations.id)),
     count: db.$count(automations),
     page: input.page,
     pageSize: input.pageSize,
