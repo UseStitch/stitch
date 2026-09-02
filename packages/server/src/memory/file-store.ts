@@ -13,8 +13,6 @@ import type {
   MemoryTarget,
 } from '@stitch/shared/memory/types';
 
-import { MemoryCapacityTracker } from './capacity-adapter.js';
-import { MemoryFileLockAdapter } from './file-lock-adapter.js';
 import { MemoryParser } from './parser-adapter.js';
 
 import { PATHS } from '@/lib/paths.js';
@@ -86,8 +84,7 @@ export class MemoryStore {
   userCharLimit: number;
   private readonly now: () => Date;
   private readonly parser = new MemoryParser();
-  private readonly capacityTracker = new MemoryCapacityTracker();
-  private readonly fileLock = new MemoryFileLockAdapter();
+  private readonly fileQueues = new Map<string, Promise<void>>();
 
   constructor(options: FileStoreOptions = {}) {
     this.rootDir = path.resolve(options.rootDir ?? PATHS.dirPaths.memory);
@@ -143,13 +140,13 @@ export class MemoryStore {
       contentHash: hashContent(rawContent),
       mtime: fileStat.mtime.toISOString(),
       entries: parsed.entries,
-      capacity: limit === null ? null : this.capacityTracker.capacityFor(rawContent, limit),
+      capacity: limit === null ? null : this.capacityFor(rawContent, limit),
       truncated: false,
     };
   }
 
   async mutate(target: MemoryTarget, operations: MemoryMutation[], expectedHash?: string): Promise<MemoryFileSnapshot> {
-    return this.fileLock.withFileLock(CURATED_NAMES[target], async () => {
+    return this.withFileLock(CURATED_NAMES[target], async () => {
       const before = await this.readCurated(target);
       if (expectedHash && before.contentHash !== expectedHash) {
         throw new MemoryConflictError(`${CURATED_NAMES[target]} changed outside Stitch`);
@@ -199,7 +196,7 @@ export class MemoryStore {
         );
       }
 
-      this.capacityTracker.assertCapacity(raw, target, { memory: this.memoryCharLimit, user: this.userCharLimit });
+      this.assertCapacity(raw, target, { memory: this.memoryCharLimit, user: this.userCharLimit });
       await this.atomicWrite(path.join(this.rootDir, CURATED_NAMES[target]), raw);
       return this.readCurated(target);
     });
@@ -207,11 +204,11 @@ export class MemoryStore {
 
   async writeRaw(name: 'MEMORY.md' | 'USER.md', content: string, expectedHash: string): Promise<MemoryFileSnapshot> {
     const target = name === 'USER.md' ? 'user' : 'memory';
-    return this.fileLock.withFileLock(name, async () => {
+    return this.withFileLock(name, async () => {
       const before = await this.readFile(name);
       if (before.contentHash !== expectedHash) throw new MemoryConflictError(`${name} changed outside Stitch`);
       this.parser.parseDocument(content, name, target);
-      this.capacityTracker.assertCapacity(content, target, { memory: this.memoryCharLimit, user: this.userCharLimit });
+      this.assertCapacity(content, target, { memory: this.memoryCharLimit, user: this.userCharLimit });
       await this.atomicWrite(path.join(this.rootDir, name), content);
       return this.readFile(name);
     });
@@ -223,8 +220,8 @@ export class MemoryStore {
     memoryHash: string;
     userHash: string;
   }): Promise<{ memory: MemoryFileSnapshot; user: MemoryFileSnapshot }> {
-    return this.fileLock.withFileLock('MEMORY.md', () =>
-      this.fileLock.withFileLock('USER.md', async () => {
+    return this.withFileLock('MEMORY.md', () =>
+      this.withFileLock('USER.md', async () => {
         const [memoryBefore, userBefore] = await Promise.all([this.readCurated('memory'), this.readCurated('user')]);
         if (memoryBefore.contentHash !== input.memoryHash || userBefore.contentHash !== input.userHash) {
           throw new MemoryConflictError('Curated memory changed during consolidation');
@@ -232,14 +229,8 @@ export class MemoryStore {
 
         const memoryRaw = this.rewriteManagedBlocks(memoryBefore, input.memory, 'memory');
         const userRaw = this.rewriteManagedBlocks(userBefore, input.user, 'user');
-        this.capacityTracker.assertCapacity(memoryRaw, 'memory', {
-          memory: this.memoryCharLimit,
-          user: this.userCharLimit,
-        });
-        this.capacityTracker.assertCapacity(userRaw, 'user', {
-          memory: this.memoryCharLimit,
-          user: this.userCharLimit,
-        });
+        this.assertCapacity(memoryRaw, 'memory', { memory: this.memoryCharLimit, user: this.userCharLimit });
+        this.assertCapacity(userRaw, 'user', { memory: this.memoryCharLimit, user: this.userCharLimit });
         this.parser.parseDocument(memoryRaw, 'MEMORY.md', 'memory');
         this.parser.parseDocument(userRaw, 'USER.md', 'user');
 
@@ -260,7 +251,7 @@ export class MemoryStore {
   }
 
   async appendConsolidationLog(markdown: string): Promise<MemoryFileSnapshot> {
-    return this.fileLock.withFileLock('DREAMS.md', async () => {
+    return this.withFileLock('DREAMS.md', async () => {
       const before = await this.readFile('DREAMS.md');
       await this.atomicWrite(before.path, `${before.rawContent.trimEnd()}\n\n${markdown.trim()}\n`);
       return this.readFile('DREAMS.md');
@@ -286,7 +277,7 @@ export class MemoryStore {
 
   async appendDaily(entries: AddEntry[], date = this.now().toISOString().slice(0, 10)): Promise<MemoryFileSnapshot> {
     const relativePath = `daily/${date}.md`;
-    return this.fileLock.withFileLock(relativePath, async () => {
+    return this.withFileLock(relativePath, async () => {
       await this.ensureInitialized();
       const absolutePath = path.join(this.rootDir, 'daily', `${date}.md`);
       let raw: string;
@@ -320,9 +311,9 @@ export class MemoryStore {
   }
 
   async reset(): Promise<void> {
-    await this.fileLock.withFileLock('MEMORY.md', () =>
-      this.fileLock.withFileLock('USER.md', () =>
-        this.fileLock.withFileLock('DREAMS.md', async () => {
+    await this.withFileLock('MEMORY.md', () =>
+      this.withFileLock('USER.md', () =>
+        this.withFileLock('DREAMS.md', async () => {
           await rm(this.rootDir, { recursive: true, force: true });
           await this.ensureInitialized();
         }),
@@ -426,7 +417,7 @@ export class MemoryStore {
     const match = matches.at(0);
     if (!match) throw new MemoryConflictError(`Memory entry id is missing: ${id}`);
 
-    return this.fileLock.withFileLock(match.snapshot.name, async () => {
+    return this.withFileLock(match.snapshot.name, async () => {
       const current = await this.readFile(match.snapshot.name);
       if (expectedHash && current.contentHash !== expectedHash) {
         throw new MemoryConflictError(`${match.snapshot.name} changed outside Stitch`);
@@ -438,9 +429,9 @@ export class MemoryStore {
         content === null ? '' : serializeEntry({ ...entry, content: content.trim(), target: entry.target });
       const raw = replaceEntryBlock(current.rawContent, entry, replacement).replace(/\n{3,}/g, '\n\n');
       if (current.name === 'MEMORY.md')
-        this.capacityTracker.assertCapacity(raw, 'memory', { memory: this.memoryCharLimit, user: this.userCharLimit });
+        this.assertCapacity(raw, 'memory', { memory: this.memoryCharLimit, user: this.userCharLimit });
       if (current.name === 'USER.md')
-        this.capacityTracker.assertCapacity(raw, 'user', { memory: this.memoryCharLimit, user: this.userCharLimit });
+        this.assertCapacity(raw, 'user', { memory: this.memoryCharLimit, user: this.userCharLimit });
       await this.atomicWrite(current.path, raw);
       return this.readFile(current.name);
     });
@@ -495,6 +486,36 @@ export class MemoryStore {
       .toSorted()
       .reverse();
     await Promise.all(backups.slice(5).map((entry) => unlink(path.join(stateDir, entry))));
+  }
+
+  private capacityFor(content: string, limit: number): MemoryCapacity {
+    const used = content
+      .split('\n')
+      .filter((line) => !line.trimStart().startsWith('<!-- stitch-memory '))
+      .join('\n').length;
+    return { used, limit, remaining: Math.max(0, limit - used) };
+  }
+
+  private assertCapacity(content: string, target: MemoryTarget, limits: { memory: number; user: number }): void {
+    const capacity = this.capacityFor(content, target === 'memory' ? limits.memory : limits.user);
+    if (capacity.used > capacity.limit) throw new MemoryCapacityError(capacity);
+  }
+
+  private async withFileLock<T>(name: string, action: () => Promise<T>): Promise<T> {
+    const previous = this.fileQueues.get(name) ?? Promise.resolve();
+    let release = (): void => undefined;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const queued = previous.then(() => current);
+    this.fileQueues.set(name, queued);
+    await previous;
+    try {
+      return await action();
+    } finally {
+      release();
+      if (this.fileQueues.get(name) === queued) this.fileQueues.delete(name);
+    }
   }
 
   private async atomicWrite(filePath: string, content: string): Promise<void> {
