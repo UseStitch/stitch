@@ -1,14 +1,16 @@
-import { eq } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import type { LlmProviderId } from '@stitch/shared/providers/types';
 import type { SettingsKey } from '@stitch/shared/settings/types';
 
-import { getDb } from '@/db/client.js';
-import { providerConfig } from '@/db/schema/providers.js';
 import { isAllowedProvider } from '@/models/llm/registry.js';
 import * as Models from '@/models/llm/registry.js';
-import { isLlmProviderCredentials, type LlmProviderCredentials } from '@/provider/config/schema.js';
+import {
+  isLlmProviderCredentials,
+  isProviderConfigured,
+  listConfiguredProviderConfigs,
+  type LlmProviderCredentials,
+} from '@/provider/service.js';
 import { getSettings } from '@/settings/service.js';
 
 export type ResolvedModel = { providerId: LlmProviderId; modelId: string; credentials: LlmProviderCredentials };
@@ -38,11 +40,9 @@ type ResolveModelInput = {
  * Returns the resolved provider, model, and credentials.
  */
 export async function resolveModel(input: ResolveModelInput): Promise<ResolvedModel> {
-  const db = getDb();
-
   const [settingsMap, configs, providers] = await Promise.all([
     getSettings([input.providerIdKey, input.modelIdKey] as const),
-    db.select().from(providerConfig),
+    listConfiguredProviderConfigs(),
     Models.get(),
   ]);
 
@@ -112,15 +112,7 @@ export async function validateProviderModel(providerId: string, modelId: string)
     throw new HTTPException(404, { message: 'Provider not found' });
   }
 
-  const db = getDb();
-  const [providers, config] = await Promise.all([
-    Models.get(),
-    db
-      .select({ providerId: providerConfig.providerId })
-      .from(providerConfig)
-      .where(eq(providerConfig.providerId, providerId))
-      .get(),
-  ]);
+  const [providers, configured] = await Promise.all([Models.get(), isProviderConfigured(providerId)]);
 
   const provider = providers[providerId] as Models.RawProvider | undefined;
   if (!provider) throw new HTTPException(404, { message: 'Provider not found' });
@@ -128,5 +120,5 @@ export async function validateProviderModel(providerId: string, modelId: string)
   const model = provider.models[modelId] as Models.RawModel | undefined;
   if (!model) throw new HTTPException(400, { message: 'Model not found for provider' });
 
-  if (!config) throw new HTTPException(400, { message: 'Provider is not configured' });
+  if (!configured) throw new HTTPException(400, { message: 'Provider is not configured' });
 }

@@ -6,16 +6,14 @@ import { PROVIDER_IDS } from '@stitch/shared/providers/types';
 
 import { ICON_CACHE_CONTROL, SVG_CONTENT_TYPE } from '@/lib/icon-cache.js';
 import {
+  deleteProviderCredentials,
   getProvider,
+  getProviderCredentials,
   getProviderLogo,
   listEnabledProviderEmbeddingModels,
   listProviderModels,
-} from '@/llm/provider/service.js';
-import {
-  deleteProviderCredentials,
-  getProviderCredentials,
   upsertProviderCredentials,
-} from '@/provider/config/service.js';
+} from '@/provider/service.js';
 
 const providerIdSchema = z.enum(PROVIDER_IDS);
 const providerConfigSchema = z.record(z.string(), z.unknown());

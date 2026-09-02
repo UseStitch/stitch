@@ -13,8 +13,8 @@ import * as resolveModel from '@/llm/resolve-model.js';
 import * as sessionHistory from '@/llm/session-history.js';
 import * as streamRunner from '@/llm/stream/runner.js';
 import { enqueueSessionRun } from '@/llm/stream/session-run-coordinator.js';
-import type { LlmProviderCredentials } from '@/provider/config/schema.js';
-import * as providerConfig from '@/provider/config/service.js';
+import * as providerService from '@/provider/service.js';
+import type { LlmProviderCredentials } from '@/provider/service.js';
 import type { ModelMessage } from 'ai';
 
 setupTestDb();
@@ -23,7 +23,7 @@ const parentSessionId = 'ses_delivery_parent' as PrefixedString<'ses'>;
 const credentials = { providerId: 'openai', auth: { method: 'api-key', apiKey: 'test' } } as LlmProviderCredentials;
 
 const validateProviderModel = spyOn(resolveModel, 'validateProviderModel');
-const getProviderCredentials = spyOn(providerConfig, 'getProviderCredentials');
+const getProviderCredentials = spyOn(providerService, 'getProviderCredentials');
 const buildSessionLlmMessages = spyOn(sessionHistory, 'buildSessionLlmMessages');
 const runStream = spyOn(streamRunner, 'runStream');
 

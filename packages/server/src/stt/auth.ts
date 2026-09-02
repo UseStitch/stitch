@@ -1,8 +1,4 @@
-import { eq } from 'drizzle-orm';
-
-import { getDb } from '@/db/client.js';
-import { providerConfig } from '@/db/schema/providers.js';
-import { ProviderCredentialsSchema } from '@/provider/config/schema.js';
+import { getProviderCredentials } from '@/provider/service.js';
 import type { ProviderAuth } from '@/stt/types.js';
 
 /**
@@ -11,16 +7,14 @@ import type { ProviderAuth } from '@/stt/types.js';
  * no per-provider switch required; the schema shape determines the auth kind.
  */
 export async function resolveSttAuth(providerId: string): Promise<ProviderAuth | null> {
-  const db = getDb();
-  const config = (await db.select().from(providerConfig).where(eq(providerConfig.providerId, providerId))).at(0);
-
-  if (!config) return null;
-
-  const parsed = ProviderCredentialsSchema.safeParse(config.credentials);
-  if (!parsed.success) return null;
-
-  const { auth } = parsed.data;
-  if ('apiKey' in auth) return { kind: 'apiKey', key: auth.apiKey };
+  try {
+    const credentials = await getProviderCredentials(providerId);
+    if ('apiKey' in credentials.auth) {
+      return { kind: 'apiKey', key: credentials.auth.apiKey };
+    }
+  } catch {
+    return null;
+  }
 
   return null;
 }
