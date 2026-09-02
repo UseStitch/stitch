@@ -33,14 +33,10 @@ describe('Provider Service - Credentials & Persistence', () => {
     expect(getProviderCredentials('openai')).rejects.toThrow('Provider not configured');
 
     // Invalid credentials reject with 400
-    expect(upsertProviderCredentials('openai', { auth: { method: 'invalid' } })).rejects.toThrow(
-      'Invalid credentials',
-    );
+    expect(upsertProviderCredentials('openai', { auth: { method: 'invalid' } })).rejects.toThrow('Invalid credentials');
 
     // Upsert valid credentials
-    await upsertProviderCredentials('openai', {
-      auth: { method: 'api-key', apiKey: 'sk-test-key' },
-    });
+    await upsertProviderCredentials('openai', { auth: { method: 'api-key', apiKey: 'sk-test-key' } });
 
     expect(await isProviderConfigured('openai')).toBe(true);
     const creds = await getProviderCredentials('openai');
@@ -63,23 +59,22 @@ describe('Provider Service - Credentials & Persistence', () => {
   });
 
   test('deleting a local provider also cascades deletion to localModels table', async () => {
-    await upsertProviderCredentials('ollama_local', {
-      baseURL: 'http://localhost:11434',
-      auth: { method: 'none' },
-    });
+    await upsertProviderCredentials('ollama_local', { baseURL: 'http://localhost:11434', auth: { method: 'none' } });
 
     const db = getDb();
-    await db.insert(localModels).values({
-      id: 'local-test-model',
-      name: 'Local Test Model',
-      provider: 'ollama_local',
-      contextWindow: 4096,
-      outputLimit: 2048,
-      inputCostPerMillion: 0,
-      outputCostPerMillion: 0,
-      inputModalities: ['text'],
-      outputModalities: ['text'],
-    });
+    await db
+      .insert(localModels)
+      .values({
+        id: 'local-test-model',
+        name: 'Local Test Model',
+        provider: 'ollama_local',
+        contextWindow: 4096,
+        outputLimit: 2048,
+        inputCostPerMillion: 0,
+        outputCostPerMillion: 0,
+        inputModalities: ['text'],
+        outputModalities: ['text'],
+      });
 
     expect(await getStoredBaseURL('ollama_local')).toBe('http://localhost:11434');
 
@@ -96,9 +91,7 @@ describe('Provider Service - Credentials & Persistence', () => {
 
 describe('Provider Service - Capability & Summary Inspection', () => {
   test('listProvidersWithCapabilities returns all catalog providers with enabled state', async () => {
-    await upsertProviderCredentials('anthropic', {
-      auth: { method: 'api-key', apiKey: 'ant-key' },
-    });
+    await upsertProviderCredentials('anthropic', { auth: { method: 'api-key', apiKey: 'ant-key' } });
 
     const providers = await listProvidersWithCapabilities();
     expect(providers.length).toBeGreaterThan(0);
@@ -120,9 +113,7 @@ describe('Provider Service - Capability & Summary Inspection', () => {
     expect(anthropicBefore.model_count).toBeGreaterThan(0);
 
     // Standard provider when configured
-    await upsertProviderCredentials('anthropic', {
-      auth: { method: 'api-key', apiKey: 'ant-key' },
-    });
+    await upsertProviderCredentials('anthropic', { auth: { method: 'api-key', apiKey: 'ant-key' } });
     const anthropicAfter = await getProvider('anthropic');
     expect(anthropicAfter.enabled).toBe(true);
 
@@ -151,9 +142,7 @@ describe('Provider Service - Modality Catalogs', () => {
   test('listEnabledSttModels returns STT models only for enabled providers', async () => {
     expect(await listEnabledSttModels()).toEqual([]);
 
-    await upsertProviderCredentials('assemblyai', {
-      auth: { method: 'api-key', apiKey: 'test-assembly-key' },
-    });
+    await upsertProviderCredentials('assemblyai', { auth: { method: 'api-key', apiKey: 'test-assembly-key' } });
 
     const sttModels = await listEnabledSttModels();
     expect(sttModels.length).toBeGreaterThan(0);
@@ -163,9 +152,7 @@ describe('Provider Service - Modality Catalogs', () => {
   });
 
   test('listEnabledProviderEmbeddingModels returns embedding models only for enabled providers', async () => {
-    await upsertProviderCredentials('openai', {
-      auth: { method: 'api-key', apiKey: 'test-openai-key' },
-    });
+    await upsertProviderCredentials('openai', { auth: { method: 'api-key', apiKey: 'test-openai-key' } });
 
     const embeddingProviders = await listEnabledProviderEmbeddingModels();
     const openaiEntry = embeddingProviders.find((e) => e.providerId === 'openai');
