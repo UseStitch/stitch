@@ -19,11 +19,7 @@ import { compact } from '@/llm/session-summary.js';
 import { resolveDecision, type DoomLoopResponse } from '@/llm/stream/doom-loop.js';
 import { runStream } from '@/llm/stream/runner.js';
 import { abortSessionInteractions } from '@/llm/stream/session-abort.js';
-import {
-  abortActiveSessionRun,
-  cancelQueuedSessionRuns,
-  enqueueSessionRun,
-} from '@/llm/stream/session-run-coordinator.js';
+import { abortSession, enqueueSessionRun } from '@/llm/stream/session-run-coordinator.js';
 import * as LocalModels from '@/models/llm/local.js';
 import * as Models from '@/models/llm/registry.js';
 import {
@@ -342,8 +338,7 @@ export function resolveDoomLoop(sessionId: PrefixedString<'ses'>, response: Doom
 
 export async function abortSessionRun(sessionId: PrefixedString<'ses'>): Promise<void> {
   log.info({ event: 'stream.abort.requested', sessionId }, 'stream abort requested');
-  abortActiveSessionRun(sessionId);
-  cancelQueuedSessionRuns(sessionId);
+  abortSession(sessionId);
 
   const db = getDb();
   const childSessions = await db
