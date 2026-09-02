@@ -9,11 +9,11 @@ import { toolError } from '@stitch/shared/tools/types';
 import { createSession } from '@/chat/session-crud.js';
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema/sessions.js';
-import * as AbortRegistry from '@/lib/abort-registry.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { buildSessionLlmMessages } from '@/llm/session-history.js';
 import { runStream } from '@/llm/stream/runner.js';
+import * as SessionCoordinator from '@/llm/stream/session-run-coordinator.js';
 import type { LlmProviderCredentials } from '@/provider/config/schema.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 
@@ -83,9 +83,9 @@ export async function runChildSession(context: ToolContext, deps: ChildSessionDe
   const llmMessages = await buildSessionLlmMessages(childSessionId, { useBasePrompt: true, systemPrompt: null });
   const assistantMessageId = createMessageId();
 
-  const childAbortSignal = AbortRegistry.register(childSessionId);
+  const childAbortSignal = SessionCoordinator.register(childSessionId);
   const onParentAbort = () => {
-    AbortRegistry.abort(childSessionId);
+    SessionCoordinator.abort(childSessionId);
   };
   deps.parentAbortSignal.addEventListener('abort', onParentAbort, { once: true });
 
@@ -133,6 +133,6 @@ export async function runChildSession(context: ToolContext, deps: ChildSessionDe
     });
   } finally {
     deps.parentAbortSignal.removeEventListener('abort', onParentAbort);
-    AbortRegistry.cleanup(childSessionId);
+    SessionCoordinator.cleanup(childSessionId);
   }
 }

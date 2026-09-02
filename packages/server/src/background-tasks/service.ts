@@ -19,11 +19,11 @@ import {
 import { scheduleBackgroundTaskResult } from '@/background-tasks/result-delivery.js';
 import { getDb } from '@/db/client.js';
 import { messages } from '@/db/schema/sessions.js';
-import * as AbortRegistry from '@/lib/abort-registry.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import type { runStream } from '@/llm/stream/runner.js';
 import { abortSessionInteractions } from '@/llm/stream/session-abort.js';
+import * as SessionCoordinator from '@/llm/stream/session-run-coordinator.js';
 import type { LlmProviderCredentials } from '@/provider/config/schema.js';
 import type { ModelMessage } from 'ai';
 
@@ -93,7 +93,7 @@ async function executeBackgroundTask(input: StartBackgroundTaskInput, abortSigna
     internalBus.emit('background-task.failed', { task: settled });
     await scheduleResult(input);
   } finally {
-    AbortRegistry.cleanup(input.childSessionId);
+    SessionCoordinator.cleanup(input.childSessionId);
   }
 }
 
@@ -161,7 +161,7 @@ export async function startBackgroundTask(input: StartBackgroundTaskInput): Prom
     }
 
     internalBus.emit('background-task.started', { task });
-    const abortSignal = AbortRegistry.register(input.childSessionId);
+    const abortSignal = SessionCoordinator.register(input.childSessionId);
     const execution = executeBackgroundTask(input, abortSignal)
       .catch((error) => {
         log.error(
