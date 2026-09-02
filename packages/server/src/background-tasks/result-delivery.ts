@@ -15,9 +15,7 @@ import { validateProviderModel } from '@/llm/resolve-model.js';
 import { buildSessionLlmMessages } from '@/llm/session-history.js';
 import { runStream } from '@/llm/stream/runner.js';
 import { enqueueSessionRun } from '@/llm/stream/session-run-coordinator.js';
-import { isLlmProviderCredentials, ProviderCredentialsSchema } from '@/provider/config/schema.js';
-import type { LlmProviderCredentials } from '@/provider/config/schema.js';
-import { getProviderCredentials } from '@/provider/config/service.js';
+import { getProviderCredentials, isLlmProviderCredentials, type LlmProviderCredentials } from '@/provider/service.js';
 
 const log = Log.create({ service: 'background-task-result-delivery' });
 
@@ -25,11 +23,10 @@ async function loadCredentials(providerId: string, modelId: string): Promise<Llm
   await validateProviderModel(providerId, modelId);
 
   const creds = await getProviderCredentials(providerId);
-  const parsed = ProviderCredentialsSchema.safeParse(creds);
-  if (!parsed.success || !isLlmProviderCredentials(parsed.data) || parsed.data.providerId !== providerId) {
+  if (!isLlmProviderCredentials(creds) || creds.providerId !== providerId) {
     throw new Error(`Provider "${providerId}" is not configured for LLM usage`);
   }
-  return parsed.data;
+  return creds;
 }
 
 async function insertMessage(input: {

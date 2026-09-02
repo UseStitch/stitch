@@ -9,10 +9,10 @@ import {
   deleteLocalModel,
   discoverModels,
   getLocalModel,
-  getStoredBaseURL,
   listLocalModels,
   upsertLocalModel,
 } from '@/models/llm/local.js';
+import { getStoredBaseURL } from '@/provider/service.js';
 
 export const localModelsRouter = new Hono<{ Variables: { provider: LocalProviderId } }>();
 

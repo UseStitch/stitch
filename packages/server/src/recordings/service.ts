@@ -15,12 +15,12 @@ import type {
 } from '@stitch/shared/recordings/types';
 
 import { getDb } from '@/db/client.js';
-import { providerConfig } from '@/db/schema/providers.js';
 import { recordingAnalyses, recordings } from '@/db/schema/recordings.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { paginatedQuery } from '@/lib/paginated-query.js';
 import { getModelDescriptor } from '@/models/stt/service.js';
+import { isProviderConfigured } from '@/provider/service.js';
 import { startRecordingAnalysis, toRecordingAnalysis } from '@/recordings/analysis-service.js';
 import { deleteRecordingFiles } from '@/recordings/file-store.js';
 import { finalFlushAndCleanup } from '@/recordings/transcript-store.js';
@@ -62,10 +62,8 @@ async function resolveSttConfig(override?: { providerId: string; modelId: string
     return null;
   }
 
-  const db = getDb();
-  const config = (await db.select().from(providerConfig).where(eq(providerConfig.providerId, providerId))).at(0);
-
-  if (!config) {
+  const configured = await isProviderConfigured(providerId);
+  if (!configured) {
     log.warn({ providerId }, 'no provider config found for transcription provider');
     return null;
   }

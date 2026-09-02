@@ -11,7 +11,6 @@ import { isLocalProviderId } from '@stitch/shared/providers/types';
 
 import { cancelBackgroundTasksForParent } from '@/background-tasks/service.js';
 import { getDb } from '@/db/client.js';
-import { providerConfig } from '@/db/schema/providers.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
@@ -27,8 +26,12 @@ import {
 } from '@/llm/stream/session-run-coordinator.js';
 import * as LocalModels from '@/models/llm/local.js';
 import * as Models from '@/models/llm/registry.js';
-import { isLlmProviderCredentials, type LlmProviderCredentials } from '@/provider/config/schema.js';
-import { listProvidersWithCapabilities } from '@/provider/service.js';
+import {
+  getProviderCredentials,
+  isLlmProviderCredentials,
+  listProvidersWithCapabilities,
+  type LlmProviderCredentials,
+} from '@/provider/service.js';
 import { normalizeUsage } from '@/utils/usage.js';
 
 const log = Log.create({ service: 'chat-service' });
@@ -45,8 +48,7 @@ type SendMessageInput = {
 type RedoMessageInput = SendMessageInput & { editedMessageId: PrefixedString<'msg'> };
 
 type TurnSession = typeof sessions.$inferSelect;
-type TurnProviderConfig = typeof providerConfig.$inferSelect;
-type LlmTurnConfig = TurnProviderConfig & { credentials: LlmProviderCredentials };
+type LlmTurnConfig = { credentials: LlmProviderCredentials };
 
 async function buildUserMessageParts(input: {
   content: string;
@@ -163,16 +165,19 @@ async function loadTurnContext(
     throw new HTTPException(404, { message: 'Session not found' });
   }
 
-  const config = (await db.select().from(providerConfig).where(eq(providerConfig.providerId, providerId))).at(0);
-  if (!config) {
+  let credentials: LlmProviderCredentials;
+  try {
+    const rawCredentials = await getProviderCredentials(providerId);
+    if (!isLlmProviderCredentials(rawCredentials)) {
+      throw new HTTPException(400, { message: `Provider "${providerId}" is not configured for LLM usage` });
+    }
+    credentials = rawCredentials;
+  } catch (err) {
+    if (err instanceof HTTPException && err.status === 400) throw err;
     throw new HTTPException(400, { message: `Provider "${providerId}" is not configured` });
   }
 
-  if (config.credentials.providerId !== providerId || !isLlmProviderCredentials(config.credentials)) {
-    throw new HTTPException(400, { message: `Provider "${providerId}" is not configured for LLM usage` });
-  }
-
-  return { session, config: config as LlmTurnConfig };
+  return { session, config: { credentials } };
 }
 
 function runTurn(input: {

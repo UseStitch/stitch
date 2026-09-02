@@ -5,7 +5,7 @@ import { z } from 'zod';
 import type { LocalProviderId } from '@stitch/shared/providers/types';
 
 import { getDb } from '@/db/client.js';
-import { localModels, providerConfig } from '@/db/schema/providers.js';
+import { localModels } from '@/db/schema/providers.js';
 import { ModelSchema } from '@/models/llm/registry.js';
 
 export type LocalModel = typeof localModels.$inferSelect;
@@ -42,17 +42,6 @@ export type DiscoveredModel = {
   inputModalities?: LocalModelInput['inputModalities'];
   outputModalities?: LocalModelInput['outputModalities'];
 };
-
-export async function getStoredBaseURL(provider: LocalProviderId): Promise<string | null> {
-  const db = getDb();
-  const config = (
-    await db
-      .select({ credentials: providerConfig.credentials })
-      .from(providerConfig)
-      .where(eq(providerConfig.providerId, provider))
-  ).at(0);
-  return (config?.credentials as { baseURL?: string } | undefined)?.baseURL ?? null;
-}
 
 export async function listLocalModels(provider: LocalProviderId): Promise<LocalModel[]> {
   const db = getDb();
