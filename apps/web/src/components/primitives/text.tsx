@@ -24,7 +24,7 @@ const textVariants = cva('', {
   variants: {
     variant: textVariantClasses,
     tone: textToneClasses,
-    truncate: { true: 'truncate', false: null },
+    truncate: { true: 'block max-w-full truncate', false: null },
     tabular: { true: 'tabular-nums', false: null },
     align: textAlignClasses,
     lineClamp: textLineClampClasses,
