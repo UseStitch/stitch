@@ -37,6 +37,7 @@ const config: KnipConfig = {
     'eslint-plugin-unicorn',
     'oxlint',
     'oxlint-plugin-react-doctor',
+    'oxlint-plugin-tailwind-canonical',
     'oxlint-tsgolint',
     '@tanstack/eslint-plugin-query',
     '@tanstack/eslint-plugin-router',

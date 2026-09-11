@@ -52,9 +52,11 @@
       "files": ["apps/web/**/*.{ts,tsx}"],
       "jsPlugins": [
         { "name": "@tanstack/query", "specifier": "@tanstack/eslint-plugin-query" },
-        { "name": "@tanstack/router", "specifier": "@tanstack/eslint-plugin-router" }
+        { "name": "@tanstack/router", "specifier": "@tanstack/eslint-plugin-router" },
+        { "name": "tailwind-canonical", "specifier": "oxlint-plugin-tailwind-canonical" }
       ],
       "rules": {
+        "tailwind-canonical/canonical-class-names": ["error", { "cssPath": "./apps/web/src/styles/global.css" }],
         "@tanstack/query/exhaustive-deps": "error",
         "@tanstack/query/no-rest-destructuring": "warn",
         "@tanstack/query/stable-query-client": "error",
