@@ -28,6 +28,7 @@
     "oxfmt": "^0.44.0",
     "oxlint": "^1.59.0",
     "oxlint-plugin-react-doctor": "^0.9.1",
+    "oxlint-plugin-tailwind-canonical": "github:maharshi365/oxlint-plugin-tailwind-canonical",
     "oxlint-tsgolint": "^0.16.0",
     "turbo": "^2.9.5"
   },
