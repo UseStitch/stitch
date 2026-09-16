@@ -1,6 +1,6 @@
 import { HTTPException } from 'hono/http-exception';
 import { existsSync } from 'node:fs';
-import { mkdir, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, open, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 
@@ -13,6 +13,7 @@ import type {
   SkillUpdateInput,
   SkillType,
 } from '@stitch/shared/skills/types';
+import type { ToolEnabledState } from '@stitch/shared/tools/types';
 
 import { getDisabledAppFields } from '@/apps/service.js';
 import { internalBus } from '@/lib/internal-bus.js';
@@ -43,9 +44,9 @@ import {
   getSkillRegistrations,
   listRetiredBuiltInSkillNames,
   renameSkillRegistration,
+  setSkillEnabled as persistSkillEnabled,
   setSkillType,
 } from '@/skills/registry.js';
-import { getDisabledToolIdentifiers } from '@/tools/enabled-service.js';
 
 const log = Log.create({ service: 'skills' });
 
@@ -74,6 +75,110 @@ const downloadResponseSchema = z.object({
 
 const SKILLS_API_BASE = 'https://skills.sh';
 const FETCH_TIMEOUT_MS = 10_000;
+const RENAME_JOURNAL_FILENAME = '.rename.json';
+
+const installedNameSchema = z
+  .string()
+  .min(1)
+  .refine((name) => path.basename(name) === name && name !== '.' && name !== '..' && !name.includes('\0'));
+
+const renameJournalSchema = z.object({
+  previousName: installedNameSchema,
+  name: installedNameSchema,
+  markdown: z.string(),
+  directory: z.object({ dev: z.number(), ino: z.number() }),
+  registration: z.object({ type: z.enum(['custom', 'external']), enabled: z.boolean() }),
+});
+
+type RenameJournal = z.infer<typeof renameJournalSchema>;
+
+function assertInstalledName(name: string): void {
+  if (installedNameSchema.safeParse(name).success) return;
+  throw new HTTPException(400, { message: new SkillInvalidError(`Unsupported skill name "${name}"`).message });
+}
+
+let installedOperationQueue: Promise<unknown> = Promise.resolve();
+
+function installedOperation<Args extends unknown[], Result>(operation: (...args: Args) => Promise<Result>) {
+  return (...args: Args): Promise<Result> => {
+    const result = installedOperationQueue.then(async () => {
+      await ensureSkillsDir();
+      await recoverPendingRename();
+      return operation(...args);
+    });
+    installedOperationQueue = result.catch(() => undefined);
+    return result;
+  };
+}
+
+function getRenameJournalPath(): string {
+  return path.join(getSkillsDir(), RENAME_JOURNAL_FILENAME);
+}
+
+async function writeDurableFile(filePath: string, contents: string): Promise<void> {
+  const handle = await open(filePath, 'w');
+  try {
+    await handle.writeFile(contents, 'utf8');
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+}
+
+async function syncDirectory(directoryPath: string): Promise<void> {
+  const handle = await open(directoryPath, 'r');
+  try {
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+}
+
+async function writeRenameJournal(journal: RenameJournal): Promise<void> {
+  renameJournalSchema.parse(journal);
+  const temporaryPath = `${getRenameJournalPath()}.tmp`;
+  await writeDurableFile(temporaryPath, JSON.stringify(journal));
+  await rename(temporaryPath, getRenameJournalPath());
+  await syncDirectory(getSkillsDir());
+}
+
+async function recoverPendingRename(): Promise<void> {
+  let raw: string;
+  try {
+    raw = await readFile(getRenameJournalPath(), 'utf8');
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') return;
+    throw error;
+  }
+  const { previousName, name, markdown, registration, directory } = renameJournalSchema.parse(JSON.parse(raw));
+  if (previousName === name) throw new Error('Invalid skill rename journal');
+  const previousDir = getSkillDir(previousName);
+  const targetDir = getSkillDir(name);
+  const sourceExists = existsSync(previousDir);
+  const currentDirectory = await lstat(sourceExists ? previousDir : targetDir);
+  if (
+    !currentDirectory.isDirectory() ||
+    currentDirectory.dev !== directory.dev ||
+    currentDirectory.ino !== directory.ino
+  ) {
+    throw new Error('Skill rename directory identity changed');
+  }
+
+  if (sourceExists) {
+    if (existsSync(targetDir)) throw new SkillNameCollisionError(name);
+    await rename(previousDir, targetDir);
+    await syncDirectory(getSkillsDir());
+  } else if (!existsSync(targetDir)) {
+    throw new SkillNotFoundError(previousName);
+  }
+
+  await writeDurableFile(getSkillMdPath(name), markdown);
+  await syncDirectory(getSkillDir(name));
+  await renameSkillRegistration(previousName, name, registration);
+  await rm(getRenameJournalPath(), { force: true });
+  await syncDirectory(getSkillsDir());
+  internalBus.emit('skill.updated', { name, previousName });
+}
 
 function toSkill(input: Omit<Skill, 'location'>): Skill {
   return {
@@ -85,19 +190,24 @@ function toSkill(input: Omit<Skill, 'location'>): Skill {
 }
 
 async function readSkillFromDisk(name: string, type: SkillType, enabled: boolean): Promise<Skill | null> {
-  const markdown = await readSkillMdFile(name);
-  if (!markdown) return null;
+  try {
+    const markdown = await readSkillMdFile(name);
+    if (!markdown) return null;
 
-  const parsed = parseSkillMarkdown(markdown);
-  if (!parsed) return null;
+    const parsed = parseSkillMarkdown(markdown);
+    if (!parsed) return null;
 
-  const skillDir = getSkillDir(name);
-  const files = await listSkillFiles(skillDir);
-
-  return toSkill({ name: parsed.name, type, enabled, description: parsed.description, content: parsed.content, files });
+    const files = await listSkillFiles(getSkillDir(name));
+    return toSkill({ name, type, enabled, description: parsed.description, content: parsed.content, files });
+  } catch (error) {
+    log.warn({ name, error }, 'Installed skill is unreadable');
+    return null;
+  }
 }
 
-export async function listSkills(): Promise<Skill[]> {
+export const listSkills = installedOperation(readInstalledSkills);
+
+async function readInstalledSkills(): Promise<Skill[]> {
   await ensureSkillsDir();
   const skillsDir = getSkillsDir();
 
@@ -108,13 +218,12 @@ export async function listSkills(): Promise<Skill[]> {
 
   const registrations = await getSkillRegistrations();
   const skills: Skill[] = [];
-  const registeredNames = new Set<string>();
+  const registeredNames = new Set(dirs.map((dir) => dir.name));
   for (const dir of dirs) {
     const registration = registrations.get(dir.name) ?? { type: 'custom' as const, enabled: true };
     const skill = await readSkillFromDisk(dir.name, registration.type, registration.enabled);
     if (skill) {
       skills.push(skill);
-      registeredNames.add(dir.name);
       if (!registrations.has(dir.name)) await setSkillType(dir.name, registration.type);
     }
   }
@@ -127,7 +236,10 @@ export async function listSkills(): Promise<Skill[]> {
   return skills;
 }
 
-export async function getSkillByName(name: string): Promise<Skill> {
+export const getSkillByName = installedOperation(readInstalledSkill);
+
+async function readInstalledSkill(name: string): Promise<Skill> {
+  assertInstalledName(name);
   await ensureSkillsDir();
   const registration = (await getSkillRegistration(name)) ?? { type: 'custom' as const, enabled: true };
   const skill = await readSkillFromDisk(name, registration.type, registration.enabled);
@@ -135,7 +247,7 @@ export async function getSkillByName(name: string): Promise<Skill> {
   return skill;
 }
 
-export async function createSkill(input: SkillCreateInput): Promise<Skill> {
+export const createSkill = installedOperation(async (input: SkillCreateInput): Promise<Skill> => {
   const parsed = createSkillSchema.safeParse(input);
   if (!parsed.success) throw new HTTPException(400, { message: parsed.error.issues.at(0)?.message ?? 'Invalid skill' });
 
@@ -163,9 +275,9 @@ export async function createSkill(input: SkillCreateInput): Promise<Skill> {
   internalBus.emit('skill.created', { name: skill.name });
 
   return skill;
-}
+});
 
-export async function syncBuiltInSkills(builtInSkills: BuiltInSkill[]): Promise<void> {
+export const syncBuiltInSkills = installedOperation(async (builtInSkills: BuiltInSkill[]): Promise<void> => {
   await ensureSkillsDir();
 
   const builtInNames = builtInSkills.map((skill) => skill.name);
@@ -182,10 +294,11 @@ export async function syncBuiltInSkills(builtInSkills: BuiltInSkill[]): Promise<
     await setSkillType(skill.name, 'stitch');
   }
 
-  await listSkills();
-}
+  await readInstalledSkills();
+});
 
-export async function updateSkill(name: string, input: SkillUpdateInput): Promise<Skill> {
+export const updateSkill = installedOperation(async (name: string, input: SkillUpdateInput): Promise<Skill> => {
+  assertInstalledName(name);
   const parsed = updateSkillSchema.safeParse(input);
   if (!parsed.success) throw new HTTPException(400, { message: parsed.error.issues.at(0)?.message ?? 'Invalid skill' });
 
@@ -201,22 +314,43 @@ export async function updateSkill(name: string, input: SkillUpdateInput): Promis
     throw new HTTPException(404, { message: new SkillNotFoundError(name).message });
   }
 
-  if (value.name !== name) {
+  if (value.name === name) {
+    await writeSkillMdFile(value.name, buildSkillMd(value));
+  } else {
+    assertInstalledName(name);
     const newDir = getSkillDir(value.name);
     if (existsSync(newDir)) {
       throw new HTTPException(409, { message: new SkillNameCollisionError(value.name).message });
     }
-    await rename(currentDir, newDir);
-    await renameSkillRegistration(name, value.name);
+    if (await getSkillRegistration(value.name)) {
+      throw new HTTPException(409, { message: new SkillNameCollisionError(value.name).message });
+    }
+    const { dev, ino } = await lstat(currentDir);
+    await writeRenameJournal({
+      directory: { dev, ino },
+      previousName: name,
+      name: value.name,
+      markdown: buildSkillMd(value),
+      registration: { type, enabled: registration.enabled },
+    });
+    await recoverPendingRename();
+
+    const targetDir = getSkillDir(value.name);
+    const files = await listSkillFiles(targetDir);
+
+    return toSkill({
+      name: value.name,
+      type,
+      enabled: registration.enabled,
+      description: value.description,
+      content: value.content,
+      files,
+    });
   }
 
-  await writeSkillMdFile(value.name, buildSkillMd(value));
-
-  const targetDir = getSkillDir(value.name);
-  const files = await listSkillFiles(targetDir);
-
+  const files = await listSkillFiles(currentDir);
   const skill = toSkill({
-    name: value.name,
+    name,
     type,
     enabled: registration.enabled,
     description: value.description,
@@ -227,9 +361,9 @@ export async function updateSkill(name: string, input: SkillUpdateInput): Promis
   internalBus.emit('skill.updated', { name: skill.name, previousName: name });
 
   return skill;
-}
+});
 
-export async function deleteSkill(name: string): Promise<void> {
+export const deleteSkill = installedOperation(async (name: string): Promise<void> => {
   await ensureSkillsDir();
 
   if ((await getSkillRegistration(name))?.type === 'stitch') {
@@ -244,7 +378,7 @@ export async function deleteSkill(name: string): Promise<void> {
   await rm(skillDir, { recursive: true, force: true });
   await deleteSkillRegistration(name);
   internalBus.emit('skill.deleted', { name });
-}
+});
 
 export async function searchSkillsDirectory(query: string): Promise<SkillSearchResult[]> {
   const trimmedQuery = query.trim();
@@ -283,7 +417,7 @@ export async function searchSkillsDirectory(query: string): Promise<SkillSearchR
   }
 }
 
-export async function importSkillFromDirectory(input: SkillImportInput): Promise<Skill> {
+export const importSkillFromDirectory = installedOperation(async (input: SkillImportInput): Promise<Skill> => {
   const parsed = importSkillSchema.safeParse(input);
   if (!parsed.success)
     throw new HTTPException(400, { message: parsed.error.issues.at(0)?.message ?? 'Invalid skill import' });
@@ -380,18 +514,44 @@ export async function importSkillFromDirectory(input: SkillImportInput): Promise
     log.error({ error, source, slug }, 'skills.sh import threw');
     throw new HTTPException(500, { message: new SkillImportError('Failed to import skill').message });
   }
+});
+
+export const getSkillEnabledStates = installedOperation(async (): Promise<ToolEnabledState[]> => {
+  await readInstalledSkills();
+  return Array.from(await getSkillRegistrations(), ([identifier, registration]) => ({
+    scope: 'skill',
+    identifier,
+    enabled: registration.enabled,
+  }));
+});
+
+export const setSkillEnabled = installedOperation(async (name: string, enabled: boolean): Promise<void> => {
+  await readInstalledSkills();
+  if (!(await getSkillRegistration(name))) {
+    throw new HTTPException(404, { message: new SkillNotFoundError(name).message });
+  }
+  await persistSkillEnabled(name, enabled);
+});
+
+function isSkillAvailable(skill: Skill, disabledAppSkillNames: Set<string>): boolean {
+  return skill.enabled && !disabledAppSkillNames.has(skill.name);
+}
+
+export async function loadSkill(name: string): Promise<Skill> {
+  const skill = await getSkillByName(name);
+  if (!isSkillAvailable(skill, await getDisabledAppFields('skillNames'))) {
+    throw new HTTPException(403, { message: `Skill "${name}" is disabled.` });
+  }
+  return skill;
 }
 
 export async function buildSkillsSystemPrompt(): Promise<string> {
   const skills = await listSkills();
   if (skills.length === 0) return '';
 
-  const [disabledAppSkillNames, disabledSkillNames] = await Promise.all([
-    getDisabledAppFields('skillNames'),
-    getDisabledToolIdentifiers('skill'),
-  ]);
+  const disabledAppSkillNames = await getDisabledAppFields('skillNames');
   const lines = skills
-    .filter((skill) => !disabledAppSkillNames.has(skill.name) && !disabledSkillNames.has(skill.name))
+    .filter((skill) => isSkillAvailable(skill, disabledAppSkillNames))
     .map((skill) => `- ${skill.name}: ${skill.description}`);
   if (lines.length === 0) return '';
 

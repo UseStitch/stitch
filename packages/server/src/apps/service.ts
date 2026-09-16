@@ -23,8 +23,3 @@ export async function getDisabledAppFields(key: 'toolsetIds' | 'skillNames'): Pr
 
   return new Set(APP_MANIFESTS.filter((app) => disabledAppIds.has(app.id)).flatMap((app) => app[key]));
 }
-
-export async function isSkillEnabledByApp(skillName: string): Promise<boolean> {
-  const disabledSkillNames = await getDisabledAppFields('skillNames');
-  return !disabledSkillNames.has(skillName);
-}

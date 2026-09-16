@@ -5,9 +5,7 @@ import { z } from 'zod';
 
 import { toolError } from '@stitch/shared/tools/types';
 
-import { isSkillEnabledByApp } from '@/apps/service.js';
-import { getSkillByName } from '@/skills/service.js';
-import { isToolEnabled } from '@/tools/enabled-service.js';
+import { loadSkill } from '@/skills/service.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 
 const skillInputSchema = z.object({ name: z.string().min(1).describe('The name of the skill from available_skills') });
@@ -20,14 +18,8 @@ export const definition: ToolDefinition = {
       'Load a specialized skill when the task at hand matches one of the skills listed in the system prompt.\n\nUse this tool to inject the skill\'s instructions and resources into current conversation. The output may contain detailed workflow guidance as well as references to scripts, files, etc in the same directory as the skill.\n\nThe skill name must match one of the skills listed in your system prompt.\n\nLoad a specialized skill that provides domain-specific instructions and workflows.\n\nWhen you recognize that a task matches one of the available skills listed below, use this tool to load the full skill instructions.\n\nThe skill will inject detailed instructions, workflows, and access to bundled resources (scripts, references, templates) into the conversation context.\n\nTool output includes a `<skill_content name="...">` block with the loaded content.',
     inputSchema: skillInputSchema,
     execute: async ({ name }) => {
-      const [enabledByApp, enabledBySkill] = await Promise.all([
-        isSkillEnabledByApp(name),
-        isToolEnabled({ scope: 'skill', identifier: name }),
-      ]);
-      if (!enabledByApp || !enabledBySkill) return toolError(`Skill "${name}" is disabled.`);
-
       try {
-        const skill = await getSkillByName(name);
+        const skill = await loadSkill(name);
         const dir = path.dirname(skill.location);
         const base = pathToFileURL(dir).href;
 
