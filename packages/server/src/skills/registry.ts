@@ -36,17 +36,24 @@ export async function setSkillEnabled(name: string, enabled: boolean): Promise<v
   await getDb().update(skills).set({ enabled }).where(eq(skills.name, name));
 }
 
-export async function getDisabledSkillNames(): Promise<Set<string>> {
-  if (!isDbInitialized()) return new Set();
-
-  const rows = await getDb().select({ name: skills.name }).from(skills).where(eq(skills.enabled, false));
-  return new Set(rows.map((row) => row.name));
-}
-
-export async function renameSkillRegistration(previousName: string, name: string): Promise<void> {
+export async function renameSkillRegistration(
+  previousName: string,
+  name: string,
+  registration: SkillRegistration,
+): Promise<void> {
   if (!isDbInitialized()) return;
 
-  await getDb().update(skills).set({ name }).where(eq(skills.name, previousName));
+  getDb().transaction((tx) => {
+    const previous = tx.select().from(skills).where(eq(skills.name, previousName)).get();
+    if (previous) {
+      tx.update(skills).set({ name }).where(eq(skills.name, previousName)).run();
+    } else {
+      tx.insert(skills)
+        .values({ name, ...registration })
+        .onConflictDoNothing()
+        .run();
+    }
+  });
 }
 
 export async function deleteSkillRegistration(name: string): Promise<void> {
