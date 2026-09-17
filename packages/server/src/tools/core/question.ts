@@ -1,28 +1,13 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
+import { QuestionInfoSchema } from '@stitch/shared/questions/types';
+
 import { askQuestion } from '@/question/service.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
 import type { ToolContext } from '@/tools/runtime/runtime.js';
 
-const questionOptionSchema = z
-  .object({
-    label: z.string().describe('Display text (1-5 words, concise)'),
-    description: z.string().describe('Explanation of choice'),
-  })
-  .describe('A single answer option for a question');
-
-const questionInfoSchema = z
-  .object({
-    question: z.string().describe('Complete question'),
-    header: z.string().describe('Very short label (max 30 chars)'),
-    options: z.array(questionOptionSchema).describe('Available choices'),
-    multiple: z.boolean().optional().describe('Allow selecting multiple choices'),
-    custom: z.boolean().optional().describe('Allow typing a custom answer (default: true)'),
-  })
-  .describe('Information about a question to ask the user');
-
-const questionInfoWithoutCustomSchema = questionInfoSchema.omit({ custom: true });
+const questionInfoWithoutCustomSchema = QuestionInfoSchema.omit({ custom: true });
 
 const questionInputSchema = z.object({
   questions: z.array(questionInfoWithoutCustomSchema).describe('Questions to ask the user'),

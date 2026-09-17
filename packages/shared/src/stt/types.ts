@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 export type STTCapability =
   | 'partials'
   | 'word_timestamps'
@@ -15,13 +17,15 @@ export type CapabilityRequest = Partial<Record<STTCapability, 'required' | 'pref
 
 export type CapabilityResolution = { satisfied: Record<STTCapability, CapabilitySupport>; degraded: STTCapability[] };
 
-type AudioEncoding = 'f32le' | 'pcm_s16le';
+const AudioEncodingSchema = z.enum(['f32le', 'pcm_s16le']);
+type AudioEncoding = z.infer<typeof AudioEncodingSchema>;
 
 export type AudioFormat = { encoding: AudioEncoding; sampleRateHz: number; channels: number };
 
 export type AudioChunk = { samplesB64: string; sampleRateHz: number; numSamples: number; encoding: AudioEncoding };
 
-export type AudioSource = 'mic' | 'speaker';
+const AudioSourceSchema = z.enum(['mic', 'speaker']);
+export type AudioSource = z.infer<typeof AudioSourceSchema>;
 
 type TranscriptWord = { text: string; startMs: number; endMs: number; speaker?: string | number };
 
@@ -37,36 +41,54 @@ export type TranscriptEvent = {
 
 export type STTUsage = { durationMs: number; audioInputTokens?: number; textOutputTokens?: number };
 
-type SttService = 'chat-input' | 'meeting-recording';
-
 // WebSocket protocol messages (client -> server)
-type SttStartMessage = {
-  type: 'start';
-  sttSessionId: string;
-  providerId: string;
-  modelId: string;
-  service: SttService;
-  recordingId: string;
-  capabilityRequest: CapabilityRequest;
-  language?: string;
-  keyterms?: string[];
-  audioChunkConfig: { encoding: AudioEncoding; sampleRateHz: number };
-};
+const SttServiceSchema = z.enum(['chat-input', 'meeting-recording']);
 
-type SttChunkMessage = {
-  type: 'chunk';
-  sttSessionId: string;
-  source: AudioSource;
-  samplesB64: string;
-  sampleRateHz: number;
-  numSamples: number;
-};
+export const SttStartMessageSchema = z.object({
+  type: z.literal('start'),
+  sttSessionId: z.string().min(1),
+  providerId: z.string().min(1),
+  modelId: z.string().min(1),
+  service: SttServiceSchema,
+  recordingId: z.string().optional(),
+  capabilityRequest: z
+    .record(z.string(), z.enum(['required', 'preferred']))
+    .optional()
+    .default({}),
+  language: z.string().optional(),
+  keyterms: z.array(z.string()).optional(),
+  audioChunkConfig: z.object({ encoding: AudioEncodingSchema, sampleRateHz: z.number().int().positive() }),
+});
 
-type SttCommitMessage = { type: 'commit'; sttSessionId: string };
+const SttChunkMessageSchema = z.object({
+  type: z.literal('chunk'),
+  sttSessionId: z.string().min(1),
+  source: AudioSourceSchema,
+  samplesB64: z.string(),
+  sampleRateHz: z.number().int().positive(),
+  numSamples: z.number().int().nonnegative(),
+});
 
-type SttStopMessage = { type: 'stop'; sttSessionId: string };
+const SttCommitMessageSchema = z.object({ type: z.literal('commit'), sttSessionId: z.string().min(1) });
 
-export type SttInboundMessage = SttStartMessage | SttChunkMessage | SttCommitMessage | SttStopMessage;
+const SttStopMessageSchema = z.object({ type: z.literal('stop'), sttSessionId: z.string().min(1) });
+
+export const SttInboundMessageSchema = z.discriminatedUnion('type', [
+  SttStartMessageSchema,
+  SttChunkMessageSchema,
+  SttCommitMessageSchema,
+  SttStopMessageSchema,
+]);
+
+export type SttInboundMessage = z.infer<typeof SttInboundMessageSchema>;
+
+export const SttAudioFrameHeaderSchema = z.object({
+  sttSessionId: z.string().min(1),
+  source: AudioSourceSchema,
+  sampleRateHz: z.number().int().positive(),
+  numSamples: z.number().int().nonnegative(),
+  encoding: AudioEncodingSchema,
+});
 
 // WebSocket protocol messages (server -> client)
 type SttReadyMessage = { type: 'ready'; sttSessionId: string; capabilityResolution: CapabilityResolution };
@@ -99,3 +121,22 @@ export type SttOutboundMessage =
 type SttModelSummary = { id: string; name: string; sampleRateHz: number };
 
 export type SttProviderModels = { providerId: string; providerName: string; models: SttModelSummary[] };
+
+export const BufferConfigSchema = z.object({
+  maxChunkBytes: z.number().int().positive(),
+  flushIntervalMs: z.number().int().positive(),
+  maxBufferedMs: z.number().int().positive(),
+});
+export type BufferConfig = z.infer<typeof BufferConfigSchema>;
+
+export const ReconnectConfigSchema = z.object({
+  enabled: z.boolean(),
+  maxRetries: z.number().int().nonnegative(),
+  backoffMs: z.number().int().nonnegative(),
+  maxBackoffMs: z.number().int().positive().optional(),
+  rotateBeforeMs: z.number().int().positive().optional(),
+  pingIntervalMs: z.number().int().positive().optional(),
+  pongTimeoutMs: z.number().int().positive().optional(),
+  keepAliveMessage: z.string().min(1).optional(),
+});
+export type ReconnectConfig = z.infer<typeof ReconnectConfigSchema>;

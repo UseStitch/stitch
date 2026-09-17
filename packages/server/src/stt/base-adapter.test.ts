@@ -1,10 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { AudioChunk, STTUsage, TranscriptEvent } from '@stitch/shared/stt/types';
+import type { AudioChunk, STTUsage, TranscriptEvent, BufferConfig, ReconnectConfig } from '@stitch/shared/stt/types';
 
 import type { STTTransport } from '@/stt/adapter-iface.js';
 import { createManagedConnection } from '@/stt/base-adapter.js';
-import type { BufferConfig, ReconnectConfig } from '@/stt/types.js';
 
 function makeChunk(index: number): AudioChunk {
   // 1600 samples @ 16kHz = 100ms. samplesB64 carries the index so received order is checkable.

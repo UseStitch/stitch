@@ -1,5 +1,7 @@
 import z from 'zod';
 
+import { BufferConfigSchema, ReconnectConfigSchema } from '@stitch/shared/stt/types';
+
 const SttCapabilitySchema = z.enum([
   'partials',
   'word_timestamps',
@@ -16,23 +18,6 @@ const InputFormatSchema = z.object({
   encoding: AudioEncodingSchema,
   sampleRateHz: z.number().int().min(8000),
   channels: z.number().int().positive(),
-});
-
-const BufferConfigSchema = z.object({
-  maxChunkBytes: z.number().int().positive(),
-  flushIntervalMs: z.number().int().positive(),
-  maxBufferedMs: z.number().int().positive(),
-});
-
-const ReconnectConfigSchema = z.object({
-  enabled: z.boolean(),
-  maxRetries: z.number().int().nonnegative(),
-  backoffMs: z.number().int().nonnegative(),
-  maxBackoffMs: z.number().int().positive().optional(),
-  rotateBeforeMs: z.number().int().positive().optional(),
-  pingIntervalMs: z.number().int().positive().optional(),
-  pongTimeoutMs: z.number().int().positive().optional(),
-  keepAliveMessage: z.string().min(1).optional(),
 });
 
 const TokenPricingSchema = z.object({

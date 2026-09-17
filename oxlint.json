@@ -20,7 +20,10 @@
     "no-else-return": "error",
     "stitch/no-pass-through-type-alias": "error",
     "stitch/no-shared-re-export": "error",
-    "deslop/no-duplicate-types": ["error", { "minProperties": 2 }],
+    "deslop/no-duplicate-types": [
+      "error",
+      { "minProperties": 2, "schemas": { "libraries": ["zod"], "matchTypes": true } }
+    ],
     "typescript/no-deprecated": "error",
     "typescript/no-unnecessary-type-assertion": "error",
     "typescript/no-unnecessary-condition": "error",

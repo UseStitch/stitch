@@ -3,6 +3,8 @@ import { z } from 'zod';
 
 import type { CursorPage } from '@stitch/shared/pagination';
 
+export const createdAtIdCursorSchema = z.object({ createdAt: z.number().int(), id: z.string().min(1) });
+
 export function encodeCursor<T>(value: T): string {
   return Buffer.from(JSON.stringify(value)).toString('base64url');
 }
@@ -17,8 +19,5 @@ export function decodeCursor<T>(cursor: string, schema: z.ZodType<T>): T {
 
 export function createCursorPage<T>(rows: T[], limit: number, getCursor: (item: T) => string): CursorPage<T> {
   const items = rows.slice(0, limit);
-  return {
-    items,
-    nextCursor: rows.length > limit ? getCursor(items[items.length - 1]) : null,
-  };
+  return { items, nextCursor: rows.length > limit ? getCursor(items[items.length - 1]) : null };
 }

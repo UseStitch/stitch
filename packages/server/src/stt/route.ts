@@ -2,7 +2,13 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 
 import type { PrefixedString } from '@stitch/shared/id';
-import type { SttOutboundMessage } from '@stitch/shared/stt/types';
+import {
+  SttAudioFrameHeaderSchema,
+  SttInboundMessageSchema,
+  SttStartMessageSchema,
+  type SttInboundMessage,
+  type SttOutboundMessage,
+} from '@stitch/shared/stt/types';
 
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
@@ -15,76 +21,35 @@ type UpgradeWebSocket = ReturnType<typeof createNodeWebSocket>['upgradeWebSocket
 
 const log = Log.create({ service: 'stt.route' });
 
-const startMessageSchema = z.object({
-  type: z.literal('start'),
-  sttSessionId: z.string().min(1),
-  providerId: z.string().min(1),
-  modelId: z.string().min(1),
-  service: z.enum(['chat-input', 'meeting-recording']),
-  recordingId: routeSchemas.recordingId.optional(),
-  capabilityRequest: z
-    .record(z.string(), z.enum(['required', 'preferred']))
-    .optional()
-    .default({}),
-  language: z.string().optional(),
-  keyterms: z.array(z.string()).optional(),
-  audioChunkConfig: z.object({ encoding: z.enum(['f32le', 'pcm_s16le']), sampleRateHz: z.number().int().positive() }),
-});
+const startMessageSchema = SttStartMessageSchema.extend({ recordingId: routeSchemas.recordingId.optional() });
 
-const chunkMessageSchema = z.object({
-  type: z.literal('chunk'),
-  sttSessionId: z.string().min(1),
-  source: z.enum(['mic', 'speaker']),
-  samplesB64: z.string(),
-  sampleRateHz: z.number().int().positive(),
-  numSamples: z.number().int().nonnegative(),
-});
-
-const commitMessageSchema = z.object({ type: z.literal('commit'), sttSessionId: z.string().min(1) });
-
-const stopMessageSchema = z.object({ type: z.literal('stop'), sttSessionId: z.string().min(1) });
-
-const inboundMessageSchema = z.discriminatedUnion('type', [
-  startMessageSchema,
-  chunkMessageSchema,
-  commitMessageSchema,
-  stopMessageSchema,
-]);
-
-type ParsedInboundMessage = z.infer<typeof inboundMessageSchema>;
-
-function parseMessage(data: unknown): ParsedInboundMessage | null {
+function parseMessage(data: unknown): SttInboundMessage | null {
   if (typeof data !== 'string') return null;
   try {
-    return inboundMessageSchema.parse(JSON.parse(data));
+    const message = SttInboundMessageSchema.parse(JSON.parse(data));
+    return message.type === 'start' ? (startMessageSchema.parse(message) as SttInboundMessage) : message;
   } catch {
     return null;
   }
 }
-
-const audioFrameHeaderSchema = z.object({
-  sttSessionId: z.string().min(1),
-  source: z.enum(['mic', 'speaker']),
-  sampleRateHz: z.number().int().positive(),
-  numSamples: z.number().int().nonnegative(),
-  encoding: z.enum(['f32le', 'pcm_s16le']),
-});
 
 function toBuffer(data: ArrayBuffer | Buffer | Uint8Array): Buffer {
   if (Buffer.isBuffer(data)) return data;
   return Buffer.from(data as ArrayBuffer);
 }
 
-function parseAudioFrame(data: ArrayBuffer | Buffer | Uint8Array): z.infer<typeof chunkMessageSchema> | null {
+function parseAudioFrame(
+  data: ArrayBuffer | Buffer | Uint8Array,
+): Extract<SttInboundMessage, { type: 'chunk' }> | null {
   const buf = toBuffer(data);
   if (buf.byteLength < 4) return null;
 
   const headerLen = buf.readUInt32LE(0);
   if (headerLen <= 0 || 4 + headerLen > buf.byteLength) return null;
 
-  let header: z.infer<typeof audioFrameHeaderSchema>;
+  let header: z.infer<typeof SttAudioFrameHeaderSchema>;
   try {
-    header = audioFrameHeaderSchema.parse(JSON.parse(buf.toString('utf8', 4, 4 + headerLen)));
+    header = SttAudioFrameHeaderSchema.parse(JSON.parse(buf.toString('utf8', 4, 4 + headerLen)));
   } catch {
     return null;
   }
@@ -113,7 +78,7 @@ type SessionState = {
 };
 
 async function handleStart(
-  message: z.infer<typeof startMessageSchema>,
+  message: Extract<SttInboundMessage, { type: 'start' }>,
   ws: WsSender,
   state: SessionState,
 ): Promise<void> {
@@ -128,7 +93,7 @@ async function handleStart(
   }
 
   state.inputEncoding = message.audioChunkConfig.encoding;
-  state.recordingId = message.recordingId ?? null;
+  state.recordingId = (message.recordingId as PrefixedString<'rec'> | undefined) ?? null;
 
   try {
     const session = await createSTTSession({
@@ -211,7 +176,7 @@ async function handleStart(
   }
 }
 
-function handleChunk(message: z.infer<typeof chunkMessageSchema>, state: SessionState): void {
+function handleChunk(message: Extract<SttInboundMessage, { type: 'chunk' }>, state: SessionState): void {
   if (!state.session || state.session.sttSessionId !== message.sttSessionId) return;
   state.session.feedAudio(message.source, {
     samplesB64: message.samplesB64,
@@ -221,13 +186,13 @@ function handleChunk(message: z.infer<typeof chunkMessageSchema>, state: Session
   });
 }
 
-function handleCommit(message: z.infer<typeof commitMessageSchema>, state: SessionState): void {
+function handleCommit(message: Extract<SttInboundMessage, { type: 'commit' }>, state: SessionState): void {
   if (!state.session || state.session.sttSessionId !== message.sttSessionId) return;
   state.session.commit();
 }
 
 async function handleStop(
-  message: z.infer<typeof stopMessageSchema>,
+  message: Extract<SttInboundMessage, { type: 'stop' }>,
   ws: WsSender,
   state: SessionState,
 ): Promise<void> {

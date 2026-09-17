@@ -2,6 +2,8 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
+import { QuestionInfoSchema } from '@stitch/shared/questions/types';
+
 import { getSessionById } from '@/chat/session-crud.js';
 import { routeSchemas } from '@/lib/route-schemas.js';
 import { createQuestion, getPendingQuestions, rejectQuestion, replyQuestion } from '@/question/service.js';
@@ -10,18 +12,8 @@ const sessionParamSchema = z.object({ id: routeSchemas.sessionId });
 
 const questionParamSchema = z.object({ sessionId: routeSchemas.sessionId, questionId: routeSchemas.questionId });
 
-const questionOptionSchema = z.object({ label: z.string(), description: z.string() });
-
-const questionInfoSchema = z.object({
-  question: z.string(),
-  header: z.string(),
-  options: z.array(questionOptionSchema),
-  multiple: z.boolean().optional(),
-  custom: z.boolean().optional(),
-});
-
 const createQuestionsSchema = z.object({
-  questions: z.array(questionInfoSchema).min(1),
+  questions: z.array(QuestionInfoSchema).min(1),
   toolCallId: z.string().min(1),
   messageId: routeSchemas.messageId,
 });

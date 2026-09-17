@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import type { PrefixedString } from '../id/index.js';
 
 export const MCP_TRANSPORT_TYPES = ['stdio', 'http'] as const;
@@ -6,18 +8,25 @@ export type McpTransport = (typeof MCP_TRANSPORT_TYPES)[number];
 export const MCP_AUTH_TYPES = ['none', 'api_key', 'headers', 'oauth'] as const;
 export type McpAuthType = (typeof MCP_AUTH_TYPES)[number];
 
-type NoneAuth = { type: 'none' };
-type ApiKeyAuth = { type: 'api_key'; apiKey: string };
-type HeadersAuth = { type: 'headers'; headers: Record<string, string> };
-
 /**
  * OAuth configuration holds only what the user enters. Live secrets
  * (access/refresh tokens, DCR-registered client info, discovery state) live in
  * a separate table, never in `authConfig`, and are never returned to the FE.
  */
-export type OAuthAuth = { type: 'oauth'; scopes?: string[]; clientId?: string; clientSecret?: string };
+export const McpAuthConfigSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('none') }),
+  z.object({ type: z.literal('api_key'), apiKey: z.string().min(1) }),
+  z.object({ type: z.literal('headers'), headers: z.record(z.string(), z.string()) }),
+  z.object({
+    type: z.literal('oauth'),
+    scopes: z.array(z.string()).optional(),
+    clientId: z.string().optional(),
+    clientSecret: z.string().optional(),
+  }),
+]);
 
-export type McpAuthConfig = NoneAuth | ApiKeyAuth | HeadersAuth | OAuthAuth;
+export type McpAuthConfig = z.infer<typeof McpAuthConfigSchema>;
+export type OAuthAuth = Extract<McpAuthConfig, { type: 'oauth' }>;
 
 const MCP_AUTH_STATUSES = [
   'none',
