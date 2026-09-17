@@ -2,7 +2,12 @@ import { sql } from 'drizzle-orm';
 import { blob, check, index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 import type { PrefixedString } from '@stitch/shared/id';
-import type { RecordingAnalysisStatus, RecordingPlatform, RecordingStatus } from '@stitch/shared/recordings/types';
+import type {
+  MeetingNoteTemplate,
+  RecordingAnalysisStatus,
+  RecordingPlatform,
+  RecordingStatus,
+} from '@stitch/shared/recordings/types';
 
 import type { LanguageModelUsage } from 'ai';
 
@@ -70,14 +75,16 @@ export const recordingAnalyses = sqliteTable(
 export const meetingNoteTemplates = sqliteTable(
   'meeting_note_templates',
   {
-    id: text('id').$type<PrefixedString<'mnt'>>().primaryKey(),
-    name: text('name').notNull(),
-    content: text('content').notNull(),
+    id: text('id').$type<MeetingNoteTemplate['id']>().primaryKey(),
+    name: text('name').$type<MeetingNoteTemplate['name']>().notNull(),
+    content: text('content').$type<MeetingNoteTemplate['content']>().notNull(),
     createdAt: integer('created_at', { mode: 'number' })
       .notNull()
+      .$type<MeetingNoteTemplate['createdAt']>()
       .$defaultFn(() => Date.now()),
     updatedAt: integer('updated_at', { mode: 'number' })
       .notNull()
+      .$type<MeetingNoteTemplate['updatedAt']>()
       .$defaultFn(() => Date.now()),
   },
   (table) => [index('meeting_note_templates_updated_at_idx').on(table.updatedAt)],

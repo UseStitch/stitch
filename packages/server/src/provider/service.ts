@@ -6,6 +6,7 @@ import { PROVIDER_META } from '@stitch/shared/providers/catalog';
 import {
   isLocalProviderId,
   PROVIDER_IDS,
+  type LocalModel,
   type LocalProviderId,
   type ProviderCapability,
   type ProviderId,
@@ -85,7 +86,7 @@ function toModelSummary(model: Models.RawModel): ModelSummary {
   };
 }
 
-function localModelToSummary(m: LocalModels.LocalModel): ModelSummary {
+function localModelToSummary(m: LocalModel): ModelSummary {
   return {
     id: m.id,
     name: m.name,

@@ -77,6 +77,47 @@ export type LocalProviderId = 'ollama_local' | 'lmstudio_local';
 type SttProviderId = ProvidersWithCapability<'stt'>;
 export type EmbeddingProviderId = ProvidersWithCapability<'embedding'>;
 
+export type LocalModality = 'text' | 'audio' | 'image' | 'video' | 'pdf';
+
+export type LocalModel = {
+  provider: LocalProviderId;
+  id: string;
+  name: string;
+  contextWindow: number;
+  inputLimit: number | null;
+  outputLimit: number;
+  inputCostPerMillion: number;
+  outputCostPerMillion: number;
+  cacheReadCostPerMillion: number | null;
+  cacheWriteCostPerMillion: number | null;
+  supportsToolCalls: boolean;
+  supportsVision: boolean;
+  supportsReasoning: boolean;
+  inputModalities: LocalModality[];
+  outputModalities: LocalModality[];
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type LocalModelInput = Omit<
+  LocalModel,
+  'provider' | 'createdAt' | 'updatedAt' | 'inputLimit' | 'cacheReadCostPerMillion' | 'cacheWriteCostPerMillion'
+> & { inputLimit?: number; cacheReadCostPerMillion?: number; cacheWriteCostPerMillion?: number };
+
+export type DiscoveredModel = Pick<LocalModel, 'id' | 'name'> &
+  Partial<
+    Pick<
+      LocalModel,
+      | 'contextWindow'
+      | 'outputLimit'
+      | 'supportsToolCalls'
+      | 'supportsVision'
+      | 'supportsReasoning'
+      | 'inputModalities'
+      | 'outputModalities'
+    >
+  >;
+
 function hasProviderCapability(providerId: string, capability: ProviderCapability): providerId is ProviderId {
   return (
     (PROVIDER_CAPABILITIES as Record<string, readonly ProviderCapability[]>)[providerId]?.includes(capability) ?? false

@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
-import type { AgendaItemPriority, AgendaItemStatus } from '@stitch/shared/agenda/types';
+import type { AgendaItemPriority, AgendaItemStatus, AgendaList } from '@stitch/shared/agenda/types';
 import type { PrefixedString } from '@stitch/shared/id';
 
 // Type field is no longer used but kept for DB compatibility
@@ -10,17 +10,19 @@ type AgendaItemType = 'todo' | 'reminder' | 'checkup';
 export const agendaLists = sqliteTable(
   'agenda_lists',
   {
-    id: text('id').$type<PrefixedString<'alist'>>().primaryKey(),
-    name: text('name').notNull(),
-    description: text('description').notNull().default(''),
-    color: text('color'),
-    position: integer('position').notNull().default(0),
-    isArchived: integer('is_archived', { mode: 'boolean' }).notNull().default(false),
+    id: text('id').$type<AgendaList['id']>().primaryKey(),
+    name: text('name').$type<AgendaList['name']>().notNull(),
+    description: text('description').$type<AgendaList['description']>().notNull().default(''),
+    color: text('color').$type<AgendaList['color']>(),
+    position: integer('position').$type<AgendaList['position']>().notNull().default(0),
+    isArchived: integer('is_archived', { mode: 'boolean' }).$type<AgendaList['isArchived']>().notNull().default(false),
     createdAt: integer('created_at', { mode: 'number' })
       .notNull()
+      .$type<AgendaList['createdAt']>()
       .$defaultFn(() => Date.now()),
     updatedAt: integer('updated_at', { mode: 'number' })
       .notNull()
+      .$type<AgendaList['updatedAt']>()
       .$defaultFn(() => Date.now()),
   },
   (table) => [

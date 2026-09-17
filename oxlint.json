@@ -22,7 +22,11 @@
     "stitch/no-shared-re-export": "error",
     "deslop/no-duplicate-types": [
       "error",
-      { "minProperties": 2, "schemas": { "libraries": ["zod"], "matchTypes": true } }
+      {
+        "minProperties": 2,
+        "schemas": { "libraries": ["zod"], "matchTypes": true },
+        "drizzle": { "models": ["select", "insert"], "matchTypes": true }
+      }
     ],
     "typescript/no-deprecated": "error",
     "typescript/no-unnecessary-type-assertion": "error",
