@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { check, index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 import type { PrefixedString } from '@stitch/shared/id';
+import type { MailLabelView } from '@stitch/shared/mail/types';
 
 export type MailAccountId = PrefixedString<'macc'>;
 export type MailLabelId = PrefixedString<'mlbl'>;
@@ -83,17 +84,17 @@ export const mailAccounts = sqliteTable(
 export const mailLabels = sqliteTable(
   'mail_labels',
   {
-    id: text('id').$type<MailLabelId>().primaryKey().$defaultFn(createMailLabelId),
+    id: text('id').$type<MailLabelView['id']>().primaryKey().$defaultFn(createMailLabelId),
     accountId: text('account_id')
-      .$type<MailAccountId>()
+      .$type<MailLabelView['accountId']>()
       .notNull()
       .references(() => mailAccounts.id, { onDelete: 'cascade' }),
-    providerLabelId: text('provider_label_id').notNull(),
-    name: text('name').notNull(),
-    kind: text('kind').$type<MailLabelKind>().notNull(),
-    color: text('color'),
-    unreadCount: integer('unread_count').notNull().default(0),
-    totalCount: integer('total_count').notNull().default(0),
+    providerLabelId: text('provider_label_id').$type<MailLabelView['providerLabelId']>().notNull(),
+    name: text('name').$type<MailLabelView['name']>().notNull(),
+    kind: text('kind').$type<MailLabelView['kind']>().notNull(),
+    color: text('color').$type<MailLabelView['color']>(),
+    unreadCount: integer('unread_count').$type<MailLabelView['unreadCount']>().notNull().default(0),
+    totalCount: integer('total_count').$type<MailLabelView['totalCount']>().notNull().default(0),
   },
   (table) => [
     uniqueIndex('mail_labels_account_provider_label_uidx').on(table.accountId, table.providerLabelId),
@@ -257,11 +258,3 @@ export const mailOutbox = sqliteTable(
     check('mail_outbox_status_check', sql`${table.status} in ('pending', 'in_flight', 'failed', 'done')`),
   ],
 );
-
-export type MailAccountRecord = typeof mailAccounts.$inferSelect;
-export type MailLabelRecord = typeof mailLabels.$inferSelect;
-export type MailThreadRecord = typeof mailThreads.$inferSelect;
-export type MailMessageRecord = typeof mailMessages.$inferSelect;
-export type MailAttachmentRecord = typeof mailAttachments.$inferSelect;
-export type MailDraftRecord = typeof mailDrafts.$inferSelect;
-export type MailOutboxRecord = typeof mailOutbox.$inferSelect;

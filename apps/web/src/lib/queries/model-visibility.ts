@@ -1,9 +1,9 @@
 import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
 
+import type { VisibilityOverride } from '@stitch/shared/providers/model-visibility';
+
 import { serverRequest } from '@/lib/api';
 import { providerKeys } from '@/lib/queries/providers';
-
-type VisibilityOverride = { providerId: string; modelId: string; visibility: 'show' | 'hide' };
 
 const modelVisibilityKeys = {
   all: ['models', 'visibility'] as const,

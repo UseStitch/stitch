@@ -1,6 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import type { GmailHeader } from '@stitch/shared/mail/types';
+
 import {
   GmailAttachmentMissingDataError,
   GmailAttachmentSizeLimitError,
@@ -11,8 +13,6 @@ import type { GoogleClient } from '../client.js';
 
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
 const GMAIL_ATTACHMENT_SIZE_LIMIT_BYTES = 25 * 1024 * 1024;
-
-type GmailHeader = { name: string; value: string };
 
 type GmailMessagePartBody = { size: number; data?: string; attachmentId?: string };
 

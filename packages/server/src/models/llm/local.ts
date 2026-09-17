@@ -2,13 +2,11 @@ import { and, eq } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 
-import type { LocalProviderId } from '@stitch/shared/providers/types';
+import type { DiscoveredModel, LocalModel, LocalModelInput, LocalProviderId } from '@stitch/shared/providers/types';
 
 import { getDb } from '@/db/client.js';
 import { localModels } from '@/db/schema/providers.js';
 import { ModelSchema } from '@/models/llm/registry.js';
-
-export type LocalModel = typeof localModels.$inferSelect;
 
 const MODALITY = ModelSchema.shape.modalities.unwrap().shape.input.element;
 
@@ -28,20 +26,6 @@ export const LocalModelInputSchema = z.object({
   inputModalities: z.array(MODALITY).default(['text']),
   outputModalities: z.array(MODALITY).default(['text']),
 });
-
-export type LocalModelInput = z.infer<typeof LocalModelInputSchema>;
-
-export type DiscoveredModel = {
-  id: string;
-  name: string;
-  contextWindow?: number;
-  outputLimit?: number;
-  supportsToolCalls?: boolean;
-  supportsVision?: boolean;
-  supportsReasoning?: boolean;
-  inputModalities?: LocalModelInput['inputModalities'];
-  outputModalities?: LocalModelInput['outputModalities'];
-};
 
 export async function listLocalModels(provider: LocalProviderId): Promise<LocalModel[]> {
   const db = getDb();

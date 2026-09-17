@@ -7,11 +7,17 @@ import * as GmailApi from './api.js';
 
 import type { GoogleClient } from '../client.js';
 
-const gmailSearchSchema = z.object({
-  account: z
-    .string()
-    .optional()
-    .describe('Optional account email or label when multiple Google accounts are connected'),
+function gmailInputSchema<T extends z.ZodRawShape>(shape: T) {
+  return z.object({
+    account: z
+      .string()
+      .optional()
+      .describe('Optional account email or label when multiple Google accounts are connected'),
+    ...shape,
+  });
+}
+
+const gmailSearchSchema = gmailInputSchema({
   query: z.string().describe('Gmail search query (same syntax as Gmail search bar)'),
   ...paginationFields(),
   idsOnly: z
@@ -21,27 +27,13 @@ const gmailSearchSchema = z.object({
     .describe('When true (default), returns only message IDs without fetching metadata'),
 });
 
-const gmailReadSchema = z.object({
-  account: z
-    .string()
-    .optional()
-    .describe('Optional account email or label when multiple Google accounts are connected'),
-  messageId: z.string().describe('The Gmail message ID to read'),
-});
+const gmailReadSchema = gmailInputSchema({ messageId: z.string().describe('The Gmail message ID to read') });
 
-const gmailDownloadAttachmentsSchema = z.object({
-  account: z
-    .string()
-    .optional()
-    .describe('Optional account email or label when multiple Google accounts are connected'),
+const gmailDownloadAttachmentsSchema = gmailInputSchema({
   messageId: z.string().describe('The Gmail message ID whose attachments should be downloaded'),
 });
 
-const gmailSendSchema = z.object({
-  account: z
-    .string()
-    .optional()
-    .describe('Optional account email or label when multiple Google accounts are connected'),
+const gmailSendSchema = gmailInputSchema({
   to: z.string().describe('Recipient email address'),
   subject: z.string().describe('Email subject line'),
   body: z.string().describe('Plain text email body'),
@@ -68,27 +60,14 @@ const gmailSendSchema = z.object({
     .describe('Local files to attach. Their combined size must not exceed 25 MiB.'),
 });
 
-const gmailListLabelsSchema = z.object({
-  account: z
-    .string()
-    .optional()
-    .describe('Optional account email or label when multiple Google accounts are connected'),
-});
+const gmailListLabelsSchema = gmailInputSchema({});
 
-const gmailGetLabelsSchema = z.object({
-  account: z
-    .string()
-    .optional()
-    .describe('Optional account email or label when multiple Google accounts are connected'),
+const gmailGetLabelsSchema = gmailInputSchema({
   labelId: z.string().describe('Gmail label ID (for example: INBOX or a user label ID)'),
 });
 
 const gmailModifyLabelsSchema = z.discriminatedUnion('operation', [
-  z.object({
-    account: z
-      .string()
-      .optional()
-      .describe('Optional account email or label when multiple Google accounts are connected'),
+  gmailInputSchema({
     operation: z.literal('create'),
     name: z.string().describe('Name for the new Gmail label'),
     messageListVisibility: z
@@ -100,11 +79,7 @@ const gmailModifyLabelsSchema = z.discriminatedUnion('operation', [
       .optional()
       .describe('Whether this label appears in the label list'),
   }),
-  z.object({
-    account: z
-      .string()
-      .optional()
-      .describe('Optional account email or label when multiple Google accounts are connected'),
+  gmailInputSchema({
     operation: z.literal('update'),
     labelId: z.string().describe('Label ID to update'),
     name: z.string().optional().describe('Updated label name'),
@@ -114,60 +89,30 @@ const gmailModifyLabelsSchema = z.discriminatedUnion('operation', [
       .optional()
       .describe('Updated label list visibility'),
   }),
-  z.object({
-    account: z
-      .string()
-      .optional()
-      .describe('Optional account email or label when multiple Google accounts are connected'),
-    operation: z.literal('delete'),
-    labelId: z.string().describe('Label ID to delete'),
-  }),
+  gmailInputSchema({ operation: z.literal('delete'), labelId: z.string().describe('Label ID to delete') }),
 ]);
 
-const gmailModifyMessagesSchema = z
-  .object({
-    account: z
-      .string()
-      .optional()
-      .describe('Optional account email or label when multiple Google accounts are connected'),
-    messageIds: z
-      .array(z.string())
-      .min(1)
-      .describe('Message IDs by default. If modifyThreads=true, provide thread IDs instead.'),
-    addLabelIds: z.array(z.string()).optional().describe('Label IDs to add (for example: ["UNREAD", "Label_123"])'),
-    removeLabelIds: z.array(z.string()).optional().describe('Label IDs to remove'),
-    modifyThreads: z
-      .boolean()
-      .optional()
-      .default(false)
-      .describe('Set true to apply label changes to a thread instead of a single message'),
-  })
-  .refine((value) => (value.addLabelIds?.length ?? 0) > 0 || (value.removeLabelIds?.length ?? 0) > 0, {
-    message: 'Provide at least one label in addLabelIds or removeLabelIds',
-    path: ['addLabelIds'],
-  });
+const gmailModifyMessagesSchema = gmailInputSchema({
+  messageIds: z
+    .array(z.string())
+    .min(1)
+    .describe('Message IDs by default. If modifyThreads=true, provide thread IDs instead.'),
+  addLabelIds: z.array(z.string()).optional().describe('Label IDs to add (for example: ["UNREAD", "Label_123"])'),
+  removeLabelIds: z.array(z.string()).optional().describe('Label IDs to remove'),
+  modifyThreads: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Set true to apply label changes to a thread instead of a single message'),
+}).refine((value) => (value.addLabelIds?.length ?? 0) > 0 || (value.removeLabelIds?.length ?? 0) > 0, {
+  message: 'Provide at least one label in addLabelIds or removeLabelIds',
+  path: ['addLabelIds'],
+});
 
 const gmailFiltersSchema = z.discriminatedUnion('operation', [
-  z.object({
-    account: z
-      .string()
-      .optional()
-      .describe('Optional account email or label when multiple Google accounts are connected'),
-    operation: z.literal('list'),
-  }),
-  z.object({
-    account: z
-      .string()
-      .optional()
-      .describe('Optional account email or label when multiple Google accounts are connected'),
-    operation: z.literal('get'),
-    filterId: z.string().describe('Server-assigned filter ID'),
-  }),
-  z.object({
-    account: z
-      .string()
-      .optional()
-      .describe('Optional account email or label when multiple Google accounts are connected'),
+  gmailInputSchema({ operation: z.literal('list') }),
+  gmailInputSchema({ operation: z.literal('get'), filterId: z.string().describe('Server-assigned filter ID') }),
+  gmailInputSchema({
     operation: z.literal('create'),
     criteria: z
       .object({
@@ -211,11 +156,7 @@ const gmailFiltersSchema = z.discriminatedUnion('operation', [
       .optional()
       .describe('Actions to apply to messages that match the criteria'),
   }),
-  z.object({
-    account: z
-      .string()
-      .optional()
-      .describe('Optional account email or label when multiple Google accounts are connected'),
+  gmailInputSchema({
     operation: z.literal('delete'),
     filterId: z.string().describe('Server-assigned filter ID to permanently delete'),
   }),

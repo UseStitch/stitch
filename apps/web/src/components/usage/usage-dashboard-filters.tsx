@@ -1,5 +1,6 @@
 import { USAGE_DATE_RANGES, type UsageDateRange } from '@stitch/shared/usage/types';
 
+import type { ModelGroup } from '@/components/model-selectors/model-combobox';
 import { Stack } from '@/components/primitives/stack';
 import {
   Combobox,
@@ -29,8 +30,6 @@ type UsageDashboardFiltersProps = {
   onRangeChange: (value: UsageDateRange) => void;
 };
 
-type ModelGroup = { value: string; items: ModelOption[] };
-
 const ALL_MODELS_OPTION: ModelOption = {
   label: 'All models',
   providerId: ALL_FILTER,
@@ -39,8 +38,8 @@ const ALL_MODELS_OPTION: ModelOption = {
   modelName: 'All models',
 };
 
-function groupModelsByProvider(models: ModelOption[]): ModelGroup[] {
-  const groups = new Map<string, ModelGroup>();
+function groupModelsByProvider(models: ModelOption[]): ModelGroup<ModelOption>[] {
+  const groups = new Map<string, ModelGroup<ModelOption>>();
 
   for (const model of models) {
     const group = groups.get(model.providerId);

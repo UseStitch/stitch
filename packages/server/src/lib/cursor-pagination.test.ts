@@ -1,18 +1,15 @@
 import { describe, expect, test } from 'bun:test';
-import { z } from 'zod';
 
-import { createCursorPage, decodeCursor, encodeCursor } from '@/lib/cursor-pagination.js';
-
-const cursorSchema = z.object({ createdAt: z.number().int(), id: z.string().min(1) });
+import { createdAtIdCursorSchema, createCursorPage, decodeCursor, encodeCursor } from '@/lib/cursor-pagination.js';
 
 describe('cursor pagination', () => {
   test('round trips an opaque cursor', () => {
     const value = { createdAt: 123, id: 'item_1' };
-    expect(decodeCursor(encodeCursor(value), cursorSchema)).toEqual(value);
+    expect(decodeCursor(encodeCursor(value), createdAtIdCursorSchema)).toEqual(value);
   });
 
   test('rejects malformed cursors', () => {
-    expect(() => decodeCursor('not-a-cursor', cursorSchema)).toThrow('Invalid pagination cursor');
+    expect(() => decodeCursor('not-a-cursor', createdAtIdCursorSchema)).toThrow('Invalid pagination cursor');
   });
 
   test('uses a lookahead row to create the next cursor', () => {

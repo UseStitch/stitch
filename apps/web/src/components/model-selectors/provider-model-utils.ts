@@ -1,6 +1,5 @@
+import type { ModelSelection } from './model-combobox';
 import type { ModelSummary, ProviderModels } from '@/lib/queries/providers';
-
-type ProviderModelSelection = { providerId: string; modelId: string };
 
 type ProviderModelOption = {
   providerId: string;
@@ -38,7 +37,7 @@ export function filterProviderModels(providerModels: ProviderModels[], query: st
 
 export function findProviderModelOption(
   options: ProviderModelOption[],
-  selected: ProviderModelSelection | null,
+  selected: ModelSelection | null,
 ): ProviderModelOption | null {
   if (!selected) return null;
 

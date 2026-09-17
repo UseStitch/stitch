@@ -35,7 +35,7 @@ function PageIcon({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="page-icon"
-      className={cn('flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary', className)}
+      className={cn('flex size-10 items-center justify-center rounded-lg bg-primary-subtle text-primary', className)}
       {...props}
     />
   );

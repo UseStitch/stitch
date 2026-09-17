@@ -15,6 +15,7 @@ import type {
   MailThreadDetail,
   MailThreadId,
   MailThreadsPage,
+  EligibleMailAccount,
 } from '@stitch/shared/mail/types';
 
 import { serverRequest } from '@/lib/api';
@@ -25,8 +26,6 @@ export const mailKeys = {
   eligibleAccounts: () => [...mailKeys.all, 'eligible-accounts'] as const,
   syncStatus: () => [...mailKeys.all, 'sync-status'] as const,
 };
-
-type EligibleMailAccountView = { connectorInstanceId: string; email: string };
 
 export type MailSyncStatusView = {
   accountId: MailAccountId;
@@ -45,7 +44,7 @@ export const mailAccountsQueryOptions = queryOptions({
 
 export const eligibleMailAccountsQueryOptions = queryOptions({
   queryKey: mailKeys.eligibleAccounts(),
-  queryFn: () => serverRequest<EligibleMailAccountView[]>('/mail/eligible-accounts'),
+  queryFn: () => serverRequest<EligibleMailAccount[]>('/mail/eligible-accounts'),
 });
 
 export const mailSyncStatusQueryOptions = queryOptions({

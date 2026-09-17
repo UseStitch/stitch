@@ -6,7 +6,13 @@ import { z } from 'zod';
 import { useForm, useSelector } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import type { LocalProviderId } from '@stitch/shared/providers/types';
+import type {
+  DiscoveredModel,
+  LocalModality,
+  LocalModel,
+  LocalModelInput,
+  LocalProviderId,
+} from '@stitch/shared/providers/types';
 
 import { Icon } from '@/components/primitives/icon';
 import { Stack } from '@/components/primitives/stack';
@@ -21,15 +27,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { serverRequest } from '@/lib/api';
 import { getErrorMessage } from '@/lib/errors';
-import {
-  discoverLocalModelsQueryOptions,
-  localModelKeys,
-  localModelsQueryOptions,
-  type DiscoveredModel,
-  type LocalModality,
-  type LocalModel,
-  type LocalModelInput,
-} from '@/lib/queries/local-models';
+import { discoverLocalModelsQueryOptions, localModelKeys, localModelsQueryOptions } from '@/lib/queries/local-models';
 
 type Props = { provider: LocalProviderId };
 

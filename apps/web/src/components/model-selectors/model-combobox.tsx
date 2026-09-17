@@ -13,13 +13,13 @@ import {
 
 export type ModelSelection = { providerId: string; modelId: string };
 
+export type ModelGroup<T> = { value: string; items: T[] };
+
 type MinimalProviderModels = { providerId: string; providerName: string; models: { id: string; name: string }[] };
 
 type ModelOption = { label: string; providerId: string; providerName: string; modelId: string };
 
-type ModelGroup = { value: string; items: ModelOption[] };
-
-function buildGroups(providerModels: MinimalProviderModels[]): ModelGroup[] {
+function buildGroups(providerModels: MinimalProviderModels[]): ModelGroup<ModelOption>[] {
   return providerModels.map((provider) => ({
     value: provider.providerName,
     items: provider.models.map((model) => ({
@@ -31,7 +31,7 @@ function buildGroups(providerModels: MinimalProviderModels[]): ModelGroup[] {
   }));
 }
 
-function flattenGroups(groups: ModelGroup[]): ModelOption[] {
+function flattenGroups(groups: ModelGroup<ModelOption>[]): ModelOption[] {
   return groups.flatMap((g) => g.items);
 }
 

@@ -1,8 +1,8 @@
-import type { AudioChunk, TranscriptEvent, STTUsage } from '@stitch/shared/stt/types';
+import type { AudioChunk, TranscriptEvent, STTUsage, BufferConfig, ReconnectConfig } from '@stitch/shared/stt/types';
 
 import * as Log from '@/lib/log.js';
 import type { STTConnection, STTTransport } from '@/stt/adapter-iface.js';
-import type { BufferConfig, PartialStrategy, ReconnectConfig } from '@/stt/types.js';
+import type { PartialStrategy } from '@/stt/types.js';
 
 const log = Log.create({ service: 'stt.base-adapter' });
 const MAX_SEND_BATCH_MS = 900;

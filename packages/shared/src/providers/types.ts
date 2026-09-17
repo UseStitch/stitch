@@ -43,6 +43,13 @@ export type FieldDef =
 type AuthMethodDef = { method: string; label: string; enabled: boolean; fields: FieldDef[] };
 
 export type ProviderCapability = 'llm' | 'stt' | 'embedding';
+export type ProviderWithCapabilities = {
+  id: string;
+  name: string;
+  api: string | undefined;
+  enabled: boolean;
+  capabilities: ProviderCapability[];
+};
 
 const PROVIDER_CAPABILITIES = {
   'amazon-bedrock': ['llm'],
@@ -69,6 +76,47 @@ export type LlmProviderId = ProvidersWithCapability<'llm'>;
 export type LocalProviderId = 'ollama_local' | 'lmstudio_local';
 type SttProviderId = ProvidersWithCapability<'stt'>;
 export type EmbeddingProviderId = ProvidersWithCapability<'embedding'>;
+
+export type LocalModality = 'text' | 'audio' | 'image' | 'video' | 'pdf';
+
+export type LocalModel = {
+  provider: LocalProviderId;
+  id: string;
+  name: string;
+  contextWindow: number;
+  inputLimit: number | null;
+  outputLimit: number;
+  inputCostPerMillion: number;
+  outputCostPerMillion: number;
+  cacheReadCostPerMillion: number | null;
+  cacheWriteCostPerMillion: number | null;
+  supportsToolCalls: boolean;
+  supportsVision: boolean;
+  supportsReasoning: boolean;
+  inputModalities: LocalModality[];
+  outputModalities: LocalModality[];
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type LocalModelInput = Omit<
+  LocalModel,
+  'provider' | 'createdAt' | 'updatedAt' | 'inputLimit' | 'cacheReadCostPerMillion' | 'cacheWriteCostPerMillion'
+> & { inputLimit?: number; cacheReadCostPerMillion?: number; cacheWriteCostPerMillion?: number };
+
+export type DiscoveredModel = Pick<LocalModel, 'id' | 'name'> &
+  Partial<
+    Pick<
+      LocalModel,
+      | 'contextWindow'
+      | 'outputLimit'
+      | 'supportsToolCalls'
+      | 'supportsVision'
+      | 'supportsReasoning'
+      | 'inputModalities'
+      | 'outputModalities'
+    >
+  >;
 
 function hasProviderCapability(providerId: string, capability: ProviderCapability): providerId is ProviderId {
   return (

@@ -80,3 +80,4 @@ export function isModelVisible(
   if (override === 'show') return true;
   return defaultVisibleSet.has(key);
 }
+export type VisibilityOverride = { providerId: string; modelId: string; visibility: 'show' | 'hide' };

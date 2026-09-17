@@ -4,7 +4,8 @@
   "jsPlugins": [
     { "name": "stitch", "specifier": "./tools/oxlint-plugins/index.mjs" },
     { "name": "unicorn-js", "specifier": "eslint-plugin-unicorn" },
-    { "name": "react-doctor", "specifier": "oxlint-plugin-react-doctor" }
+    { "name": "react-doctor", "specifier": "oxlint-plugin-react-doctor" },
+    "ai-deslop"
   ],
   "options": { "typeAware": true },
   "rules": {
@@ -19,6 +20,14 @@
     "no-else-return": "error",
     "stitch/no-pass-through-type-alias": "error",
     "stitch/no-shared-re-export": "error",
+    "deslop/no-duplicate-types": [
+      "error",
+      {
+        "minProperties": 2,
+        "schemas": { "libraries": ["zod"], "matchTypes": true },
+        "drizzle": { "models": ["select", "insert"], "matchTypes": true }
+      }
+    ],
     "typescript/no-deprecated": "error",
     "typescript/no-unnecessary-type-assertion": "error",
     "typescript/no-unnecessary-condition": "error",
@@ -84,6 +93,7 @@
         "stitch/no-raw-typography-element": "error",
         "stitch/no-token-opacity": "error",
         "stitch/no-window-confirm": "error",
+        "deslop/canonical-class-names": ["error", { "cssPath": "./apps/web/src/styles/global.css" }],
         "react-doctor/no-derived-state": "error",
         "react-doctor/no-chain-state-updates": "error",
         "react-doctor/no-event-handler": "error",

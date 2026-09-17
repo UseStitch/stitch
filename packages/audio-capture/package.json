@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@napi-rs/cli": "^3.7.2",
+    "@stitch/shared": "workspace:*",
     "@types/bun": "catalog:",
     "typescript": "catalog:"
   }

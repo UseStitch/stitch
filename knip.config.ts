@@ -36,6 +36,7 @@ const config: KnipConfig = {
     'oxfmt',
     'eslint-plugin-unicorn',
     'oxlint',
+    'ai-deslop',
     'oxlint-plugin-react-doctor',
     'oxlint-tsgolint',
     '@tanstack/eslint-plugin-query',

@@ -1,10 +1,10 @@
 import { and, eq } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
+import type { VisibilityOverride } from '@stitch/shared/providers/model-visibility';
+
 import { getDb } from '@/db/client.js';
 import { modelVisibility } from '@/db/schema/providers.js';
-
-type VisibilityOverride = { providerId: string; modelId: string; visibility: 'show' | 'hide' };
 
 export async function listVisibilityOverrides(): Promise<VisibilityOverride[]> {
   const db = getDb();

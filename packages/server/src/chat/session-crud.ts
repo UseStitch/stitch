@@ -1,6 +1,5 @@
 import { and, desc, eq, isNull, like, lt, or } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
-import { z } from 'zod';
 
 import { ARCHIVE_REASONS } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
@@ -9,30 +8,26 @@ import { createSessionId } from '@stitch/shared/id';
 import { cancelBackgroundTasksForParent } from '@/background-tasks/service.js';
 import { getDb } from '@/db/client.js';
 import { messages, sessions } from '@/db/schema/sessions.js';
-import { createCursorPage, decodeCursor, encodeCursor } from '@/lib/cursor-pagination.js';
+import { createdAtIdCursorSchema, createCursorPage, decodeCursor, encodeCursor } from '@/lib/cursor-pagination.js';
 
 const DEFAULT_PAGE_SIZE = 50;
 const DEFAULT_SESSION_PAGE_SIZE = 30;
-
-const sessionCursorSchema = z.object({ createdAt: z.number().int(), id: z.string().min(1) });
 
 function encodeSessionCursor(session: { createdAt: number; id: PrefixedString<'ses'> }): string {
   return encodeCursor({ createdAt: session.createdAt, id: session.id });
 }
 
 function decodeSessionCursor(cursor: string): { createdAt: number; id: PrefixedString<'ses'> } {
-  const decoded = decodeCursor(cursor, sessionCursorSchema);
+  const decoded = decodeCursor(cursor, createdAtIdCursorSchema);
   return { createdAt: decoded.createdAt, id: decoded.id as PrefixedString<'ses'> };
 }
-
-const messageCursorSchema = z.object({ createdAt: z.number().int(), id: z.string().min(1) });
 
 function encodeMessageCursor(message: { createdAt: number; id: PrefixedString<'msg'> }): string {
   return encodeCursor({ createdAt: message.createdAt, id: message.id });
 }
 
 function decodeMessageCursor(cursor: string): { createdAt: number; id: PrefixedString<'msg'> } {
-  const decoded = decodeCursor(cursor, messageCursorSchema);
+  const decoded = decodeCursor(cursor, createdAtIdCursorSchema);
   return { createdAt: decoded.createdAt, id: decoded.id as PrefixedString<'msg'> };
 }
 

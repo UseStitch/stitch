@@ -1,21 +1,22 @@
 import { integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
-import type { PrefixedString } from '@stitch/shared/id';
-import type { ToolPermissionValue } from '@stitch/shared/permissions/types';
+import type { ToolPermission } from '@stitch/shared/permissions/types';
 import type { ToolEnabledScope } from '@stitch/shared/tools/types';
 
 export const toolPermissions = sqliteTable(
   'tool_permissions',
   {
-    id: text('id').$type<PrefixedString<'perm'>>().primaryKey(),
-    toolName: text('tool_name').notNull(),
-    pattern: text('pattern'),
-    permission: text('permission').$type<ToolPermissionValue>().notNull(),
+    id: text('id').$type<ToolPermission['id']>().primaryKey(),
+    toolName: text('tool_name').$type<ToolPermission['toolName']>().notNull(),
+    pattern: text('pattern').$type<ToolPermission['pattern']>(),
+    permission: text('permission').$type<ToolPermission['permission']>().notNull(),
     createdAt: integer('created_at', { mode: 'number' })
       .notNull()
+      .$type<ToolPermission['createdAt']>()
       .$defaultFn(() => Date.now()),
     updatedAt: integer('updated_at', { mode: 'number' })
       .notNull()
+      .$type<ToolPermission['updatedAt']>()
       .$defaultFn(() => Date.now()),
   },
   (table) => [uniqueIndex('tool_permissions_tool_pattern_idx').on(table.toolName, table.pattern)],

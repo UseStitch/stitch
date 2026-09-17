@@ -1,29 +1,13 @@
 import { HTTPException } from 'hono/http-exception';
 import z from 'zod';
 
-import type { McpRegistryPayload, McpRegistryServer } from '@stitch/shared/mcp/types';
+import { McpAuthConfigSchema, type McpRegistryPayload, type McpRegistryServer } from '@stitch/shared/mcp/types';
 
 import type { FetchLike } from '@/lib/icon-cache.js';
 import { PATHS } from '@/lib/paths.js';
 import { createRegistryCache, getStitchRegistryUserAgent } from '@/lib/registry-cache.js';
 
 const DEFAULT_MCP_REGISTRY_URL = 'https://usestitch.ai/mcp-registry.json';
-
-const noneAuthConfigSchema = z.object({ type: z.literal('none') });
-const apiKeyAuthConfigSchema = z.object({ type: z.literal('api_key'), apiKey: z.string().min(1) });
-const headersAuthConfigSchema = z.object({ type: z.literal('headers'), headers: z.record(z.string(), z.string()) });
-const oauthAuthConfigSchema = z.object({
-  type: z.literal('oauth'),
-  scopes: z.array(z.string()).optional(),
-  clientId: z.string().optional(),
-  clientSecret: z.string().optional(),
-});
-const authConfigSchema = z.discriminatedUnion('type', [
-  noneAuthConfigSchema,
-  apiKeyAuthConfigSchema,
-  headersAuthConfigSchema,
-  oauthAuthConfigSchema,
-]);
 
 const mcpRegistryServerSchema = z.object({
   $schema: z.string().optional(),
@@ -38,8 +22,8 @@ const mcpRegistryServerSchema = z.object({
     name: z.string().min(1),
     transport: z.enum(['stdio', 'http']),
     url: z.url(),
-    authConfig: authConfigSchema,
-    optionalAuthConfigs: z.array(authConfigSchema).optional(),
+    authConfig: McpAuthConfigSchema,
+    optionalAuthConfigs: z.array(McpAuthConfigSchema).optional(),
   }),
 });
 

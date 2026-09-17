@@ -2,6 +2,8 @@ import { and, eq, inArray } from 'drizzle-orm';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import type { MailAddressView as SyncAddress } from '@stitch/shared/mail/types';
+
 import { getMailDb } from '../db/client.js';
 import {
   createMailDraftId,
@@ -12,7 +14,6 @@ import {
   mailMessageLabels,
   mailMessages,
   mailThreads,
-  type MailAccountRecord,
   type MailAccountId,
   type MailAttachmentId,
   type MailDraftId,
@@ -24,18 +25,18 @@ import { MailNotFoundError } from '../errors.js';
 import { getMailProvider } from '../registry.js';
 import { persistSyncPage, recomputeThreads, refreshLabelCounts, MAIL_SYSTEM_LABELS } from '../sync/persist.js';
 
-import type { MailProviderContext, OutgoingDraft, SyncAddress } from '../contracts.js';
+import type { MailProviderContext, OutgoingDraft } from '../contracts.js';
 import type { DraftInput } from '../sync/engine.js';
 import type { OutboxController } from './outbox.js';
 
 type OperationsDeps = {
   outbox: OutboxController;
   attachmentsDir: string;
-  createContext(account: MailAccountRecord): MailProviderContext;
+  createContext(account: typeof mailAccounts.$inferSelect): MailProviderContext;
   emitThreadsChanged(accountId: MailAccountId, threadIds: MailThreadId[]): void;
 };
 
-async function getAccount(accountId: MailAccountId): Promise<MailAccountRecord> {
+async function getAccount(accountId: MailAccountId): Promise<typeof mailAccounts.$inferSelect> {
   const account = (await getMailDb().select().from(mailAccounts).where(eq(mailAccounts.id, accountId)).limit(1)).at(0);
   if (!account) throw new MailNotFoundError(`Mail account not found: ${accountId}`);
   return account;

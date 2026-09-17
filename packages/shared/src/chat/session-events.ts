@@ -1,10 +1,10 @@
 import type { PrefixedString } from '../id/index.js';
 
-type SessionTitleUpdatePayload = { sessionId: PrefixedString<'ses'>; title: string };
+export type SessionTitleUpdatePayload = { sessionId: PrefixedString<'ses'>; title: string };
 
 type SessionTodosUpdatedPayload = { sessionId: PrefixedString<'ses'> };
 
-type CompactionStartPayload = { sessionId: PrefixedString<'ses'>; messageId: PrefixedString<'msg'> };
+export type SessionMessageEventPayload = { sessionId: PrefixedString<'ses'>; messageId: PrefixedString<'msg'> };
 
 type CompactionCompletePayload = { sessionId: PrefixedString<'ses'>; summaryMessageId: PrefixedString<'msg'> };
 
@@ -18,6 +18,6 @@ export const SESSION_EVENT_NAMES = [
 export type SessionEvents = {
   'session.title.updated': SessionTitleUpdatePayload;
   'session.todos.updated': SessionTodosUpdatedPayload;
-  'session.compaction.started': CompactionStartPayload;
+  'session.compaction.started': SessionMessageEventPayload;
   'session.compaction.completed': CompactionCompletePayload;
 };

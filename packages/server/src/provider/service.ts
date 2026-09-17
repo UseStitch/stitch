@@ -6,9 +6,11 @@ import { PROVIDER_META } from '@stitch/shared/providers/catalog';
 import {
   isLocalProviderId,
   PROVIDER_IDS,
+  type LocalModel,
   type LocalProviderId,
   type ProviderCapability,
   type ProviderId,
+  type ProviderWithCapabilities,
 } from '@stitch/shared/providers/types';
 import type { SttProviderModels } from '@stitch/shared/stt/types';
 
@@ -38,14 +40,6 @@ export {
   type LlmProviderCredentials,
   type ModelProviderCredentials,
   type ProviderCredentials,
-};
-
-export type ProviderWithCapabilities = {
-  id: string;
-  name: string;
-  api: string | undefined;
-  enabled: boolean;
-  capabilities: ProviderCapability[];
 };
 
 export type ProviderSummary = {
@@ -92,7 +86,7 @@ function toModelSummary(model: Models.RawModel): ModelSummary {
   };
 }
 
-function localModelToSummary(m: LocalModels.LocalModel): ModelSummary {
+function localModelToSummary(m: LocalModel): ModelSummary {
   return {
     id: m.id,
     name: m.name,

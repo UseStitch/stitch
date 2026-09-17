@@ -2,7 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { MCP_TRANSPORT_TYPES } from '@stitch/shared/mcp/types';
+import { McpAuthConfigSchema, MCP_TRANSPORT_TYPES } from '@stitch/shared/mcp/types';
 
 import { ICON_CACHE_CONTROL, SVG_CONTENT_TYPE } from '@/lib/icon-cache.js';
 import * as Log from '@/lib/log.js';
@@ -24,27 +24,11 @@ import { refreshMcpToolsets } from '@/mcp/tool-executor.js';
 
 const log = Log.create({ service: 'mcp-routes' });
 
-const noneAuthSchema = z.object({ type: z.literal('none') });
-const apiKeyAuthSchema = z.object({ type: z.literal('api_key'), apiKey: z.string().min(1) });
-const headersAuthSchema = z.object({ type: z.literal('headers'), headers: z.record(z.string(), z.string()) });
-const oauthAuthSchema = z.object({
-  type: z.literal('oauth'),
-  scopes: z.array(z.string()).optional(),
-  clientId: z.string().optional(),
-  clientSecret: z.string().optional(),
-});
-const authConfigSchema = z.discriminatedUnion('type', [
-  noneAuthSchema,
-  apiKeyAuthSchema,
-  headersAuthSchema,
-  oauthAuthSchema,
-]);
-
 const createMcpServerSchema = z.object({
   name: z.string().trim().min(1),
   transport: z.enum(MCP_TRANSPORT_TYPES),
   url: z.url(),
-  authConfig: authConfigSchema,
+  authConfig: McpAuthConfigSchema,
 });
 
 const mcpServerIdParamSchema = z.object({ id: routeSchemas.mcpServerId });

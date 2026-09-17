@@ -1,21 +1,10 @@
-import type { AudioFormat, CapabilityResolution, STTCapability } from '@stitch/shared/stt/types';
-
-export type BufferConfig = {
-  maxChunkBytes: number;
-  flushIntervalMs: number;
-  maxBufferedMs: number;
-};
-
-export type ReconnectConfig = {
-  enabled: boolean;
-  maxRetries: number;
-  backoffMs: number;
-  maxBackoffMs?: number;
-  rotateBeforeMs?: number;
-  pingIntervalMs?: number;
-  pongTimeoutMs?: number;
-  keepAliveMessage?: string;
-};
+import type {
+  AudioFormat,
+  BufferConfig,
+  CapabilityResolution,
+  ReconnectConfig,
+  STTCapability,
+} from '@stitch/shared/stt/types';
 
 export type PartialStrategy = 'cumulative' | 'incremental';
 

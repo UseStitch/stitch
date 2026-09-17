@@ -1,4 +1,6 @@
-import type { MailAccountRecord, MailProviderId } from './db/schema.js';
+import type { MailAddressView } from '@stitch/shared/mail/types';
+
+import { mailAccounts, type MailProviderId } from './db/schema.js';
 
 // ── Infrastructure injected by the server ────────────────────────────────
 export type MailHttpClient = {
@@ -13,7 +15,7 @@ export type MailLogger = {
 };
 
 export type MailProviderContext = {
-  account: MailAccountRecord; // row from mail_accounts
+  account: typeof mailAccounts.$inferSelect; // row from mail_accounts
   http: MailHttpClient;
   logger: MailLogger;
   signal: AbortSignal; // engine cancels on shutdown/disable
@@ -21,8 +23,6 @@ export type MailProviderContext = {
 
 // ── Normalized provider data (provider → engine) ─────────────────────────
 export type SyncLabel = { providerLabelId: string; name: string; kind: 'system' | 'user'; color: string | null };
-
-export type SyncAddress = { name: string | null; email: string };
 
 export type SyncAttachmentMeta = {
   providerAttachmentId: string;
@@ -34,10 +34,10 @@ export type SyncAttachmentMeta = {
 export type SyncMessage = {
   providerMessageId: string;
   providerThreadId: string;
-  from: SyncAddress | null;
-  to: SyncAddress[];
-  cc: SyncAddress[];
-  bcc: SyncAddress[];
+  from: MailAddressView | null;
+  to: MailAddressView[];
+  cc: MailAddressView[];
+  bcc: MailAddressView[];
   subject: string | null;
   snippet: string;
   internalDate: number; // epoch ms
@@ -89,9 +89,9 @@ export type MailSyncProvider = {
 };
 
 export type OutgoingDraft = {
-  to: SyncAddress[];
-  cc: SyncAddress[];
-  bcc: SyncAddress[];
+  to: MailAddressView[];
+  cc: MailAddressView[];
+  bcc: MailAddressView[];
   subject: string;
   bodyText: string;
   bodyHtml: string | null;

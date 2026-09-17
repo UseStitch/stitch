@@ -2,7 +2,7 @@ import { blob, index, integer, real, sqliteTable, text } from 'drizzle-orm/sqlit
 
 import type { ArchiveReason, MessageRole, StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
-import type { TodoPriority, TodoStatus } from '@stitch/shared/todos/types';
+import type { SessionTodo } from '@stitch/shared/todos/types';
 
 import { automations } from '@/db/schema/automations.js';
 import type { SessionToolsetState } from '@/llm/stream/session-toolsets.js';
@@ -69,20 +69,22 @@ export const messages = sqliteTable(
 export const sessionTodos = sqliteTable(
   'session_todos',
   {
-    id: text('id').$type<PrefixedString<'todo'>>().primaryKey(),
+    id: text('id').$type<SessionTodo['id']>().primaryKey(),
     sessionId: text('session_id')
-      .$type<PrefixedString<'ses'>>()
+      .$type<SessionTodo['sessionId']>()
       .notNull()
       .references(() => sessions.id, { onDelete: 'cascade' }),
-    content: text('content').notNull(),
-    status: text('status').$type<TodoStatus>().notNull(),
-    priority: text('priority').$type<TodoPriority>().notNull(),
-    sortOrder: integer('sort_order', { mode: 'number' }).notNull(),
+    content: text('content').$type<SessionTodo['content']>().notNull(),
+    status: text('status').$type<SessionTodo['status']>().notNull(),
+    priority: text('priority').$type<SessionTodo['priority']>().notNull(),
+    sortOrder: integer('sort_order', { mode: 'number' }).$type<SessionTodo['sortOrder']>().notNull(),
     createdAt: integer('created_at', { mode: 'number' })
       .notNull()
+      .$type<SessionTodo['createdAt']>()
       .$defaultFn(() => Date.now()),
     updatedAt: integer('updated_at', { mode: 'number' })
       .notNull()
+      .$type<SessionTodo['updatedAt']>()
       .$defaultFn(() => Date.now()),
   },
   (table) => [
