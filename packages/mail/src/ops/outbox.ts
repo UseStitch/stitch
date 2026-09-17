@@ -8,7 +8,6 @@ import {
   type MailAccountId,
   type MailDraftId,
   type MailMessageId,
-  type MailAccountRecord,
   type MailOutboxId,
   type MailOutboxOpType,
   type MailThreadId,
@@ -30,7 +29,7 @@ type OutboxPayload =
   | { draftId: MailDraftId; providerDraftId: string | null };
 
 type OutboxDeps = {
-  createContext(account: MailAccountRecord): MailProviderContext;
+  createContext(account: typeof mailAccounts.$inferSelect): MailProviderContext;
   emitAccountUpdated(accountId: MailAccountId): void;
   emitThreadsChanged(accountId: MailAccountId, threadIds: MailThreadId[]): void;
   hydrateSentThread(

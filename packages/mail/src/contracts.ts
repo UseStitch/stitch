@@ -1,6 +1,6 @@
 import type { MailAddressView } from '@stitch/shared/mail/types';
 
-import type { MailAccountRecord, MailProviderId } from './db/schema.js';
+import { mailAccounts, type MailProviderId } from './db/schema.js';
 
 // ── Infrastructure injected by the server ────────────────────────────────
 export type MailHttpClient = {
@@ -15,7 +15,7 @@ export type MailLogger = {
 };
 
 export type MailProviderContext = {
-  account: MailAccountRecord; // row from mail_accounts
+  account: typeof mailAccounts.$inferSelect; // row from mail_accounts
   http: MailHttpClient;
   logger: MailLogger;
   signal: AbortSignal; // engine cancels on shutdown/disable

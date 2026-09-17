@@ -14,7 +14,6 @@ import {
   mailMessageLabels,
   mailMessages,
   mailThreads,
-  type MailAccountRecord,
   type MailAccountId,
   type MailAttachmentId,
   type MailDraftId,
@@ -33,11 +32,11 @@ import type { OutboxController } from './outbox.js';
 type OperationsDeps = {
   outbox: OutboxController;
   attachmentsDir: string;
-  createContext(account: MailAccountRecord): MailProviderContext;
+  createContext(account: typeof mailAccounts.$inferSelect): MailProviderContext;
   emitThreadsChanged(accountId: MailAccountId, threadIds: MailThreadId[]): void;
 };
 
-async function getAccount(accountId: MailAccountId): Promise<MailAccountRecord> {
+async function getAccount(accountId: MailAccountId): Promise<typeof mailAccounts.$inferSelect> {
   const account = (await getMailDb().select().from(mailAccounts).where(eq(mailAccounts.id, accountId)).limit(1)).at(0);
   if (!account) throw new MailNotFoundError(`Mail account not found: ${accountId}`);
   return account;

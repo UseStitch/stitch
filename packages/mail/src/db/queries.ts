@@ -22,7 +22,6 @@ import {
   mailOutbox,
   mailThreads,
   type MailAccountId,
-  type MailDraftRecord,
   type MailLabelId,
   type MailMessageId,
   type MailThreadId,
@@ -76,7 +75,7 @@ function toAttachmentView(attachment: typeof mailAttachments.$inferSelect): Mail
   };
 }
 
-function toDraftView(draft: MailDraftRecord): MailDraftView {
+function toDraftView(draft: typeof mailDrafts.$inferSelect): MailDraftView {
   return {
     id: draft.id,
     accountId: draft.accountId,

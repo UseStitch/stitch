@@ -9,7 +9,6 @@ import { getMailDb } from '../db/client.js';
 import {
   mailAccounts,
   type MailAccountId,
-  type MailAccountRecord,
   type MailProviderId,
   type MailAttachmentId,
   type MailDraftId,
@@ -105,7 +104,7 @@ function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError';
 }
 
-async function readAccount(accountId: MailAccountId): Promise<MailAccountRecord | null> {
+async function readAccount(accountId: MailAccountId): Promise<typeof mailAccounts.$inferSelect | null> {
   const [account] = await getMailDb().select().from(mailAccounts).where(eq(mailAccounts.id, accountId)).limit(1);
   return account;
 }
@@ -134,7 +133,10 @@ export function createMailEngine(deps: MailEngineDeps): MailEngine {
     threadTimers.set(accountId, timer);
   }
 
-  function createContext(account: MailAccountRecord, controller = new AbortController()): MailProviderContext {
+  function createContext(
+    account: typeof mailAccounts.$inferSelect,
+    controller = new AbortController(),
+  ): MailProviderContext {
     return {
       account,
       http: deps.createHttpClient(account.connectorInstanceId),

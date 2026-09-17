@@ -258,11 +258,3 @@ export const mailOutbox = sqliteTable(
     check('mail_outbox_status_check', sql`${table.status} in ('pending', 'in_flight', 'failed', 'done')`),
   ],
 );
-
-export type MailAccountRecord = typeof mailAccounts.$inferSelect;
-export type MailLabelRecord = typeof mailLabels.$inferSelect;
-export type MailThreadRecord = typeof mailThreads.$inferSelect;
-export type MailMessageRecord = typeof mailMessages.$inferSelect;
-export type MailAttachmentRecord = typeof mailAttachments.$inferSelect;
-export type MailDraftRecord = typeof mailDrafts.$inferSelect;
-export type MailOutboxRecord = typeof mailOutbox.$inferSelect;
