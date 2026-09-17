@@ -43,6 +43,13 @@ export type FieldDef =
 type AuthMethodDef = { method: string; label: string; enabled: boolean; fields: FieldDef[] };
 
 export type ProviderCapability = 'llm' | 'stt' | 'embedding';
+export type ProviderWithCapabilities = {
+  id: string;
+  name: string;
+  api: string | undefined;
+  enabled: boolean;
+  capabilities: ProviderCapability[];
+};
 
 const PROVIDER_CAPABILITIES = {
   'amazon-bedrock': ['llm'],

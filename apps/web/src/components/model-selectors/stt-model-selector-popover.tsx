@@ -4,16 +4,17 @@ import * as React from 'react';
 
 import type { SttProviderModels } from '@stitch/shared/stt/types';
 
+import type { ModelSelection } from './model-combobox';
 import { Icon } from '@/components/primitives/icon';
 import { Text } from '@/components/primitives/text';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
-export type SttModelSelection = { providerId: string; modelId: string };
+export type { ModelSelection as SttModelSelection } from './model-combobox';
 
 type SttModelSelectorPopoverProps = {
-  defaultValue: SttModelSelection | null;
-  onSelect: (value: SttModelSelection) => void;
+  defaultValue: ModelSelection | null;
+  onSelect: (value: ModelSelection) => void;
   sttProviders: SttProviderModels[];
   /**
    * Element to render as the popover trigger. When omitted a standalone

@@ -17,6 +17,7 @@ import type {
   LanguageModelUsage,
   StoredPart,
 } from '@stitch/shared/chat/messages';
+import type { SessionTitleUpdatePayload } from '@stitch/shared/chat/session-events';
 import type { PrefixedString } from '@stitch/shared/id';
 import { createMessageId, createPartId } from '@stitch/shared/id';
 
@@ -150,8 +151,6 @@ export function useCreateSession() {
   });
 }
 
-type RenameSessionInput = { sessionId: PrefixedString<'ses'>; title: string };
-
 type DeleteSessionInput = { sessionId: PrefixedString<'ses'> };
 
 type ArchiveSessionInput = { sessionId: PrefixedString<'ses'> };
@@ -161,7 +160,7 @@ type DoomLoopResponseInput = { sessionId: string; response: 'continue' | 'stop' 
 export function useRenameSession() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: RenameSessionInput) =>
+    mutationFn: (input: SessionTitleUpdatePayload) =>
       serverRequest<Session>(`/chat/sessions/${input.sessionId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },

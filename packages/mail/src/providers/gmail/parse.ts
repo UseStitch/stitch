@@ -1,6 +1,6 @@
-import type { SyncAddress, SyncAttachmentMeta, SyncMessage } from '../../contracts.js';
+import type { GmailHeader, MailAddressView } from '@stitch/shared/mail/types';
 
-export type GmailHeader = { name: string; value: string };
+import type { SyncAttachmentMeta, SyncMessage } from '../../contracts.js';
 
 export type GmailMessagePartBody = { size?: number; data?: string; attachmentId?: string };
 
@@ -71,7 +71,7 @@ function stripQuotes(value: string): string {
   return trimmed.startsWith('"') && trimmed.endsWith('"') ? trimmed.slice(1, -1).replace(/\\"/g, '"') : trimmed;
 }
 
-function parseAddress(value: string): SyncAddress | null {
+function parseAddress(value: string): MailAddressView | null {
   const decoded = decodeEncodedWords(value).trim();
   if (!decoded) return null;
 
@@ -87,12 +87,12 @@ function parseAddress(value: string): SyncAddress | null {
   return { name: null, email: emailMatch[0] };
 }
 
-function parseAddressList(value: string | null): SyncAddress[] {
+function parseAddressList(value: string | null): MailAddressView[] {
   if (!value) return [];
   return value
     .split(ADDRESS_SPLIT_REGEX)
     .map(parseAddress)
-    .filter((address): address is SyncAddress => address !== null);
+    .filter((address): address is MailAddressView => address !== null);
 }
 
 function findFilename(part: GmailMessagePart): string | null {

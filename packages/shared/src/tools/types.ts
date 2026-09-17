@@ -1,16 +1,13 @@
 const TOOL_TYPES = ['stitch', 'mcp', 'plugin'] as const;
 
 export type ToolType = (typeof TOOL_TYPES)[number];
+export type KnownTool = { toolType: ToolType; toolName: string; displayName: string };
 
 export const TOOL_ENABLED_SCOPES = ['tool', 'toolset', 'mcp_tool', 'app', 'skill'] as const;
 
 export type ToolEnabledScope = (typeof TOOL_ENABLED_SCOPES)[number];
 
-export type ToolEnabledState = {
-  scope: ToolEnabledScope;
-  identifier: string;
-  enabled: boolean;
-};
+export type ToolEnabledState = { scope: ToolEnabledScope; identifier: string; enabled: boolean };
 
 type ToolDataResult = { data: unknown; error?: never; details?: never };
 

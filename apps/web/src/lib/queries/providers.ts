@@ -2,20 +2,10 @@ import { queryOptions } from '@tanstack/react-query';
 
 import type { EmbeddingProviderModels } from '@stitch/shared/embedding/types';
 import { buildDefaultVisibleSet, isModelVisible } from '@stitch/shared/providers/model-visibility';
-import type { ModelCost } from '@stitch/shared/providers/types';
+import type { ModelCost, ProviderWithCapabilities as ProviderSummary } from '@stitch/shared/providers/types';
 import type { SttProviderModels } from '@stitch/shared/stt/types';
 
 import { serverRequest } from '@/lib/api';
-
-type ProviderCapability = 'llm' | 'stt' | 'embedding';
-
-export type ProviderSummary = {
-  id: string;
-  name: string;
-  api: string | undefined;
-  enabled: boolean;
-  capabilities: ProviderCapability[];
-};
 
 export type ModelSummary = {
   id: string;

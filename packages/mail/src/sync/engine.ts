@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { PrefixedString } from '@stitch/shared/id';
+import type { MailAddressView as SyncAddress } from '@stitch/shared/mail/types';
 
 import { getMailDb } from '../db/client.js';
 import {
@@ -23,7 +24,7 @@ import { runBackfill } from './backfill.js';
 import { runIncremental } from './incremental.js';
 import { runReconcile } from './reconcile.js';
 
-import type { MailHttpClient, MailLogger, MailProviderContext, SyncAddress } from '../contracts.js';
+import type { MailHttpClient, MailLogger, MailProviderContext } from '../contracts.js';
 
 export type MailEngineEvent =
   | {

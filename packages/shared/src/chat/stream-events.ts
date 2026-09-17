@@ -12,6 +12,7 @@ import type {
   ToolCallStreamPart,
   ToolResultStreamPart,
 } from './messages.js';
+import type { SessionMessageEventPayload } from './session-events.js';
 import type { LanguageModelUsage } from 'ai';
 
 export type ToolCallStatus = 'pending' | 'in-progress' | 'completed' | 'error';
@@ -76,8 +77,6 @@ type StreamRetryPayload = {
   message: string;
 };
 
-type StreamStartPayload = { sessionId: PrefixedString<'ses'>; messageId: PrefixedString<'msg'> };
-
 type DoomLoopDetectedPayload = {
   sessionId: PrefixedString<'ses'>;
   messageId: PrefixedString<'msg'>;
@@ -97,7 +96,7 @@ export const STREAM_EVENT_NAMES = [
 ] as const;
 
 export type StreamEvents = {
-  'stream.started': StreamStartPayload;
+  'stream.started': SessionMessageEventPayload;
   'part.update': StreamPartUpdatePayload;
   'part.delta': StreamPartDeltaPayload;
   'stream.finish': StreamFinishPayload;

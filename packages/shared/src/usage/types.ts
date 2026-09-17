@@ -53,3 +53,10 @@ export type SttUsageDashboardResponse = {
   totals: { costUsd: number; durationMs: number };
   buckets: SttUsageBucket[];
 };
+export type UsageDashboardFilters = {
+  providerId?: string;
+  modelId?: string;
+  range?: UsageDateRange;
+  from?: number;
+  to?: number;
+};

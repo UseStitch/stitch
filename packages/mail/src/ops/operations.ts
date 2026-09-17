@@ -2,6 +2,8 @@ import { and, eq, inArray } from 'drizzle-orm';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import type { MailAddressView as SyncAddress } from '@stitch/shared/mail/types';
+
 import { getMailDb } from '../db/client.js';
 import {
   createMailDraftId,
@@ -24,7 +26,7 @@ import { MailNotFoundError } from '../errors.js';
 import { getMailProvider } from '../registry.js';
 import { persistSyncPage, recomputeThreads, refreshLabelCounts, MAIL_SYSTEM_LABELS } from '../sync/persist.js';
 
-import type { MailProviderContext, OutgoingDraft, SyncAddress } from '../contracts.js';
+import type { MailProviderContext, OutgoingDraft } from '../contracts.js';
 import type { DraftInput } from '../sync/engine.js';
 import type { OutboxController } from './outbox.js';
 

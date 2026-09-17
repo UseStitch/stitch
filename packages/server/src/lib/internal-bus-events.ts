@@ -14,6 +14,7 @@ import type { RecordingEvents } from '@stitch/shared/recordings/events';
 import type { SettingsKey } from '@stitch/shared/settings/types';
 import type { SkillEvents } from '@stitch/shared/skills/events';
 
+import type { ToolContext } from '@/tools/runtime/runtime.js';
 import type { LanguageModelUsage } from 'ai';
 
 // ─── Stream Lifecycle ────────────────────────────────────────────────────────
@@ -68,8 +69,6 @@ type StreamFailedEvent = {
   errorCode: string | undefined;
   details: StreamErrorDetails | undefined;
 };
-
-type StreamAbortedEvent = { sessionId: PrefixedString<'ses'>; messageId: PrefixedString<'msg'>; streamRunId: string };
 
 // ─── Tool Lifecycle ──────────────────────────────────────────────────────────
 
@@ -210,15 +209,11 @@ type SettingsChangedEvent = { key: SettingsKey };
 
 // ─── Automations / Schedules ─────────────────────────────────────────────────
 
-type AutomationRunStartedEvent = { automationId: PrefixedString<'auto'>; sessionId: PrefixedString<'ses'> };
-
-type AutomationRunCompletedEvent = { automationId: PrefixedString<'auto'>; sessionId: PrefixedString<'ses'> };
+type AutomationRunEvent = { automationId: PrefixedString<'auto'>; sessionId: PrefixedString<'ses'> };
 
 type AutomationRunFailedEvent = { automationId: PrefixedString<'auto'>; error: string };
 
-type ScheduleJobFiredEvent = { key: string; automationId: PrefixedString<'auto'> };
-
-type ScheduleJobSucceededEvent = { key: string; automationId: PrefixedString<'auto'> };
+type ScheduleJobEvent = { key: string; automationId: PrefixedString<'auto'> };
 
 type ScheduleJobFailedEvent = { key: string; automationId: PrefixedString<'auto'>; error: string };
 
@@ -237,7 +232,7 @@ export type InternalEventMap = {
   'stream.step.completed': StreamStepCompletedEvent;
   'stream.completed': StreamCompletedEvent;
   'stream.failed': StreamFailedEvent;
-  'stream.aborted': StreamAbortedEvent;
+  'stream.aborted': ToolContext;
 
   // Part streaming
   'part.update': StreamEvents['part.update'];
@@ -313,11 +308,11 @@ export type InternalEventMap = {
   'settings.changed': SettingsChangedEvent;
 
   // Automations / Schedules
-  'automation.run.started': AutomationRunStartedEvent;
-  'automation.run.completed': AutomationRunCompletedEvent;
+  'automation.run.started': AutomationRunEvent;
+  'automation.run.completed': AutomationRunEvent;
   'automation.run.failed': AutomationRunFailedEvent;
-  'schedule.job.fired': ScheduleJobFiredEvent;
-  'schedule.job.succeeded': ScheduleJobSucceededEvent;
+  'schedule.job.fired': ScheduleJobEvent;
+  'schedule.job.succeeded': ScheduleJobEvent;
   'schedule.job.failed': ScheduleJobFailedEvent;
 
   // Mail

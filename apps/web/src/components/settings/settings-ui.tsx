@@ -128,9 +128,9 @@ export function SettingSection({ title, description, className, children }: Sett
 // SettingRows — container that draws borders between its children automatically
 // ---------------------------------------------------------------------------
 
-type SettingRowsProps = { className?: string; children: React.ReactNode };
+type SettingsChildrenProps = { className?: string; children: React.ReactNode };
 
-export function SettingRows({ className, children }: SettingRowsProps) {
+export function SettingRows({ className, children }: SettingsChildrenProps) {
   return (
     <div className={cn('*:border-b *:border-border-subtle [&>*:last-child]:border-b-0', className)}>{children}</div>
   );
@@ -170,9 +170,7 @@ export function SettingRow({ label, description, htmlFor, className, children }:
 // SettingRowControl — right-hand slot with a fixed standard width
 // ---------------------------------------------------------------------------
 
-type SettingRowControlProps = { className?: string; children: React.ReactNode };
-
-export function SettingRowControl({ className, children }: SettingRowControlProps) {
+export function SettingRowControl({ className, children }: SettingsChildrenProps) {
   return <div className={cn('w-60 shrink-0', className)}>{children}</div>;
 }
 

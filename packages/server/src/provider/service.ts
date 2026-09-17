@@ -9,6 +9,7 @@ import {
   type LocalProviderId,
   type ProviderCapability,
   type ProviderId,
+  type ProviderWithCapabilities,
 } from '@stitch/shared/providers/types';
 import type { SttProviderModels } from '@stitch/shared/stt/types';
 
@@ -38,14 +39,6 @@ export {
   type LlmProviderCredentials,
   type ModelProviderCredentials,
   type ProviderCredentials,
-};
-
-export type ProviderWithCapabilities = {
-  id: string;
-  name: string;
-  api: string | undefined;
-  enabled: boolean;
-  capabilities: ProviderCapability[];
 };
 
 export type ProviderSummary = {

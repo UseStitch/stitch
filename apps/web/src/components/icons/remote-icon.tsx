@@ -36,14 +36,14 @@ function useResolvedImageUrl(url: string | null): string | null {
   return resolved ? url : null;
 }
 
-type RemoteMaskedIconProps = {
+type RemoteIconProps = {
   path: string | null | undefined;
   label: string;
   className?: string;
   fallback: React.ReactNode;
 };
 
-export function RemoteMaskedIcon({ path, label, className, fallback }: RemoteMaskedIconProps) {
+export function RemoteMaskedIcon({ path, label, className, fallback }: RemoteIconProps) {
   const url = useServerAssetUrl(path);
   const resolvedUrl = useResolvedImageUrl(url);
 
@@ -51,14 +51,7 @@ export function RemoteMaskedIcon({ path, label, className, fallback }: RemoteMas
   return <MaskedIcon src={resolvedUrl} label={label} className={className} />;
 }
 
-type RemoteImageIconProps = {
-  path: string | null | undefined;
-  label: string;
-  className?: string;
-  fallback: React.ReactNode;
-};
-
-export function RemoteImageIcon({ path, label, className, fallback }: RemoteImageIconProps) {
+export function RemoteImageIcon({ path, label, className, fallback }: RemoteIconProps) {
   const url = useServerAssetUrl(path);
   const [failedUrl, setFailedUrl] = React.useState<string | null>(null);
 

@@ -1,16 +1,12 @@
 import { queryOptions } from '@tanstack/react-query';
 
-import type { SttUsageDashboardResponse, UsageDashboardResponse, UsageDateRange } from '@stitch/shared/usage/types';
+import type {
+  SttUsageDashboardResponse,
+  UsageDashboardFilters,
+  UsageDashboardResponse,
+} from '@stitch/shared/usage/types';
 
 import { serverRequest } from '@/lib/api';
-
-type UsageDashboardFilters = {
-  providerId?: string;
-  modelId?: string;
-  range?: UsageDateRange;
-  from?: number;
-  to?: number;
-};
 
 const usageKeys = {
   all: ['usage'] as const,

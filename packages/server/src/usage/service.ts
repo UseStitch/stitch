@@ -6,6 +6,7 @@ import {
   type UsageDashboardResponse,
   type UsageBucketGranularity,
   type UsageDateRange,
+  type UsageDashboardFilters as GetUsageDashboardInput,
   type UsageSource,
   type UsageTokenMetrics,
 } from '@stitch/shared/usage/types';
@@ -16,14 +17,6 @@ import { sessions } from '@/db/schema/sessions.js';
 import { llmUsageEvents, sttUsageEvents } from '@/db/schema/usage.js';
 import { normalizeUsage } from '@/utils/usage.js';
 import type { LanguageModelUsage } from 'ai';
-
-type GetUsageDashboardInput = {
-  providerId?: string;
-  modelId?: string;
-  range?: UsageDateRange;
-  from?: number;
-  to?: number;
-};
 
 type TimeWindow = { from: number; to: number };
 

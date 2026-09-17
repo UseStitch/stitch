@@ -1,3 +1,5 @@
+import type { EligibleMailAccount } from '@stitch/shared/mail/types';
+
 import {
   MailConnectorInstanceNotFoundError,
   MailConnectorNotConnectedError,
@@ -18,8 +20,6 @@ export type EligibleConnectorInstance = {
   scopes: string[] | null;
   accountEmail: string | null;
 };
-
-type EligibleMailAccount = { connectorInstanceId: string; email: string };
 
 export function hasRequiredGmailScopes(scopes: readonly string[] | null): boolean {
   return REQUIRED_GMAIL_SCOPES.every((scope) => scopes?.includes(scope));

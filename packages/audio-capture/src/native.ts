@@ -3,11 +3,11 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import type { RecordingDevicesPayload, RecordingPermissionsPayload } from '@stitch/shared/ipc/types';
+
 import type {
   AudioChunkEncoding,
   AudioChunkSource,
-  AudioDeviceList,
-  AudioPermissionsStatus,
   CaptureEvent,
   CaptureEventListener,
   StartCaptureInput,
@@ -35,14 +35,12 @@ type NativeStartInput = {
   echoCancellation?: boolean;
 };
 
-type NativeStopResult = { endedAt: number; durationMs: number; warnings: string[] };
-
 type NativeAddon = {
   startCapture: (input: NativeStartInput, callback: (err: Error | null, event: NativeCaptureEvent) => void) => void;
-  stopCapture: (callback: (err: Error | null, event: NativeCaptureEvent) => void) => NativeStopResult | null;
-  listDevices: () => AudioDeviceList;
-  checkPermissions: () => AudioPermissionsStatus;
-  primeSystemAudio: () => AudioPermissionsStatus;
+  stopCapture: (callback: (err: Error | null, event: NativeCaptureEvent) => void) => StopCaptureResult | null;
+  listDevices: () => RecordingDevicesPayload;
+  checkPermissions: () => RecordingPermissionsPayload;
+  primeSystemAudio: () => RecordingPermissionsPayload;
 };
 
 const require = createRequire(import.meta.url);
@@ -126,14 +124,14 @@ export function stopCapture(): StopCaptureResult | null {
   return native.stopCapture(() => {});
 }
 
-export function listDevices(): AudioDeviceList {
+export function listDevices(): RecordingDevicesPayload {
   return native.listDevices();
 }
 
-export function checkPermissions(): AudioPermissionsStatus {
+export function checkPermissions(): RecordingPermissionsPayload {
   return native.checkPermissions();
 }
 
-export function primeSystemAudio(): AudioPermissionsStatus {
+export function primeSystemAudio(): RecordingPermissionsPayload {
   return native.primeSystemAudio();
 }

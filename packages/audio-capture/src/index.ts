@@ -1,9 +1,9 @@
+import type { RecordingDevicesPayload, RecordingPermissionsPayload } from '@stitch/shared/ipc/types';
+
 import { checkPermissions, listDevices, primeSystemAudio, startCapture, stopCapture } from './native.js';
 
 import type {
   ActiveCapture,
-  AudioDeviceList,
-  AudioPermissionsStatus,
   CaptureEvent,
   CaptureEventListener,
   StartCaptureInput,
@@ -16,9 +16,9 @@ type AudioCaptureHandle = {
   start: (input: StartCaptureInput) => Promise<void>;
   stop: () => Promise<StopCaptureResult | null>;
   getActive: () => ActiveCapture | null;
-  listDevices: () => Promise<AudioDeviceList>;
-  checkPermissions: () => Promise<AudioPermissionsStatus>;
-  primeSystemAudio: () => Promise<AudioPermissionsStatus>;
+  listDevices: () => Promise<RecordingDevicesPayload>;
+  checkPermissions: () => Promise<RecordingPermissionsPayload>;
+  primeSystemAudio: () => Promise<RecordingPermissionsPayload>;
   onEvent: (listener: CaptureEventListener) => void;
 };
 
@@ -57,15 +57,15 @@ export function createAudioCaptureHandle(platform: NodeJS.Platform = process.pla
       return active;
     },
 
-    async listDevices(): Promise<AudioDeviceList> {
+    async listDevices(): Promise<RecordingDevicesPayload> {
       return listDevices();
     },
 
-    async checkPermissions(): Promise<AudioPermissionsStatus> {
+    async checkPermissions(): Promise<RecordingPermissionsPayload> {
       return checkPermissions();
     },
 
-    async primeSystemAudio(): Promise<AudioPermissionsStatus> {
+    async primeSystemAudio(): Promise<RecordingPermissionsPayload> {
       return primeSystemAudio();
     },
 

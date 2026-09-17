@@ -2,11 +2,9 @@ import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query
 
 import type { ConnectorIconSource } from '@stitch/shared/connectors/types';
 import type { ToolPermission, ToolPermissionValue } from '@stitch/shared/permissions/types';
-import type { ToolEnabledScope, ToolEnabledState, ToolType } from '@stitch/shared/tools/types';
+import type { KnownTool, ToolEnabledScope, ToolEnabledState } from '@stitch/shared/tools/types';
 
 import { serverRequest } from '@/lib/api';
-
-type KnownTool = { toolType: ToolType; toolName: string; displayName: string };
 
 type KnownMcpTool = {
   name: string;

@@ -11,6 +11,7 @@ import {
   type FieldDef,
   type LocalProviderId,
   type ProviderId,
+  type ProviderWithCapabilities as ProviderSummary,
 } from '@stitch/shared/providers/types';
 import { validateBaseURL } from '@stitch/shared/providers/validation';
 
@@ -36,7 +37,7 @@ import { StatusDot } from '@/components/ui/status-dot';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDeleteProviderConfigMutation, useSaveProviderConfigMutation } from '@/lib/mutations/provider-config';
 import { localProviderHealthQueryOptions } from '@/lib/queries/local-models';
-import { providerConfigQueryOptions, type ProviderSummary } from '@/lib/queries/providers';
+import { providerConfigQueryOptions } from '@/lib/queries/providers';
 
 type Props = {
   provider: ProviderSummary;

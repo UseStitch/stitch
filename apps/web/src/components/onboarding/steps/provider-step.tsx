@@ -4,7 +4,11 @@ import * as React from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
-import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
+import {
+  PROVIDER_IDS,
+  type ProviderId,
+  type ProviderWithCapabilities as ProviderSummary,
+} from '@stitch/shared/providers/types';
 
 import { Icon } from '@/components/primitives/icon';
 import { Stack } from '@/components/primitives/stack';
@@ -13,7 +17,7 @@ import { ProviderConfig } from '@/components/settings/providers/provider-config'
 import { ProviderLogo } from '@/components/settings/providers/provider-logo';
 import { Button } from '@/components/ui/button';
 import { SearchInput } from '@/components/ui/search-input';
-import { providersQueryOptions, type ProviderSummary } from '@/lib/queries/providers';
+import { providersQueryOptions } from '@/lib/queries/providers';
 
 type Props = { onConnected: () => void };
 

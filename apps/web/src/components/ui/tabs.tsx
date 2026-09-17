@@ -14,7 +14,7 @@ function Tabs({ className, orientation = 'horizontal', ...props }: TabsPrimitive
 }
 
 const tabsListVariants = cva(
-  'rounded-lg p-[3px] group-data-horizontal/tabs:h-8 data-[variant=line]:rounded-none group/tabs-list inline-flex w-fit items-center justify-center text-muted-foreground group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col',
+  'rounded-lg p-0.75 group-data-horizontal/tabs:h-8 data-[variant=line]:rounded-none group/tabs-list inline-flex w-fit items-center justify-center text-muted-foreground group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col',
   {
     variants: { variant: { default: 'bg-muted', line: 'gap-1 bg-transparent' } },
     defaultVariants: { variant: 'default' },

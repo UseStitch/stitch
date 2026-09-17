@@ -8,6 +8,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 
+import type { RecordingDevicesPayload, RecordingPermissionsPayload } from '@stitch/shared/ipc/types';
 import type { SortDirection } from '@stitch/shared/pagination';
 import type {
   ActiveRecordingResponse,
@@ -128,22 +129,16 @@ export function useDeleteMeetingNoteTemplate() {
   });
 }
 
-type AudioDeviceList = { microphoneDevices: string[]; speakerDevices: string[] };
-
-type PermissionState = 'granted' | 'denied' | 'unknown';
-
-type AudioPermissionsStatus = { microphone: PermissionState; screenCapture: PermissionState };
-
 export const audioDevicesQueryOptions = queryOptions({
   queryKey: recordingsKeys.devices(),
-  queryFn: (): Promise<AudioDeviceList> => window.api.recording.listDevices(),
+  queryFn: (): Promise<RecordingDevicesPayload> => window.api.recording.listDevices(),
   refetchInterval: 5_000,
   staleTime: 2_000,
 });
 
 export const audioPermissionsQueryOptions = queryOptions({
   queryKey: recordingsKeys.permissions(),
-  queryFn: (): Promise<AudioPermissionsStatus> => window.api.recording.checkPermissions(),
+  queryFn: (): Promise<RecordingPermissionsPayload> => window.api.recording.checkPermissions(),
   staleTime: 10_000,
 });
 

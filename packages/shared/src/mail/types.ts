@@ -12,6 +12,8 @@ export type MailSyncPhase = 'idle' | 'backfill' | 'incremental' | 'reconciling' 
 type MailLabelKind = 'system' | 'user';
 type MailHydration = 'metadata' | 'full';
 export type MailAddressView = { name: string | null; email: string };
+export type GmailHeader = { name: string; value: string };
+export type EligibleMailAccount = { connectorInstanceId: string; email: string };
 
 export type MailAccountView = {
   id: MailAccountId;

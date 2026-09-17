@@ -3,14 +3,18 @@ import * as React from 'react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
-import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
+import {
+  PROVIDER_IDS,
+  type ProviderId,
+  type ProviderWithCapabilities as ProviderSummary,
+} from '@stitch/shared/providers/types';
 
 import { Stack } from '@/components/primitives/stack';
 import { ProviderConfig } from '@/components/settings/providers/provider-config';
 import { ProviderRow } from '@/components/settings/providers/provider-row';
 import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage, SettingSection } from '@/components/settings/settings-ui';
-import { providersQueryOptions, type ProviderSummary } from '@/lib/queries/providers';
+import { providersQueryOptions } from '@/lib/queries/providers';
 
 function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => void }) {
   const { data: providers } = useSuspenseQuery(providersQueryOptions);
