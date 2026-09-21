@@ -5,9 +5,12 @@ const steps = [
   { name: 'knip', cmd: ['bunx', 'knip', '--fix', '--allow-remove-files'] },
   {
     name: 'lint',
-    cmd: ['bunx', 'oxlint', '--config', 'oxlint.json', '--type-aware', '--fix', '--fix-suggestions', '.'],
+    cmd: ['bunx', 'oxlint', '--config', 'oxlint.config.mjs', '--type-aware', '--fix', '--fix-suggestions', '.'],
   },
-  { name: 'lint:check', cmd: ['bunx', 'oxlint', '--config', 'oxlint.json', '--type-aware', '--deny-warnings', '.'] },
+  {
+    name: 'lint:check',
+    cmd: ['bunx', 'oxlint', '--config', 'oxlint.config.mjs', '--type-aware', '--deny-warnings', '.'],
+  },
   { name: 'typecheck', cmd: ['bun', 'run', 'typecheck'] },
   { name: 'test', cmd: ['bun', 'run', 'test'] },
   { name: 'catalogs', cmd: ['bun', 'run', 'scripts/check-catalogs.ts'] },

@@ -19,10 +19,14 @@
     "website:build": "bun run --cwd apps/website build",
     "website:dev": "bun run --cwd apps/website dev"
   },
+  "knip": {
+    "ignoreDependencies": ["ai-deslop"]
+  },
   "dependencies": {
     "dompurify": "^3.4.11"
   },
   "devDependencies": {
+    "ai-deslop": "^0.4.4",
     "eslint-plugin-unicorn": "^72.0.0",
     "knip": "^6.3.1",
     "oxfmt": "^0.44.0",
