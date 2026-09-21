@@ -4,8 +4,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type {
-  AudioChunkEncoding,
-  AudioChunkSource,
   AudioDeviceList,
   AudioPermissionsStatus,
   CaptureEvent,
@@ -13,6 +11,14 @@ import type {
   StartCaptureInput,
   StopCaptureResult,
 } from './types.js';
+
+declare global {
+  namespace NodeJS {
+    interface Process {
+      resourcesPath?: string;
+    }
+  }
+}
 
 type NativeCaptureEvent = {
   kind: string;
@@ -35,11 +41,9 @@ type NativeStartInput = {
   echoCancellation?: boolean;
 };
 
-type NativeStopResult = { endedAt: number; durationMs: number; warnings: string[] };
-
 type NativeAddon = {
   startCapture: (input: NativeStartInput, callback: (err: Error | null, event: NativeCaptureEvent) => void) => void;
-  stopCapture: (callback: (err: Error | null, event: NativeCaptureEvent) => void) => NativeStopResult | null;
+  stopCapture: (callback: (err: Error | null, event: NativeCaptureEvent) => void) => StopCaptureResult | null;
   listDevices: () => AudioDeviceList;
   checkPermissions: () => AudioPermissionsStatus;
   primeSystemAudio: () => AudioPermissionsStatus;
@@ -50,7 +54,7 @@ const require = createRequire(import.meta.url);
 const BINDING_FILE = 'binding.cjs';
 
 function resolveBindingPath(): string {
-  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
+  const { resourcesPath } = process;
   if (resourcesPath) {
     const packagedBinding = path.join(resourcesPath, 'audio-capture', BINDING_FILE);
     if (existsSync(packagedBinding)) {
@@ -74,27 +78,34 @@ function resolveBindingPath(): string {
   return candidates[0];
 }
 
-// oxlint-disable-next-line no-dynamic-require -- the binding path is resolved at runtime (dev vs packaged resources)
-const native = require(resolveBindingPath()) as NativeAddon;
+// SAFETY: The local native module exports the `NativeAddon` interface declared above.
+const native = require(resolveBindingPath()) as NativeAddon; // oxlint-disable-line no-dynamic-require -- the binding path is resolved at runtime (dev vs packaged resources)
 
 function normalizeEvent(event: NativeCaptureEvent): CaptureEvent | null {
   switch (event.kind) {
-    case 'audioChunk':
-      if (!event.pcm || !event.source) return null;
+    case 'audioChunk': {
+      const source = event.source;
+      const encoding = event.encoding ?? 'f32le';
+      if (!event.pcm || (source !== 'mic' && source !== 'speaker')) return null;
+      if (encoding !== 'f32le' && encoding !== 'pcm_s16le') return null;
       return {
         type: 'audioChunk',
-        source: event.source as AudioChunkSource,
+        source,
         pcm: event.pcm,
         sampleRateHz: event.sampleRateHz ?? 0,
         numSamples: event.numSamples ?? 0,
-        encoding: (event.encoding ?? 'f32le') as AudioChunkEncoding,
+        encoding,
       };
-    case 'deviceChanged':
+    }
+    case 'deviceChanged': {
+      const kind = event.deviceKind ?? 'input';
+      if (kind !== 'input' && kind !== 'output') return null;
       return {
         type: 'deviceChanged',
-        kind: (event.deviceKind ?? 'input') as 'input' | 'output',
+        kind,
         deviceName: event.deviceName ?? null,
       };
+    }
     case 'warning':
       return { type: 'warning', code: event.code ?? 'unknown', message: event.message ?? '' };
     default:
