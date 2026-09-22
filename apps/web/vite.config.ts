@@ -11,7 +11,10 @@ const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8')
 
 export default defineConfig({
   base: './',
-  define: { __APP_VERSION__: JSON.stringify(pkg.version as string) },
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+    'globalThis.__APP_VERSION__': JSON.stringify(pkg.version),
+  },
   plugins: [
     tanstackRouter({ target: 'react', autoCodeSplitting: true }),
     react(),

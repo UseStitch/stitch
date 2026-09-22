@@ -31,52 +31,52 @@ const { tableContext, cellContext, headerContext, useCellContext } = createTable
 
 function TitleCell() {
   const cell = useCellContext();
-  return <Table.Title>{cell.getValue() as string}</Table.Title>;
+  return <Table.Title>{cell.getValue<string>()}</Table.Title>;
 }
 
 function TextCell() {
   const cell = useCellContext();
-  return <Table.Text>{cell.getValue() as string}</Table.Text>;
+  return <Table.Text>{cell.getValue<string>()}</Table.Text>;
 }
 
 function BadgeCell() {
   const cell = useCellContext();
-  return <Table.Badge>{cell.getValue() as string}</Table.Badge>;
+  return <Table.Badge>{cell.getValue<string>()}</Table.Badge>;
 }
 
 function TimeCell() {
   const cell = useCellContext();
-  return <Table.Time value={cell.getValue() as number | string | Date} />;
+  return <Table.Time value={cell.getValue<number | string | Date>()} />;
 }
 
 function DateTimeCell() {
   const cell = useCellContext();
-  return <Table.Time value={cell.getValue() as number | string | Date} format="dateTime" />;
+  return <Table.Time value={cell.getValue<number | string | Date>()} format="dateTime" />;
 }
 
 function ShortDateCell() {
   const cell = useCellContext();
-  return <Table.Time value={cell.getValue() as number | string | Date} format="shortDate" />;
+  return <Table.Time value={cell.getValue<number | string | Date>()} format="shortDate" />;
 }
 
 function NumberCell() {
   const cell = useCellContext();
-  return <Table.Number value={cell.getValue() as number} />;
+  return <Table.Number value={cell.getValue<number>()} />;
 }
 
 function MoneyCell() {
   const cell = useCellContext();
-  return <Table.Money value={cell.getValue() as number | null} />;
+  return <Table.Money value={cell.getValue<number | null>()} />;
 }
 
 function DurationCell() {
   const cell = useCellContext();
-  return <Table.Duration>{cell.getValue() as string}</Table.Duration>;
+  return <Table.Duration>{cell.getValue<string>()}</Table.Duration>;
 }
 
 function StatusCell() {
   const cell = useCellContext();
-  return <Table.Status>{cell.getValue() as string}</Table.Status>;
+  return <Table.Status>{cell.getValue<string>()}</Table.Status>;
 }
 
 function SkeletonCell() {

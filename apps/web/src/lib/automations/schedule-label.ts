@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { getUpcomingCronRuns } from '@stitch/scheduler';
 import type { AutomationSchedule } from '@stitch/shared/automations/types';
 
-const WEEKDAY_LABELS: Record<number, string> = { 0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat' };
+const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function formatTime(hourRaw: string, minuteRaw: string): string {
   const hour = Number.parseInt(hourRaw, 10);

@@ -17,14 +17,27 @@ if (!('api' in window)) throw new Error('Desktop bridge (window.api) is not avai
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
 const isFileProtocol = window.location.protocol === 'file:';
 
-const router = createRouter({
-  routeTree,
-  defaultPreload: 'intent',
-  defaultPreloadStaleTime: 0,
-  defaultStructuralSharing: true,
-  ...(isFileProtocol ? { history: createHashHistory() } : {}),
-  context: { queryClient },
-});
+type AppRouterOptions = {
+  routeTree: typeof routeTree;
+  defaultPreload: 'intent';
+  defaultPreloadStaleTime: number;
+  defaultStructuralSharing: boolean;
+  context: { queryClient: QueryClient };
+};
+
+function createAppRouter() {
+  const options: AppRouterOptions = {
+    routeTree,
+    defaultPreload: 'intent',
+    defaultPreloadStaleTime: 0,
+    defaultStructuralSharing: true,
+    context: { queryClient },
+  };
+
+  return isFileProtocol ? createRouter({ ...options, history: createHashHistory() }) : createRouter(options);
+}
+
+const router = createAppRouter();
 
 declare module '@tanstack/react-router' {
   interface Register {

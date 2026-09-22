@@ -11,9 +11,10 @@ export function rehypeNormalizeUrlProtocols() {
     visit(tree, 'element', (node: Element) => {
       for (const property of URL_PROPERTIES) {
         const value = node.properties[property];
-        if (typeof value !== 'string') continue;
+        const stringValue = String(value);
+        if (value !== stringValue) continue;
 
-        node.properties[property] = value.replace(URL_SCHEME, (scheme) => scheme.toLowerCase());
+        node.properties[property] = stringValue.replace(URL_SCHEME, (scheme) => scheme.toLowerCase());
       }
     });
   };

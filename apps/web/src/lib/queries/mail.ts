@@ -37,6 +37,7 @@ export type MailSyncStatusView = {
 };
 
 const ACTIVE_SYNC_PHASES = new Set<MailSyncPhase>(['backfill', 'reconciling']);
+const INITIAL_MAIL_THREAD_CURSOR: string | undefined = undefined;
 
 export const mailAccountsQueryOptions = queryOptions({
   queryKey: mailKeys.accounts(),
@@ -84,7 +85,7 @@ export function mailThreadsInfiniteQueryOptions(accountId: MailAccountId, labelI
       serverRequest<MailThreadsPage>(`/mail/accounts/${accountId}/threads`, {
         params: { labelId: labelId ?? undefined, cursor: pageParam, limit: 50 },
       }),
-    initialPageParam: undefined as string | undefined,
+    initialPageParam: INITIAL_MAIL_THREAD_CURSOR,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
 }
@@ -109,7 +110,7 @@ type UpdateMailAccountInput = {
 
 type ResyncMailAccountInput = { id: MailAccountId; mode: 'full' | 'incremental' };
 
-function jsonRequestInit(method: 'POST' | 'PATCH', body: unknown): RequestInit {
+function jsonRequestInit<T extends object>(method: 'POST' | 'PATCH', body: T): RequestInit {
   return { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
 }
 

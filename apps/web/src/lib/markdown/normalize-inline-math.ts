@@ -11,7 +11,7 @@
 
 const LATEX_COMMAND = /\\[a-zA-Z]{2,}|\\[%$&#_{}]|[\^_]\{/;
 const SINGLE_VARIABLE = /^[A-Za-z]$/;
-const BARE_FORMULA_SHAPED = /^[A-Za-z0-9\s+\-*/=<>^_(){}[\].,;:!'"\\]+$/;
+const BARE_FORMULA_CONTENT = /^[A-Za-z0-9\s+\-*/=<>^_(){}[\].,;:!'"\\]+$/;
 const BARE_FORMULA_OPERATOR = /[=<>^_\\]|\d\s*[+*/]\s*\d/;
 const PADDED_CONTENT = /^\s|\s$/;
 
@@ -23,7 +23,7 @@ function isMathLike(content: string): boolean {
   if (LATEX_COMMAND.test(content)) return true;
   if (SINGLE_VARIABLE.test(content)) return true;
   if (content.length > MAX_BARE_FORMULA_LENGTH) return false;
-  return BARE_FORMULA_SHAPED.test(content) && BARE_FORMULA_OPERATOR.test(content);
+  return BARE_FORMULA_CONTENT.test(content) && BARE_FORMULA_OPERATOR.test(content);
 }
 
 /** Index of the closing `$`, honouring `\$` escapes, or -1. */

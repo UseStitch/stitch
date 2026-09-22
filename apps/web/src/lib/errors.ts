@@ -1,3 +1,3 @@
-export function getErrorMessage(error: unknown, fallback: string): string {
+export function getErrorMessage<T>(error: T, fallback: string): string {
   return Error.isError(error) ? error.message : fallback;
 }

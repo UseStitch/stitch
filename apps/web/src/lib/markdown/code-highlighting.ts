@@ -1,7 +1,7 @@
 import {
   createHighlighter,
+  bundledThemes,
   type BundledLanguage,
-  type BundledTheme,
   type Highlighter,
   type ShikiTransformer,
 } from 'shiki';
@@ -82,8 +82,7 @@ export function estimateHighlightedSize(hast: HighlightedCodeHast, code: string)
 
 export type SupportedLanguage = BundledLanguage | 'text';
 
-function normalizeLanguage(raw: string): SupportedLanguage {
-  const SUPPORTED_LANGUAGES: SupportedLanguage[] = [
+const SUPPORTED_LANGUAGES = [
     'javascript',
     'typescript',
     'jsx',
@@ -127,11 +126,23 @@ function normalizeLanguage(raw: string): SupportedLanguage {
     'toml',
     'ini',
     'text',
-  ];
+ ] satisfies readonly SupportedLanguage[];
+
+const BUNDLED_THEME_NAMES = new Set(Object.keys(bundledThemes));
+
+function isSupportedLanguage(language: string): language is SupportedLanguage {
+  return SUPPORTED_LANGUAGES.some((supportedLanguage) => supportedLanguage === language);
+}
+
+function isBundledTheme(theme: string): theme is keyof typeof bundledThemes {
+  return BUNDLED_THEME_NAMES.has(theme);
+}
+
+function normalizeLanguage(raw: string): SupportedLanguage {
 
   const lang = raw.toLowerCase();
-  if (SUPPORTED_LANGUAGES.includes(lang as SupportedLanguage)) {
-    return lang as SupportedLanguage;
+  if (isSupportedLanguage(lang)) {
+    return lang;
   }
   if (lang === 'gitignore') {
     return 'ini';
@@ -173,8 +184,8 @@ async function loadInto(language: string, themes: readonly string[]): Promise<Hi
   const highlighter = await getHighlighter();
 
   await Promise.all([
-    PLAIN_TEXT_LANGUAGES.has(language) ? Promise.resolve() : highlighter.loadLanguage(language as BundledLanguage),
-    ...themes.map((theme) => highlighter.loadTheme(theme as BundledTheme)),
+    PLAIN_TEXT_LANGUAGES.has(language) ? Promise.resolve() : highlighter.loadLanguage(normalizeLanguage(language)),
+    ...themes.flatMap((theme) => (isBundledTheme(theme) ? [highlighter.loadTheme(theme)] : [])),
   ]);
 
   return highlighter;

@@ -24,10 +24,10 @@ export function buildSlashCompletionGroup(ctx: CommandContext): TextareaCompleti
     prefix: '/',
     label: 'Commands',
     anchor: 'start',
-    options: COMMANDS.filter((command) => isCommandAvailable(command, ctx)).map((command) => ({
-      value: command.name,
-      label: command.name,
-      description: command.description,
-    })),
+    options: COMMANDS.flatMap((command) =>
+      isCommandAvailable(command, ctx)
+        ? [{ value: command.name, label: command.name, description: command.description }]
+        : [],
+    ),
   };
 }

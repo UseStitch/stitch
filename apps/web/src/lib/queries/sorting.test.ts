@@ -19,12 +19,9 @@ describe('paginated sorting query keys', () => {
   });
 
   test('continues the automation sidebar onto the next numbered page', () => {
-    const getNextPageParam = automationsSidebarListQueryOptions.getNextPageParam as (page: {
-      page: number;
-      totalPages: number;
-    }) => number | undefined;
+    const { getNextPageParam } = automationsSidebarListQueryOptions;
 
-    expect(getNextPageParam({ page: 2, totalPages: 3 })).toBe(3);
-    expect(getNextPageParam({ page: 3, totalPages: 3 })).toBeUndefined();
+    expect(getNextPageParam({ page: 2, pageSize: 50, total: 3, totalPages: 3, automations: [] }, [], 1, [])).toBe(3);
+    expect(getNextPageParam({ page: 3, pageSize: 50, total: 3, totalPages: 3, automations: [] }, [], 1, [])).toBeUndefined();
   });
 });

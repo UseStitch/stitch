@@ -20,7 +20,7 @@ export const markdownSanitizeSchema: SanitizeSchema = {
     // `math-inline`/`math-display` are how rehype-katex finds math to render.
     code: [['className', /^language-./, 'math-inline', 'math-display']],
     p: [
-      ...((defaultAttributes.p as typeof defaultAttributes.blockquote | undefined) ?? []),
+      ...defaultAttributes.p,
       ['className', 'markdown-callout-title'],
     ],
   },

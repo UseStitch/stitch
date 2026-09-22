@@ -97,8 +97,7 @@ export function remarkTextMarks() {
       const replacement = splitMarks(node, raw);
       if (replacement === undefined) return undefined;
 
-      // Every parent of a `text` node holds phrasing content.
-      (parent.children as PhrasingContent[]).splice(index, 1, ...replacement);
+      parent.children.splice(index, 1, ...replacement);
       return [SKIP, index + replacement.length];
     });
   };

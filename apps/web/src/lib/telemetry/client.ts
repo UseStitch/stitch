@@ -1,7 +1,12 @@
 import { EVENT_SCHEMA_VERSION, type TelemetryEventName, type TelemetryEvents } from '@stitch/shared/telemetry/events';
 import { DEFAULT_POSTHOG_HOST, type TelemetryState } from '@stitch/shared/telemetry/types';
 
-const APP_VERSION: string = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev';
+interface RuntimeGlobals {
+  __APP_VERSION__?: string;
+}
+
+const runtimeGlobals: typeof globalThis & RuntimeGlobals = globalThis;
+const APP_VERSION = runtimeGlobals.__APP_VERSION__ ?? 'dev';
 
 let state: TelemetryState | null = null;
 let posthogLoaded = false;
@@ -123,7 +128,7 @@ async function loadPostHog(key: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 function getPostHogKey(): string | null {
-  const key = (import.meta as { env?: Record<string, string> }).env?.['VITE_POSTHOG_KEY'] ?? '';
+  const key = import.meta.env.VITE_POSTHOG_KEY ?? '';
   return key.length > 0 ? key : null;
 }
 
@@ -146,7 +151,7 @@ function getPlatform(): string {
 }
 
 function getReleaseChannel(): string {
-  if (typeof __APP_VERSION__ === 'string' && __APP_VERSION__ !== 'dev') {
+  if (APP_VERSION !== 'dev') {
     return 'production';
   }
   return 'development';

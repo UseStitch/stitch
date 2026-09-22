@@ -6,8 +6,6 @@ import { serverRequest } from '@/lib/api';
 import { getErrorMessage } from '@/lib/errors';
 import { providerKeys } from '@/lib/queries/providers';
 
-type ProviderConfigBody = Record<string, unknown>;
-
 type SaveProviderConfigMutationOptions = {
   providerId: string;
   queryClient: QueryClient;
@@ -34,15 +32,15 @@ async function invalidateProviderQueries(queryClient: QueryClient): Promise<void
   ]);
 }
 
-export function useSaveProviderConfigMutation({
+export function useSaveProviderConfigMutation<T extends object = object>({
   providerId,
   queryClient,
   successMessage,
   errorMessage,
   onSuccess,
 }: SaveProviderConfigMutationOptions) {
-  return useMutation({
-    mutationFn: async (body: ProviderConfigBody) => {
+  return useMutation<T, Error, T>({
+    mutationFn: async (body) => {
       await serverRequest<void>(`/llm/provider/${providerId}/config`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

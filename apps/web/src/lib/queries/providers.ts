@@ -29,7 +29,11 @@ export type ModelSummary = {
 
 export type ProviderModels = { providerId: string; providerName: string; models: ModelSummary[] };
 
-type ProviderCredentials = Record<string, unknown>;
+type JsonValue = boolean | number | string | null | JsonObject | JsonValue[];
+
+type JsonObject = { [key: string]: JsonValue };
+
+type ProviderCredentials = JsonObject & { auth?: JsonObject };
 
 export const providerKeys = {
   all: ['providers'] as const,
@@ -93,7 +97,7 @@ export const visibleProviderModelsQueryOptions = queryOptions({
           const models = await serverRequest<ModelSummary[]>(`/llm/provider/${provider.id}/models`);
           return { providerId: provider.id, providerName: provider.name, models };
         } catch {
-          return { providerId: provider.id, providerName: provider.name, models: [] as ModelSummary[] };
+          return { providerId: provider.id, providerName: provider.name, models: [] };
         }
       }),
     );

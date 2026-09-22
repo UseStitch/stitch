@@ -7,9 +7,9 @@ import type { PrefixedString } from '@stitch/shared/id';
 
 import { findSessionInListCache, sessionKeys } from './chat.js';
 
-function createSession(id: string): Session {
+function createSession(id: PrefixedString<'ses'>): Session {
   return {
-    id: id as PrefixedString<'ses'>,
+    id,
     title: 'Test session',
     type: 'chat',
     automationId: null,

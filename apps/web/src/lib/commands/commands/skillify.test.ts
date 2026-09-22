@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
+import { QueryClient } from '@tanstack/react-query';
+
 import { findCommand } from '../registry.js';
 
 describe('skillifyCommand', () => {
@@ -17,7 +19,18 @@ describe('skillifyCommand', () => {
     const command = findCommand('skillify');
     if (!command || command.kind !== 'prompt') throw new Error('skillify command not found');
 
-    const prompt = command.buildPrompt('my release workflow', {} as never);
+    const prompt = command.buildPrompt('my release workflow', {
+      sessionId: null,
+      selectedModel: null,
+      isStreaming: false,
+      setInput: () => {},
+      actions: {
+        requestCompaction: async () => {},
+        generateAutomation: async () => {},
+        submitPrompt: async () => {},
+      },
+      queryClient: new QueryClient(),
+    });
 
     expect(prompt).toContain('Use the skillify skill');
     expect(prompt).toContain('User description: my release workflow');

@@ -6,11 +6,11 @@ import type { BackgroundTask } from '@stitch/shared/background-tasks/types';
 
 import { backgroundTaskKeys, updateBackgroundTaskCache } from './background-tasks.js';
 
-function task(id: string, startedAt: number, status: BackgroundTask['status'] = 'running'): BackgroundTask {
+function task(id: BackgroundTask['id'], startedAt: number, status: BackgroundTask['status'] = 'running'): BackgroundTask {
   return {
-    id: id as BackgroundTask['id'],
+    id,
     parentSessionId: 'ses_parent',
-    childSessionId: id as BackgroundTask['childSessionId'],
+    childSessionId: id,
     originMessageId: 'msg_origin',
     originToolCallId: `call-${id}`,
     title: id,
