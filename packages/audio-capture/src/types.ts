@@ -1,5 +1,5 @@
-export type AudioChunkEncoding = 'f32le' | 'pcm_s16le';
-export type AudioChunkSource = 'mic' | 'speaker';
+type AudioChunkEncoding = 'f32le' | 'pcm_s16le';
+type AudioChunkSource = 'mic' | 'speaker';
 type PermissionState = 'granted' | 'denied' | 'unknown';
 
 export type StartCaptureInput = {
