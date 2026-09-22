@@ -1,4 +1,5 @@
 import { APICallError } from 'ai';
+import { z } from 'zod';
 
 import type { StreamErrorCategory, StreamErrorDetails } from '@stitch/shared/chat/errors';
 
@@ -51,6 +52,32 @@ export function toStreamErrorDetails(error: MappedAIError): StreamErrorDetails {
 
 type MinimalError = { name?: string; message?: string; statusCode?: number; responseBody?: string };
 
+// Boundary decoders: each field falls back independently so one malformed field
+// never discards the remaining error evidence.
+const errorBodySchema = z.looseObject({
+  message: z.string().optional().catch(undefined),
+  error: z.unknown(),
+});
+const errorPayloadSchema = z.looseObject({
+  code: z.string().optional().catch(undefined),
+  message: z.string().optional().catch(undefined),
+});
+
+type ErrorBody = z.infer<typeof errorBodySchema>;
+type ErrorPayload = z.infer<typeof errorPayloadSchema>;
+
+function toMinimalError(error: unknown): MinimalError | undefined {
+  const parsed = z
+    .looseObject({
+      name: z.string().optional().catch(undefined),
+      message: z.string().optional().catch(undefined),
+      statusCode: z.number().optional().catch(undefined),
+      responseBody: z.string().optional().catch(undefined),
+    })
+    .safeParse(error);
+  return parsed.success ? parsed.data : undefined;
+}
+
 const NO_OUTPUT_ERROR_NAMES = new Set([
   'NoSpeechGeneratedError',
   'NoContentGeneratedError',
@@ -98,43 +125,30 @@ function isOpenAiErrorRetryable(error: APICallError): boolean {
 }
 
 function resolveAIErrorName(error: unknown): string | undefined {
-  if (Error.isError(error) && typeof error.name === 'string' && error.name.length > 0) {
+  if (Error.isError(error) && error.name.length > 0) {
     return error.name;
   }
 
-  if (typeof error === 'object' && error !== null && typeof (error as MinimalError).name === 'string') {
-    return (error as MinimalError).name;
-  }
-
-  return undefined;
+  return toMinimalError(error)?.name;
 }
 
 function resolveMessage(error: unknown): string {
   if (Error.isError(error)) return error.message;
-  if (typeof error === 'object' && error !== null && typeof (error as MinimalError).message === 'string') {
-    const message = (error as { message: string }).message;
-    return message;
-  }
-  return String(error);
+  return toMinimalError(error)?.message ?? String(error);
 }
 
-function parseErrorBody(input: string | undefined): Record<string, unknown> | undefined {
+function parseErrorBody(input: string | undefined): ErrorBody | undefined {
   if (!input) return undefined;
   try {
-    const parsed = JSON.parse(input);
-    if (parsed && typeof parsed === 'object') {
-      return parsed as Record<string, unknown>;
-    }
+    const parsed = errorBodySchema.safeParse(JSON.parse(input));
+    return parsed.success ? parsed.data : undefined;
   } catch {}
   return undefined;
 }
 
-function getErrorObject(body: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
-  const value = body?.error;
-  if (typeof value === 'object' && value !== null) {
-    return value as Record<string, unknown>;
-  }
-  return undefined;
+function getErrorObject(body: ErrorBody | undefined): ErrorPayload | undefined {
+  const parsed = errorPayloadSchema.safeParse(body?.error);
+  return parsed.success ? parsed.data : undefined;
 }
 
 function isContextOverflow(message: string, statusCode?: number): boolean {
@@ -151,25 +165,25 @@ function categoryFromName(name: string | undefined): StreamErrorCategory | undef
 function inferCategoryFromPayload(input: {
   message: string;
   statusCode?: number;
-  body?: Record<string, unknown>;
+  body?: ErrorBody;
   aiErrorName?: string;
 }): StreamErrorCategory {
   const { message, statusCode, body } = input;
   const errorObject = getErrorObject(body);
-  const code = typeof errorObject?.code === 'string' ? errorObject.code : undefined;
-  const bodyMessage = typeof body?.message === 'string' ? body.message : undefined;
-  const bodyErrorMessage = typeof errorObject?.message === 'string' ? errorObject.message : undefined;
+  const code = errorObject?.code;
+  const bodyMessage = body?.message;
+  const bodyErrorMessage = errorObject?.message;
   const combined = `${message} ${bodyMessage ?? ''} ${bodyErrorMessage ?? ''}`.trim();
 
   if (isContextOverflow(combined, statusCode) || code === 'context_length_exceeded') {
     return 'context_overflow';
   }
 
-  if (typeof code === 'string' && code.toLowerCase() === 'insufficient_quota') {
+  if (code?.toLowerCase() === 'insufficient_quota') {
     return 'quota';
   }
 
-  if (typeof code === 'string' && code.toLowerCase() === 'invalid_prompt') {
+  if (code?.toLowerCase() === 'invalid_prompt') {
     return 'invalid_prompt';
   }
 
@@ -233,8 +247,8 @@ export function mapAIError(error: unknown, providerId?: string): MappedAIError {
     const aiErrorName = resolveAIErrorName(error);
 
     let message = error.message;
-    if (!message && typeof body?.message === 'string') message = body.message;
-    if (!message && typeof bodyError?.message === 'string') {
+    if (!message && body?.message) message = body.message;
+    if (!message && bodyError?.message) {
       message = bodyError.message;
     }
     if (!message && error.statusCode) message = `HTTP ${error.statusCode}`;
@@ -259,12 +273,9 @@ export function mapAIError(error: unknown, providerId?: string): MappedAIError {
 
   const aiErrorName = resolveAIErrorName(error);
   const message = resolveMessage(error);
-  const statusCode =
-    typeof error === 'object' && error !== null && typeof (error as MinimalError).statusCode === 'number'
-      ? (error as MinimalError).statusCode
-      : undefined;
-  const body =
-    typeof error === 'object' && error !== null ? parseErrorBody((error as MinimalError).responseBody) : undefined;
+  const decoded = toMinimalError(error);
+  const statusCode = decoded?.statusCode;
+  const body = decoded ? parseErrorBody(decoded.responseBody) : undefined;
   const inferredCategory = inferCategoryFromPayload({ message, statusCode, body, aiErrorName });
   const namedCategory = categoryFromName(aiErrorName);
   const category = inferredCategory === 'context_overflow' ? inferredCategory : (namedCategory ?? inferredCategory);
@@ -274,7 +285,7 @@ export function mapAIError(error: unknown, providerId?: string): MappedAIError {
     aiErrorName,
     message,
     statusCode,
-    responseBody: typeof error === 'object' && error !== null ? (error as MinimalError).responseBody : undefined,
+    responseBody: decoded?.responseBody,
     isRetryable: isRetryableCategory(category, statusCode),
     isContextOverflow: category === 'context_overflow',
   };
