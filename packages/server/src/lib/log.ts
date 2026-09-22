@@ -30,6 +30,31 @@ function formatDate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+// Boundary decoder: each member formats its domain directly, so callers branch
+// on the parsed result instead of narrowing the representation with typeof.
+// Member order matters: the unknown fallback must stay last.
+const formatValueSchema = z.union([
+  z.string(),
+  z.number().transform((n) => n.toString()),
+  z.boolean().transform((b) => b.toString()),
+  z.bigint().transform((b) => b.toString()),
+  z.symbol().transform((s) => s.description ?? s.toString()),
+  z.custom<(...args: never[]) => unknown>((v) => v instanceof Function).transform((fn) =>
+    fn.name ? `[Function ${fn.name}]` : '[Function]',
+  ),
+  z.undefined().transform(() => ''),
+  z.unknown().transform((v) => JSON.stringify(v)),
+]);
+
+// Boundary decoder: reads the optional service tag without typeof narrowing.
+const createServiceSchema = z.looseObject({ service: z.string().optional().catch(undefined) });
+
+// Boundary decoder: discriminates the emit argument into a domain value.
+const emitArgSchema = z.union([
+  z.string().transform((message) => ({ kind: 'message', message }) as const),
+  z.record(z.string(), z.unknown()).transform((extra) => ({ kind: 'extra', extra }) as const),
+]);
+
 function formatValue(value: unknown): string {
   if (Error.isError(value)) {
     const { message, cause, name, ...rest } = value as Error & Record<string, unknown>;
@@ -37,14 +62,7 @@ function formatValue(value: unknown): string {
     if (cause !== undefined) obj['cause'] = Error.isError(cause) ? cause.message : cause;
     return JSON.stringify(obj);
   }
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
-    return value.toString();
-  }
-  if (typeof value === 'symbol') return value.description ?? value.toString();
-  if (typeof value === 'function') return value.name ? `[Function ${value.name}]` : '[Function]';
-  if (typeof value === 'object') return JSON.stringify(value);
-  return '';
+  return formatValueSchema.parse(value);
 }
 
 let stream: WriteStream | undefined;
@@ -110,8 +128,9 @@ export async function cleanup(dir = PATHS.logDir): Promise<void> {
 export function create(tags?: Record<string, unknown>, { skipCache = false } = {}): StitchLogger {
   tags = tags ?? {};
 
-  const service = tags['service'];
-  if (!skipCache && service && typeof service === 'string') {
+  const parsedTags = createServiceSchema.safeParse(tags);
+  const service = parsedTags.success ? parsedTags.data.service : undefined;
+  if (!skipCache && service) {
     const cached = loggers.get(service);
     if (cached) return cached;
   }
@@ -132,10 +151,17 @@ export function create(tags?: Record<string, unknown>, { skipCache = false } = {
   function emit(lvl: Level, extraOrMessage: Record<string, unknown> | string, message?: string) {
     if (!shouldLog(lvl)) return;
 
-    if (typeof extraOrMessage === 'string') {
-      write(`${lvl} ${build(extraOrMessage)}\n`);
+    const parsedArg = emitArgSchema.safeParse(extraOrMessage);
+    if (!parsedArg.success) {
+      write(`${lvl} ${build(message ?? '', {})}\n`);
+      return;
+    }
+
+    const arg = parsedArg.data;
+    if (arg.kind === 'message') {
+      write(`${lvl} ${build(arg.message)}\n`);
     } else {
-      write(`${lvl} ${build(message ?? '', extraOrMessage)}\n`);
+      write(`${lvl} ${build(message ?? '', arg.extra)}\n`);
     }
   }
 
@@ -154,7 +180,7 @@ export function create(tags?: Record<string, unknown>, { skipCache = false } = {
     },
   };
 
-  if (service && typeof service === 'string') {
+  if (service) {
     loggers.set(service, result);
   }
 
