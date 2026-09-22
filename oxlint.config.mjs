@@ -171,6 +171,6 @@ export default defineConfig({
       },
     },
   ],
-  ignorePatterns: ['node_modules', 'dist', 'out', 'dist-electron', '.turbo'],
+  ignorePatterns: ['node_modules', 'dist', 'out', 'dist-electron', '.turbo', 'apps/website'],
   env: { browser: true, node: true, es2022: true },
 });
