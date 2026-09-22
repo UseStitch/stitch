@@ -10,7 +10,7 @@ export const MAX_STEPS = 25;
 export const MAX_STEPS_WARNING = (max: number) =>
   `CRITICAL - FINAL STEP ${max}/${max}\n\nThis is the last allowed step for this run.\n\nSTRICT REQUIREMENTS:\n1. Do NOT call any tools.\n2. MUST provide a user-facing text response summarizing work done so far.\n3. If anything is incomplete, clearly list what remains and what to do next.\n4. This overrides all other instructions that suggest additional tool use.`;
 
-type KnownTool = { toolType: ToolType; toolName: string; displayName: string };
+export type KnownTool = { toolType: ToolType; toolName: string; displayName: string };
 
 const ALWAYS_ACTIVE = new Set(['render_ui', 'skill']);
 

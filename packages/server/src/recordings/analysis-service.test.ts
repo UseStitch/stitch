@@ -112,9 +112,7 @@ describe('recording analysis reruns', () => {
       modelId: 'test-model',
       credentials: { providerId: 'openai', auth: { method: 'api-key', apiKey: 'test-key' } },
     }));
-    createProvider.mockImplementation(
-      () => (() => createHangingAnalysisModel()) as unknown as ReturnType<typeof provider.createProvider>,
-    );
+    createProvider.mockImplementation(() => () => createHangingAnalysisModel());
     await seedCompletedAnalysis();
   });
 

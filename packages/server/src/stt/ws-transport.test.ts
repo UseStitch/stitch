@@ -73,6 +73,10 @@ class FakeWebSocket {
 
 const originalWebSocket = globalThis.WebSocket;
 
+function installFakeWebSocket(): void {
+  Object.defineProperty(globalThis, 'WebSocket', { value: FakeWebSocket, configurable: true, writable: true });
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -84,7 +88,7 @@ afterEach(() => {
 
 describe('createWsTransport', () => {
   test('waits for an optional server readiness message', async () => {
-    globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+    installFakeWebSocket();
     let resolved = false;
 
     const transportPromise = createWsTransport(
@@ -114,7 +118,7 @@ describe('createWsTransport', () => {
   });
 
   test('emits a typed error and closes when a pong is missing', async () => {
-    globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+    installFakeWebSocket();
 
     const transportPromise = createWsTransport(
       {
@@ -141,7 +145,7 @@ describe('createWsTransport', () => {
   });
 
   test('removes listeners and stops keepalive on close', async () => {
-    globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+    installFakeWebSocket();
 
     const transportPromise = createWsTransport(
       {

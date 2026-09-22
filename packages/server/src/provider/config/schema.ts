@@ -67,20 +67,14 @@ const LmStudioCredentialsSchema = z.object({
 
 const apiKeyAuthSchema = z.object({ method: z.literal('api-key'), apiKey: z.string() });
 
-const API_KEY_ONLY_PROVIDERS = ['google', 'openrouter', 'vercel', 'nvidia', 'elevenlabs', 'assemblyai'] as const;
-
-type ApiKeyProviderSchemas = [
-  z.ZodObject<{ providerId: z.ZodLiteral<'google'>; auth: typeof apiKeyAuthSchema }>,
-  z.ZodObject<{ providerId: z.ZodLiteral<'openrouter'>; auth: typeof apiKeyAuthSchema }>,
-  z.ZodObject<{ providerId: z.ZodLiteral<'vercel'>; auth: typeof apiKeyAuthSchema }>,
-  z.ZodObject<{ providerId: z.ZodLiteral<'nvidia'>; auth: typeof apiKeyAuthSchema }>,
-  z.ZodObject<{ providerId: z.ZodLiteral<'elevenlabs'>; auth: typeof apiKeyAuthSchema }>,
-  z.ZodObject<{ providerId: z.ZodLiteral<'assemblyai'>; auth: typeof apiKeyAuthSchema }>,
+const apiKeyProviderSchemas = [
+  z.object({ providerId: z.literal('google'), auth: apiKeyAuthSchema }),
+  z.object({ providerId: z.literal('openrouter'), auth: apiKeyAuthSchema }),
+  z.object({ providerId: z.literal('vercel'), auth: apiKeyAuthSchema }),
+  z.object({ providerId: z.literal('nvidia'), auth: apiKeyAuthSchema }),
+  z.object({ providerId: z.literal('elevenlabs'), auth: apiKeyAuthSchema }),
+  z.object({ providerId: z.literal('assemblyai'), auth: apiKeyAuthSchema }),
 ];
-
-const apiKeyProviderSchemas = API_KEY_ONLY_PROVIDERS.map((id) =>
-  z.object({ providerId: z.literal(id), auth: apiKeyAuthSchema }),
-) as unknown as ApiKeyProviderSchemas;
 
 export const ProviderCredentialsSchema = z.discriminatedUnion('providerId', [
   BedrockCredentialsSchema,

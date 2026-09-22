@@ -2,10 +2,8 @@ import { parseMcpToolName } from '@stitch/shared/mcp/types';
 import { humanizeToolName } from '@stitch/shared/tools/display';
 import type { ToolType } from '@stitch/shared/tools/types';
 
-import { STITCH_KNOWN_TOOLS } from '@/tools/runtime/registry.js';
+import { STITCH_KNOWN_TOOLS, type KnownTool } from '@/tools/runtime/registry.js';
 import { listToolsets } from '@/tools/toolsets/registry.js';
-
-type CatalogTool = { toolType: ToolType; toolName: string; displayName: string };
 
 function displayNameForMcpTool(
   formattedName: string,
@@ -17,8 +15,8 @@ function displayNameForMcpTool(
 }
 
 /** Returns the full catalog of known tools across all four sources. */
-export function listKnownTools(): CatalogTool[] {
-  const toolsetTools: CatalogTool[] = listToolsets().flatMap((toolset) =>
+export function listKnownTools(): KnownTool[] {
+  const toolsetTools: KnownTool[] = listToolsets().flatMap((toolset) =>
     toolset
       .tools()
       .map((tool) => ({

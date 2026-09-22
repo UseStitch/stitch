@@ -13,8 +13,8 @@ import type { QuestionEvents } from '@stitch/shared/questions/events';
 import type { RecordingEvents } from '@stitch/shared/recordings/events';
 import type { SettingsKey } from '@stitch/shared/settings/types';
 import type { SkillEvents } from '@stitch/shared/skills/events';
-
 import type { LanguageModelUsage } from 'ai';
+import type { ToolContext } from '@/tools/runtime/runtime.js';
 
 // ─── Stream Lifecycle ────────────────────────────────────────────────────────
 // These internal events carry extra metadata not exposed to clients.
@@ -68,8 +68,6 @@ type StreamFailedEvent = {
   errorCode: string | undefined;
   details: StreamErrorDetails | undefined;
 };
-
-type StreamAbortedEvent = { sessionId: PrefixedString<'ses'>; messageId: PrefixedString<'msg'>; streamRunId: string };
 
 // ─── Tool Lifecycle ──────────────────────────────────────────────────────────
 
@@ -237,7 +235,7 @@ export type InternalEventMap = {
   'stream.step.completed': StreamStepCompletedEvent;
   'stream.completed': StreamCompletedEvent;
   'stream.failed': StreamFailedEvent;
-  'stream.aborted': StreamAbortedEvent;
+  'stream.aborted': ToolContext;
 
   // Part streaming
   'part.update': StreamEvents['part.update'];

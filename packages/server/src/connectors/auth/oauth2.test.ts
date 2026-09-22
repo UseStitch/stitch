@@ -35,7 +35,9 @@ function mockTokenEndpoint(status: number, body: unknown, headers: Record<string
  * endpoint is oauth2.googleapis.com).
  */
 function idToken(iss: string): string {
-  const encode = (value: object): string => Buffer.from(JSON.stringify(value)).toString('base64url');
+  type JwtHeader = { alg: string; typ: string };
+  type JwtPayload = { iss: string; sub: string; aud: string; exp: number; iat: number };
+  const encode = (value: JwtHeader | JwtPayload): string => Buffer.from(JSON.stringify(value)).toString('base64url');
   const header = encode({ alg: 'RS256', typ: 'JWT' });
   const payload = encode({
     iss,
