@@ -17,6 +17,7 @@ import type {
   StartRecordingInput,
   TelemetryState,
 } from '@stitch/shared/ipc/types';
+import type { JsonValue } from '@stitch/shared/json';
 
 function invokeIpc<TKey extends keyof IpcContract>(
   channel: TKey,
@@ -36,9 +37,9 @@ function onIpc<TKey extends keyof IpcEventContract>(
 
 const electronBridge = {
   platform: process.platform,
-  send: (channel: string, data?: unknown) => ipcRenderer.send(channel, data),
-  subscribe: (channel: string, callback: (...args: unknown[]) => void) => {
-    const subscription = (_event: Electron.IpcRendererEvent, ...args: unknown[]) => callback(...args);
+  send: (channel: string, data?: JsonValue) => ipcRenderer.send(channel, data),
+  subscribe: (channel: string, callback: (...args: JsonValue[]) => void) => {
+    const subscription = (_event: Electron.IpcRendererEvent, ...args: JsonValue[]) => callback(...args);
     ipcRenderer.on(channel, subscription);
     return () => ipcRenderer.removeListener(channel, subscription);
   },

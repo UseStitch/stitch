@@ -1,4 +1,5 @@
 import type { ConnectorDefinition, ConnectorInstance } from '@stitch/shared/connectors/types';
+import type { JsonObject } from '@stitch/shared/json';
 import type { StitchLogger } from '@stitch/shared/logger';
 
 type ConnectorLifecycleContext = {
@@ -12,7 +13,7 @@ type ConnectorServiceHooks = {
     instance: ConnectorInstance;
     accessToken: string;
     logger: StitchLogger;
-  }) => Promise<{ accountEmail: string | null; accountInfo: Record<string, unknown> | null }>;
+  }) => Promise<{ accountEmail: string | null; accountInfo: JsonObject | null }>;
   testConnection?: (input: { instance: ConnectorInstance; logger: StitchLogger }) => Promise<void>;
 };
 

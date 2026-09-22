@@ -245,14 +245,12 @@ const SETTINGS_REGISTRY = {
 
 export type SettingsKey = keyof typeof SETTINGS_REGISTRY;
 
-export const SETTINGS_SCHEMAS: { [K in SettingsKey]: (typeof SETTINGS_REGISTRY)[K]['schema'] } = Object.fromEntries(
+export const SETTINGS_SCHEMAS = Object.fromEntries(
   Object.entries(SETTINGS_REGISTRY).map(([key, entry]) => [key, entry.schema]),
-) as { [K in SettingsKey]: (typeof SETTINGS_REGISTRY)[K]['schema'] };
+);
 
-type SettingDefault = { key: SettingsKey; value: string; description: string };
-
-export const SETTINGS_DEFAULTS: SettingDefault[] = Object.entries(SETTINGS_REGISTRY).map(([key, entry]) => ({
-  key: key as SettingsKey,
+export const SETTINGS_DEFAULTS = Object.entries(SETTINGS_REGISTRY).map(([key, entry]) => ({
+  key,
   value: entry.default,
   description: entry.description,
 }));

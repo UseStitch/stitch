@@ -15,7 +15,7 @@ import type {
 declare global {
   namespace NodeJS {
     interface Process {
-      resourcesPath?: string;
+      readonly resourcesPath: string;
     }
   }
 }
@@ -100,11 +100,7 @@ function normalizeEvent(event: NativeCaptureEvent): CaptureEvent | null {
     case 'deviceChanged': {
       const kind = event.deviceKind ?? 'input';
       if (kind !== 'input' && kind !== 'output') return null;
-      return {
-        type: 'deviceChanged',
-        kind,
-        deviceName: event.deviceName ?? null,
-      };
+      return { type: 'deviceChanged', kind, deviceName: event.deviceName ?? null };
     }
     case 'warning':
       return { type: 'warning', code: event.code ?? 'unknown', message: event.message ?? '' };

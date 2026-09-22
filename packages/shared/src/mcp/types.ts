@@ -1,4 +1,7 @@
+import { z } from 'zod';
+
 import type { PrefixedString } from '../id/index.js';
+import type { JsonObject } from '../json.js';
 
 export const MCP_TRANSPORT_TYPES = ['stdio', 'http'] as const;
 export type McpTransport = (typeof MCP_TRANSPORT_TYPES)[number];
@@ -66,7 +69,7 @@ export type McpTool = {
   name: string;
   title?: string;
   description?: string;
-  inputSchema?: Record<string, unknown>;
+  inputSchema?: JsonObject;
   annotations?: {
     title?: string;
     readOnlyHint?: boolean;
@@ -154,6 +157,7 @@ export type McpElicitationRequest = {
 };
 
 const MCP_SERVER_ID_LENGTH = 30; // "mcp_" (4) + 26 body chars
+const mcpServerIdSchema = z.templateLiteral(['mcp_', z.string()]);
 
 /** Formats a tool name for the AI SDK tools map by combining the server ID and tool name. */
 export function formatMcpToolName(serverId: PrefixedString<'mcp'>, toolName: string): string {
@@ -164,7 +168,9 @@ export function formatMcpToolName(serverId: PrefixedString<'mcp'>, toolName: str
 export function parseMcpToolName(prefixedName: string): { serverId: PrefixedString<'mcp'>; toolName: string } | null {
   if (!prefixedName.startsWith('mcp_')) return null;
   if (prefixedName.length <= MCP_SERVER_ID_LENGTH + 1) return null;
-  const serverId = prefixedName.slice(0, MCP_SERVER_ID_LENGTH) as PrefixedString<'mcp'>;
+  const serverIdResult = mcpServerIdSchema.safeParse(prefixedName.slice(0, MCP_SERVER_ID_LENGTH));
+  if (!serverIdResult.success) return null;
+  const serverId = serverIdResult.data;
   const sep = prefixedName[MCP_SERVER_ID_LENGTH];
   if (sep !== '_') return null;
   const toolName = prefixedName.slice(MCP_SERVER_ID_LENGTH + 1);

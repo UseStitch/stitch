@@ -1,6 +1,8 @@
 import { LIQUID_UI_COMPONENTS } from './constants';
 import { liquidUiSpecSchema, type LiquidUiSpec } from './schema';
 
+import type { JsonValue } from '../json.js';
+
 type LiquidUiParseError = {
   code: 'invalid_spec';
   message: string;
@@ -10,7 +12,7 @@ type LiquidUiParseError = {
 
 type LiquidUiParseResult = { ok: true; spec: LiquidUiSpec } | { ok: false; error: LiquidUiParseError };
 
-export function parseLiquidUiSpec(input: unknown): LiquidUiParseResult {
+export function parseLiquidUiSpec(input: JsonValue): LiquidUiParseResult {
   const result = liquidUiSpecSchema.safeParse(input);
   if (result.success) return { ok: true, spec: result.data };
 

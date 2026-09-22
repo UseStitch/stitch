@@ -1,3 +1,5 @@
+import type { JsonObject } from '../json.js';
+
 type ElectronBrowserTab = { id: string; title: string; url: string; type: 'page'; active: boolean };
 
 export type ElectronBrowserDownload = {
@@ -70,7 +72,7 @@ export type ElectronBrowserCommand =
       selector?: string;
       includeLinks?: boolean;
       includeImages?: boolean;
-      outputSchema?: Record<string, unknown>;
+      outputSchema?: JsonObject;
     }
   | {
       action: 'searchPage';

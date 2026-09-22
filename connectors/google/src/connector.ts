@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import type { ConnectorModule } from '@stitch-connectors/sdk';
 
 import { ConnectorApiError, ConnectorMissingCredentialsError } from './errors.js';
@@ -191,10 +193,14 @@ export const googleConnectorModule: ConnectorModule = {
         if (!res.ok) {
           return { accountEmail: null, accountInfo: null };
         }
-        const info = (await res.json()) as { email?: string; name?: string; picture?: string };
-        return { accountEmail: info.email ?? null, accountInfo: info as Record<string, unknown> };
+        const info = z.record(z.string(), z.json()).parse(await res.json());
+        const email = z.string().safeParse(info.email);
+        return { accountEmail: email.success ? email.data : null, accountInfo: info };
       } catch (error) {
-        logger.warn({ error }, 'Google onAuthorized hook profile fetch failed');
+        logger.warn(
+          { error: Error.isError(error) ? error : String(error) },
+          'Google onAuthorized hook profile fetch failed',
+        );
         return { accountEmail: null, accountInfo: null };
       }
     },

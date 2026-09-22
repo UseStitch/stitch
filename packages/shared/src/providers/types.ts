@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 export const AWS_BEDROCK_REGIONS = [
   { value: 'us-east-1', label: 'US East (N. Virginia)' },
   { value: 'us-east-2', label: 'US East (Ohio)' },
@@ -44,6 +46,24 @@ type AuthMethodDef = { method: string; label: string; enabled: boolean; fields: 
 
 export type ProviderCapability = 'llm' | 'stt' | 'embedding';
 
+export const PROVIDER_IDS = [
+  'amazon-bedrock',
+  'anthropic',
+  'assemblyai',
+  'elevenlabs',
+  'google',
+  'google-vertex',
+  'lmstudio_local',
+  'nvidia',
+  'ollama_local',
+  'openai',
+  'openrouter',
+  'vercel',
+] as const;
+
+export type ProviderId = (typeof PROVIDER_IDS)[number];
+const providerIdSchema = z.enum(PROVIDER_IDS);
+
 const PROVIDER_CAPABILITIES = {
   'amazon-bedrock': ['llm'],
   anthropic: ['llm'],
@@ -57,9 +77,7 @@ const PROVIDER_CAPABILITIES = {
   openai: ['llm', 'stt', 'embedding'],
   openrouter: ['llm', 'embedding'],
   vercel: ['llm'],
-} as const satisfies Record<string, readonly ProviderCapability[]>;
-
-export type ProviderId = keyof typeof PROVIDER_CAPABILITIES;
+} as const satisfies Record<ProviderId, readonly ProviderCapability[]>;
 
 type ProvidersWithCapability<C extends ProviderCapability> = {
   [K in ProviderId]: C extends (typeof PROVIDER_CAPABILITIES)[K][number] ? K : never;
@@ -71,19 +89,19 @@ type SttProviderId = ProvidersWithCapability<'stt'>;
 export type EmbeddingProviderId = ProvidersWithCapability<'embedding'>;
 
 function hasProviderCapability(providerId: string, capability: ProviderCapability): providerId is ProviderId {
-  return (
-    (PROVIDER_CAPABILITIES as Record<string, readonly ProviderCapability[]>)[providerId]?.includes(capability) ?? false
-  );
+  const result = providerIdSchema.safeParse(providerId);
+  return result.success && PROVIDER_CAPABILITIES[result.data].some((supported) => supported === capability);
 }
 
 export function isLlmProviderId(providerId: string): providerId is LlmProviderId {
   return hasProviderCapability(providerId, 'llm');
 }
 
-const LOCAL_PROVIDER_IDS: LocalProviderId[] = ['ollama_local', 'lmstudio_local'];
+const LOCAL_PROVIDER_IDS = ['ollama_local', 'lmstudio_local'] as const satisfies readonly LocalProviderId[];
+const localProviderIdSchema = z.enum(LOCAL_PROVIDER_IDS);
 
 export function isLocalProviderId(providerId: string): providerId is LocalProviderId {
-  return (LOCAL_PROVIDER_IDS as string[]).includes(providerId);
+  return localProviderIdSchema.safeParse(providerId).success;
 }
 
 function isSttProviderId(providerId: string): providerId is SttProviderId {
@@ -111,7 +129,6 @@ export type ProviderMeta = {
   authMethods: AuthMethodDef[];
 };
 
-export const PROVIDER_IDS = Object.keys(PROVIDER_CAPABILITIES) as ProviderId[];
 export const LLM_PROVIDER_IDS = PROVIDER_IDS.filter(isLlmProviderId);
 export const STT_PROVIDER_IDS = PROVIDER_IDS.filter(isSttProviderId);
 export const EMBEDDING_PROVIDER_IDS = PROVIDER_IDS.filter(isEmbeddingProviderId);

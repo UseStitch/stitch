@@ -1,3 +1,7 @@
+import { z } from 'zod';
+
+import type { JsonValue } from '../json.js';
+
 const TOOL_TYPES = ['stitch', 'mcp', 'plugin'] as const;
 
 export type ToolType = (typeof TOOL_TYPES)[number];
@@ -6,13 +10,9 @@ export const TOOL_ENABLED_SCOPES = ['tool', 'toolset', 'mcp_tool', 'app', 'skill
 
 export type ToolEnabledScope = (typeof TOOL_ENABLED_SCOPES)[number];
 
-export type ToolEnabledState = {
-  scope: ToolEnabledScope;
-  identifier: string;
-  enabled: boolean;
-};
+export type ToolEnabledState = { scope: ToolEnabledScope; identifier: string; enabled: boolean };
 
-type ToolDataResult = { data: unknown; error?: never; details?: never };
+type ToolDataResult = { data: JsonValue };
 
 /**
  * Cross-package protocol for a failed tool result. Packages that cannot import the server's
@@ -21,30 +21,23 @@ type ToolDataResult = { data: unknown; error?: never; details?: never };
  * Adding any key other than `details` makes isToolErrorResult reject the value and it will be
  * treated as ordinary tool data.
  */
-export type ToolErrorResult = { error: string; details?: unknown; data?: never };
+const toolErrorResultSchema = z.object({ error: z.string().min(1), details: z.json().optional() }).strict();
+const toolDataResultSchema = z.looseObject({ data: z.json() });
+const legacyToolFailureSchema = z.looseObject({ failed: z.literal(true), output: z.string().optional() });
 
-export function toolError(error: string, details?: unknown): ToolErrorResult {
+export type ToolErrorResult = { error: string; details?: JsonValue };
+
+export function toolError(error: string, details?: JsonValue): ToolErrorResult {
   return details === undefined ? { error } : { error, details };
 }
 
-export function isToolErrorResult(value: unknown): value is ToolErrorResult {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  if (!('error' in value) || typeof value.error !== 'string' || value.error.length === 0) {
-    return false;
-  }
-
-  return Object.keys(value).every((key) => key === 'error' || key === 'details');
+export function isToolErrorResult(value: JsonValue | undefined): value is ToolErrorResult {
+  return toolErrorResultSchema.safeParse(value).success;
 }
 
-export function isToolDataResult(value: unknown): value is ToolDataResult {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  return 'data' in value && !('error' in value);
+export function isToolDataResult(value: JsonValue | undefined): value is ToolDataResult {
+  const result = toolDataResultSchema.safeParse(value);
+  return result.success && !Object.hasOwn(result.data, 'error');
 }
 
 const TOOL_FAILURE_FALLBACK_MESSAGE = 'Tool execution failed';
@@ -53,20 +46,15 @@ const TOOL_FAILURE_FALLBACK_MESSAGE = 'Tool execution failed';
  * Returns the message to report for a failed tool result, or null when the result is a success.
  * Recognizes the ToolErrorResult protocol plus legacy results that report failure with `failed: true`.
  */
-export function getToolFailureMessage(output: unknown): string | null {
+export function getToolFailureMessage(output: JsonValue | undefined): string | null {
   if (isToolErrorResult(output)) {
     return output.error;
   }
 
-  if (!output || typeof output !== 'object') {
-    return null;
-  }
+  const result = legacyToolFailureSchema.safeParse(output);
+  if (!result.success) return null;
 
-  if (!('failed' in output) || output.failed !== true) {
-    return null;
-  }
-
-  return 'output' in output && typeof output.output === 'string' && output.output.trim().length > 0
-    ? output.output
+  return result.data.output && result.data.output.trim().length > 0
+    ? result.data.output
     : TOOL_FAILURE_FALLBACK_MESSAGE;
 }

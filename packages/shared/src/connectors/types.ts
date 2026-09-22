@@ -1,5 +1,7 @@
 import type { PrefixedString } from '@stitch/shared/id';
 
+import type { JsonObject } from '../json.js';
+
 export type ConnectorAuthType = 'oauth2' | 'api_key';
 
 export type ConnectorIconSource = { type: 'svgString'; svgString: string } | { type: 'simpleIcons'; slug: string };
@@ -95,7 +97,7 @@ export type ConnectorInstance = {
   status: ConnectorStatus;
   authIssue: ConnectorAuthIssue | null;
   accountEmail: string | null;
-  accountInfo: Record<string, unknown> | null;
+  accountInfo: JsonObject | null;
   createdAt: number;
   updatedAt: number;
 };

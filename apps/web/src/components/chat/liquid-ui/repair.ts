@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import { LIQUID_UI_COLUMNS, STAT_TRENDS } from '@stitch/shared/liquid-ui/constants';
 import { parseLiquidUiSpec } from '@stitch/shared/liquid-ui/parse';
 import type { LiquidUiSpec } from '@stitch/shared/liquid-ui/schema';
@@ -106,8 +108,11 @@ function repairNode(node: unknown): JsonRecord | null {
 }
 
 export function repairLiquidUiSpec(input: unknown): LiquidUiSpec | null {
-  const parsed = parseLiquidUiSpec(input);
-  if (parsed.ok) return parsed.spec;
+  const json = z.json().safeParse(input);
+  if (json.success) {
+    const parsed = parseLiquidUiSpec(json.data);
+    if (parsed.ok) return parsed.spec;
+  }
 
   if (!isObject(input) || typeof input.root !== 'string' || !Array.isArray(input.nodes)) {
     return null;
@@ -121,6 +126,8 @@ export function repairLiquidUiSpec(input: unknown): LiquidUiSpec | null {
     }),
   };
 
-  const repairedParsed = parseLiquidUiSpec(repaired);
+  const repairedJson = z.json().safeParse(repaired);
+  if (!repairedJson.success) return null;
+  const repairedParsed = parseLiquidUiSpec(repairedJson.data);
   return repairedParsed.ok ? repairedParsed.spec : null;
 }

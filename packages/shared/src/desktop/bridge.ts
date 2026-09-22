@@ -18,9 +18,9 @@ import type {
   TelemetryState,
   UpdaterStatePayload,
 } from '../ipc/types.js';
+import type { JsonValue } from '../json.js';
 
 type DesktopPlatform = NodeJS.Platform;
-
 export type DesktopBridge = {
   getServerConfig: () => Promise<ServerConfigPayload>;
   server: {
@@ -94,6 +94,6 @@ export type DesktopBridge = {
 
 export type ElectronBridge = {
   platform: DesktopPlatform;
-  send: (channel: string, data?: unknown) => void;
-  subscribe: (channel: string, callback: (...args: unknown[]) => void) => () => void;
+  send: (channel: string, data?: JsonValue) => void;
+  subscribe: (channel: string, callback: (...args: JsonValue[]) => void) => () => void;
 };
