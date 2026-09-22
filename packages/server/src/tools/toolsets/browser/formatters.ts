@@ -14,8 +14,10 @@ import {
 
 export function formatTabsOutput(tabs: BrowserTab[]): string {
   const tabList = tabs
+    .values()
     .filter((t) => t.type === 'page')
     .map((t) => `  ${t.id}: ${t.title || '(untitled)'} - ${t.url}`)
+    .toArray()
     .join('\n');
   return `Open tabs:\n${tabList}`;
 }

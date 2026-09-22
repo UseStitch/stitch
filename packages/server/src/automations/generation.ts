@@ -49,9 +49,10 @@ function dedupeStrings(values: string[]): string[] {
   return [
     ...new Map(
       values
+        .values()
         .map((value) => value.trim())
         .filter(Boolean)
-        .map((value) => [value.toLowerCase(), value]),
+        .map((value) => [value.toLowerCase(), value] as const),
     ).values(),
   ];
 }

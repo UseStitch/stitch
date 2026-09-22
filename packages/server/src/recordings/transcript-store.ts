@@ -86,14 +86,16 @@ export function pushTranscriptEvent(recordingId: PrefixedString<'rec'>, event: T
  * Build the transcript snapshot for persistence.
  */
 function promotePartials(state: RecordingTranscriptState): RecordingTranscriptEntry[] {
-  return [...state.pendingPartials.values()]
+  return state.pendingPartials
+    .values()
     .filter((partial) => partial.content.trim())
     .map((partial) => ({
       speaker: partial.speaker,
       content: partial.content,
       startMs: partial.offsetMs,
       endMs: partial.offsetMs,
-    }));
+    }))
+    .toArray();
 }
 
 function buildSnapshot(state: RecordingTranscriptState): RecordingTranscriptEntry[] {

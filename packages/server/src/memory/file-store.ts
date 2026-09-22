@@ -290,13 +290,15 @@ export class MemoryStore {
       const parsed = this.parser.parseDocument(raw, relativePath, 'memory');
       const seen = new Set(parsed.entries.map((entry) => `${entry.target}\0${entry.content.trim()}`));
       const blocks = entries
+        .values()
         .filter((entry) => {
           const key = `${entry.target}\0${entry.content.trim()}`;
           if (seen.has(key)) return false;
           seen.add(key);
           return true;
         })
-        .map((entry) => serializeEntry({ ...entry, observed: entry.observed ?? date }));
+        .map((entry) => serializeEntry({ ...entry, observed: entry.observed ?? date }))
+        .toArray();
       if (blocks.length > 0) await this.atomicWrite(absolutePath, `${raw.trimEnd()}\n\n${blocks.join('\n\n')}\n`);
       return this.readFile(relativePath);
     });

@@ -20,7 +20,11 @@ function createMockStream() {
 }
 
 function parseCaptured<K extends SseEventName>(captured: CapturedEvent[], eventName: K): SseEventPayloadMap[K][] {
-  return captured.filter((c) => c.event === eventName).map((c) => JSON.parse(c.data) as SseEventPayloadMap[K]);
+  return captured
+    .values()
+    .filter((c) => c.event === eventName)
+    .map((c) => JSON.parse(c.data) as SseEventPayloadMap[K])
+    .toArray();
 }
 
 describe('sse adapter', () => {

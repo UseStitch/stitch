@@ -30,6 +30,7 @@ export function filterEligibleMailAccounts(
   enrolledConnectorInstanceIds: ReadonlySet<string>,
 ): EligibleMailAccount[] {
   return instances
+    .values()
     .filter(
       (instance): instance is EligibleConnectorInstance & { accountEmail: string } =>
         instance.connectorId === 'google' &&
@@ -38,7 +39,8 @@ export function filterEligibleMailAccounts(
         !enrolledConnectorInstanceIds.has(instance.id) &&
         hasRequiredGmailScopes(instance.scopes),
     )
-    .map((instance) => ({ connectorInstanceId: instance.id, email: instance.accountEmail }));
+    .map((instance) => ({ connectorInstanceId: instance.id, email: instance.accountEmail }))
+    .toArray();
 }
 
 export function assertCanEnrollMailAccount(

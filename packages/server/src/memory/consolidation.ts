@@ -119,8 +119,10 @@ export function validateConsolidationProposal(input: ValidationInput): {
   const user = validateDocument('user', input.proposal.user, input.user.entries, candidates, dispositions);
   const promotedIds = new Set(
     [...input.proposal.memory, ...input.proposal.user]
+      .values()
       .filter((entry) => entry.candidateId && candidates.has(entry.candidateId))
-      .map((entry) => entry.candidateId),
+      .map((entry) => entry.candidateId)
+      .toArray(),
   );
   return { memory, user, promotedCount: promotedIds.size, rejectedCount: input.candidates.length - promotedIds.size };
 }
