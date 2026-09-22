@@ -3,12 +3,14 @@ import fs from 'fs/promises';
 import path from 'path';
 import z from 'zod';
 
+import type { JsonValue } from '@stitch/shared/json';
 import { type StitchLogger } from '@stitch/shared/logger';
 
 import { PATHS } from '@/lib/paths.js';
 
 const Level = z.enum(['DEBUG', 'INFO', 'WARN', 'ERROR']).meta({ ref: 'LogLevel', description: 'Log level' });
 type Level = z.infer<typeof Level>;
+type LogContext = Record<string, Error | JsonValue | undefined>;
 
 const levelPriority: Record<Level, number> = { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 };
 
@@ -39,9 +41,9 @@ const formatValueSchema = z.union([
   z.boolean().transform((b) => b.toString()),
   z.bigint().transform((b) => b.toString()),
   z.symbol().transform((s) => s.description ?? s.toString()),
-  z.custom<(...args: never[]) => unknown>((v) => v instanceof Function).transform((fn) =>
-    fn.name ? `[Function ${fn.name}]` : '[Function]',
-  ),
+  z
+    .custom<(...args: never[]) => void>((v) => v instanceof Function)
+    .transform((fn) => (fn.name ? `[Function ${fn.name}]` : '[Function]')),
   z.undefined().transform(() => ''),
   z.unknown().transform((v) => JSON.stringify(v)),
 ]);
@@ -52,15 +54,18 @@ const createServiceSchema = z.looseObject({ service: z.string().optional().catch
 // Boundary decoder: discriminates the emit argument into a domain value.
 const emitArgSchema = z.union([
   z.string().transform((message) => ({ kind: 'message', message }) as const),
-  z.record(z.string(), z.unknown()).transform((extra) => ({ kind: 'extra', extra }) as const),
+  z
+    .record(z.string(), z.union([z.instanceof(Error), z.json(), z.undefined()]))
+    .transform((extra) => ({ kind: 'extra', extra }) as const),
 ]);
 
 function formatValue(value: unknown): string {
   if (Error.isError(value)) {
-    const { message, cause, name, ...rest } = value as Error & Record<string, unknown>;
-    const obj: Record<string, unknown> = { name, message, ...rest };
-    if (cause !== undefined) obj['cause'] = Error.isError(cause) ? cause.message : cause;
-    return JSON.stringify(obj);
+    const { message, name } = value;
+    const cause = Object.getOwnPropertyDescriptor(value, 'cause')?.value;
+    const obj = { name, message, ...Object.fromEntries(Object.entries(value)) };
+    if (cause === undefined) return JSON.stringify(obj);
+    return JSON.stringify({ ...obj, cause: Error.isError(cause) ? cause.message : cause });
   }
   return formatValueSchema.parse(value);
 }
@@ -125,7 +130,7 @@ export async function cleanup(dir = PATHS.logDir): Promise<void> {
   await Promise.all(toDelete.map((f) => fs.unlink(path.join(dir, f)).catch(() => {})));
 }
 
-export function create(tags?: Record<string, unknown>, { skipCache = false } = {}): StitchLogger {
+export function create(tags?: LogContext, { skipCache = false } = {}): StitchLogger {
   tags = tags ?? {};
 
   const parsedTags = createServiceSchema.safeParse(tags);
@@ -135,7 +140,7 @@ export function create(tags?: Record<string, unknown>, { skipCache = false } = {
     if (cached) return cached;
   }
 
-  function build(message: string, extra?: Record<string, unknown>) {
+  function build(message: string, extra?: LogContext) {
     const prefix = Object.entries({ ...tags, ...extra })
       .filter(([, value]) => value !== undefined && value !== null)
       .map(([key, value]) => `${key}=${formatValue(value)}`)
@@ -148,7 +153,7 @@ export function create(tags?: Record<string, unknown>, { skipCache = false } = {
     return [next.toISOString().split('.').at(0), `+${diff}ms`, prefix, message].filter(Boolean).join(' ');
   }
 
-  function emit(lvl: Level, extraOrMessage: Record<string, unknown> | string, message?: string) {
+  function emit(lvl: Level, extraOrMessage: LogContext | string, message?: string) {
     if (!shouldLog(lvl)) return;
 
     const parsedArg = emitArgSchema.safeParse(extraOrMessage);

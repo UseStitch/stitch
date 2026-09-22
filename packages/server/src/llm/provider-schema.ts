@@ -1,6 +1,7 @@
 import { jsonSchema as toJsonSchema } from 'ai';
 import { z } from 'zod';
 
+import type { JsonValue } from '@stitch/shared/json';
 import type { LlmProviderId } from '@stitch/shared/providers/types';
 
 import type { JSONSchema7, Schema, Tool } from 'ai';
@@ -8,22 +9,22 @@ import type { JSONSchema7, Schema, Tool } from 'ai';
 const SCHEMA_SYMBOL = Symbol.for('vercel.ai.schema');
 const stringSchema = z.string();
 const booleanSchema = z.boolean();
-const plainObjectSchema = z.custom<Record<PropertyKey, unknown>>(
+type SchemaObject = Record<string, JsonValue | undefined>;
+
+const plainObjectSchema = z.custom<SchemaObject>(
   (value) => value !== null && Object(value) === value && !Array.isArray(value),
 );
 
 function isAiSchema(value: unknown): value is Schema {
   const parsed = plainObjectSchema.safeParse(value);
-  return (
-    parsed.success && SCHEMA_SYMBOL in parsed.data && (parsed.data as Record<symbol, unknown>)[SCHEMA_SYMBOL] === true
-  );
+  return parsed.success && Object.getOwnPropertyDescriptor(parsed.data, SCHEMA_SYMBOL)?.value === true;
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
+function isPlainObject(value: unknown): value is SchemaObject {
   return plainObjectSchema.safeParse(value).success;
 }
 
-function hasCombiner(node: Record<string, unknown>): boolean {
+function hasCombiner(node: SchemaObject): boolean {
   return Array.isArray(node.anyOf) || Array.isArray(node.oneOf) || Array.isArray(node.allOf);
 }
 
@@ -40,7 +41,7 @@ function sanitizeGemini<T>(node: T): T {
   }
   if (!isPlainObject(node)) return node;
 
-  const result: Record<string, unknown> = {};
+  const result: SchemaObject = {};
   for (const [key, value] of Object.entries(node)) {
     if (key === 'enum' && Array.isArray(value)) {
       result[key] = value.map((entry) => String(entry));
@@ -61,7 +62,7 @@ function sanitizeGemini<T>(node: T): T {
     if (nonNull.length === 0) {
       result.type = 'null';
     } else if (nonNull.length === 1) {
-      result.type = nonNull.at(0);
+      result.type = nonNull.at(0) ?? 'null';
       if (types.includes('null')) result.nullable = true;
     } else {
       delete result.type;
@@ -75,7 +76,10 @@ function sanitizeGemini<T>(node: T): T {
     delete result.properties;
   } else if (result.type === 'object' && Array.isArray(result.required)) {
     const properties = isPlainObject(result.properties) ? result.properties : {};
-    result.required = result.required.filter((field) => field in properties);
+    result.required = result.required.filter((field) => {
+      const parsedField = stringSchema.safeParse(field);
+      return parsedField.success && parsedField.data in properties;
+    });
   }
 
   // Array schemas must declare `items`; default empty item schemas to string.
@@ -108,11 +112,11 @@ function sanitizeOpenAI<T>(value: T): T {
   }
   if (!isPlainObject(value)) return value;
 
-  const result: Record<string, unknown> = {};
+  const result: SchemaObject = {};
 
   if (stringSchema.safeParse(value.$ref).success) result.$ref = value.$ref;
   if (stringSchema.safeParse(value.description).success) result.description = value.description;
-  if ('const' in value) result.enum = [value.const];
+  if ('const' in value && value.const !== undefined) result.enum = [value.const];
   else if (Array.isArray(value.enum)) result.enum = value.enum;
 
   if (isPlainObject(value.properties)) {
@@ -182,7 +186,7 @@ function sanitizeOpenAI<T>(value: T): T {
     return {} as T;
   }
 
-  result.type = inferredTypes.length === 1 ? inferredTypes.at(0) : inferredTypes;
+  result.type = inferredTypes.length === 1 ? (inferredTypes.at(0) ?? 'string') : inferredTypes;
   if (inferredTypes.includes('object') && !('properties' in result)) result.properties = {};
   if (inferredTypes.includes('array') && !('items' in result)) result.items = { type: 'string' };
   // SAFETY: result is built from value's entries with only schema-keyword rewrites.

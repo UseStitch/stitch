@@ -3,6 +3,7 @@ import { blob, check, index, integer, sqliteTable, text } from 'drizzle-orm/sqli
 
 import type { ConnectorStatus, ConnectorAuthType } from '@stitch/shared/connectors/types';
 import type { PrefixedString } from '@stitch/shared/id';
+import type { JsonObject } from '@stitch/shared/json';
 
 export const connectors = sqliteTable(
   'connectors',
@@ -46,7 +47,7 @@ export const connectorInstances = sqliteTable(
     status: text('status').$type<ConnectorStatus>().notNull().default('pending_setup'),
     authIssue: text('auth_issue').$type<'reauthorization_required' | 'temporary_failure'>(),
     accountEmail: text('account_email'),
-    accountInfo: blob('account_info', { mode: 'json' }).$type<Record<string, unknown>>(),
+    accountInfo: blob('account_info', { mode: 'json' }).$type<JsonObject>(),
     createdAt: integer('created_at', { mode: 'number' })
       .notNull()
       .$defaultFn(() => Date.now()),

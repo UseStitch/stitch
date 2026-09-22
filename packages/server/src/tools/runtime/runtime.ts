@@ -1,5 +1,5 @@
 import type { PrefixedString } from '@stitch/shared/id';
-import type { JsonValue } from '@stitch/shared/json';
+import type { JsonObject, JsonValue } from '@stitch/shared/json';
 import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
 
 import type { Tool, ToolExecutionOptions } from 'ai';
@@ -8,7 +8,7 @@ export type ToolContext = { sessionId: PrefixedString<'ses'>; messageId: Prefixe
 
 export type RuntimeToolSource = 'core' | 'toolset' | 'mcp' | 'meta' | 'task' | 'code-mode';
 
-export type ToolInput = Record<string, unknown>;
+export type ToolInput = JsonObject;
 export type ToolExecuteOptions = ToolExecutionOptions & { skipTruncation?: boolean };
 export type ToolTruncationLimits = { maxLines?: number; maxBytes?: number };
 

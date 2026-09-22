@@ -74,10 +74,10 @@ describe('sanitizeToolSchemasForProvider', () => {
 
     const out = sanitizeToolSchemasForProvider({ t: mcpTool(schema) }, 'google' as LlmProviderId, 'gemini-3.5-flash');
 
-    const value = resolvedProperties(out.t).value as Record<string, unknown>;
+    const value = resolvedProperties(out.t).value;
     expect(value.type).toBeUndefined();
     expect(value.anyOf).toEqual([{ type: 'string' }, { type: 'number' }]);
-    expect(value.nullable).toBe(true);
+    expect(Object.getOwnPropertyDescriptor(value, 'nullable')?.value).toBe(true);
   });
 
   test('defaults missing array items to string', () => {

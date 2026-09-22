@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { z } from 'zod';
 
 import type { FetchLike } from '@/lib/icon-cache.js';
 import { createRegistryCache } from '@/lib/registry-cache.js';
@@ -111,10 +112,10 @@ describe('createRegistryCache', () => {
     await fs.writeFile(cacheFilePath, 'not valid json', 'utf8');
 
     const throwingParse = (raw: unknown) => {
-      if ((raw as Record<string, unknown>)['version'] === undefined) {
+      if (!z.object({ version: z.unknown() }).safeParse(raw).success) {
         throw new Error('invalid');
       }
-      return raw as typeof PAYLOAD;
+      return PAYLOAD;
     };
 
     const cache = createRegistryCache({ cacheFilePath, url: 'https://example.com', parse: throwingParse });

@@ -81,7 +81,7 @@ function toPreviewText(value: unknown): string {
     return outputValue.data.output.slice(0, TOOL_RESULT_PREVIEW_CHARS);
   }
 
-  const serialized = JSON.stringify(value) ?? '';
+  const serialized = JSON.stringify(value);
   return serialized.slice(0, TOOL_RESULT_PREVIEW_CHARS);
 }
 

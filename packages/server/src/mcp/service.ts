@@ -76,33 +76,21 @@ export async function fetchMcpTools(serverId: PrefixedString<'mcp'>): Promise<Mc
     throw new HTTPException(404, { message: 'MCP server not found' });
   }
 
-  let rawTools: Record<string, unknown>;
+  let tools: McpTool[];
   try {
     const result = await withMcpClient(server, (client) => client.listTools());
-    rawTools = Object.fromEntries(result.tools.map((tool) => [tool.name, tool]));
+    tools = result.tools.map((tool) => ({
+      name: tool.name,
+      title: tool.title,
+      description: tool.description,
+      inputSchema: z.record(z.string(), z.json()).safeParse(tool.inputSchema).data,
+      annotations: tool.annotations,
+      icons: tool.icons,
+    }));
   } catch (e) {
     const message = Error.isError(e) ? e.message : String(e);
     throw new HTTPException(400, { message: `MCP server error: ${message}` });
   }
-
-  // Map SDK tool objects to our lightweight cached shape
-  const tools: McpTool[] = Object.entries(rawTools).map(([name, toolDef]) => {
-    const def = toolDef as {
-      title?: string;
-      description?: string;
-      inputSchema?: Record<string, unknown>;
-      annotations?: McpTool['annotations'];
-      icons?: McpTool['icons'];
-    };
-    return {
-      name,
-      title: def.title,
-      description: def.description,
-      inputSchema: z.record(z.string(), z.json()).safeParse(def.inputSchema).data,
-      annotations: def.annotations,
-      icons: def.icons,
-    };
-  });
 
   // Persist tools to cache
   await db.update(mcpServers).set({ tools, updatedAt: Date.now() }).where(eq(mcpServers.id, serverId));

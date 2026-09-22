@@ -1,6 +1,7 @@
 import { tool, type Tool } from 'ai';
 import { z } from 'zod';
 
+import type { JsonObject } from '@stitch/shared/json';
 import { toolError } from '@stitch/shared/tools/types';
 
 import { sendBrowserCommand } from '@/lib/browser/browser-manager.js';
@@ -86,12 +87,7 @@ const BATCH_DESCRIPTION = `Execute up to 5 browser actions in one serialized cal
 Use this for efficient, single-goal chains like type + type + click. Actions execute in order and stop early on error, sequence-terminating actions, or a lightweight DOM/page fingerprint change by default. Results are concise; if the batch changes page state, the result includes an updated snapshot.`;
 
 const BROWSER_TOOL_SPECS: Array<
-  [
-    name: string,
-    description: string,
-    schema: z.ZodType,
-    toOperation: (input: Record<string, unknown>) => Record<string, unknown>,
-  ]
+  [name: string, description: string, schema: z.ZodType, toOperation: (input: JsonObject) => JsonObject]
 > = [
   ['browser_snapshot', SNAPSHOT_DESCRIPTION, browserSnapshotInputSchema, (input) => ({ ...input, tool: 'snapshot' })],
   [
@@ -259,10 +255,10 @@ function createBrowserTools(context: ToolContext): Record<string, Tool> {
           inputSchema: schema,
           execute: async (input, execContext) =>
             runBrowserTool(execContext.abortSignal, context.sessionId, async (signal) => {
-              const operation = toOperation(input as Record<string, unknown>) as OperationInput;
+              const operation = toOperation(input as JsonObject) as OperationInput;
               const result = await executeOperation(operation, signal);
               if (!shouldReturnFreshSnapshot(operation)) return result;
-              return withFreshSnapshot(result as Record<string, unknown>, signal);
+              return withFreshSnapshot(result as JsonObject, signal);
             }),
         }),
       ]),

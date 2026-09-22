@@ -1,8 +1,10 @@
 import { z } from 'zod';
 
+import type { JsonObject } from '@stitch/shared/json';
+
 import type { ToolTypeInfo } from '@/code-mode/bindings/tool-binding.js';
 
-type JsonSchema = Record<string, unknown>;
+type JsonSchema = JsonObject;
 const StringSchema = z.string();
 
 function isString(value: unknown): value is string {

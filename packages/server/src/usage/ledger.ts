@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
+import type { JsonObject } from '@stitch/shared/json';
+
 import { getDb } from '@/db/client.js';
 import { embeddingUsageEvents, llmUsageEvents } from '@/db/schema/usage.js';
 import type { LlmUsageMetadata } from '@/db/schema/usage.js';
@@ -85,7 +87,7 @@ export async function recordEmbeddingUsage(input: {
   providerId: string;
   modelId: string;
   tokens: number;
-  metadata?: Record<string, unknown>;
+  metadata?: JsonObject;
 }): Promise<void> {
   const costUsd = await calculateEmbeddingCostUsd({
     providerId: input.providerId,

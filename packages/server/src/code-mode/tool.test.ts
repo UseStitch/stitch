@@ -49,7 +49,7 @@ describe('serializeIsolateOutput', () => {
   });
 
   test('handles unserializable result gracefully', () => {
-    const circular: Record<string, unknown> = {};
+    const circular: { self?: typeof circular } = {};
     circular.self = circular;
     const output = serializeIsolateOutput(circular, []);
     expect(output).toContain('[unserializable result]');

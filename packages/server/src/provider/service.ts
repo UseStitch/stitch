@@ -1,5 +1,6 @@
 import { count, eq } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
+import { z } from 'zod';
 
 import type { EmbeddingProviderModels } from '@stitch/shared/embedding/types';
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
@@ -175,7 +176,10 @@ export async function upsertProviderCredentials(providerId: string, body: unknow
     throw new HTTPException(404, { message: 'Provider not found' });
   }
 
-  const parsed = ProviderCredentialsSchema.safeParse({ ...(body as Record<string, unknown>), providerId });
+  const parsedBody = z.object({}).catchall(z.unknown()).safeParse(body);
+  const credentials = parsedBody.success ? parsedBody.data : {};
+  credentials['providerId'] = providerId;
+  const parsed = ProviderCredentialsSchema.safeParse(credentials);
   if (!parsed.success) {
     throw new HTTPException(400, { message: 'Invalid credentials' });
   }

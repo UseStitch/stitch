@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
+import type { JsonObject } from '@stitch/shared/json';
 
 import { getDb } from '@/db/client.js';
 import { sessions } from '@/db/schema/sessions.js';
@@ -143,7 +144,7 @@ describe('buildHistoryMessages', () => {
     return { type: 'text-delta', id: 'prt_text' as StoredPart['id'], text, ...timing } as StoredPart;
   }
 
-  function toolCallPart(toolCallId: string, toolName = 'bash', providerMetadata?: Record<string, unknown>): StoredPart {
+  function toolCallPart(toolCallId: string, toolName = 'bash', providerMetadata?: JsonObject): StoredPart {
     const part: {
       type: 'tool-call';
       id: StoredPart['id'];
@@ -152,7 +153,7 @@ describe('buildHistoryMessages', () => {
       input: { command: string };
       startedAt: number;
       endedAt: number;
-      providerMetadata?: Record<string, unknown>;
+      providerMetadata?: JsonObject;
     } = {
       type: 'tool-call',
       id: `prt_call_${toolCallId}` as StoredPart['id'],
@@ -169,7 +170,7 @@ describe('buildHistoryMessages', () => {
     toolCallId: string,
     output: unknown,
     toolName = 'bash',
-    providerMetadata?: Record<string, unknown>,
+    providerMetadata?: JsonObject,
   ): StoredPart {
     const part: {
       type: 'tool-result';
@@ -180,7 +181,7 @@ describe('buildHistoryMessages', () => {
       truncated: boolean;
       startedAt: number;
       endedAt: number;
-      providerMetadata?: Record<string, unknown>;
+      providerMetadata?: JsonObject;
     } = {
       type: 'tool-result',
       id: `prt_result_${toolCallId}` as StoredPart['id'],

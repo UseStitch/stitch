@@ -338,7 +338,7 @@ export class StreamAccumulator {
             error: errorText,
             errorName,
             errorStack,
-            rawPartKeys: Object.keys(part as Record<string, unknown>),
+            rawPartKeys: Object.keys(part),
           },
           'stream part error',
         );

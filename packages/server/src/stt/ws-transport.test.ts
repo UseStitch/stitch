@@ -65,7 +65,7 @@ class FakeWebSocket {
     this.emit('pong', {});
   }
 
-  private emit(type: string, props: Record<string, unknown>): void {
+  private emit(type: string, props: object): void {
     const event = Object.assign(new Event(type), props);
     for (const listener of this.listeners.get(type) ?? []) listener(event);
   }

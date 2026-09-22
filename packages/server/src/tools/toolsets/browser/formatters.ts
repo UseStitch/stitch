@@ -6,6 +6,7 @@ import type {
   ElectronBrowserFindElementsResult,
   ElectronBrowserSearchPageResult,
 } from '@stitch/shared/browser/electron';
+import type { JsonValue } from '@stitch/shared/json';
 
 import { sendBrowserCommand } from '@/lib/browser/browser-manager.js';
 import type { BrowserTab } from '@/lib/browser/types.js';
@@ -123,10 +124,12 @@ export function snapshotFields(compact?: SerializedBrowserSnapshot | null) {
   };
 }
 
+type BrowserOperationResult = Record<string, JsonValue | undefined>;
+
 export async function withFreshSnapshot(
-  result: Record<string, unknown>,
+  result: BrowserOperationResult,
   signal?: AbortSignal,
-): Promise<Record<string, unknown>> {
+): Promise<BrowserOperationResult> {
   const snapshot = await sendBrowserCommand({ action: 'snapshot' }, signal);
   const compactSnapshot = serializeBrowserSnapshot(snapshot);
   const parsedOutput = stringSchema.safeParse(result.output);

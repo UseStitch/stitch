@@ -1,5 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import * as oauth from 'openid-client';
+import { z } from 'zod';
 
 import type { OAuthConfig } from '@stitch/shared/connectors/types';
 
@@ -119,7 +120,10 @@ async function stripIdTokenFromResponse(response: Response): Promise<Response> {
   const contentType = response.headers.get('content-type') ?? '';
   if (!contentType.includes('application/json')) return response;
 
-  const body = (await response.clone().json()) as Record<string, unknown>;
+  const body = z
+    .object({})
+    .catchall(z.unknown())
+    .parse(await response.clone().json());
   if (!('id_token' in body)) return response;
 
   const { id_token: _idToken, ...rest } = body;

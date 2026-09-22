@@ -1,6 +1,7 @@
 import { blob, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 import type { PrefixedString } from '@stitch/shared/id';
+import type { JsonValue } from '@stitch/shared/json';
 import type {
   McpAuthConfig,
   McpAuthStatus,
@@ -35,7 +36,7 @@ type OAuthClientInformation = {
   client_secret?: string;
   client_id_issued_at?: number;
   client_secret_expires_at?: number;
-  [key: string]: unknown;
+  [key: string]: JsonValue | undefined;
 };
 
 type OAuthSessionTokens = {
@@ -44,7 +45,7 @@ type OAuthSessionTokens = {
   expires_in?: number;
   refresh_token?: string;
   scope?: string;
-  [key: string]: unknown;
+  [key: string]: JsonValue | undefined;
 };
 
 /**

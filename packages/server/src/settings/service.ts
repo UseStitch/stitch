@@ -68,9 +68,9 @@ export async function getSettings<const Keys extends readonly SettingsKey[]>(key
   for (const key of keys) {
     const raw = rawByKey.get(key) ?? defaultsByKey.get(key) ?? '';
     const parsed = SETTINGS_SCHEMAS[key].safeParse(raw);
-    (result as Record<string, unknown>)[key] = parsed.success
-      ? parsed.data
-      : SETTINGS_SCHEMAS[key].parse(defaultsByKey.get(key) ?? '');
+    Object.assign(result, {
+      [key]: parsed.success ? parsed.data : SETTINGS_SCHEMAS[key].parse(defaultsByKey.get(key) ?? ''),
+    });
   }
 
   return result;

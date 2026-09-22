@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { blob, check, index, integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 import type { PrefixedString } from '@stitch/shared/id';
+import type { JsonObject } from '@stitch/shared/json';
 import type { STTUsage } from '@stitch/shared/stt/types';
 
 import type { LanguageModelUsage } from 'ai';
@@ -14,7 +15,7 @@ export const embeddingUsageEvents = sqliteTable(
     modelId: text('model_id').notNull(),
     totalTokens: integer('total_tokens').notNull().default(0),
     costUsd: real('cost_usd').notNull().default(0),
-    metadata: blob('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
+    metadata: blob('metadata', { mode: 'json' }).$type<JsonObject>(),
     createdAt: integer('created_at', { mode: 'number' })
       .notNull()
       .$defaultFn(() => Date.now()),
@@ -158,7 +159,7 @@ export const sttUsageEvents = sqliteTable(
     service: text('service').$type<SttService>().notNull(),
     costUsd: real('cost_usd').notNull().default(0),
     rawData: blob('raw_data', { mode: 'json' }).$type<STTUsage>(),
-    metadata: blob('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
+    metadata: blob('metadata', { mode: 'json' }).$type<JsonObject>(),
     startedAt: integer('started_at', { mode: 'number' }).notNull(),
     endedAt: integer('ended_at', { mode: 'number' }).notNull(),
     createdAt: integer('created_at', { mode: 'number' })

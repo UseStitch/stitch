@@ -6,22 +6,18 @@ export function stableStringify(value: unknown): string {
   return JSON.stringify(sortKeys(value));
 }
 
-function sortKeys<T>(value: T): T {
+function sortKeys(value: unknown): unknown {
   if (value === null || value === undefined || Object(value) !== value || Function.prototype.isPrototypeOf(value)) {
     return value;
   }
 
   if (Array.isArray(value)) {
-    // SAFETY: map preserves the array shape and recursion preserves each element's shape.
-    return value.map((entry) => sortKeys(entry)) as T;
+    return value.map((entry) => sortKeys(entry));
   }
 
-  const sorted: Record<string, unknown> = {};
-  // SAFETY: guarded above by the nullish, primitive, function, and array checks, so value is a plain object here.
-  const record = value as Record<string, unknown>;
-  for (const key of Object.keys(record).toSorted()) {
-    sorted[key] = sortKeys(record[key]);
-  }
-  // SAFETY: sorted has the same keys with recursively shape-preserved values.
-  return sorted as T;
+  return Object.fromEntries(
+    Object.entries(value)
+      .toSorted(([left], [right]) => left.localeCompare(right))
+      .map(([key, entry]) => [key, sortKeys(entry)]),
+  );
 }

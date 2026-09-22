@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 
+import type { JsonObject } from '@stitch/shared/json';
 import type { LocalProviderId } from '@stitch/shared/providers/types';
 
 import { getDb } from '@/db/client.js';
@@ -151,7 +152,7 @@ async function discoverOllamaModels(baseURL: string): Promise<DiscoveredModel[]>
 
       const showData = (await showResponse.json()) as {
         capabilities?: string[];
-        model_info?: Record<string, unknown>;
+        model_info?: JsonObject;
         parameters?: string;
       };
 
