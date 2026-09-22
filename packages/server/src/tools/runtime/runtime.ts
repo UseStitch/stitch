@@ -1,4 +1,5 @@
 import type { PrefixedString } from '@stitch/shared/id';
+import type { JsonValue } from '@stitch/shared/json';
 import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
 
 import type { Tool, ToolExecutionOptions } from 'ai';
@@ -32,5 +33,8 @@ export type ToolExecutionInput = {
   metadata: RuntimeToolMetadata;
 };
 
-type ToolExecutor = (input: ToolExecutionInput) => Promise<unknown>;
+/** The value a tool executor produces: JSON-compatible output, or undefined when the tool returns nothing. */
+export type ToolOutputValue = JsonValue | undefined;
+
+type ToolExecutor = (input: ToolExecutionInput) => Promise<ToolOutputValue>;
 export type ToolMiddleware = (next: ToolExecutor) => ToolExecutor;

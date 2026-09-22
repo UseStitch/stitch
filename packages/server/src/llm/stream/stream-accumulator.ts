@@ -62,14 +62,16 @@ export class StreamAccumulator {
     return { truncated, outputPath };
   }
 
-  private stripToolTruncationMeta(output: unknown): unknown {
+  private stripToolTruncationMeta<T>(output: T): T {
     if (!output || typeof output !== 'object') {
       return output;
     }
 
+    // SAFETY: guarded by the falsy/typeof checks above, so output is a non-null object here.
     const clone = { ...(output as Record<string, unknown>) };
     delete clone.__stitchToolResultMeta;
-    return clone;
+    // SAFETY: clone is a shallow copy of output with only the internal meta key removed.
+    return clone as T;
   }
 
   private broadcastPartUpdate(partId: PartId, part: unknown): void {

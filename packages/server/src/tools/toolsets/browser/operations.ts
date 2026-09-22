@@ -1,6 +1,8 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
+import type { JsonValue } from '@stitch/shared/json';
+
 import { sendBrowserCommand } from '@/lib/browser/browser-manager.js';
 import type { ScrollDirection } from '@/lib/browser/types.js';
 import { BrowserInvalidOpError, BrowserMissingFieldError } from '@/tools/toolsets/browser/errors.js';
@@ -50,7 +52,10 @@ export function shouldReturnFreshSnapshot(input: OperationInput): boolean {
   return false;
 }
 
-export async function executeOperation(input: OperationInput, signal?: AbortSignal): Promise<unknown> {
+/** JSON-compatible result of a browser operation: always an `output` string plus optional structured extras. */
+export type BrowserOperationResult = { output: string; [key: string]: JsonValue | undefined };
+
+export async function executeOperation(input: OperationInput, signal?: AbortSignal): Promise<BrowserOperationResult> {
   if (input.tool === 'snapshot') {
     const tree = await sendBrowserCommand({ action: 'snapshot' }, signal);
     const compactSnapshot = serializeBrowserSnapshot(tree);

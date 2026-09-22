@@ -11,11 +11,11 @@ function runSerialized<T>(fn: () => Promise<T>): Promise<T> {
   return r;
 }
 
-export async function runBrowserTool(
+export async function runBrowserTool<T>(
   abortSignal: AbortSignal | undefined,
   sessionId: PrefixedString<'ses'>,
-  execute: (signal?: AbortSignal) => Promise<unknown>,
-): Promise<unknown> {
+  execute: (signal?: AbortSignal) => Promise<T>,
+): Promise<T> {
   return runSerialized(async () => {
     try {
       const browser = getBrowserManager(sessionId);

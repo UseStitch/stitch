@@ -29,8 +29,11 @@ function hasCombiner(node: Record<string, unknown>): boolean {
  * Google backend rejects, e.g. `required` arrays on nodes that are not typed as
  * `object` (often inside `anyOf`/`oneOf` array item branches), or integer enums.
  */
-function sanitizeGemini(node: unknown): unknown {
-  if (Array.isArray(node)) return node.map(sanitizeGemini);
+function sanitizeGemini<T>(node: T): T {
+  if (Array.isArray(node)) {
+    // SAFETY: map preserves the array shape and recursion preserves each element's shape.
+    return node.map((entry) => sanitizeGemini(entry)) as T;
+  }
   if (!isPlainObject(node)) return node;
 
   const result: Record<string, unknown> = {};
@@ -76,7 +79,8 @@ function sanitizeGemini(node: unknown): unknown {
     result.items = { type: 'string' };
   }
 
-  return result;
+  // SAFETY: result is built by copying node's entries with only schema-keyword rewrites.
+  return result as T;
 }
 
 const JSON_SCHEMA_TYPES = ['string', 'number', 'boolean', 'integer', 'object', 'array', 'null'] as const;
@@ -89,9 +93,15 @@ const COMBINER_KEYS = ['anyOf', 'oneOf', 'allOf'] as const;
  * (common in MCP-authored schemas) get an inferred type so they stay usable
  * after unsupported keywords are dropped.
  */
-function sanitizeOpenAI(value: unknown): unknown {
-  if (typeof value === 'boolean') return { type: 'string' };
-  if (Array.isArray(value)) return value.map(sanitizeOpenAI);
+function sanitizeOpenAI<T>(value: T): T {
+  if (typeof value === 'boolean') {
+    // SAFETY: callers pass schema documents as unknown; the boolean-form replacement is the sanitized equivalent.
+    return { type: 'string' } as T;
+  }
+  if (Array.isArray(value)) {
+    // SAFETY: map preserves the array shape and recursion preserves each element's shape.
+    return value.map((entry) => sanitizeOpenAI(entry)) as T;
+  }
   if (!isPlainObject(value)) return value;
 
   const result: Record<string, unknown> = {};
@@ -159,15 +169,20 @@ function sanitizeOpenAI(value: unknown): unknown {
   };
 
   const inferredTypes = inferType();
-  if (inferredTypes.length === 0) return {};
+  if (inferredTypes.length === 0) {
+    // SAFETY: callers pass schema documents as unknown; an empty schema object is the sanitized equivalent.
+    return {} as T;
+  }
 
   result.type = inferredTypes.length === 1 ? inferredTypes.at(0) : inferredTypes;
   if (inferredTypes.includes('object') && !('properties' in result)) result.properties = {};
   if (inferredTypes.includes('array') && !('items' in result)) result.items = { type: 'string' };
-  return result;
+  // SAFETY: result is built from value's entries with only schema-keyword rewrites.
+  return result as T;
+}
 }
 
-type SchemaSanitizer = (schema: unknown) => unknown;
+type SchemaSanitizer = <T>(schema: T) => T;
 
 function modelIsGemini(modelId: string): boolean {
   return modelId.toLowerCase().includes('gemini');

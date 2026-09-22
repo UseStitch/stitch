@@ -9,7 +9,22 @@ const PRESERVE_RECENT_TOOL_RESULTS = 3;
 const PRESERVE_RECENT_BROWSER_TOOL_RESULTS = 1;
 const RECENT_BROWSER_TOOL_RESULT_BUDGET_TOKENS = 3_000;
 
-type CompactableToolResult = { toolName: string; output: unknown; truncated?: boolean; outputPath?: string | null };
+type CompactableToolResult<T = unknown> = {
+  toolName: string;
+  output: T;
+  truncated?: boolean;
+  outputPath?: string | null;
+};
+
+/** Summary substituted for an over-budget tool output during context replay. */
+export type CompactedToolSummary = {
+  summary: string;
+  toolName: string;
+  estimatedTokens: number;
+  truncated?: boolean;
+  outputPath?: string | null;
+  preview: string;
+};
 
 type ToolResultContentPart = {
   type: 'tool-result';
@@ -55,10 +70,10 @@ function toPreviewText(value: unknown): string {
   return serialized.slice(0, TOOL_RESULT_PREVIEW_CHARS);
 }
 
-export function compactToolResultOutput(
-  part: CompactableToolResult,
+export function compactToolResultOutput<T>(
+  part: CompactableToolResult<T>,
   budgetTokens = getToolResultBudget(part.toolName),
-): unknown {
+): T | CompactedToolSummary {
   const output = part.output;
   if (isToolResultError(output)) {
     return output;
