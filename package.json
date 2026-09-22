@@ -19,9 +19,6 @@
     "website:build": "bun run --cwd apps/website build",
     "website:dev": "bun run --cwd apps/website dev"
   },
-  "knip": {
-    "ignoreDependencies": ["ai-deslop"]
-  },
   "dependencies": {
     "dompurify": "^3.4.11"
   },

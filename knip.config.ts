@@ -35,6 +35,7 @@ const config: KnipConfig = {
   ignoreDependencies: [
     'oxfmt',
     'eslint-plugin-unicorn',
+    'ai-deslop',
     'oxlint',
     'oxlint-plugin-react-doctor',
     'oxlint-tsgolint',
