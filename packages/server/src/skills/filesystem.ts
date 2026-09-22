@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 import { PATHS } from '@/lib/paths.js';
 
-const SKILL_MD_FILENAME = 'SKILL.md';
+export const SKILL_MD_FILENAME = 'SKILL.md';
 const BUNDLED_DIR = 'skills/built-ins';
 
 function normalizePath(filePath: string): string {

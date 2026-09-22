@@ -5,7 +5,7 @@ import path from 'node:path';
 import { createSkillSchema } from '@stitch/shared/skills/types';
 
 import { SkillInvalidError, SkillNameCollisionError } from '@/skills/errors.js';
-import { collectSkillDirFiles, resolveBuiltInsDir } from '@/skills/filesystem.js';
+import { collectSkillDirFiles, resolveBuiltInsDir, SKILL_MD_FILENAME } from '@/skills/filesystem.js';
 import { parseSkillMarkdown } from '@/skills/parse-skill-markdown.js';
 
 export type BuiltInSkill = {
@@ -14,8 +14,6 @@ export type BuiltInSkill = {
   content: string;
   files: Array<{ relativePath: string; content: string }>;
 };
-
-const SKILL_MD_FILENAME = 'SKILL.md';
 
 export async function loadBuiltInSkills(builtInsDir?: string): Promise<BuiltInSkill[]> {
   const dir = builtInsDir ?? resolveBuiltInsDir();

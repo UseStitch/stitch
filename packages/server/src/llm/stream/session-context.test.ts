@@ -4,14 +4,12 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { getDb } from '@/db/client.js';
 import { sessions } from '@/db/schema/sessions.js';
 import { setupTestDb } from '@/db/test-helpers.js';
-import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { assembleSessionContext, buildExpiredToolsetsPrompt } from '@/llm/stream/session-context.js';
 import { getSessionToolsetState, setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
+import { TEST_LLM_CREDENTIALS as CREDENTIALS } from '@/llm/stream/test-credentials.js';
 import { listToolsets, registerToolset, unregisterToolset } from '@/tools/toolsets/registry.js';
 import type { Toolset } from '@/tools/toolsets/types.js';
 import type { ModelMessage, Tool } from 'ai';
-
-const CREDENTIALS: ProviderCredentials = { providerId: 'openai', auth: { method: 'api-key', apiKey: 'test-key' } };
 
 /** Minimal system message layout matching buildHistoryMessages output. */
 const STUB_MESSAGES: ModelMessage[] = [

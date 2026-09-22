@@ -5,8 +5,8 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { setupTestDb } from '@/db/test-helpers.js';
 import { internalBus } from '@/lib/internal-bus.js';
 import type { InternalEventMap, InternalEventName } from '@/lib/internal-bus.js';
-import type { ProviderCredentials } from '@/llm/provider/provider.js';
 import { runStream } from '@/llm/stream/runner.js';
+import { TEST_LLM_CREDENTIALS as CREDENTIALS } from '@/llm/stream/test-credentials.js';
 
 type EmittedEvent = [InternalEventName, InternalEventMap[InternalEventName]];
 let emittedEvents: EmittedEvent[] = [];
@@ -29,8 +29,6 @@ function captureAllEvents(): void {
     cleanups.push(internalBus.onSync(name, (data) => emittedEvents.push([name, data])));
   }
 }
-
-const CREDENTIALS: ProviderCredentials = { providerId: 'openai', auth: { method: 'api-key', apiKey: 'test-key' } };
 
 setupTestDb();
 
