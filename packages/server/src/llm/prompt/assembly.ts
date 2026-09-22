@@ -11,7 +11,7 @@ export type { PromptConfig } from '@/llm/prompt/builder.js';
 export type PromptFragment = { layer: 'semiStatic' | 'dynamic'; content: string };
 
 function getStringContent(message: ModelMessage): string {
-  return typeof message.content === 'string' ? message.content : '';
+  return message.role === 'system' ? message.content : '';
 }
 
 export function renderSystemPrompt(promptConfig: PromptConfig): string {

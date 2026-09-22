@@ -79,7 +79,7 @@ describe('recordLlmUsage', () => {
       startedAt,
     });
 
-    expect(typeof costUsd).toBe('number');
+    expect(costUsd).toEqual(expect.any(Number));
 
     const db = getDb();
     const events = await db.select().from(llmUsageEvents).where(eq(llmUsageEvents.source, 'compaction'));

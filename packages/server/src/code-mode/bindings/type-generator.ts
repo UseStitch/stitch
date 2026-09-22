@@ -1,10 +1,15 @@
+import { z } from 'zod';
+
 import type { ToolTypeInfo } from '@/code-mode/bindings/tool-binding.js';
 
 type JsonSchema = Record<string, unknown>;
+const StringSchema = z.string();
+
+function isString(value: unknown): value is string {
+  return StringSchema.safeParse(value).success;
+}
 
 function jsonSchemaToTypeScript(schema: JsonSchema, indent = 0): string {
-  if (typeof schema !== 'object') return 'unknown';
-
   const pad = '  '.repeat(indent);
 
   const anyOf = schema['anyOf'] ?? schema['oneOf'];
@@ -19,7 +24,7 @@ function jsonSchemaToTypeScript(schema: JsonSchema, indent = 0): string {
 
   const enumValues = schema['enum'];
   if (Array.isArray(enumValues)) {
-    return (enumValues as unknown[]).map((v) => (typeof v === 'string' ? `"${v}"` : String(v))).join(' | ');
+    return enumValues.map((value) => (isString(value) ? `"${value}"` : String(value))).join(' | ');
   }
 
   switch (type) {
@@ -51,7 +56,7 @@ function jsonSchemaToTypeScript(schema: JsonSchema, indent = 0): string {
       for (const [key, propSchema] of Object.entries(properties)) {
         const optional = !required.has(key) ? '?' : '';
         const description = propSchema['description'];
-        if (typeof description === 'string') {
+        if (isString(description)) {
           lines.push(`${pad}  /** ${description} */`);
         }
         const propType = jsonSchemaToTypeScript(propSchema, indent + 1);

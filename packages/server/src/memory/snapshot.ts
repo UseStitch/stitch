@@ -44,7 +44,10 @@ export async function readMemoryFilesForPrompt(store = memoryFileStore): Promise
       truncated: userProfile.truncated || longTerm.truncated,
     };
   } catch (error) {
-    log.warn({ error }, 'failed to read memory files for prompt context');
+    log.warn(
+      { error: Error.isError(error) ? error.message : String(error) },
+      'failed to read memory files for prompt context',
+    );
     return null;
   }
 }

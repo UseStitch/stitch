@@ -109,7 +109,15 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
     abortSignal,
     experimental_transform: smoothStream({ delayInMs: 30 }),
     onError: ({ error }) => {
-      log.error({ sessionId, messageId, streamRunId: opts.streamRunId, error }, 'step stream error');
+      log.error(
+        {
+          sessionId,
+          messageId,
+          streamRunId: opts.streamRunId,
+          error: Error.isError(error) ? error : JSON.stringify(error),
+        },
+        'step stream error',
+      );
     },
   });
 
@@ -129,7 +137,7 @@ async function executeStep(opts: StepOptions): Promise<StepResult> {
           providerId: opts.providerId,
           step,
           phase,
-          error,
+          error: Error.isError(error) ? error : JSON.stringify(error),
         },
         'step finished but provider response messages were unavailable',
       );

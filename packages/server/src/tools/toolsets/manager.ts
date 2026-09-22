@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import { getDisabledAppFields, isToolsetEnabledByApp } from '@/apps/service.js';
 import * as Log from '@/lib/log.js';
 import type { SessionActiveToolset, SessionToolsetScope } from '@/llm/stream/session-toolsets.js';
@@ -9,6 +11,11 @@ import { toToolsetView, type ToolsetView } from '@/tools/toolsets/view.js';
 import type { Tool } from 'ai';
 
 const log = Log.create({ service: 'toolset-manager' });
+const sessionActiveToolsetSchema = z.object({
+  id: z.string(),
+  scope: z.enum(['current_run', 'ttl_turns', 'until_deactivated']),
+  expiresAtTurn: z.number().optional(),
+});
 
 type ToolsetActivationEntry = { state: SessionActiveToolset; tools?: Record<string, Tool> };
 
@@ -32,7 +39,10 @@ export class ToolsetManager {
     this.context = context;
     this.excludedToolsetIds = new Set(options.excludedToolsetIds ?? []);
     for (const entry of activationState) {
-      const state = typeof entry === 'string' ? { id: entry, scope: 'until_deactivated' as const } : entry;
+      const parsedEntry = z.string().safeParse(entry);
+      const state = parsedEntry.success
+        ? { id: parsedEntry.data, scope: 'until_deactivated' as const }
+        : sessionActiveToolsetSchema.parse(entry);
       this.activations.set(state.id, { state });
     }
   }

@@ -53,8 +53,7 @@ const inboundMessageSchema = z.discriminatedUnion('type', [
 
 type ParsedInboundMessage = z.infer<typeof inboundMessageSchema>;
 
-function parseMessage(data: unknown): ParsedInboundMessage | null {
-  if (typeof data !== 'string') return null;
+function parseMessage(data: string): ParsedInboundMessage | null {
   try {
     return inboundMessageSchema.parse(JSON.parse(data));
   } catch {
@@ -166,12 +165,13 @@ async function handleStart(
       // Emit SSE event for recording transcripts so the FE can display them live
       if (message.service === 'meeting-recording' && state.recordingId) {
         const source = evt.source;
+        const speaker = z.string().catch('Unknown').parse(evt.speaker);
 
         internalBus.emit('recording.transcript.entry', {
           recordingId: state.recordingId,
           kind: evt.kind,
           source,
-          speaker: typeof evt.speaker === 'string' ? evt.speaker : 'Unknown',
+          speaker,
           content: evt.text,
           offsetMs: evt.offsetMs,
         });
@@ -180,7 +180,7 @@ async function handleStart(
         pushTranscriptEvent(state.recordingId, {
           kind: evt.kind,
           source,
-          speaker: typeof evt.speaker === 'string' ? evt.speaker : 'Unknown',
+          speaker,
           content: evt.text,
           offsetMs: evt.offsetMs,
         });
@@ -205,7 +205,10 @@ async function handleStart(
   } catch (err) {
     const code = err instanceof STTSessionError ? err.code : 'session_start_failed';
     const msg = Error.isError(err) ? err.message : 'Unknown error';
-    log.error({ error: err, sttSessionId: message.sttSessionId }, 'failed to start STT session');
+    log.error(
+      { error: Error.isError(err) ? err : String(err), sttSessionId: message.sttSessionId },
+      'failed to start STT session',
+    );
     send(ws, { type: 'error', sttSessionId: message.sttSessionId, message: msg, code });
     ws.close(4000, code);
   }
@@ -242,7 +245,7 @@ async function handleStop(
     log.info({ sttSessionId: sessionId, costUsd: result.costUsd }, 'session done');
     send(ws, { type: 'done', sttSessionId: sessionId, costUsd: result.costUsd, usage: result.usage });
   } catch (err) {
-    log.error({ error: err, sttSessionId: sessionId }, 'error stopping STT session');
+    log.error({ error: Error.isError(err) ? err : String(err), sttSessionId: sessionId }, 'error stopping STT session');
     send(ws, {
       type: 'error',
       sttSessionId: sessionId,
@@ -266,13 +269,14 @@ export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
         },
 
         onMessage(event, ws) {
-          if (typeof event.data !== 'string') {
+          const textData = z.string().safeParse(event.data);
+          if (!textData.success) {
             const frame = parseAudioFrame(event.data as ArrayBuffer | Buffer | Uint8Array);
             if (frame) handleChunk(frame, state);
             return;
           }
 
-          const message = parseMessage(event.data);
+          const message = parseMessage(textData.data);
           if (!message) {
             send(ws, { type: 'error', sttSessionId: '', message: 'Invalid message format', code: 'invalid_message' });
             return;
@@ -300,7 +304,7 @@ export function createSttRouter(upgradeWebSocket: UpgradeWebSocket): Hono {
           }
 
           state.session.stop().catch((err) => {
-            log.warn({ error: err }, 'error during session cleanup on WS close');
+            log.warn({ error: Error.isError(err) ? err : String(err) }, 'error during session cleanup on WS close');
           });
           state.session = null;
         },

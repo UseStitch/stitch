@@ -74,7 +74,7 @@ export async function recordLlmUsage(input: {
   try {
     await recordUsageEvent({ ...input, costUsd });
   } catch (error) {
-    log.warn({ error, source: input.source }, 'usage event write failed');
+    log.warn({ error: Error.isError(error) ? error : String(error), source: input.source }, 'usage event write failed');
   }
 
   return { costUsd };
@@ -106,6 +106,9 @@ export async function recordEmbeddingUsage(input: {
         metadata: input.metadata,
       });
   } catch (error) {
-    log.warn({ error, providerId: input.providerId, modelId: input.modelId }, 'embedding usage event write failed');
+    log.warn(
+      { error: Error.isError(error) ? error : String(error), providerId: input.providerId, modelId: input.modelId },
+      'embedding usage event write failed',
+    );
   }
 }

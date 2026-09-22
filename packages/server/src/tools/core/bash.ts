@@ -213,13 +213,13 @@ Parameter sourcing:
 };
 
 function getPatternTargets(input: ToolInput): string[] {
-  const command = input.command;
-  if (typeof command !== 'string' || command.trim().length === 0) return [];
-  return deriveCommandFamilies(command).map((family) => family.pattern);
+  const parsedCommand = z.string().safeParse(input.command);
+  if (!parsedCommand.success || parsedCommand.data.trim().length === 0) return [];
+  return deriveCommandFamilies(parsedCommand.data).map((family) => family.pattern);
 }
 
 function getSuggestion(input: ToolInput): PermissionSuggestion | null {
-  const command = input.command;
-  if (typeof command !== 'string' || command.trim().length === 0) return null;
-  return getCommandFamilySuggestion(command);
+  const parsedCommand = z.string().safeParse(input.command);
+  if (!parsedCommand.success || parsedCommand.data.trim().length === 0) return null;
+  return getCommandFamilySuggestion(parsedCommand.data);
 }

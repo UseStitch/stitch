@@ -261,7 +261,10 @@ export async function searchSkillsDirectory(query: string): Promise<SkillSearchR
 
     const body = searchResponseSchema.safeParse(await response.json());
     if (!body.success) {
-      log.error({ url, issues: body.error.issues }, 'skills.sh search response failed schema validation');
+      log.error(
+        { url, issues: body.error.issues.map((issue) => issue.message) },
+        'skills.sh search response failed schema validation',
+      );
       throw new HTTPException(500, { message: 'Failed to search skills directory' });
     }
 
@@ -278,7 +281,7 @@ export async function searchSkillsDirectory(query: string): Promise<SkillSearchR
       .toSorted((a, b) => b.installs - a.installs);
   } catch (error) {
     if (error instanceof HTTPException) throw error;
-    log.error({ error, query: trimmedQuery }, 'skills.sh search threw');
+    log.error({ error: Error.isError(error) ? error : String(error), query: trimmedQuery }, 'skills.sh search threw');
     throw new HTTPException(500, { message: 'Failed to search skills directory' });
   }
 }
@@ -303,7 +306,10 @@ export async function importSkillFromDirectory(input: SkillImportInput): Promise
 
     const body = downloadResponseSchema.safeParse(await response.json());
     if (!body.success) {
-      log.error({ url, source, slug, issues: body.error.issues }, 'skills.sh download response failed validation');
+      log.error(
+        { url, source, slug, issues: body.error.issues.map((issue) => issue.message) },
+        'skills.sh download response failed validation',
+      );
       throw new HTTPException(500, { message: new SkillImportError('Failed to download skill').message });
     }
 
@@ -330,7 +336,10 @@ export async function importSkillFromDirectory(input: SkillImportInput): Promise
 
     const createParsed = createSkillSchema.safeParse(skillInput);
     if (!createParsed.success) {
-      log.error({ source, slug, issues: createParsed.error.issues }, 'downloaded skill failed schema validation');
+      log.error(
+        { source, slug, issues: createParsed.error.issues.map((issue) => issue.message) },
+        'downloaded skill failed schema validation',
+      );
       throw new HTTPException(422, {
         message: new SkillInvalidError(createParsed.error.issues.at(0)?.message ?? 'Downloaded skill is invalid')
           .message,
@@ -377,7 +386,7 @@ export async function importSkillFromDirectory(input: SkillImportInput): Promise
     if (error instanceof SkillNameCollisionError) {
       throw new HTTPException(409, { message: error.message });
     }
-    log.error({ error, source, slug }, 'skills.sh import threw');
+    log.error({ error: Error.isError(error) ? error : String(error), source, slug }, 'skills.sh import threw');
     throw new HTTPException(500, { message: new SkillImportError('Failed to import skill').message });
   }
 }

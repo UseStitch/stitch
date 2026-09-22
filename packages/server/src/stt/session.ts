@@ -108,7 +108,7 @@ export async function createSTTSession(config: STTSessionConfig): Promise<STTSes
   let diarizationFallback: DiarizationFallback | null = null;
   if (capabilityResolution.satisfied.diarization !== 'unsupported') {
     const { 'profile.name': profileName } = await getSettings(['profile.name'] as const);
-    const micName = profileName.trim() || 'You';
+    const micName = String(profileName).trim() || 'You';
 
     diarizationFallback = createDiarizationFallback({ micSpeakerName: micName, speakerSpeakerName: 'Them' });
   }

@@ -21,7 +21,7 @@ afterEach(() => {
  */
 function mockTokenEndpoint(status: number, body: unknown, headers: Record<string, string> = {}): void {
   globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    const url = input instanceof Request ? input.url : new URL(input).href;
     if (!url.startsWith(TOKEN_URL)) return originalFetch(input, init);
 
     return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...headers } });

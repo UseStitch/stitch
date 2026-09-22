@@ -9,10 +9,16 @@ import type { Tool } from 'ai';
 const EXTERNAL_PREFIX = 'external_';
 const validator = new AjvJsonSchemaValidator();
 
-export type ToolTypeInfo = { name: string; description: string; inputSchema: Record<string, unknown> };
+type JsonSchemaValue = boolean | null | number | string | JsonSchemaValue[] | { [key: string]: JsonSchemaValue };
+type JsonSchema = { [keyword: string]: JsonSchemaValue };
+type ToolMap<T> = Record<string, T>;
+type ToolBindingInput = Parameters<ToolBinding['execute']>[0];
 
-function getToolSchema(tool: Tool): Record<string, unknown> {
-  const inputSchema = tool.inputSchema as { jsonSchema?: Record<string, unknown> } | undefined;
+export type ToolTypeInfo = { name: string; description: string; inputSchema: JsonSchema };
+
+function getToolSchema(tool: Tool): JsonSchema {
+  // SAFETY: AI SDK JSON schemas are JSON-compatible objects by contract.
+  const inputSchema = tool.inputSchema as { jsonSchema?: JsonSchema } | undefined;
   return inputSchema?.jsonSchema ?? { type: 'object', properties: {} };
 }
 
@@ -20,12 +26,12 @@ type ToolMeta = {
   originalName: string;
   bindingName: string;
   description: string;
-  schema: Record<string, unknown>;
+  schema: JsonSchema;
   execute: NonNullable<Tool['execute']>;
 };
 
-function mapExecutableTools<T>(tools: Record<string, Tool>, mapper: (meta: ToolMeta) => T): Record<string, T> {
-  const result: Record<string, T> = {};
+function mapExecutableTools<T>(tools: ToolMap<Tool>, mapper: (meta: ToolMeta) => T): ToolMap<T> {
+  const result: ToolMap<T> = {};
 
   for (const [name, tool] of Object.entries(tools)) {
     const execute = tool.execute;
@@ -46,7 +52,7 @@ function mapExecutableTools<T>(tools: Record<string, Tool>, mapper: (meta: ToolM
  * generation. Does not create execute wrappers — use this for the system prompt
  * path where execution is not needed.
  */
-export function toolsToTypeInfo(tools: Record<string, Tool>): Record<string, ToolTypeInfo> {
+export function toolsToTypeInfo(tools: ToolMap<Tool>): ToolMap<ToolTypeInfo> {
   return mapExecutableTools(tools, ({ bindingName, description, schema }) => ({
     name: bindingName,
     description,
@@ -54,18 +60,18 @@ export function toolsToTypeInfo(tools: Record<string, Tool>): Record<string, Too
   }));
 }
 
-export function toolsToBindings(tools: Record<string, Tool>, abortSignal?: AbortSignal): Record<string, ToolBinding> {
+export function toolsToBindings(tools: ToolMap<Tool>, abortSignal?: AbortSignal): ToolMap<ToolBinding> {
   return mapExecutableTools(tools, ({ bindingName, description, schema, execute }) => {
     const validate = validator.getValidator(schema);
     return {
       name: bindingName,
       description,
       inputSchema: schema,
-      validateInput: (input: unknown) => {
+      validateInput: (input: ToolBindingInput) => {
         const result = validate(input);
         if (!result.valid) throw new ToolValidationError(result.errorMessage, bindingName);
       },
-      execute: async (input: unknown, signal?: AbortSignal) => {
+      execute: async (input: ToolBindingInput, signal?: AbortSignal) => {
         const effectiveSignal = signal ?? abortSignal;
         const options: ToolExecuteOptions = {
           toolCallId: `code-mode-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -73,7 +79,7 @@ export function toolsToBindings(tools: Record<string, Tool>, abortSignal?: Abort
           skipTruncation: true,
           abortSignal: effectiveSignal,
         };
-        return execute(input as Parameters<typeof execute>[0], options);
+        return execute(input, options);
       },
     };
   });

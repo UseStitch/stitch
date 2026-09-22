@@ -219,10 +219,8 @@ async function discoverLmStudioModels(baseURL: string): Promise<DiscoveredModel[
       .filter((m) => m.type !== 'embedding' && m.type !== 'embeddings')
       .map((m): DiscoveredModel => {
         const supportsVision = m.capabilities?.vision ?? m.type === 'vlm';
-        const supportsReasoning =
-          typeof m.capabilities?.reasoning === 'boolean'
-            ? m.capabilities.reasoning
-            : m.capabilities?.reasoning !== undefined;
+        const reasoning = m.capabilities?.reasoning;
+        const supportsReasoning = reasoning !== undefined && reasoning !== false;
         const inputModalities: LocalModelInput['inputModalities'] = ['text'];
         if (supportsVision) inputModalities.push('image');
 

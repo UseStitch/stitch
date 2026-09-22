@@ -126,7 +126,10 @@ export async function processMemories(input: {
     state.lastWriteTurn = state.turnCount;
     log.info({ sessionId: input.sessionId, candidateCount: candidates.length }, 'captured daily memory candidates');
   } catch (error) {
-    log.error({ error, sessionId: input.sessionId }, 'memory capture failed');
+    log.error(
+      { error: Error.isError(error) ? error.message : String(error), sessionId: input.sessionId },
+      'memory capture failed',
+    );
   }
 }
 

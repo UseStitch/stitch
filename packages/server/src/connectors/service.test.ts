@@ -371,7 +371,7 @@ describe('connector service', () => {
     expect(row.refreshToken).toBe('refresh-token-123');
     expect(row.appliedVersion).toBe(definition.currentVersion);
     expect(row.capabilities).toEqual(['example.read', 'example.write', 'example.admin']);
-    expect(typeof row.tokenExpiresAt).toBe('number');
+    expect(row.tokenExpiresAt).toEqual(expect.any(Number));
   });
 
   test('authorizeOAuthInstance uses default scopes for connected incremental oauth reauth', async () => {

@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import { isToolDataResult, isToolErrorResult } from '@stitch/shared/tools/types';
 
 import * as Log from '@/lib/log.js';
@@ -8,6 +10,8 @@ import type { ToolExecutionInput, ToolMiddleware, ToolTruncationLimits } from '@
 import { truncateOutput } from '@/tools/runtime/truncation.js';
 
 const log = Log.create({ service: 'tools' });
+const stringSchema = z.string();
+const stringOutputSchema = z.looseObject({ output: z.string() });
 
 function createPermissionDedupeKey(input: ToolExecutionInput, patternTargets: string[]): string {
   return JSON.stringify([
@@ -22,11 +26,12 @@ function createPermissionDedupeKey(input: ToolExecutionInput, patternTargets: st
 type TruncationMeta = { __stitchToolResultMeta: { truncated: true; outputPath: string } };
 
 function hasStringOutput(result: unknown): result is { output: string } {
-  return typeof result === 'object' && result !== null && 'output' in result && typeof result.output === 'string';
+  return stringOutputSchema.safeParse(result).success;
 }
 
 function getTruncatableText(result: unknown): string {
-  if (typeof result === 'string') return result;
+  const parsedResult = stringSchema.safeParse(result);
+  if (parsedResult.success) return parsedResult.data;
   if (hasStringOutput(result)) return result.output;
 
   try {

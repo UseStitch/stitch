@@ -120,7 +120,7 @@ function addTokenMetrics(target: UsageTokenMetrics, usage: LanguageModelUsage | 
 }
 
 function isValidTimestamp(value: number | undefined): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+  return value !== undefined && Number.isFinite(value) && value > 0;
 }
 
 function floorToGranularity(timestamp: number, granularity: UsageBucketGranularity): number {
@@ -204,7 +204,7 @@ async function getEarliestUsageTimestamp(): Promise<number | null> {
     .limit(1);
 
   const timestamps = [firstEvent.at(0)?.createdAt, firstRecordingAnalysis.at(0)?.createdAt].filter(
-    (value): value is number => typeof value === 'number',
+    (value): value is number => value !== null && value !== undefined,
   );
 
   if (timestamps.length === 0) return null;

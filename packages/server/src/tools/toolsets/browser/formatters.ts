@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import type {
   ElectronBrowserDropdownOptionsResult,
   ElectronBrowserExtractContentResult,
@@ -11,6 +13,15 @@ import {
   serializeBrowserSnapshot,
   type SerializedBrowserSnapshot,
 } from '@/tools/toolsets/browser/snapshot-serializer.js';
+
+const stringSchema = z.string();
+const operationResultSchema = z.looseObject({ output: z.unknown() });
+const extractContentResultSchema = z.object({
+  text: z.string(),
+  links: z.array(z.object({ text: z.string(), href: z.string() })).optional(),
+  images: z.array(z.object({ alt: z.string(), src: z.string() })).optional(),
+  data: z.record(z.string(), z.union([z.string(), z.array(z.string())])).optional(),
+});
 
 export function formatTabsOutput(tabs: BrowserTab[]): string {
   const tabList = tabs
@@ -69,32 +80,36 @@ export function formatExtractContent(
   query: string | undefined,
   result: string | ElectronBrowserExtractContentResult,
 ): string {
-  if (typeof result === 'string') {
-    return `### Extracted Content\n**Query:** ${query ?? 'page content'}\n\n${result}`;
+  const parsedResult = stringSchema.safeParse(result);
+  if (parsedResult.success) {
+    return `### Extracted Content\n**Query:** ${query ?? 'page content'}\n\n${parsedResult.data}`;
   }
 
-  const sections = [`### Extracted Content`, `**Query:** ${query ?? 'page content'}`, '', result.text];
-  if (result.links) {
-    sections.push('', `### Links`, JSON.stringify(result.links, null, 2));
+  const content = extractContentResultSchema.parse(result);
+  const sections = [`### Extracted Content`, `**Query:** ${query ?? 'page content'}`, '', content.text];
+  if (content.links) {
+    sections.push('', `### Links`, JSON.stringify(content.links, null, 2));
   }
-  if (result.images) {
-    sections.push('', `### Images`, JSON.stringify(result.images, null, 2));
+  if (content.images) {
+    sections.push('', `### Images`, JSON.stringify(content.images, null, 2));
   }
-  if (result.data) {
-    sections.push('', `### Data`, JSON.stringify(result.data, null, 2));
+  if (content.data) {
+    sections.push('', `### Data`, JSON.stringify(content.data, null, 2));
   }
   return sections.join('\n');
 }
 
 export function summarizeOperationResult(result: unknown): string {
-  if (!result || typeof result !== 'object' || !('output' in result)) {
+  const parsedResult = operationResultSchema.safeParse(result);
+  if (!parsedResult.success) {
     return summarizeValue(result);
   }
-  return summarizeValue((result as { output: unknown }).output);
+  return summarizeValue(parsedResult.data.output);
 }
 
 function summarizeValue(value: unknown): string {
-  const text = typeof value === 'string' ? value : JSON.stringify(value);
+  const parsedValue = stringSchema.safeParse(value);
+  const text = parsedValue.success ? parsedValue.data : JSON.stringify(value);
   if (!text) return '';
   return text.length > 500 ? `${text.slice(0, 500)}...` : text;
 }
@@ -114,7 +129,8 @@ export async function withFreshSnapshot(
 ): Promise<Record<string, unknown>> {
   const snapshot = await sendBrowserCommand({ action: 'snapshot' }, signal);
   const compactSnapshot = serializeBrowserSnapshot(snapshot);
-  const output = typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2);
+  const parsedOutput = stringSchema.safeParse(result.output);
+  const output = parsedOutput.success ? parsedOutput.data : JSON.stringify(result.output, null, 2);
   return {
     ...result,
     output: `${output}\n\n### Updated Snapshot\n${compactSnapshot.text}`,

@@ -1,22 +1,26 @@
 import { jsonSchema as toJsonSchema } from 'ai';
+import { z } from 'zod';
 
 import type { LlmProviderId } from '@stitch/shared/providers/types';
 
 import type { JSONSchema7, Schema, Tool } from 'ai';
 
 const SCHEMA_SYMBOL = Symbol.for('vercel.ai.schema');
+const stringSchema = z.string();
+const booleanSchema = z.boolean();
+const plainObjectSchema = z.custom<Record<PropertyKey, unknown>>(
+  (value) => value !== null && Object(value) === value && !Array.isArray(value),
+);
 
 function isAiSchema(value: unknown): value is Schema {
+  const parsed = plainObjectSchema.safeParse(value);
   return (
-    typeof value === 'object' &&
-    value !== null &&
-    SCHEMA_SYMBOL in value &&
-    (value as Record<symbol, unknown>)[SCHEMA_SYMBOL] === true
+    parsed.success && SCHEMA_SYMBOL in parsed.data && (parsed.data as Record<symbol, unknown>)[SCHEMA_SYMBOL] === true
   );
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+  return plainObjectSchema.safeParse(value).success;
 }
 
 function hasCombiner(node: Record<string, unknown>): boolean {
@@ -40,7 +44,7 @@ function sanitizeGemini<T>(node: T): T {
   for (const [key, value] of Object.entries(node)) {
     if (key === 'enum' && Array.isArray(value)) {
       result[key] = value.map((entry) => String(entry));
-    } else if (typeof value === 'object' && value !== null) {
+    } else if (Array.isArray(value) || plainObjectSchema.safeParse(value).success) {
       result[key] = sanitizeGemini(value);
     } else {
       result[key] = value;
@@ -94,7 +98,7 @@ const COMBINER_KEYS = ['anyOf', 'oneOf', 'allOf'] as const;
  * after unsupported keywords are dropped.
  */
 function sanitizeOpenAI<T>(value: T): T {
-  if (typeof value === 'boolean') {
+  if (booleanSchema.safeParse(value).success) {
     // SAFETY: callers pass schema documents as unknown; the boolean-form replacement is the sanitized equivalent.
     return { type: 'string' } as T;
   }
@@ -106,8 +110,8 @@ function sanitizeOpenAI<T>(value: T): T {
 
   const result: Record<string, unknown> = {};
 
-  if (typeof value.$ref === 'string') result.$ref = value.$ref;
-  if (typeof value.description === 'string') result.description = value.description;
+  if (stringSchema.safeParse(value.$ref).success) result.$ref = value.$ref;
+  if (stringSchema.safeParse(value.description).success) result.description = value.description;
   if ('const' in value) result.enum = [value.const];
   else if (Array.isArray(value.enum)) result.enum = value.enum;
 
@@ -118,16 +122,15 @@ function sanitizeOpenAI<T>(value: T): T {
   }
 
   if (Array.isArray(value.required)) {
-    result.required = value.required.filter((item) => typeof item === 'string');
+    result.required = value.required.filter((item) => stringSchema.safeParse(item).success);
   }
 
   if ('items' in value) result.items = sanitizeOpenAI(value.items);
 
   if ('additionalProperties' in value) {
-    result.additionalProperties =
-      typeof value.additionalProperties === 'boolean'
-        ? value.additionalProperties
-        : sanitizeOpenAI(value.additionalProperties);
+    result.additionalProperties = booleanSchema.safeParse(value.additionalProperties).success
+      ? value.additionalProperties
+      : sanitizeOpenAI(value.additionalProperties);
   }
 
   for (const key of COMBINER_KEYS) {
@@ -140,19 +143,24 @@ function sanitizeOpenAI<T>(value: T): T {
     }
   }
 
-  const isType = (entry: unknown): entry is string =>
-    typeof entry === 'string' && (JSON_SCHEMA_TYPES as readonly string[]).includes(entry);
-  const schemaTypes =
-    typeof value.type === 'string'
-      ? isType(value.type)
-        ? [value.type]
-        : []
-      : Array.isArray(value.type)
-        ? value.type.filter(isType)
-        : [];
+  const isType = (entry: unknown): entry is string => {
+    const parsed = stringSchema.safeParse(entry);
+    return parsed.success && (JSON_SCHEMA_TYPES as readonly string[]).includes(parsed.data);
+  };
+  const parsedType = stringSchema.safeParse(value.type);
+  const schemaTypes = parsedType.success
+    ? isType(parsedType.data)
+      ? [parsedType.data]
+      : []
+    : Array.isArray(value.type)
+      ? value.type.filter(isType)
+      : [];
 
-  if (schemaTypes.length === 0 && (typeof result.$ref === 'string' || COMBINER_KEYS.some((key) => key in result))) {
-    return result;
+  if (
+    schemaTypes.length === 0 &&
+    (stringSchema.safeParse(result.$ref).success || COMBINER_KEYS.some((key) => key in result))
+  ) {
+    return result as T;
   }
 
   const inferType = (): string[] => {
@@ -179,7 +187,6 @@ function sanitizeOpenAI<T>(value: T): T {
   if (inferredTypes.includes('array') && !('items' in result)) result.items = { type: 'string' };
   // SAFETY: result is built from value's entries with only schema-keyword rewrites.
   return result as T;
-}
 }
 
 type SchemaSanitizer = <T>(schema: T) => T;

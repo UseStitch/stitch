@@ -202,7 +202,12 @@ async function recordRejected(
 ): Promise<MemoryConsolidationResult> {
   await store
     .appendConsolidationLog(auditMarkdown(result))
-    .catch((error) => log.warn({ error }, 'failed to append rejected consolidation audit'));
+    .catch((error) =>
+      log.warn(
+        { error: Error.isError(error) ? error.message : String(error) },
+        'failed to append rejected consolidation audit',
+      ),
+    );
   return result;
 }
 
@@ -308,7 +313,7 @@ export async function consolidateMemories(
     await store.appendConsolidationLog(auditMarkdown(result));
     return result;
   } catch (error) {
-    log.warn({ error }, 'memory consolidation rejected');
+    log.warn({ error: Error.isError(error) ? error.message : String(error) }, 'memory consolidation rejected');
     return recordRejected(store, {
       status: 'rejected',
       lastRunAt,

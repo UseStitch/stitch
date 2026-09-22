@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import type { ConnectorModule } from '@stitch-connectors/sdk';
 
 import { getConnectorModules } from '@/connectors/definitions/index.js';
@@ -30,7 +32,9 @@ function getLifecycleContext(connectorId: string) {
     listInstances: async (id: string) => {
       const db = getDb();
       const rows = await db.select().from(connectorInstances);
-      return rows.filter((row) => row.connectorId === id);
+      return rows
+        .filter((row) => row.connectorId === id)
+        .map((row) => ({ ...row, accountInfo: z.record(z.string(), z.json()).nullable().parse(row.accountInfo) }));
     },
     refreshToolsets: async () => refreshConnectorToolsets(connectorId),
     logger: log,

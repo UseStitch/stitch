@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import { estimate } from '@/utils/token.js';
 import type { ModelMessage } from 'ai';
 
@@ -26,6 +28,20 @@ export type CompactedToolSummary = {
   preview: string;
 };
 
+const toolResultErrorSchema = z.looseObject({ error: z.unknown() });
+const stringOutputSchema = z.looseObject({ output: z.string().optional() });
+const toolResultContentPartSchema = z.looseObject({
+  type: z.literal('tool-result'),
+  toolCallId: z.string(),
+  toolName: z.string(),
+  output: z.object({ type: z.string(), value: z.unknown() }),
+});
+const mediaContentPartSchema = z.looseObject({
+  type: z.union([z.literal('image'), z.literal('file')]),
+  mediaType: z.string().optional(),
+  filename: z.string().optional(),
+});
+
 type ToolResultContentPart = {
   type: 'tool-result';
   toolCallId: string;
@@ -36,7 +52,7 @@ type ToolResultContentPart = {
 type MediaContentPart = { type: 'image' | 'file'; mediaType?: string; filename?: string };
 
 export function isToolResultError(output: unknown): boolean {
-  return output !== null && output !== undefined && typeof output === 'object' && 'error' in output;
+  return toolResultErrorSchema.safeParse(output).success;
 }
 
 export function getToolResultBudget(toolName: string): number {
@@ -55,18 +71,17 @@ export function getToolResultBudget(toolName: string): number {
 }
 
 function toPreviewText(value: unknown): string {
-  if (typeof value === 'string') {
-    return value.slice(0, TOOL_RESULT_PREVIEW_CHARS);
+  const stringValue = z.string().safeParse(value);
+  if (stringValue.success) {
+    return stringValue.data.slice(0, TOOL_RESULT_PREVIEW_CHARS);
   }
 
-  if (value && typeof value === 'object') {
-    const output = (value as { output?: unknown }).output;
-    if (typeof output === 'string') {
-      return output.slice(0, TOOL_RESULT_PREVIEW_CHARS);
-    }
+  const outputValue = stringOutputSchema.safeParse(value);
+  if (outputValue.success && outputValue.data.output !== undefined) {
+    return outputValue.data.output.slice(0, TOOL_RESULT_PREVIEW_CHARS);
   }
 
-  const serialized = JSON.stringify(value);
+  const serialized = JSON.stringify(value) ?? '';
   return serialized.slice(0, TOOL_RESULT_PREVIEW_CHARS);
 }
 
@@ -95,21 +110,11 @@ export function compactToolResultOutput<T>(
 }
 
 function isToolResultContentPart(part: unknown): part is ToolResultContentPart {
-  return (
-    part !== null &&
-    typeof part === 'object' &&
-    (part as { type?: unknown }).type === 'tool-result' &&
-    typeof (part as { toolName?: unknown }).toolName === 'string' &&
-    typeof (part as { output?: { type?: unknown } }).output?.type === 'string'
-  );
+  return toolResultContentPartSchema.safeParse(part).success;
 }
 
 function isMediaContentPart(part: unknown): part is MediaContentPart {
-  return (
-    part !== null &&
-    typeof part === 'object' &&
-    ((part as { type?: unknown }).type === 'image' || (part as { type?: unknown }).type === 'file')
-  );
+  return mediaContentPartSchema.safeParse(part).success;
 }
 
 function stripMediaPart(part: MediaContentPart): { type: 'text'; text: string } {
@@ -119,7 +124,8 @@ function stripMediaPart(part: MediaContentPart): { type: 'text'; text: string } 
 }
 
 function toToolResultOutput(value: unknown): { type: 'text'; value: string } | { type: 'json'; value: unknown } {
-  return typeof value === 'string' ? { type: 'text', value } : { type: 'json', value };
+  const parsed = z.string().safeParse(value);
+  return parsed.success ? { type: 'text', value: parsed.data } : { type: 'json', value };
 }
 
 function countToolResults(

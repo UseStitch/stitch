@@ -1,14 +1,17 @@
 import path from 'node:path';
+import { z } from 'zod';
 
 import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
 
 import type { ToolInput } from '@/tools/runtime/runtime.js';
 
+const nonEmptyStringSchema = z.string().min(1);
+
 function resolveAbsoluteFilePath(input: ToolInput): string | null {
   const filePath = input.filePath;
-  if (typeof filePath !== 'string' || filePath.length === 0) return null;
-  if (!path.isAbsolute(filePath)) return null;
-  return path.resolve(filePath);
+  const parsedFilePath = nonEmptyStringSchema.safeParse(filePath);
+  if (!parsedFilePath.success || !path.isAbsolute(parsedFilePath.data)) return null;
+  return path.resolve(parsedFilePath.data);
 }
 
 export function getFilePathPatternTargets(input: ToolInput): string[] {
@@ -19,7 +22,8 @@ export function getFilePathPatternTargets(input: ToolInput): string[] {
 
 export function getPathPatternTargets(input: ToolInput): string[] {
   const target = input.path;
-  return typeof target === 'string' && target.length > 0 ? [target] : [];
+  const parsedTarget = nonEmptyStringSchema.safeParse(target);
+  return parsedTarget.success ? [parsedTarget.data] : [];
 }
 
 export function getParentDirPermissionSuggestion(input: ToolInput): PermissionSuggestion | null {

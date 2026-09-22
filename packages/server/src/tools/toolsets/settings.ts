@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import { isDbInitialized } from '@/db/client.js';
 import type { SessionToolsetScope } from '@/llm/stream/session-toolsets.js';
 import { getSettings } from '@/settings/service.js';
@@ -10,5 +12,8 @@ export async function getToolsetSettings(): Promise<ToolsetSettings> {
   if (!isDbInitialized()) return DEFAULT_TOOLSET_SETTINGS;
 
   const s = await getSettings(['toolsets.defaultScope', 'toolsets.ttlTurns'] as const);
-  return { defaultScope: s['toolsets.defaultScope'], ttlTurns: s['toolsets.ttlTurns'] };
+  return {
+    defaultScope: z.enum(['current_run', 'ttl_turns', 'until_deactivated']).parse(s['toolsets.defaultScope']),
+    ttlTurns: z.number().int().min(1).parse(s['toolsets.ttlTurns']),
+  };
 }

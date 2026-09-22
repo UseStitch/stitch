@@ -1,3 +1,4 @@
+import { createOpenAI } from '@ai-sdk/openai';
 import { MockLanguageModelV3 } from 'ai/test';
 import { afterAll, afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
@@ -112,7 +113,9 @@ describe('recording analysis reruns', () => {
       modelId: 'test-model',
       credentials: { providerId: 'openai', auth: { method: 'api-key', apiKey: 'test-key' } },
     }));
-    createProvider.mockImplementation(() => () => createHangingAnalysisModel());
+    createProvider.mockImplementation(() =>
+      Object.assign(() => createHangingAnalysisModel(), createOpenAI({ apiKey: 'test-key' })),
+    );
     await seedCompletedAnalysis();
   });
 

@@ -24,17 +24,19 @@ describe('truncationMiddleware', () => {
 
     const result = await wrapped.execute?.({}, {} as never);
 
-    if (!result || typeof result !== 'object' || !('__stitchToolResultMeta' in result)) {
+    const typed = z
+      .object({
+        output: z.string(),
+        title: z.string(),
+        __stitchToolResultMeta: z.object({ truncated: z.boolean(), outputPath: z.string() }),
+      })
+      .safeParse(result);
+    if (!typed.success) {
       throw new Error('expected truncation metadata in wrapped tool result');
     }
-    const typed = result as {
-      output: string;
-      title: string;
-      __stitchToolResultMeta: { truncated: boolean; outputPath: string };
-    };
-    const outputPath = typed.__stitchToolResultMeta.outputPath;
-    const output = typed.output;
-    const title = typed.title;
+    const outputPath = typed.data.__stitchToolResultMeta.outputPath;
+    const output = typed.data.output;
+    const title = typed.data.title;
 
     expect(result).toMatchObject({
       output: expect.stringContaining('truncated'),

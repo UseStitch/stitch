@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { SETTINGS_DEFAULTS } from '@stitch/shared/settings/types';
+import type { SettingsKey } from '@stitch/shared/settings/types';
 import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 
 import { DatabaseNotInitializedError } from '@/db/errors.js';
@@ -54,7 +55,7 @@ function seedShortcuts(db: BunSQLiteDatabase): void {
 function seedSettings(db: BunSQLiteDatabase): void {
   for (const def of SETTINGS_DEFAULTS) {
     db.insert(userSettings)
-      .values({ key: def.key, value: def.value, description: def.description })
+      .values({ key: def.key as SettingsKey, value: def.value, description: def.description })
       .onConflictDoUpdate({ target: userSettings.key, set: { description: def.description } })
       .run();
   }

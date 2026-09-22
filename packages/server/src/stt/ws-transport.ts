@@ -202,7 +202,10 @@ export function createWsTransport(
           emitOrQueueError(result.error);
         }
       } catch (err) {
-        log.warn({ error: err, label: config.label }, 'failed to parse WebSocket message');
+        log.warn(
+          { error: Error.isError(err) ? err : String(err), label: config.label },
+          'failed to parse WebSocket message',
+        );
       }
     }
 

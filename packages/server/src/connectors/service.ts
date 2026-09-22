@@ -1,5 +1,6 @@
 import { asc, eq } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
+import { z } from 'zod';
 
 import { buildUpgradeState, getCapabilitiesForVersion } from '@stitch-connectors/sdk/upgrade';
 
@@ -14,6 +15,7 @@ import type {
 } from '@stitch/shared/connectors/types';
 import { createConnectorId, createConnectorInstanceId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
+import type { JsonObject } from '@stitch/shared/json';
 
 import { resolveOAuthCredentials } from '@/connectors/auth/oauth-credentials.js';
 import {
@@ -321,10 +323,18 @@ export async function authorizeOAuthInstance(
       const now = Date.now();
 
       let accountEmail: string | null = null;
-      let accountInfo: Record<string, unknown> | null = null;
+      let accountInfo: JsonObject | null = null;
       const module = getConnectorModule(instance.connectorId);
       if (module?.hooks?.onAuthorized) {
-        const hookResult = await module.hooks.onAuthorized({ instance, accessToken: tokens.accessToken, logger: log });
+        const hookInstance: ConnectorInstance = {
+          ...instance,
+          accountInfo: z.record(z.string(), z.json()).nullable().parse(instance.accountInfo),
+        };
+        const hookResult = await module.hooks.onAuthorized({
+          instance: hookInstance,
+          accessToken: tokens.accessToken,
+          logger: log,
+        });
         accountEmail = hookResult.accountEmail;
         accountInfo = hookResult.accountInfo;
       }
@@ -523,7 +533,10 @@ export async function testConnectorInstance(instanceId: PrefixedString<'conn'>):
   try {
     // Proactively refresh an expiring/expired OAuth token before testing so the
     // hook receives a usable access token even if the stored one has lapsed.
-    let testedInstance = instance;
+    let testedInstance: ConnectorInstance = {
+      ...instance,
+      accountInfo: z.record(z.string(), z.json()).nullable().parse(instance.accountInfo),
+    };
     if (
       definition.authType === 'oauth2' &&
       instance.refreshToken &&
@@ -551,7 +564,7 @@ export async function testConnectorInstance(instanceId: PrefixedString<'conn'>):
           .where(eq(connectorInstances.id, instanceId));
         internalBus.emit('connector.token.refreshed', { instanceId: instanceId });
         testedInstance = {
-          ...instance,
+          ...testedInstance,
           accessToken: refreshed.accessToken,
           refreshToken: refreshed.refreshToken ?? refreshToken,
           tokenExpiresAt: refreshed.expiresIn ? now + refreshed.expiresIn * 1000 : null,

@@ -47,12 +47,12 @@ class InternalBus {
         try {
           (entry.fn as SyncListener<K>)(data);
         } catch (error) {
-          log.error({ event, error }, 'sync listener threw');
+          log.error({ event, error: Error.isError(error) ? error : String(error) }, 'sync listener threw');
         }
       } else {
         const asyncFn = entry.fn as AsyncListener<K>;
         void asyncFn(data).catch((error) => {
-          log.warn({ event, error }, 'async listener failed');
+          log.warn({ event, error: Error.isError(error) ? error : String(error) }, 'async listener failed');
         });
       }
     }

@@ -77,7 +77,10 @@ export function createRegistryCache<T>(options: RegistryCacheOptions<T>) {
     try {
       return parse(JSON.parse(text));
     } catch (error) {
-      log.warn({ error, cacheFilePath }, 'failed to parse registry disk cache, ignoring');
+      log.warn(
+        { error: Error.isError(error) ? error : String(error), cacheFilePath },
+        'failed to parse registry disk cache, ignoring',
+      );
       return null;
     }
   }
@@ -88,7 +91,7 @@ export function createRegistryCache<T>(options: RegistryCacheOptions<T>) {
   }
 
   async function fetchFromNetwork(fetchImpl: FetchLike): Promise<T> {
-    const resolvedUserAgent = typeof userAgent === 'function' ? userAgent() : userAgent;
+    const resolvedUserAgent = userAgent instanceof Function ? userAgent() : userAgent;
     const response = await fetchImpl(url, {
       headers: resolvedUserAgent ? { 'User-Agent': resolvedUserAgent } : undefined,
       signal: AbortSignal.timeout(timeoutMs),
@@ -116,7 +119,7 @@ export function createRegistryCache<T>(options: RegistryCacheOptions<T>) {
       memory = fetched;
       return fetched;
     } catch (error) {
-      log.warn({ error, url }, 'failed to fetch registry from network');
+      log.warn({ error: Error.isError(error) ? error : String(error), url }, 'failed to fetch registry from network');
       if (fallback !== undefined) {
         memory = fallback;
         return fallback;
@@ -135,7 +138,7 @@ export function createRegistryCache<T>(options: RegistryCacheOptions<T>) {
       await writeToDisk(fetched);
       memory = null;
     } catch (error) {
-      log.error({ error, url }, 'failed to refresh registry');
+      log.error({ error: Error.isError(error) ? error : String(error), url }, 'failed to refresh registry');
     }
   }
 

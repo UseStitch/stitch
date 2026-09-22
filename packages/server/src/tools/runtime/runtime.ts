@@ -34,7 +34,7 @@ export type ToolExecutionInput = {
 };
 
 /** The value a tool executor produces: JSON-compatible output, or undefined when the tool returns nothing. */
-export type ToolOutputValue = JsonValue | undefined;
+type ToolOutputValue = JsonValue | undefined;
 
 type ToolExecutor = (input: ToolExecutionInput) => Promise<ToolOutputValue>;
 export type ToolMiddleware = (next: ToolExecutor) => ToolExecutor;

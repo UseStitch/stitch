@@ -209,16 +209,16 @@ Parameter sourcing:
 };
 
 function getPatternTargets(input: ToolInput): string[] {
-  const url = input.url;
-  if (typeof url !== 'string' || url.length === 0) return [];
-  const domain = extractDomainForPermission(url);
+  const parsedUrl = z.string().min(1).safeParse(input.url);
+  if (!parsedUrl.success) return [];
+  const domain = extractDomainForPermission(parsedUrl.data);
   return domain ? [domain] : [];
 }
 
 function getSuggestion(input: ToolInput): PermissionSuggestion | null {
-  const url = input.url;
-  if (typeof url !== 'string' || url.length === 0) return null;
-  const domain = extractDomainForPermission(url);
+  const parsedUrl = z.string().min(1).safeParse(input.url);
+  if (!parsedUrl.success) return null;
+  const domain = extractDomainForPermission(parsedUrl.data);
   if (!domain) return null;
   return { message: `Always allow from ${domain}`, pattern: domain };
 }

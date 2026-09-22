@@ -73,7 +73,7 @@ async function createLoopbackServer(): Promise<{ server: Server; port: number }>
     server.listen(0, '127.0.0.1', () => {
       if (settled) return;
       const addr = server.address();
-      if (addr && typeof addr === 'object') {
+      if (addr instanceof Object) {
         settled = true;
         resolve({ server, port: addr.port });
         return;

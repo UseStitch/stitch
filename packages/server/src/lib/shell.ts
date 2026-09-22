@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { z } from 'zod';
 
 type WindowsShellPreference = 'pwsh' | 'cmd' | null;
 
@@ -11,6 +12,11 @@ type TerminalSettings = { defaultProfile?: string; profiles?: { list?: TerminalP
 type TerminalProfileWithGuid = TerminalProfile & { guid?: string };
 
 type ShellResolution = { shell: string; exe: string; source: string; buildArgv: (command: string) => string[] };
+const StringSchema = z.string();
+
+function isString(value: unknown): value is string {
+  return StringSchema.safeParse(value).success;
+}
 
 export function buildPowerShellArgv(command: string): string[] {
   const encodedCommand = Buffer.from(command, 'utf16le').toString('base64');
@@ -36,7 +42,7 @@ export function buildWindowsShellArgv(shell: string, command: string): string[] 
 
 export function inferWindowsShellFromProfile(profile: TerminalProfile): WindowsShellPreference {
   const text = [profile.name, profile.source, profile.commandline]
-    .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    .filter((value): value is string => isString(value) && value.length > 0)
     .join(' ')
     .toLowerCase();
 
@@ -126,7 +132,7 @@ function readWindowsTerminalDefaultProfile(): TerminalProfile | null {
 
       const defaultGuid = parsed.defaultProfile.toLowerCase();
       const profile = parsed.profiles.list.find(
-        (item) => typeof item.guid === 'string' && item.guid.toLowerCase() === defaultGuid,
+        (item) => isString(item.guid) && item.guid.toLowerCase() === defaultGuid,
       );
 
       if (profile) {

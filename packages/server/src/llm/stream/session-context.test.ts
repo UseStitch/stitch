@@ -87,8 +87,8 @@ describe('assembleSessionContext expired toolset handling', () => {
     });
 
     const semiStaticContent = assembled.messages
-      .filter((m) => m.role === 'system')
-      .map((m) => (typeof m.content === 'string' ? m.content : ''))
+      .filter((message): message is Extract<ModelMessage, { role: 'system' }> => message.role === 'system')
+      .map((message) => message.content)
       .join('\n');
     expect(semiStaticContent).toContain('Toolset Expiry Notice');
     expect(assembled.toolsetManager.getActiveTools()).not.toHaveProperty('browser_open');
@@ -144,8 +144,8 @@ describe('assembleSessionContext expired toolset handling', () => {
     });
 
     const semiStaticContent = expired.messages
-      .filter((m) => m.role === 'system')
-      .map((m) => (typeof m.content === 'string' ? m.content : ''))
+      .filter((message): message is Extract<ModelMessage, { role: 'system' }> => message.role === 'system')
+      .map((message) => message.content)
       .join('\n');
     expect(semiStaticContent).toContain('Toolset Expiry Notice');
     expect(expired.toolsetManager.getActiveTools()).not.toHaveProperty('browser_open');

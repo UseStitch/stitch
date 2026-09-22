@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { z } from 'zod';
 
 import type { JsonValue } from '@stitch/shared/json';
 
@@ -190,7 +191,8 @@ export async function executeOperation(input: OperationInput, signal?: AbortSign
       case 'evaluate': {
         if (!input.fn) throw new BrowserMissingFieldError('interact', 'fn');
         const result = await sendBrowserCommand({ action: 'evaluate', expression: input.fn }, signal);
-        return { output: typeof result === 'string' ? result : JSON.stringify(result, null, 2) };
+        const parsedResult = z.string().safeParse(result);
+        return { output: parsedResult.success ? parsedResult.data : JSON.stringify(result, null, 2) };
       }
       default:
         throw new BrowserInvalidOpError('interact', op);

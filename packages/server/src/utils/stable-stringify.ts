@@ -7,7 +7,7 @@ export function stableStringify(value: unknown): string {
 }
 
 function sortKeys<T>(value: T): T {
-  if (value === null || value === undefined || typeof value !== 'object') {
+  if (value === null || value === undefined || Object(value) !== value || Function.prototype.isPrototypeOf(value)) {
     return value;
   }
 
@@ -17,7 +17,7 @@ function sortKeys<T>(value: T): T {
   }
 
   const sorted: Record<string, unknown> = {};
-  // SAFETY: guarded above by the null/undefined/typeof checks plus the array branch, so value is a plain object here.
+  // SAFETY: guarded above by the nullish, primitive, function, and array checks, so value is a plain object here.
   const record = value as Record<string, unknown>;
   for (const key of Object.keys(record).toSorted()) {
     sorted[key] = sortKeys(record[key]);

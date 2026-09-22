@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
+import { z } from 'zod';
 
 import { SHORTCUT_ACTION_IDS, SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 import type { ShortcutActionId } from '@stitch/shared/shortcuts/types';
@@ -8,6 +9,7 @@ import { getDb } from '@/db/client.js';
 import { keyboardShortcuts } from '@/db/schema/settings.js';
 
 const ALLOWED_ACTION_IDS: ReadonlySet<string> = new Set(SHORTCUT_ACTION_IDS);
+const hotkeySchema = z.string().nullable().optional();
 
 function isAllowedActionId(actionId: string): boolean {
   return ALLOWED_ACTION_IDS.has(actionId);
@@ -22,11 +24,12 @@ export async function saveShortcut(actionId: string, hotkeyValue: unknown): Prom
   if (!isAllowedActionId(actionId)) {
     throw new HTTPException(400, { message: 'Invalid action ID' });
   }
-  if (hotkeyValue !== null && typeof hotkeyValue !== 'string') {
+  const parsedHotkey = hotkeySchema.safeParse(hotkeyValue);
+  if (!parsedHotkey.success) {
     throw new HTTPException(400, { message: 'hotkey must be a string or null' });
   }
 
-  const hotkey = hotkeyValue ?? null;
+  const hotkey = parsedHotkey.data ?? null;
   const db = getDb();
   await db
     .update(keyboardShortcuts)

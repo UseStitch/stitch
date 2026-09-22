@@ -11,7 +11,7 @@ type NormalizedUsage = {
 };
 
 function safe(value: number | null | undefined): number {
-  if (typeof value !== 'number') {
+  if (value === null || value === undefined) {
     return 0;
   }
 

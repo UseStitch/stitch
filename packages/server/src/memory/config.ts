@@ -41,7 +41,7 @@ export async function getMemoryConfig(): Promise<MemoryConfig> {
     'memory.consolidation.maxCandidatesPerRun',
   ] as const);
 
-  cachedConfig = {
+  const config: MemoryConfig = {
     enabled: settings['memory.enabled'],
     autoExtract: settings['memory.autoExtract'],
     maxFactsPerTurn: settings['memory.extraction.maxFactsPerTurn'],
@@ -54,7 +54,8 @@ export async function getMemoryConfig(): Promise<MemoryConfig> {
     consolidationEnabled: settings['memory.consolidation.enabled'],
     maxCandidatesPerRun: settings['memory.consolidation.maxCandidatesPerRun'],
   };
-  memoryFileStore.setLimits(cachedConfig.memoryCharLimit, cachedConfig.userCharLimit);
+  cachedConfig = config;
+  memoryFileStore.setLimits(config.memoryCharLimit, config.userCharLimit);
   cacheExpiresAt = now + CACHE_TTL_MS;
-  return cachedConfig;
+  return config;
 }

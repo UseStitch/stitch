@@ -1,8 +1,9 @@
 import { UnauthorizedError } from '@modelcontextprotocol/sdk/client/auth.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { ElicitRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { CallToolResultSchema, ElicitRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { dynamicTool, jsonSchema } from 'ai';
+import { z } from 'zod';
 
 import type { PrefixedString } from '@stitch/shared/id';
 import type { McpAuthConfig } from '@stitch/shared/mcp/types';
@@ -18,6 +19,7 @@ import type { Tool as McpTool } from '@modelcontextprotocol/sdk/types.js';
 import type { JSONSchema7, Tool } from 'ai';
 
 const log = Log.create({ service: 'mcp-client' });
+const toolArgumentsSchema = z.record(z.string(), z.unknown());
 
 type McpServerRef = { id: PrefixedString<'mcp'>; name: string; url: string; authConfig: McpAuthConfig };
 
@@ -37,32 +39,19 @@ const clientCache = new Map<string, Promise<Client>>();
 const pendingOAuthTransports = new Map<PrefixedString<'mcp'>, StreamableHTTPClientTransport>();
 
 export function normalizeMcpToolResult<T>(result: T): T | ToolErrorResult {
-  if (
-    typeof result !== 'object' ||
-    result === null ||
-    !('isError' in result) ||
-    result.isError !== true ||
-    !('content' in result) ||
-    !Array.isArray(result.content)
-  ) {
+  const parsedResult = CallToolResultSchema.safeParse(result);
+  if (!parsedResult.success || !parsedResult.data.isError) {
     return result;
   }
 
-  const error = result.content
-    .filter(
-      (content): content is { type: 'text'; text: string } =>
-        typeof content === 'object' &&
-        content !== null &&
-        'type' in content &&
-        content.type === 'text' &&
-        'text' in content &&
-        typeof content.text === 'string',
-    )
+  const error = parsedResult.data.content
+    .filter((content) => content.type === 'text')
     .map((content) => content.text.trim())
     .filter(Boolean)
     .join('\n');
 
-  return toolError(error || 'MCP tool call failed', result);
+  const details = z.json().safeParse(result);
+  return toolError(error || 'MCP tool call failed', details.success ? details.data : undefined);
 }
 
 export function registerPendingOAuthTransport(
@@ -100,14 +89,9 @@ function createAiTool(server: McpServerRef, tool: McpTool, sessionId: PrefixedSt
         server,
         (client) =>
           client
-            .callTool(
-              {
-                name: tool.name,
-                arguments: input && typeof input === 'object' ? (input as Record<string, unknown>) : {},
-              },
-              undefined,
-              { signal: abortSignal },
-            )
+            .callTool({ name: tool.name, arguments: toolArgumentsSchema.safeParse(input).data ?? {} }, undefined, {
+              signal: abortSignal,
+            })
             .then(normalizeMcpToolResult),
         sessionId,
       ),

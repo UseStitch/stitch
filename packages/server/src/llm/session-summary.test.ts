@@ -10,6 +10,7 @@ import { buildActiveToolsetInstructionsBlock } from '@/llm/prompt/assembly.js';
 import { isOverflow } from '@/llm/session-summary.js';
 import { setSessionToolsetState } from '@/llm/stream/session-toolsets.js';
 import { registerToolset, unregisterToolset, listToolsets } from '@/tools/toolsets/registry.js';
+import type { ModelMessage } from 'ai';
 
 setupTestDb();
 
@@ -508,10 +509,12 @@ describe('buildHistoryMessages', () => {
       memoryContext: null,
       todoContext: null,
     });
-    const userMessages = result.filter((m) => m.role === 'user');
+    const userMessages = result.filter(
+      (message): message is Extract<ModelMessage, { role: 'user' }> => message.role === 'user',
+    );
 
     for (const um of userMessages) {
-      if (typeof um.content === 'string') continue;
+      if (!Array.isArray(um.content)) continue;
       const parts = um.content as Array<{ type: string; text?: string }>;
       const placeholders = parts.filter((p) => p.type === 'text' && p.text?.includes('already processed'));
       expect(placeholders).toHaveLength(0);

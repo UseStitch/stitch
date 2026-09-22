@@ -9,7 +9,7 @@ import { saveAssistantMessage, markSessionUnread } from '@/chat/message-store.js
 import { internalBus } from '@/lib/internal-bus.js';
 import * as Log from '@/lib/log.js';
 import { transformAttachmentsForModel } from '@/llm/attachment-transform.js';
-import { compactConversationForStep } from '@/llm/context-budget.js';
+import { compactConversationForStep, isToolResultError } from '@/llm/context-budget.js';
 import { createProvider } from '@/llm/provider/provider.js';
 import { isOverflow, compact, getCompactionSettings, getModelLimits, pruneSession } from '@/llm/session-summary.js';
 import { mapAIError, toStreamErrorDetails } from '@/llm/stream/ai-error-mapper.js';
@@ -251,16 +251,13 @@ class StreamRunner {
         continue;
       }
 
-      const { content } = message;
-      if (typeof content === 'string') {
-        return maxLength ? content.slice(0, maxLength) : content;
+      if (!Array.isArray(message.content)) {
+        return maxLength ? message.content.slice(0, maxLength) : message.content;
       }
 
-      if (Array.isArray(content)) {
-        const textPart = content.find((part) => typeof part === 'object' && part.type === 'text');
-        if (textPart && typeof textPart === 'object' && 'text' in textPart && typeof textPart.text === 'string') {
-          return maxLength ? textPart.text.slice(0, maxLength) : textPart.text;
-        }
+      const textPart = message.content.find((part) => part.type === 'text');
+      if (textPart) {
+        return maxLength ? textPart.text.slice(0, maxLength) : textPart.text;
       }
 
       return null;
@@ -332,8 +329,8 @@ class StreamRunner {
           messageId: this.ctx.assistantMessageId,
           step,
           finishReason: stepResult.finishReason,
-          usage: stepResult.usage,
-          cumulativeUsage: this.state.totalUsage,
+          usage: Usage.normalizeUsage(stepResult.usage),
+          cumulativeUsage: Usage.normalizeUsage(this.state.totalUsage),
           toolCallCount: stepResult.toolCalls.length,
           protocolViolationCount: this.state.protocolViolationCount,
         },
@@ -696,7 +693,7 @@ class StreamRunner {
         sessionId: this.ctx.sessionId,
         messageId: this.ctx.assistantMessageId,
         errorCode: getErrorCode(error),
-        error,
+        error: Error.isError(error) ? error : JSON.stringify(error),
       },
       'stream.failed',
     );
@@ -839,12 +836,7 @@ class StreamRunner {
 
     const toolCallCount = this.state.accumulatedParts.filter((p) => p.type === 'tool-call').length;
     const toolErrorCount = this.state.accumulatedParts.filter(
-      (p) =>
-        p.type === 'tool-result' &&
-        p.output !== null &&
-        p.output !== undefined &&
-        typeof p.output === 'object' &&
-        'error' in (p.output as object),
+      (part) => part.type === 'tool-result' && isToolResultError(part.output),
     ).length;
 
     log.info(
@@ -860,8 +852,8 @@ class StreamRunner {
         partCount: this.state.accumulatedParts.length,
         toolCallCount,
         toolErrorCount,
-        peakStepUsage: this.state.peakStepUsage,
-        totalUsage: this.state.totalUsage,
+        peakStepUsage: Usage.normalizeUsage(this.state.peakStepUsage),
+        totalUsage: Usage.normalizeUsage(this.state.totalUsage),
         protocolViolationCount: this.state.protocolViolationCount,
         needsCompaction: this.state.needsCompaction,
         contextOverflow: this.state.contextOverflow,
@@ -881,16 +873,14 @@ class StreamRunner {
   }
 
   private hasUserFacingTextPart(): boolean {
-    return this.state.accumulatedParts.some(
-      (part) => part.type === 'text-delta' && typeof part.text === 'string' && part.text.trim().length > 0,
-    );
+    return this.state.accumulatedParts.some((part) => part.type === 'text-delta' && part.text.trim().length > 0);
   }
 
   private hasTrailingUserFacingTextAfterLastToolResult(): boolean {
     const lastToolResultIndex = this.state.accumulatedParts.findLastIndex((part) => part.type === 'tool-result');
     return this.state.accumulatedParts
       .slice(lastToolResultIndex + 1)
-      .some((part) => part.type === 'text-delta' && typeof part.text === 'string' && part.text.trim().length > 0);
+      .some((part) => part.type === 'text-delta' && part.text.trim().length > 0);
   }
 
   private hasToolResultPart(): boolean {
@@ -992,7 +982,7 @@ class StreamRunner {
 
   private getAssistantText(): string | null {
     const textParts = this.state.accumulatedParts
-      .filter((p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta' && typeof p.text === 'string')
+      .filter((p): p is StoredPart & { type: 'text-delta' } => p.type === 'text-delta')
       .map((p) => p.text);
 
     const text = textParts.join('').trim();
@@ -1008,8 +998,8 @@ class StreamRunner {
         sessionId: this.ctx.sessionId,
         messageId: this.ctx.assistantMessageId,
         field,
-        from,
-        to,
+        from: Error.isError(from) ? from : JSON.stringify(from),
+        to: Error.isError(to) ? to : JSON.stringify(to),
         reason,
       },
       'stream.state.transition',

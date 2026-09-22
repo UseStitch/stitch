@@ -7,15 +7,48 @@ import type { SettingsKey } from '@stitch/shared/settings/types';
 import { getDb } from '@/db/client.js';
 import { userSettings } from '@/db/schema/settings.js';
 import { internalBus } from '@/lib/internal-bus.js';
-import type { z } from 'zod';
+type BooleanSettingKey =
+  | 'compaction.auto'
+  | 'compaction.prune'
+  | 'notifications.sound.enabled'
+  | 'memory.enabled'
+  | 'memory.autoExtract'
+  | 'memory.extraction.fromAutomations'
+  | 'memory.consolidation.enabled'
+  | 'recordings.autoAnalyze'
+  | 'stt.holdToTalk'
+  | 'mail.alwaysLoadRemoteImages';
 
-type SettingValue<K extends SettingsKey> = z.infer<(typeof SETTINGS_SCHEMAS)[K]>;
+type NumberSettingKey =
+  | 'compaction.reserved'
+  | 'toolsets.ttlTurns'
+  | 'memory.extraction.maxFactsPerTurn'
+  | 'memory.extraction.minMessageLength'
+  | 'memory.extraction.maxFactsPerSession'
+  | 'memory.extraction.minTurnsBetweenWrites'
+  | 'memory.curated.memoryCharLimit'
+  | 'memory.curated.userCharLimit'
+  | 'memory.consolidation.maxCandidatesPerRun';
+
+// SETTINGS_SCHEMAS is built with Object.fromEntries, which widens its values to
+// a union. Keep its runtime parsing while restoring the registry's key/value relation.
+type SettingValue<K extends SettingsKey> = K extends BooleanSettingKey
+  ? boolean
+  : K extends NumberSettingKey
+    ? number
+    : K extends 'toolsets.defaultScope'
+      ? 'current_run' | 'ttl_turns' | 'until_deactivated'
+      : K extends 'appearance.mode'
+        ? 'light' | 'dark'
+        : K extends 'onboarding.status'
+          ? 'pending' | 'completed'
+          : string;
 
 type SettingsMap<Keys extends readonly SettingsKey[]> = {
   [K in Keys[number]]: SettingValue<K>;
 };
 
-const defaultsByKey = new Map<SettingsKey, string>(SETTINGS_DEFAULTS.map((d) => [d.key, d.value]));
+const defaultsByKey = new Map<SettingsKey, string>(SETTINGS_DEFAULTS.map((d) => [d.key as SettingsKey, d.value]));
 
 /**
  * Read and parse a set of settings keys in one query.

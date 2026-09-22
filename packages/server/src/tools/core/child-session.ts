@@ -122,7 +122,7 @@ export async function runChildSession(context: ToolContext, deps: ChildSessionDe
         event: `${options.toolName}.child_session.failed`,
         parentSessionId: deps.parentSessionId,
         childSessionId,
-        error,
+        error: Error.isError(error) ? error.message : String(error),
       },
       `child session failed for ${options.toolName}`,
     );

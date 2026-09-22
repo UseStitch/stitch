@@ -83,7 +83,10 @@ export function registerTitleGenerationAdapter(): void {
 
       internalBus.emit('session.title.updated', { sessionId: event.sessionId, title: generatedTitle.title });
     } catch (error) {
-      log.error({ sessionId: event.sessionId, error }, 'chat title generation failed');
+      log.error(
+        { sessionId: event.sessionId, error: Error.isError(error) ? error : String(error) },
+        'chat title generation failed',
+      );
     }
   });
 
@@ -129,7 +132,11 @@ export function registerTitleGenerationAdapter(): void {
       });
     } catch (error) {
       log.error(
-        { recordingId: event.recordingId, analysisId: event.analysisId, error },
+        {
+          recordingId: event.recordingId,
+          analysisId: event.analysisId,
+          error: Error.isError(error) ? error : String(error),
+        },
         'recording title generation failed',
       );
     }

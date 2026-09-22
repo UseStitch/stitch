@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import type { PartId, StoredPart } from '@stitch/shared/chat/messages';
 import type { PartDelta, PartUpdate } from '@stitch/shared/chat/stream-events';
 import type { PrefixedString } from '@stitch/shared/id';
@@ -18,6 +20,12 @@ import { stableStringify } from '@/utils/stable-stringify.js';
 import type { TextStreamPart, ToolSet } from 'ai';
 
 const log = Log.create({ service: 'stream-accumulator' });
+const toolResultMetaSchema = z.looseObject({
+  __stitchToolResultMeta: z
+    .looseObject({ truncated: z.boolean().optional(), outputPath: z.string().optional() })
+    .optional(),
+});
+const toolErrorDetailsSchema = z.looseObject({ details: z.unknown().optional() });
 
 type BufferedTextPart = { id: PartId; text: string; startedAt: number };
 
@@ -47,31 +55,23 @@ export class StreamAccumulator {
   // ─── Shared helpers ───────────────────────────────────────────────────────
 
   private getToolTruncationMeta(output: unknown): { truncated: boolean; outputPath?: string } {
-    if (!output || typeof output !== 'object') {
+    const parsed = toolResultMetaSchema.safeParse(output);
+    const meta = parsed.success ? parsed.data.__stitchToolResultMeta : undefined;
+    if (!meta) {
       return { truncated: false };
     }
 
-    const meta = (output as { __stitchToolResultMeta?: unknown }).__stitchToolResultMeta;
-    if (!meta || typeof meta !== 'object') {
-      return { truncated: false };
-    }
-
-    const truncated = (meta as { truncated?: unknown }).truncated === true;
-    const outputPathRaw = (meta as { outputPath?: unknown }).outputPath;
-    const outputPath = typeof outputPathRaw === 'string' ? outputPathRaw : undefined;
-    return { truncated, outputPath };
+    return { truncated: meta.truncated === true, outputPath: meta.outputPath };
   }
 
   private stripToolTruncationMeta<T>(output: T): T {
-    if (!output || typeof output !== 'object') {
+    const parsed = toolResultMetaSchema.safeParse(output);
+    if (!parsed.success) {
       return output;
     }
 
-    // SAFETY: guarded by the falsy/typeof checks above, so output is a non-null object here.
-    const clone = { ...(output as Record<string, unknown>) };
-    delete clone.__stitchToolResultMeta;
-    // SAFETY: clone is a shallow copy of output with only the internal meta key removed.
-    return clone as T;
+    const { __stitchToolResultMeta: _, ...sanitizedOutput } = parsed.data;
+    return sanitizedOutput as T;
   }
 
   private broadcastPartUpdate(partId: PartId, part: unknown): void {
@@ -282,10 +282,7 @@ export class StreamAccumulator {
         const now = Date.now();
         const partId = createPartId();
         const errorText = Error.isError(part.error) ? part.error.message : String(part.error);
-        const errorDetails =
-          typeof part.error === 'object' && part.error !== null && 'details' in part.error
-            ? part.error.details
-            : undefined;
+        const errorDetails = toolErrorDetailsSchema.safeParse(part.error).data?.details;
 
         internalBus.emit('tool.failed', {
           sessionId: this.sessionId,
@@ -329,7 +326,7 @@ export class StreamAccumulator {
       case 'error': {
         const mappedError = mapAIError(part.error);
         const errorText = mappedError.message;
-        const errorName = Error.isError(part.error) ? part.error.name : typeof part.error;
+        const errorName = Error.isError(part.error) ? part.error.name : undefined;
         const errorStack = Error.isError(part.error) ? part.error.stack : undefined;
         log.error(
           {

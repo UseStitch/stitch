@@ -53,7 +53,14 @@ async function scheduleResult(input: StartBackgroundTaskInput): Promise<void> {
   try {
     await Promise.resolve(scheduleBackgroundTaskResult(input.parentSessionId));
   } catch (error) {
-    log.error({ event: 'background_task.delivery.failed', taskId: input.taskId, error }, 'result scheduling failed');
+    log.error(
+      {
+        event: 'background_task.delivery.failed',
+        taskId: input.taskId,
+        error: Error.isError(error) ? error.message : String(error),
+      },
+      'result scheduling failed',
+    );
   }
 }
 
@@ -165,7 +172,11 @@ export async function startBackgroundTask(input: StartBackgroundTaskInput): Prom
     const execution = executeBackgroundTask(input, abortSignal)
       .catch((error) => {
         log.error(
-          { event: 'background_task.execution.unhandled', taskId: input.taskId, error },
+          {
+            event: 'background_task.execution.unhandled',
+            taskId: input.taskId,
+            error: Error.isError(error) ? error.message : String(error),
+          },
           'detached execution failed',
         );
       })

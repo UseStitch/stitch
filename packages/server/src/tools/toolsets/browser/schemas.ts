@@ -7,7 +7,7 @@ const descriptionField = z
 const timeoutField = z.number().optional().describe('Action timeout in milliseconds.');
 
 const outputSchemaField = z
-  .record(z.string(), z.unknown())
+  .record(z.string(), z.json())
   .optional()
   .describe('Optional JSON Schema object. Supported properties are returned in a data object.');
 

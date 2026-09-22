@@ -1,4 +1,5 @@
 import { and, desc, eq, inArray } from 'drizzle-orm';
+import { z } from 'zod';
 
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { PrefixedString } from '@stitch/shared/id';
@@ -39,6 +40,7 @@ const MAX_SESSIONS_TO_SCAN = 120;
 const MAX_MESSAGES_PER_SESSION = 80;
 const MAX_PREVIEW_CHARS = 260;
 const MAX_TOOL_RESULT_PREVIEW_CHARS = 280;
+const StringSchema = z.string();
 
 function normalizeText(input: string): string {
   return input.trim().replace(/\s+/g, ' ');
@@ -70,7 +72,8 @@ function extractToolResultPreviews(parts: StoredPart[]): Array<{ toolName: strin
       continue;
     }
 
-    const outputText = typeof part.output === 'string' ? part.output : JSON.stringify(part.output ?? null);
+    const parsedOutput = StringSchema.safeParse(part.output);
+    const outputText = parsedOutput.success ? parsedOutput.data : JSON.stringify(part.output ?? null);
     rows.push({ toolName: part.toolName, output: normalizeText(outputText).slice(0, MAX_TOOL_RESULT_PREVIEW_CHARS) });
   }
 

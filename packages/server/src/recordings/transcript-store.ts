@@ -113,7 +113,10 @@ async function flushTranscript(recordingId: PrefixedString<'rec'>): Promise<void
     await writeRecordingTranscript(recordingId, snapshot);
   } catch (error) {
     state.dirty = true;
-    log.error({ recordingId, error }, 'failed to flush transcript to file');
+    log.error(
+      { recordingId, error: Error.isError(error) ? error.message : String(error) },
+      'failed to flush transcript to file',
+    );
   }
 }
 

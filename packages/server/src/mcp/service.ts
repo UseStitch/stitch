@@ -2,6 +2,7 @@ import { auth } from '@modelcontextprotocol/sdk/client/auth.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { and, asc, eq, like, or } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
+import { z } from 'zod';
 
 import { createMcpServerId } from '@stitch/shared/id';
 import type { PrefixedString } from '@stitch/shared/id';
@@ -97,7 +98,7 @@ export async function fetchMcpTools(serverId: PrefixedString<'mcp'>): Promise<Mc
       name,
       title: def.title,
       description: def.description,
-      inputSchema: def.inputSchema,
+      inputSchema: z.record(z.string(), z.json()).safeParse(def.inputSchema).data,
       annotations: def.annotations,
       icons: def.icons,
     };

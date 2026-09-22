@@ -252,7 +252,10 @@ export async function createManagedConnection(config: ManagedConnectionConfig): 
       await oldTransport?.close();
       log.info({ rotationCount, replayedChunks: replay.length }, 'proactive rotation complete');
     } catch (err) {
-      log.error({ error: err, rotationCount }, 'proactive rotation failed, retaining connection');
+      log.error(
+        { error: Error.isError(err) ? err : String(err), rotationCount },
+        'proactive rotation failed, retaining connection',
+      );
     } finally {
       rotating = false;
       scheduleRotation();
@@ -327,11 +330,11 @@ export async function createManagedConnection(config: ManagedConnectionConfig): 
         const classification = classifyError(asError);
         if (classification.fatal) {
           reconnecting = false;
-          log.error({ error: err, attempt }, 'fatal error during reconnect');
+          log.error({ error: asError, attempt }, 'fatal error during reconnect');
           emitUnrecoverable(classification.reason);
           return;
         }
-        log.warn({ error: err, attempt }, 'reconnect attempt failed');
+        log.warn({ error: asError, attempt }, 'reconnect attempt failed');
       }
 
       if (attempt >= reconnectConfig.maxRetries) {
