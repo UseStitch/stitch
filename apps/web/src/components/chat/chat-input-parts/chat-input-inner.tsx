@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group';
 import { Textarea } from '@/components/ui/textarea';
 import { TextareaCompletions, type TextareaCompletionGroup } from '@/components/ui/textarea-completions';
+import { toValidHotkey } from '@/hooks/hotkeys/hotkey-utils';
 import { useShortcuts } from '@/hooks/use-shortcuts';
 import { supportsAnyAttachment } from '@/lib/model-capabilities';
 import { sttProviderModelsQueryOptions, visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
@@ -133,7 +134,7 @@ export function ChatInputInner({
       : null;
 
   const dictationHotkey = shortcuts.get('toggle-dictation');
-  const dictationHotkeyValue = dictationHotkey?.hotkey ?? 'Mod+Space';
+  const dictationHotkeyValue = toValidHotkey(dictationHotkey?.hotkey, 'Mod+Space');
   const holdToTalk = settings['stt.holdToTalk'] === 'true';
   const dictationEnabled = sttProviders.length > 0 && !!dictationHotkey?.hotkey && !disabled;
   const isDictationHotkeyHeld = areHotkeyKeysHeld(dictationHotkeyValue, heldKeys);

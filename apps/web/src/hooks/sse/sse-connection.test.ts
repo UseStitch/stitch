@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
+import { beforeEach, describe, expect, it } from 'bun:test';
 
 import { createSseConnection, isIdle, retryDelay } from './sse-connection';
 
@@ -15,8 +15,8 @@ class FakeEventSource {
     FakeEventSource.instances.push(this);
   }
 
-  addEventListener(name: string, listener: EventListenerOrEventListenerObject): void {
-    this.listeners.set(name, listener as (event: MessageEvent<string>) => void);
+  addEventListener(name: string, listener: (event: MessageEvent<string>) => void): void {
+    this.listeners.set(name, listener);
   }
 
   close(): void {
@@ -24,7 +24,7 @@ class FakeEventSource {
   }
 
   emit(name: string, data: string): void {
-    this.listeners.get(name)?.({ data } as MessageEvent<string>);
+    this.listeners.get(name)?.(new MessageEvent<string>(name, { data }));
   }
 }
 
@@ -41,15 +41,8 @@ async function flushPromises(): Promise<void> {
   await Promise.resolve();
 }
 
-const OriginalEventSource = globalThis.EventSource;
-
 beforeEach(() => {
   FakeEventSource.instances = [];
-  globalThis.EventSource = FakeEventSource as unknown as typeof EventSource;
-});
-
-afterEach(() => {
-  globalThis.EventSource = OriginalEventSource;
 });
 
 describe('retryDelay', () => {
@@ -88,6 +81,7 @@ describe('createSseConnection', () => {
       getUrl: () => (lookupCount++ === 0 ? firstUrl.promise : secondUrl.promise),
       onEvent: () => {},
       onStatus: () => {},
+      createEventSource: (url) => new FakeEventSource(url),
     });
 
     connection.reconnect();
@@ -107,6 +101,7 @@ describe('createSseConnection', () => {
       getUrl: () => Promise.resolve('http://server'),
       onEvent: (_name, raw) => events.push(raw),
       onStatus: (status) => statuses.push(status),
+      createEventSource: (url) => new FakeEventSource(url),
     });
     await flushPromises();
     const replaced = FakeEventSource.instances[0];

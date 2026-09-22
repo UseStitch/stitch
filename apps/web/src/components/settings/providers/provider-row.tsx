@@ -1,10 +1,11 @@
 import { PlusIcon, Settings2Icon } from 'lucide-react';
 import * as React from 'react';
+import { z } from 'zod';
 
 import { useQueryClient } from '@tanstack/react-query';
 
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
-import { PROVIDER_IDS, isLocalProviderId, type ProviderId } from '@stitch/shared/providers/types';
+import { PROVIDER_IDS, isLocalProviderId } from '@stitch/shared/providers/types';
 
 import { Icon } from '@/components/primitives/icon';
 import { Text } from '@/components/primitives/text';
@@ -15,11 +16,11 @@ import { useDeleteProviderConfigMutation } from '@/lib/mutations/provider-config
 import { type ProviderSummary } from '@/lib/queries/providers';
 
 type Props = { provider: ProviderSummary; onSelect: () => void };
+const providerIdSchema = z.enum(PROVIDER_IDS);
 
 export function ProviderRow({ provider, onSelect }: Props) {
-  const meta = (PROVIDER_IDS as readonly string[]).includes(provider.id)
-    ? PROVIDER_META[provider.id as ProviderId]
-    : undefined;
+  const parsedProviderId = providerIdSchema.safeParse(provider.id);
+  const meta = parsedProviderId.success ? PROVIDER_META[parsedProviderId.data] : undefined;
   const queryClient = useQueryClient();
 
   const deleteMutation = useDeleteProviderConfigMutation({

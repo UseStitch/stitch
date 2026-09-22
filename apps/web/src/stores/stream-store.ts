@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 
 import type { StreamErrorDetails } from '@stitch/shared/chat/errors';
-import type { LanguageModelUsage, LanguageModelV3Source } from '@stitch/shared/chat/messages';
+import type { LanguageModelUsage } from '@stitch/shared/chat/messages';
 import type { PartDelta, PartUpdate, ToolCallStatus } from '@stitch/shared/chat/stream-events';
+import { z } from 'zod';
 
 import { serverFetch } from '@/lib/api';
 
@@ -40,13 +41,30 @@ type StreamingToolCallPart = {
   endedAt: number | null;
 };
 
-type StreamingSourcePart = { type: 'source'; source: LanguageModelV3Source; startedAt: number; endedAt: number };
+type StreamingSource =
+  | { sourceType: 'url'; url: string; title?: string }
+  | { sourceType: 'document' };
+
+const streamingSourceSchema = z.union([
+  z.looseObject({ sourceType: z.literal('url'), url: z.string(), title: z.string().optional() }),
+  z.looseObject({ sourceType: z.literal('document') }),
+]);
+
+const parsedStreamingSourceSchema = z.custom<StreamingSource>(
+  (value): value is StreamingSource => streamingSourceSchema.safeParse(value).success,
+);
+
+type StreamingSourcePart = { type: 'source'; source: StreamingSource; startedAt: number; endedAt: number };
 
 type StreamingFilePart = { type: 'file'; data: string; mediaType: string; startedAt: number; endedAt: number };
 
 export type RetryInfo = { attempt: number; maxRetries: number; delayMs: number; message: string; nextRetryAt: number };
 
 export type DoomLoopInfo = { toolName: string; consecutiveCount: number };
+
+const toolStateValueSchema = z.unknown();
+
+type ToolStateValue = z.infer<typeof toolStateValueSchema>;
 
 export type StreamingPart =
   | StreamingTextPart
@@ -97,8 +115,8 @@ type StreamStoreActions = {
     toolCallId: string,
     toolName: string,
     status: ToolCallStatus,
-    input?: unknown,
-    output?: unknown,
+    input?: ToolStateValue,
+    output?: ToolStateValue,
     error?: string,
   ) => void;
   finishStream: (sessionId: string, messageId: string, finishReason: string, usage?: LanguageModelUsage) => void;
@@ -187,7 +205,7 @@ function applyPartUpdateToSession(session: SessionStreamState, partId: string, p
       const now = Date.now();
       return addPart(session, partId, {
         type: 'source',
-        source: sourceData as LanguageModelV3Source,
+        source: parsedStreamingSourceSchema.parse(sourceData),
         startedAt: now,
         endedAt: now,
       });
@@ -277,17 +295,15 @@ export const useStreamStore = create<StreamStoreState & StreamStoreActions>()((s
       const existing = session.parts[toolCallId];
 
       if (toolCallId in session.parts && existing.type === 'tool-call') {
+        const updatedPart: StreamingToolCallPart = { ...existing, status };
+        if (input !== undefined) updatedPart.input = toolStateValueSchema.parse(input);
+        if (output !== undefined) updatedPart.output = toolStateValueSchema.parse(output);
+        if (error !== undefined) updatedPart.error = error;
+        if (status === 'completed' || status === 'error') updatedPart.endedAt = Date.now();
         return {
           sessions: {
             ...state.sessions,
-            [sessionId]: updatePart(session, toolCallId, {
-              ...existing,
-              status,
-              ...(input !== undefined && { input }),
-              ...(output !== undefined && { output }),
-              ...(error !== undefined && { error }),
-              ...(status === 'completed' || status === 'error' ? { endedAt: Date.now() } : {}),
-            }),
+            [sessionId]: updatePart(session, toolCallId, updatedPart),
           },
         };
       }

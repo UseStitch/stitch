@@ -1,10 +1,12 @@
-import type { Hotkey } from '@tanstack/react-hotkeys';
 import { useHotkey, useHotkeySequence } from '@tanstack/react-hotkeys';
+import type { Hotkey } from '@tanstack/react-hotkeys';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { SETTINGS_DEFAULTS } from '@stitch/shared/settings/types';
 import { SHORTCUT_DEFAULTS } from '@stitch/shared/shortcuts/types';
 import type { ShortcutActionId } from '@stitch/shared/shortcuts/types';
+
+import { toValidHotkey, toValidHotkeySequence } from './hotkey-utils';
 
 import type { Action } from '@/hooks/use-actions';
 import { useShortcuts } from '@/hooks/use-shortcuts';
@@ -22,7 +24,9 @@ function getDefaultShortcutHotkey(actionId: ShortcutActionId): string | null {
 function resolveLeaderHotkey(hotkey: string, leaderKey: string): { leader: Hotkey; suffix: Hotkey } | null {
   if (!hotkey.startsWith(LEADER_PREFIX)) return null;
   const suffix = hotkey.slice(LEADER_PREFIX.length);
-  return { leader: leaderKey as Hotkey, suffix: suffix as Hotkey };
+  const sequence = toValidHotkeySequence([leaderKey, suffix], []);
+  if (sequence.length !== 2) return null;
+  return { leader: sequence[0], suffix: sequence[1] };
 }
 
 export function useGlobalHotkeys(actions: Action[]) {
@@ -41,15 +45,15 @@ export function useGlobalHotkeys(actions: Action[]) {
   const openAutomations = shortcuts.get('open-automations');
   const openUsage = shortcuts.get('open-usage');
 
-  useHotkey(commandPalette?.hotkey ?? 'Mod+P', () => actionMap.get('command-palette')?.run(), {
+  useHotkey(toValidHotkey(commandPalette?.hotkey, 'Mod+P'), () => actionMap.get('command-palette')?.run(), {
     preventDefault: true,
     enabled: !!commandPalette?.hotkey,
   });
-  useHotkey(openSettings?.hotkey ?? 'Mod+,', () => actionMap.get('open-settings')?.run(), {
+  useHotkey(toValidHotkey(openSettings?.hotkey, 'Mod+,'), () => actionMap.get('open-settings')?.run(), {
     preventDefault: true,
     enabled: !!openSettings?.hotkey,
   });
-  useHotkey(newSession?.hotkey ?? 'Mod+N', () => actionMap.get('new-session')?.run(), {
+  useHotkey(toValidHotkey(newSession?.hotkey, 'Mod+N'), () => actionMap.get('new-session')?.run(), {
     preventDefault: true,
     enabled: !!newSession?.hotkey,
   });
@@ -78,27 +82,35 @@ export function useGlobalHotkeys(actions: Action[]) {
     (defaultUsageHotkey ? resolveLeaderHotkey(defaultUsageHotkey, leaderKey) : null);
 
   useHotkeySequence(
-    chatResolved ? [chatResolved.leader, chatResolved.suffix] : ['Mod+X', 'C'],
+    chatResolved ? [chatResolved.leader, chatResolved.suffix] : toValidHotkeySequence(['Mod+X', 'C'], ['Mod+X', 'C']),
     () => actionMap.get('open-chat')?.run(),
     { enabled: !!chatResolved, timeout: 1000 },
   );
   useHotkeySequence(
-    memoriesResolved ? [memoriesResolved.leader, memoriesResolved.suffix] : ['Mod+X', 'M'],
+    memoriesResolved
+      ? [memoriesResolved.leader, memoriesResolved.suffix]
+      : toValidHotkeySequence(['Mod+X', 'M'], ['Mod+X', 'M']),
     () => actionMap.get('open-memories')?.run(),
     { enabled: !!memoriesResolved, timeout: 1000 },
   );
   useHotkeySequence(
-    recordingsResolved ? [recordingsResolved.leader, recordingsResolved.suffix] : ['Mod+X', 'R'],
+    recordingsResolved
+      ? [recordingsResolved.leader, recordingsResolved.suffix]
+      : toValidHotkeySequence(['Mod+X', 'R'], ['Mod+X', 'R']),
     () => actionMap.get('open-recordings')?.run(),
     { enabled: !!recordingsResolved, timeout: 1000 },
   );
   useHotkeySequence(
-    automationsResolved ? [automationsResolved.leader, automationsResolved.suffix] : ['Mod+X', 'A'],
+    automationsResolved
+      ? [automationsResolved.leader, automationsResolved.suffix]
+      : toValidHotkeySequence(['Mod+X', 'A'], ['Mod+X', 'A']),
     () => actionMap.get('open-automations')?.run(),
     { enabled: !!automationsResolved, timeout: 1000 },
   );
   useHotkeySequence(
-    usageResolved ? [usageResolved.leader, usageResolved.suffix] : ['Mod+X', 'U'],
+    usageResolved
+      ? [usageResolved.leader, usageResolved.suffix]
+      : toValidHotkeySequence(['Mod+X', 'U'], ['Mod+X', 'U']),
     () => actionMap.get('open-usage')?.run(),
     { enabled: !!usageResolved, timeout: 1000 },
   );

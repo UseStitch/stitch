@@ -20,19 +20,17 @@ import { useInfiniteLoadObserver } from '@/hooks/use-infinite-load-observer';
 import { useStreamingSessionIds } from '@/hooks/use-session-stream-state';
 import { sessionsInfiniteQueryOptions, useArchiveSession, useDeleteSession } from '@/lib/queries/chat';
 
-type SidebarSession = { id: string; title: string | null; isUnread: boolean };
-
 const selectSidebarSessions = (data: InfiniteData<SessionsPage>) => ({
   ...data,
   pages: data.pages.map((page) => ({
     ...page,
-    sessions: page.sessions.map(({ id, title, isUnread }) => ({ id, title, isUnread }) as SidebarSession),
+    sessions: page.sessions.map(({ id, title, isUnread }) => ({ id, title, isUnread })),
   })),
 });
 
 export function ChatSidebarContent() {
   const [search, setSearch] = React.useState('');
-  const [deletingSessionId, setDeletingSessionId] = React.useState<string | null>(null);
+  const [deletingSessionId, setDeletingSessionId] = React.useState<PrefixedString<'ses'> | null>(null);
   const deferredSearch = React.useDeferredValue(search.trim());
   const navigate = useNavigate();
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
@@ -49,8 +47,8 @@ export function ChatSidebarContent() {
   const params = useParams({ strict: false });
   const currentId = params.id;
 
-  async function handleArchiveSession(sessionId: string) {
-    await archiveSession.mutateAsync({ sessionId: sessionId as PrefixedString<'ses'> });
+  async function handleArchiveSession(sessionId: PrefixedString<'ses'>) {
+    await archiveSession.mutateAsync({ sessionId });
     if (sessionId === currentId) {
       void navigate({ to: '/' });
     }
@@ -58,7 +56,7 @@ export function ChatSidebarContent() {
 
   async function handleDeleteSession() {
     if (!deletingSessionId) return;
-    await deleteSession.mutateAsync({ sessionId: deletingSessionId as PrefixedString<'ses'> });
+    await deleteSession.mutateAsync({ sessionId: deletingSessionId });
     setDeletingSessionId(null);
     if (deletingSessionId === currentId) {
       void navigate({ to: '/' });

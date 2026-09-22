@@ -21,7 +21,7 @@ import { recordingsInfiniteQueryOptions } from '@/lib/queries/recordings';
 
 export function RecordingsSidebarContent() {
   const params = useParams({ strict: false });
-  const selectedRecordingId = typeof params.id === 'string' ? params.id : null;
+  const selectedRecordingId = params.id ?? null;
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery(recordingsInfiniteQueryOptions());
   const recordings = data?.pages.flatMap((page) => page.recordings) ?? [];

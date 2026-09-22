@@ -3,7 +3,7 @@ import { ArrowLeftIcon, ArrowRightIcon, PlusIcon, RotateCwIcon, XIcon } from 'lu
 import * as React from 'react';
 
 import type { ElectronBrowserDownload, ElectronBrowserState } from '@stitch/shared/browser/electron';
-import type { PrefixedString } from '@stitch/shared/id';
+import { isIdOfType, type PrefixedString } from '@stitch/shared/id';
 
 import { Icon } from '@/components/primitives/icon';
 import { Stack } from '@/components/primitives/stack';
@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-type BrowserPanelProps = { sessionId: PrefixedString<'ses'>; onClose: () => void };
+type BrowserPanelProps = { sessionId: string; onClose: () => void };
 
 type WebviewElement = HTMLElement & { getWebContentsId: () => number; getURL: () => string };
 
@@ -36,6 +36,8 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
   const [state, setState] = React.useState<ElectronBrowserState>(DEFAULT_STATE);
   const [address, setAddress] = React.useState('about:blank');
 
+  const brandedSessionId: PrefixedString<'ses'> | null = isIdOfType(sessionId, 'ses') ? sessionId : null;
+
   React.useEffect(() => {
     void window.api.browser.getState().then(setState);
     return window.api.browser.onStateChanged((next) => {
@@ -47,15 +49,15 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
 
   // When sessionId changes while panel is already open, switch sessions
   React.useEffect(() => {
-    if (!sessionId) return;
-    void window.api.browser.switchSession(sessionId).then(setState);
-  }, [sessionId]);
+    if (!brandedSessionId) return;
+    void window.api.browser.switchSession(brandedSessionId).then(setState);
+  }, [brandedSessionId]);
 
   const registerWebview = React.useCallback(() => {
     const webview = webviewRef.current;
-    if (!webview) return;
-    void window.api.browser.registerWebview(webview.getWebContentsId(), sessionId).then(setState);
-  }, [sessionId]);
+    if (!webview || !brandedSessionId) return;
+    void window.api.browser.registerWebview(webview.getWebContentsId(), brandedSessionId).then(setState);
+  }, [brandedSessionId]);
 
   React.useEffect(() => {
     const webview = webviewRef.current;
@@ -182,8 +184,8 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
         </div>
 
         <webview
-          ref={(node) => {
-            webviewRef.current = node as WebviewElement | null;
+          ref={(node: WebviewElement | null) => {
+            webviewRef.current = node;
           }}
           className="min-h-0 flex-1"
           src="about:blank"

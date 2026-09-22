@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router';
 
-import type { PrefixedString } from '@stitch/shared/id';
+import { isIdOfType } from '@stitch/shared/id';
 
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useArchiveSession, useDeleteSession } from '@/lib/queries/chat';
@@ -18,14 +18,18 @@ export function SessionDeleteDialog({ sessionId, open, onOpenChange, onDeleted }
   const archiveSession = useArchiveSession();
 
   async function handleDeleteSession() {
-    await deleteSession.mutateAsync({ sessionId: sessionId as PrefixedString<'ses'> });
+    if (!isIdOfType(sessionId, 'ses')) return;
+
+    await deleteSession.mutateAsync({ sessionId });
     onOpenChange(false);
     onDeleted?.();
     void navigate({ to: '/' });
   }
 
   async function handleArchiveSession() {
-    await archiveSession.mutateAsync({ sessionId: sessionId as PrefixedString<'ses'> });
+    if (!isIdOfType(sessionId, 'ses')) return;
+
+    await archiveSession.mutateAsync({ sessionId });
     onOpenChange(false);
     onDeleted?.();
     void navigate({ to: '/' });

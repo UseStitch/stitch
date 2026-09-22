@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useSessionEvents } from '@/hooks/sse/sse-context';
 import { sessionKeys } from '@/lib/queries/chat';
 
-export function useCompactionUpdates(sessionId: string): { isCompacting: boolean } {
+export function useCompactionUpdates(sessionId: string) {
   const queryClient = useQueryClient();
   const [isCompacting, setIsCompacting] = React.useState(false);
 

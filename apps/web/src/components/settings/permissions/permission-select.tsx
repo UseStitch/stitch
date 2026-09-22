@@ -1,8 +1,11 @@
+import { z } from 'zod';
+
 import type { ToolPermissionValue } from '@stitch/shared/permissions/types';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const PERMISSION_OPTION_LABELS: Record<ToolPermissionValue, string> = { allow: 'Allow', ask: 'Ask', deny: 'Deny' };
+const toolPermissionValueSchema = z.enum(['allow', 'ask', 'deny']);
 
 type PermissionSelectProps = {
   value: ToolPermissionValue;
@@ -13,7 +16,13 @@ type PermissionSelectProps = {
 
 export function PermissionSelect({ value, onChange, includeDeny = false, disabled = false }: PermissionSelectProps) {
   return (
-    <Select value={value} onValueChange={(nextValue) => onChange(nextValue as ToolPermissionValue)} disabled={disabled}>
+    <Select
+      value={value}
+      onValueChange={(nextValue) => {
+        const parsedValue = toolPermissionValueSchema.safeParse(nextValue);
+        if (parsedValue.success) onChange(parsedValue.data);
+      }}
+      disabled={disabled}>
       <SelectTrigger size="sm" className="w-20 shrink-0">
         <SelectValue>{PERMISSION_OPTION_LABELS[value]}</SelectValue>
       </SelectTrigger>

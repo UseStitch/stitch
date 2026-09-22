@@ -14,7 +14,7 @@ import * as React from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 
-import type { MailAccountId, MailAccountView, MailLabelView } from '@stitch/shared/mail/types';
+import type { MailAccountId, MailLabelView } from '@stitch/shared/mail/types';
 
 import {
   getLabelDisplayName,
@@ -37,7 +37,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { SidebarMenuAction, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { getDefaultMailLabel, mailAccountsQueryOptions, mailLabelsQueryOptions } from '@/lib/queries/mail';
 
@@ -390,8 +389,7 @@ function MailLabelList({ accountId }: { accountId: MailAccountId }) {
 export function MailSidebarContent() {
   const { selectedAccountId, setSelectedAccountId } = useMailStore();
   const { data: accounts = [] } = useQuery(mailAccountsQueryOptions);
-  const selectedAccount =
-    accounts.find((account) => account.id === selectedAccountId) ?? (accounts[0] as MailAccountView | undefined);
+  const selectedAccount = accounts.find((account) => account.id === selectedAccountId) ?? accounts[0];
 
   React.useEffect(() => {
     if (!selectedAccountId && accounts[0]) setSelectedAccountId(accounts[0].id);
@@ -408,43 +406,31 @@ export function MailSidebarContent() {
             </Text>
           </InternalSidebar.TopTitle>
         </InternalSidebar.Top>
-        {selectedAccount ? (
-          <DropdownMenu>
-            <div className="mx-space-m mb-space-m">
-              <DropdownMenuTrigger
-                render={<Button variant="outline" width="full" align="between" aria-label="Switch mail account" />}>
-                <div className="min-w-0 flex-1">
-                  <Text as="span" variant="body" truncate>
-                    {selectedAccount.email}
-                  </Text>
-                </div>
-                <Icon as={ChevronDownIcon} size="m" color="var(--muted-foreground)" />
-              </DropdownMenuTrigger>
-            </div>
-            <DropdownMenuContent>
-              {accounts.map((account) => (
-                <DropdownMenuItem key={account.id} onClick={() => setSelectedAccountId(account.id)}>
-                  <Text as="span" variant="body" truncate>
-                    {account.email}
-                  </Text>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null}
+        <DropdownMenu>
+          <div className="mx-space-m mb-space-m">
+            <DropdownMenuTrigger
+              render={<Button variant="outline" width="full" align="between" aria-label="Switch mail account" />}>
+              <div className="min-w-0 flex-1">
+                <Text as="span" variant="body" truncate>
+                  {selectedAccount.email}
+                </Text>
+              </div>
+              <Icon as={ChevronDownIcon} size="m" color="var(--muted-foreground)" />
+            </DropdownMenuTrigger>
+          </div>
+          <DropdownMenuContent>
+            {accounts.map((account) => (
+              <DropdownMenuItem key={account.id} onClick={() => setSelectedAccountId(account.id)}>
+                <Text as="span" variant="body" truncate>
+                  {account.email}
+                </Text>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </InternalSidebar.Header>
       <InternalSidebar.Content>
-        {!selectedAccount ? (
-          <Empty size="compact">
-            <EmptyMedia>
-              <Icon as={MailIcon} size="l" color="var(--text-faint)" />
-            </EmptyMedia>
-            <EmptyTitle>No mail accounts</EmptyTitle>
-            <EmptyDescription>Enroll an account in Settings.</EmptyDescription>
-          </Empty>
-        ) : (
-          <MailLabelList key={selectedAccount.id} accountId={selectedAccount.id} />
-        )}
+        <MailLabelList key={selectedAccount.id} accountId={selectedAccount.id} />
       </InternalSidebar.Content>
     </InternalSidebar>
   );

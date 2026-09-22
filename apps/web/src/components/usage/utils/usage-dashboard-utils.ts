@@ -12,19 +12,19 @@ export const RANGE_LABELS: Record<UsageDateRange, string> = {
   all: 'All time',
 };
 
-const SOURCE_LABELS: Record<string, string> = {
-  chat: 'Chat',
-  automation: 'Automation',
-  automation_generation: 'Automation Generation',
-  title_generation: 'Title Generation',
-  memory_extraction: 'Memory',
-  recording_analysis: 'Recording Analysis',
-};
+const SOURCE_LABELS = new Map([
+  ['chat', 'Chat'],
+  ['automation', 'Automation'],
+  ['automation_generation', 'Automation Generation'],
+  ['title_generation', 'Title Generation'],
+  ['memory_extraction', 'Memory'],
+  ['recording_analysis', 'Recording Analysis'],
+]);
 
 const TOKEN_FORMATTER = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 0 });
 
 export function getSourceLabel(source: string): string {
-  return SOURCE_LABELS[source] ?? source.replaceAll('_', ' ');
+  return SOURCE_LABELS.get(source) ?? source.replaceAll('_', ' ');
 }
 
 export function formatCost(costUsd: number): string {

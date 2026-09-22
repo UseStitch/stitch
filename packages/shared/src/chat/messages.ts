@@ -1,10 +1,9 @@
 import type { StreamErrorDetails } from '../chat/errors.js';
 import type { PrefixedString } from '../id/index.js';
 import type { CursorPaginationMetadata } from '../pagination.js';
-import type { LanguageModelV3Source } from '@ai-sdk/provider';
 import type { LanguageModelUsage, TextStreamPart, ToolSet } from 'ai';
 
-export type { LanguageModelV3Source, LanguageModelUsage };
+export type {  LanguageModelUsage };
 
 const MESSAGE_ROLES = ['user', 'assistant', 'system', 'tool'] as const;
 

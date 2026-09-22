@@ -1,133 +1,96 @@
 import { z } from 'zod';
 
-import { LIQUID_UI_COLUMNS, STAT_TRENDS } from '@stitch/shared/liquid-ui/constants';
+import {
+  BADGE_VARIANTS,
+  CHART_KINDS,
+  LIQUID_UI_ALIGNMENTS,
+  LIQUID_UI_COLUMNS,
+  LIQUID_UI_SPACING,
+  STAT_TRENDS,
+  TEXT_VARIANTS,
+} from '@stitch/shared/liquid-ui/constants';
 import { parseLiquidUiSpec } from '@stitch/shared/liquid-ui/parse';
+import type { JsonValue } from '@stitch/shared/json';
 import type { LiquidUiSpec } from '@stitch/shared/liquid-ui/schema';
 
-type JsonRecord = Record<string, unknown>;
-type LiquidUiColumn = (typeof LIQUID_UI_COLUMNS)[number];
-type StatTrend = (typeof STAT_TRENDS)[number];
+const idSchema = z.string();
+const childrenSchema = z.array(z.json()).catch([]).transform((children) =>
+  children.flatMap((child) => {
+    const parsed = idSchema.safeParse(child);
+    return parsed.success ? [parsed.data] : [];
+  }),
+);
+const nullableStringSchema = z.string().nullable().catch(null);
+const repairedNodeBaseSchema = z.object({ id: idSchema });
 
-function isObject(input: unknown): input is JsonRecord {
-  return input !== null && typeof input === 'object';
-}
+const repairedNodeSchema = z.discriminatedUnion('component', [
+  repairedNodeBaseSchema.extend({
+    component: z.literal('Stack'),
+    spacing: z.enum(LIQUID_UI_SPACING).catch('sm'),
+    children: childrenSchema,
+  }),
+  repairedNodeBaseSchema.extend({
+    component: z.literal('Grid'),
+    columns: z.coerce.string().pipe(z.enum(LIQUID_UI_COLUMNS)).catch('1'),
+    gap: z.enum(LIQUID_UI_SPACING).catch('sm'),
+    children: childrenSchema,
+  }),
+  repairedNodeBaseSchema.extend({
+    component: z.literal('Row'),
+    gap: z.enum(LIQUID_UI_SPACING).catch('sm'),
+    align: z.enum(LIQUID_UI_ALIGNMENTS).catch('start'),
+    children: childrenSchema,
+  }),
+  repairedNodeBaseSchema.extend({
+    component: z.literal('Card'),
+    title: nullableStringSchema,
+    description: nullableStringSchema,
+    children: childrenSchema,
+  }),
+  repairedNodeBaseSchema.extend({
+    component: z.literal('Badge'),
+    variant: z.enum(BADGE_VARIANTS).catch('default'),
+    text: z.string(),
+  }),
+  repairedNodeBaseSchema.extend({
+    component: z.literal('Stat'),
+    label: z.string(),
+    value: z.string(),
+    caption: nullableStringSchema,
+    trend: z.enum(STAT_TRENDS).nullable().catch(null),
+  }),
+  repairedNodeBaseSchema.extend({ component: z.literal('KeyValue'), label: z.string(), value: z.string() }),
+  repairedNodeBaseSchema.extend({
+    component: z.literal('Text'),
+    text: z.string(),
+    variant: z.enum(TEXT_VARIANTS).catch('body'),
+  }),
+  repairedNodeBaseSchema.extend({ component: z.literal('Divider') }),
+  repairedNodeBaseSchema.extend({
+    component: z.literal('Chart'),
+    kind: z.enum(CHART_KINDS).catch('bar'),
+    title: nullableStringSchema,
+    labels: z.array(z.string()).catch([]),
+    datasets: z.array(z.json()).catch([]),
+  }),
+]);
 
-function stringOrNull(value: unknown): string | null {
-  return typeof value === 'string' ? value : null;
-}
+const repairableSpecSchema = z.object({ root: idSchema, nodes: z.array(z.json()) });
 
-function childrenOrEmpty(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((child): child is string => typeof child === 'string') : [];
-}
+export function repairLiquidUiSpec(input: JsonValue): LiquidUiSpec | null {
+  const parsed = parseLiquidUiSpec(input);
+  if (parsed.ok) return parsed.spec;
 
-function normalizeColumns(value: unknown): string {
-  const normalized = typeof value === 'number' ? String(value) : value;
-  return typeof normalized === 'string' && LIQUID_UI_COLUMNS.includes(normalized as LiquidUiColumn) ? normalized : '1';
-}
-
-function normalizeTrend(value: unknown): 'up' | 'down' | 'neutral' | null {
-  return typeof value === 'string' && STAT_TRENDS.includes(value as StatTrend) ? (value as StatTrend) : null;
-}
-
-function repairNode(node: unknown): JsonRecord | null {
-  if (!isObject(node) || typeof node.id !== 'string' || typeof node.component !== 'string') {
-    return null;
-  }
-
-  switch (node.component) {
-    case 'Stack':
-      return {
-        id: node.id,
-        component: 'Stack',
-        spacing: typeof node.spacing === 'string' ? node.spacing : 'sm',
-        children: childrenOrEmpty(node.children),
-      };
-    case 'Grid':
-      return {
-        id: node.id,
-        component: 'Grid',
-        columns: normalizeColumns(node.columns),
-        gap: typeof node.gap === 'string' ? node.gap : 'sm',
-        children: childrenOrEmpty(node.children),
-      };
-    case 'Row':
-      return {
-        id: node.id,
-        component: 'Row',
-        gap: typeof node.gap === 'string' ? node.gap : 'sm',
-        align: typeof node.align === 'string' ? node.align : 'start',
-        children: childrenOrEmpty(node.children),
-      };
-    case 'Card':
-      return {
-        id: node.id,
-        component: 'Card',
-        title: stringOrNull(node.title),
-        description: stringOrNull(node.description),
-        children: childrenOrEmpty(node.children),
-      };
-    case 'Badge':
-      return {
-        id: node.id,
-        component: 'Badge',
-        variant: typeof node.variant === 'string' ? node.variant : 'default',
-        text: node.text,
-      };
-    case 'Stat':
-      return {
-        id: node.id,
-        component: 'Stat',
-        label: node.label,
-        value: node.value,
-        caption: stringOrNull(node.caption),
-        trend: normalizeTrend(node.trend),
-      };
-    case 'KeyValue':
-      return { id: node.id, component: 'KeyValue', label: node.label, value: node.value };
-    case 'Text':
-      return {
-        id: node.id,
-        component: 'Text',
-        text: node.text,
-        variant: typeof node.variant === 'string' ? node.variant : 'body',
-      };
-    case 'Divider':
-      return { id: node.id, component: 'Divider' };
-    case 'Chart':
-      return {
-        id: node.id,
-        component: 'Chart',
-        kind: typeof node.kind === 'string' ? node.kind : 'bar',
-        title: stringOrNull(node.title),
-        labels: Array.isArray(node.labels) ? node.labels : [],
-        datasets: Array.isArray(node.datasets) ? node.datasets : [],
-      };
-    default:
-      return null;
-  }
-}
-
-export function repairLiquidUiSpec(input: unknown): LiquidUiSpec | null {
-  const json = z.json().safeParse(input);
-  if (json.success) {
-    const parsed = parseLiquidUiSpec(json.data);
-    if (parsed.ok) return parsed.spec;
-  }
-
-  if (!isObject(input) || typeof input.root !== 'string' || !Array.isArray(input.nodes)) {
-    return null;
-  }
+  const repairable = repairableSpecSchema.safeParse(input);
+  if (!repairable.success) return null;
 
   const repaired = {
-    root: input.root,
-    nodes: input.nodes.flatMap((node) => {
-      const repairedNode = repairNode(node);
-      return repairedNode ? [repairedNode] : [];
+    root: repairable.data.root,
+    nodes: repairable.data.nodes.flatMap((node) => {
+      const result = repairedNodeSchema.safeParse(node);
+      return result.success ? [result.data] : [];
     }),
   };
-
-  const repairedJson = z.json().safeParse(repaired);
-  if (!repairedJson.success) return null;
-  const repairedParsed = parseLiquidUiSpec(repairedJson.data);
+  const repairedParsed = parseLiquidUiSpec(repaired);
   return repairedParsed.ok ? repairedParsed.spec : null;
 }

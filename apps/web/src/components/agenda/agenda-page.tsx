@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import type { ColumnFiltersState } from '@tanstack/react-table';
 
-import type { AgendaItem, AgendaItemPriority, AgendaItemStatus } from '@stitch/shared/agenda/types';
+import type { AgendaItem, AgendaItemStatus } from '@stitch/shared/agenda/types';
 import { AGENDA_ITEM_PRIORITIES, AGENDA_ITEM_STATUSES } from '@stitch/shared/agenda/types';
 
 import { AgendaItemDetailSheet } from '@/components/agenda/agenda-item-detail';
@@ -32,6 +32,12 @@ import {
   useUpdateAgendaItem,
   useUpdateAgendaList,
 } from '@/lib/queries/agenda';
+
+function getFilterValue<T extends string>(filters: ColumnFiltersState, id: string, allowedValues: readonly T[]): T | undefined {
+  const value = filters.find((filter) => filter.id === id)?.value;
+  return allowedValues.find((allowedValue) => allowedValue === value);
+}
+
 export function AgendaPage({ listId }: { listId?: string }) {
   const navigate = useNavigate();
   const timeZone = useUserTimezone();
@@ -49,10 +55,8 @@ export function AgendaPage({ listId }: { listId?: string }) {
   const lists = listsData?.lists ?? [];
 
   const currentList = listId ? lists.find((l) => l.id === listId) : null;
-  const filterStatus = columnFilters.find((filter) => filter.id === 'status')?.value as AgendaItemStatus | undefined;
-  const filterPriority = columnFilters.find((filter) => filter.id === 'priority')?.value as
-    | AgendaItemPriority
-    | undefined;
+  const filterStatus = getFilterValue(columnFilters, 'status', AGENDA_ITEM_STATUSES);
+  const filterPriority = getFilterValue(columnFilters, 'priority', AGENDA_ITEM_PRIORITIES);
 
   const { data: itemsData, isLoading } = useQuery(
     agendaItemsQueryOptions({ page, pageSize, listId, status: filterStatus, priority: filterPriority }),

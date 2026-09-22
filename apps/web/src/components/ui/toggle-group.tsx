@@ -6,6 +6,8 @@ import * as React from 'react';
 
 import { toggleVariants } from '@/components/ui/toggle';
 
+type ToggleGroupStyle = React.CSSProperties & Record<'--gap', number>;
+
 const ToggleGroupContext = React.createContext<
   VariantProps<typeof toggleVariants> & { spacing?: number; orientation?: 'horizontal' | 'vertical' }
 >({ size: 'default', variant: 'default', spacing: 0, orientation: 'horizontal' });
@@ -21,6 +23,7 @@ function ToggleGroup({
 }: ToggleGroupPrimitive.Props &
   VariantProps<typeof toggleVariants> & { spacing?: number; orientation?: 'horizontal' | 'vertical' }) {
   const context = React.useMemo(() => ({ variant, size, spacing, orientation }), [variant, size, spacing, orientation]);
+  const style: ToggleGroupStyle = { '--gap': spacing };
 
   return (
     <ToggleGroupPrimitive
@@ -29,7 +32,7 @@ function ToggleGroup({
       data-size={size}
       data-spacing={spacing}
       data-orientation={orientation}
-      style={{ '--gap': spacing } as React.CSSProperties}
+      style={style}
       className={cn(
         'group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] rounded-lg data-[size=sm]:rounded-[min(var(--radius-md),10px)] data-vertical:flex-col data-vertical:items-stretch',
         className,

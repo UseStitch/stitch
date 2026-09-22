@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { useQuery } from '@tanstack/react-query';
+import { z } from 'zod';
 
 import type { DesktopNotificationEvent } from '@stitch/shared/ipc/types';
 
@@ -11,6 +12,21 @@ import { applyAppearanceMode, applyTheme, DEFAULT_THEME, getAppearanceMode, getT
 
 const EXIT_ANIMATION_MS = 220;
 const NOTIFICATION_HASH_PREFIX = '#/desktop-notifications?';
+const desktopNotificationSchema = z.object({
+  id: z.string(),
+  type: z.literal('meeting-detected'),
+  createdAt: z.number(),
+  autoDismissMs: z.number().nullable(),
+  payload: z.object({
+    key: z.string(),
+    platform: z.enum(['zoom', 'teams', 'slack', 'discord', 'google-meet']),
+    kind: z.enum(['desktop', 'browser']),
+    displayName: z.string(),
+    processNames: z.array(z.string()),
+    windowTitle: z.string().nullable(),
+    detectedAt: z.number(),
+  }),
+});
 
 function readInitialNotification(): DesktopNotificationEvent | null {
   if (!window.location.hash.startsWith(NOTIFICATION_HASH_PREFIX)) return null;
@@ -20,7 +36,8 @@ function readInitialNotification(): DesktopNotificationEvent | null {
   if (!value) return null;
 
   try {
-    return JSON.parse(value) as DesktopNotificationEvent;
+    const result = desktopNotificationSchema.safeParse(JSON.parse(value));
+    return result.success ? result.data : null;
   } catch {
     return null;
   }

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { z } from 'zod';
 
 import { AddCustomMcpServer } from './mcp-servers/add-custom-mcp-server';
 import { InstallRegistryMcpServer } from './mcp-servers/install-registry-mcp-server';
@@ -11,7 +12,7 @@ import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage } from '@/components/settings/settings-ui';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-type Tab = 'configured' | 'marketplace';
+const tabSchema = z.enum(['configured', 'marketplace']);
 
 export function McpServersSettings() {
   const page = SETTINGS_PAGE_BY_ID['mcp-servers'];
@@ -40,7 +41,10 @@ export function McpServersSettings() {
     <SettingPage title={page.title} description={page.description} icon={<Icon className="size-5" />}>
       <Tabs
         value={view.tab}
-        onValueChange={(tab) => setView({ type: 'home', tab: tab as Tab })}
+        onValueChange={(tab) => {
+          const parsedTab = tabSchema.safeParse(tab);
+          if (parsedTab.success) setView({ type: 'home', tab: parsedTab.data });
+        }}
         className="space-y-space-xl">
         <TabsList variant="line">
           <TabsTrigger value="configured">Configured</TabsTrigger>

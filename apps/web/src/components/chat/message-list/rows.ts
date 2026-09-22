@@ -1,5 +1,5 @@
 import { toUserFacingStreamError } from '@stitch/shared/chat/errors';
-import type { Message } from '@stitch/shared/chat/messages';
+import type { Message, StoredPart } from '@stitch/shared/chat/messages';
 
 import type { SessionStreamState } from '@/stores/stream-store';
 
@@ -99,10 +99,9 @@ export function estimateRowHeight(row: RowData): number {
   if (row.kind === 'streaming') return 60;
   if (row.kind === 'error') return 80;
 
-  const textContent = row.parts.reduce((acc, part) => {
-    if (part.type !== 'text-delta') return acc;
-    return acc + (part as { type: 'text-delta'; text: string }).text;
-  }, '');
+  const textContent = row.parts
+    .filter((part): part is Extract<StoredPart, { type: 'text-delta' }> => part.type === 'text-delta')
+    .reduce((text, part) => text + part.text, '');
 
   const charCount = textContent.length;
   const hasCodeBlocks = textContent.includes('```');

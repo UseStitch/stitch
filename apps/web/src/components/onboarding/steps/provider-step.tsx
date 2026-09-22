@@ -2,9 +2,10 @@ import { PlusIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useQuery } from '@tanstack/react-query';
+import { z } from 'zod';
 
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
-import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
+import { PROVIDER_IDS } from '@stitch/shared/providers/types';
 
 import { Icon } from '@/components/primitives/icon';
 import { Stack } from '@/components/primitives/stack';
@@ -19,8 +20,16 @@ type Props = { onConnected: () => void };
 
 type ProviderRowProps = { provider: ProviderSummary; onSelect: (provider: ProviderSummary) => void };
 
+const providerIdSchema = z.enum(PROVIDER_IDS);
+
+function getProviderMeta(providerId: string) {
+  const result = providerIdSchema.safeParse(providerId);
+  return result.success ? PROVIDER_META[result.data] : null;
+}
+
 function ProviderRow({ provider, onSelect }: ProviderRowProps) {
-  const meta = PROVIDER_META[provider.id as ProviderId];
+  const meta = getProviderMeta(provider.id);
+  if (!meta) return null;
   return (
     <div className="flex items-center justify-between border-b border-border-subtle px-space-xs py-space-l last:border-0">
       <div className="flex min-w-0 items-center gap-space-l">
@@ -57,9 +66,8 @@ export function ProviderStep({ onConnected }: Props) {
     if (!providers) return [];
     return providers.filter((provider) => {
       if (provider.enabled) return false;
-      if (!(PROVIDER_IDS as readonly string[]).includes(provider.id)) return false;
-      const meta = PROVIDER_META[provider.id as ProviderId];
-      return meta.authMethods.some((method) => method.enabled);
+      const meta = getProviderMeta(provider.id);
+      return meta?.authMethods.some((method) => method.enabled) ?? false;
     });
   })();
 
@@ -67,8 +75,8 @@ export function ProviderStep({ onConnected }: Props) {
     if (!search) return selectableProviders;
     const q = search.toLowerCase();
     return selectableProviders.filter((provider) => {
-      const meta = PROVIDER_META[provider.id as ProviderId];
-      return meta.displayName.toLowerCase().includes(q) || meta.description?.toLowerCase().includes(q);
+      const meta = getProviderMeta(provider.id);
+      return meta?.displayName.toLowerCase().includes(q) || meta?.description?.toLowerCase().includes(q);
     });
   })();
 

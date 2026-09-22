@@ -25,6 +25,10 @@ type EditorView = 'prompt' | 'preview' | 'schedule';
 
 type SubmitAction = 'create' | 'create-view' | 'save';
 
+type AutomationSubmitMeta = { action: SubmitAction };
+
+const INITIAL_SUBMIT_META: AutomationSubmitMeta = { action: 'save' };
+
 type AutomationDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -47,6 +51,7 @@ type AutomationDialogProps = {
 };
 
 type AutomationFormProps = Omit<AutomationDialogProps, 'open'>;
+type InitialFormState = { values: AutomationFormValues; editorView: EditorView };
 
 const automationSchema = z
   .object({
@@ -65,7 +70,7 @@ const automationSchema = z
 type AutomationFormValues = z.infer<typeof automationSchema>;
 
 function getInitialSelection(providerModels: ProviderModels[]): { providerId: string; modelId: string } | null {
-  const provider = providerModels[0] as ProviderModels | undefined;
+  const provider = providerModels.at(0);
   const model = provider?.models[0];
   if (!provider || !model) return null;
   return { providerId: provider.providerId, modelId: model.id };
@@ -82,7 +87,7 @@ function getInitialFormState(
   automation: Automation | undefined,
   prefill: GeneratedAutomationDraft | null | undefined,
   providerModels: ProviderModels[],
-): { values: AutomationFormValues; editorView: EditorView } {
+): InitialFormState {
   if (mode === 'edit' && automation) {
     const schedule = automation.schedule;
     return {
@@ -141,7 +146,7 @@ function AutomationForm({
 
   const form = useForm({
     defaultValues: initial.values,
-    onSubmitMeta: { action: 'save' as SubmitAction },
+    onSubmitMeta: INITIAL_SUBMIT_META,
     validators: { onMount: automationSchema, onChange: automationSchema },
     onSubmit: async ({ value, meta }) => {
       const schedule: AutomationSchedule | null = !value.isScheduled

@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import type { MailAccountId, MailLabelView } from '@stitch/shared/mail/types';
 
 export type LabelSection = 'categories' | 'markers' | 'custom';
@@ -24,7 +26,7 @@ export const SYSTEM_LABEL_ORDER = [
   'SPAM',
 ] as const;
 
-const SYSTEM_LABEL_NAMES: Record<string, string> = {
+const SYSTEM_LABEL_NAMES = {
   CATEGORY_FORUMS: 'Forums',
   CATEGORY_PERSONAL: 'Personal',
   CATEGORY_PROMOTIONS: 'Promotions',
@@ -40,7 +42,12 @@ const SYSTEM_LABEL_NAMES: Record<string, string> = {
   TRASH: 'Trash',
   UNREAD: 'Unread',
   YELLOW_STAR: 'Yellow Star',
-};
+} satisfies Record<string, string>;
+
+const collapsedLabelStateSchema = z.object({
+  labels: z.array(z.string()),
+  sections: z.array(z.enum(['categories', 'markers', 'custom'])),
+});
 
 export function titleCase(value: string): string {
   return value
@@ -55,7 +62,8 @@ export function getLabelParts(label: MailLabelView): string[] {
 
 export function getLabelDisplayName(label: MailLabelView): string {
   const normalized = label.providerLabelId.toUpperCase();
-  if (SYSTEM_LABEL_NAMES[normalized]) return SYSTEM_LABEL_NAMES[normalized];
+  const systemLabelName = Object.entries(SYSTEM_LABEL_NAMES).find(([labelId]) => labelId === normalized)?.[1];
+  if (systemLabelName) return systemLabelName;
 
   const parts = getLabelParts(label);
   return parts.at(-1) ?? titleCase(label.name);
@@ -65,21 +73,18 @@ function getCollapsedLabelStateKey(accountId: MailAccountId): string {
   return `${COLLAPSED_LABEL_STATE_KEY_PREFIX}.${accountId}`;
 }
 
-function isLabelSection(value: string): value is LabelSection {
-  return value === 'categories' || value === 'markers' || value === 'custom';
-}
-
 export function readCollapsedLabelState(accountId: MailAccountId): CollapsedLabelState {
   if (typeof window === 'undefined') return { labels: [], sections: [] };
 
   const stored = window.localStorage.getItem(getCollapsedLabelStateKey(accountId));
   if (!stored) return { labels: [], sections: [] };
 
-  const parsed = JSON.parse(stored) as Partial<CollapsedLabelState>;
-  return {
-    labels: Array.isArray(parsed.labels) ? parsed.labels.filter((value) => typeof value === 'string') : [],
-    sections: Array.isArray(parsed.sections) ? parsed.sections.filter(isLabelSection) : [],
-  };
+  try {
+    const parsed = collapsedLabelStateSchema.safeParse(JSON.parse(stored));
+    return parsed.success ? parsed.data : { labels: [], sections: [] };
+  } catch {
+    return { labels: [], sections: [] };
+  }
 }
 
 export function writeCollapsedLabelState(

@@ -53,7 +53,7 @@ interface MarkdownTextNode extends MarkdownNode {
 }
 
 /** Plain-text stand-ins used while streaming, when KaTeX is skipped for performance. */
-const STREAMING_LATEX_TEXT: Record<string, string> = { rightarrow: '\u2192' };
+const STREAMING_LATEX_TEXT = { rightarrow: '\u2192' };
 const LATEX_COMMAND_SPAN_REGEX = /\$\\{1,2}([a-zA-Z]+)\$/g;
 
 interface CodeBlockErrorBoundaryProps {
@@ -161,16 +161,10 @@ function extractFenceLanguage(className: string | undefined): SupportedLanguage 
 }
 
 function nodeToPlainText(node: React.ReactNode): string {
-  if (typeof node === 'string' || typeof node === 'number') {
-    return String(node);
-  }
-  if (Array.isArray(node)) {
-    return node.map((child) => nodeToPlainText(child)).join('');
-  }
   if (isValidElement<{ children?: React.ReactNode }>(node)) {
     return nodeToPlainText(node.props.children);
   }
-  return '';
+  return Children.toArray(node).map(String).join('');
 }
 
 function extractCodeBlock(children: React.ReactNode): { className: string | undefined; code: string } | null {
@@ -194,8 +188,8 @@ function splitLatexCommandSpans(node: MarkdownTextNode): MarkdownNode[] {
   for (const match of node.value.matchAll(LATEX_COMMAND_SPAN_REGEX)) {
     const index = match.index;
 
-    const streamingText = STREAMING_LATEX_TEXT[match[1] ?? ''] as string | undefined;
-    if (streamingText === undefined) continue;
+    if (match[1] !== 'rightarrow') continue;
+    const streamingText = STREAMING_LATEX_TEXT.rightarrow;
 
     if (index > lastIndex) {
       nodes.push({ type: 'text', value: node.value.slice(lastIndex, index) });
@@ -225,8 +219,8 @@ function transformLatexCommandTextNodes(node: MarkdownNode) {
 
   const transformedChildren: MarkdownNode[] = [];
   for (const child of node.children) {
-    if (child.type === 'text' && typeof child.value === 'string') {
-      transformedChildren.push(...splitLatexCommandSpans(child as MarkdownTextNode));
+    if (isMarkdownTextNode(child)) {
+      transformedChildren.push(...splitLatexCommandSpans(child));
       continue;
     }
 
@@ -235,6 +229,10 @@ function transformLatexCommandTextNodes(node: MarkdownNode) {
   }
 
   node.children = transformedChildren;
+}
+
+function isMarkdownTextNode(node: MarkdownNode): node is MarkdownTextNode {
+  return node.type === 'text' && node.value !== undefined;
 }
 
 function MarkdownAnchor({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {

@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { useParams } from '@tanstack/react-router';
 
-import { PrefixedString } from '@stitch/shared/id';
+import { isIdOfType } from '@stitch/shared/id';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -33,8 +33,8 @@ function RenameSessionForm({ sessionId, onClose }: { sessionId: string | undefin
   const [title, setTitle] = React.useState('');
 
   const handleRename = async () => {
-    if (!title.trim() || !sessionId) return;
-    await renameMutation.mutateAsync({ sessionId: sessionId as PrefixedString<'ses'>, title: title.trim() });
+    if (!title.trim() || !sessionId || !isIdOfType(sessionId, 'ses')) return;
+    await renameMutation.mutateAsync({ sessionId, title: title.trim() });
     onClose();
   };
 

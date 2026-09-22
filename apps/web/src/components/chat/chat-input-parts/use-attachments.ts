@@ -2,24 +2,24 @@ import * as React from 'react';
 
 import type { Attachment } from './types';
 
-type ElectronFile = File & { path?: string };
+type ElectronFilePath = { path?: string };
 
 const previewUrls = new Map<string, string>();
 
 function mimeToExt(mime: string): string {
-  const map: Record<string, string> = {
-    'image/png': 'png',
-    'image/jpeg': 'jpg',
-    'image/gif': 'gif',
-    'image/webp': 'webp',
-    'image/svg+xml': 'svg',
-    'image/bmp': 'bmp',
-  };
-  return map[mime] ?? 'bin';
+  const extensions = new Map([
+    ['image/png', 'png'],
+    ['image/jpeg', 'jpg'],
+    ['image/gif', 'gif'],
+    ['image/webp', 'webp'],
+    ['image/svg+xml', 'svg'],
+    ['image/bmp', 'bmp'],
+  ]);
+  return extensions.get(mime) ?? 'bin';
 }
 
 async function fileToAttachment(file: File): Promise<Attachment | null> {
-  const electronFile = file as ElectronFile;
+  const electronFile: ElectronFilePath = { path: Object.getOwnPropertyDescriptor(file, 'path')?.value };
   const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   if (electronFile.path && electronFile.path.length > 0) {
@@ -130,7 +130,7 @@ export function useAttachments(options: UseAttachmentsOptions) {
   };
 
   const handleDragLeave = (event: React.DragEvent) => {
-    if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+    if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) {
       setIsDragging(false);
     }
   };

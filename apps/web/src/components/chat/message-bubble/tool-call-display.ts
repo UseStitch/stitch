@@ -1,5 +1,8 @@
+import { z } from 'zod';
+
 import type { StoredPart } from '@stitch/shared/chat/messages';
 import type { ToolCallStatus } from '@stitch/shared/chat/stream-events';
+import type { JsonValue } from '@stitch/shared/json';
 import { LIQUID_UI_TOOL_NAME } from '@stitch/shared/liquid-ui/constants';
 import { parseMcpToolName } from '@stitch/shared/mcp/types';
 import { getToolFailureMessage } from '@stitch/shared/tools/types';
@@ -21,8 +24,8 @@ export type ToolCallDisplayItem = {
   id: string;
   toolName: string;
   status: ToolCallStatus;
-  args?: unknown;
-  result?: unknown;
+  args?: JsonValue;
+  result?: JsonValue;
   error?: string;
 };
 
@@ -37,7 +40,24 @@ export type ToolCallSummary = {
 
 export type ToolCallAction = { type: 'open-child-session'; sessionId: string };
 
-type StoredToolResult = StoredPart & { type: 'tool-result' };
+type StoredToolResult = Extract<StoredPart, { type: 'tool-result' }>;
+type ToolPayload = JsonValue | undefined;
+
+type StreamingToolCallInput = Extract<StreamingPart, { type: 'tool-call' }>['input'];
+
+const jsonValueSchema = z.json();
+const childSessionResultSchema = z.looseObject({
+  childSessionId: z.string().optional(),
+  details: z.looseObject({ childSessionId: z.string().optional() }).optional(),
+});
+const jsonObjectSchema = z.record(z.string(), z.json());
+const stringValueSchema = z.string();
+const toolMetadataSchema = z.looseObject({ metadata: z.looseObject({ exit: z.number().optional() }).optional() });
+
+function parseToolPayload(value: StreamingToolCallInput): ToolPayload {
+  const result = jsonValueSchema.safeParse(value);
+  return result.success ? result.data : undefined;
+}
 
 export function buildStoredToolCallDisplayItems(
   parts: StoredPart[],
@@ -48,7 +68,7 @@ export function buildStoredToolCallDisplayItems(
     if (!isVisibleStoredToolCallPart(part)) return acc;
 
     const result = resultsByCallId.get(part.toolCallId);
-    const output = result && 'output' in result ? result.output : undefined;
+    const output = parseToolPayload(result?.output);
     const failureMessage = getToolFailureMessage(output);
     const missingResult = !result;
     const status = missingResult || failureMessage !== null ? 'error' : 'completed';
@@ -64,7 +84,7 @@ export function buildStoredToolCallDisplayItems(
       id: part.toolCallId,
       toolName: part.toolName,
       status,
-      args: part.input,
+      args: parseToolPayload(part.input),
       result: output,
       error: toolError,
     });
@@ -85,8 +105,8 @@ export function buildStreamingToolCallDisplayItems(
         id: part.toolCallId,
         toolName: part.toolName,
         status: part.status,
-        args: part.input,
-        result: part.output,
+        args: parseToolPayload(part.input),
+        result: parseToolPayload(part.output),
         error: part.error ?? undefined,
       },
     ];
@@ -119,15 +139,10 @@ function isHiddenToolCall(toolName: string): boolean {
   return toolName === 'todo' || toolName === LIQUID_UI_TOOL_NAME;
 }
 
-export function getChildSessionId(result: unknown): string | null {
-  if (!result || typeof result !== 'object') return null;
-  const record = result as Record<string, unknown>;
-  const id = record.childSessionId;
-  if (typeof id === 'string') return id;
-
-  if (!record.details || typeof record.details !== 'object') return null;
-  const detailsId = (record.details as Record<string, unknown>).childSessionId;
-  return typeof detailsId === 'string' ? detailsId : null;
+export function getChildSessionId(result: ToolPayload): string | null {
+  const parsed = childSessionResultSchema.safeParse(result);
+  if (!parsed.success) return null;
+  return parsed.data.childSessionId ?? parsed.data.details?.childSessionId ?? null;
 }
 
 function getToolKind(toolName: string): ToolIconKind {
@@ -150,7 +165,7 @@ function getToolLabel(toolName: string, displayName: string, kind: ToolIconKind)
 function getConnectorIconSlug(toolName: string): string | null {
   const service = toolName.split('_', 1).at(0);
   if (!service) return null;
-  return GOOGLE_SERVICE_ICON_SLUGS[service as keyof typeof GOOGLE_SERVICE_ICON_SLUGS] ?? null;
+  return Object.entries(GOOGLE_SERVICE_ICON_SLUGS).find(([name]) => name === service)?.[1] ?? null;
 }
 
 function getToolPreview(call: ToolCallDisplayItem, kind: ToolIconKind): string {
@@ -272,9 +287,10 @@ function isToolsetTool(toolName: string): boolean {
   return toolName === 'list_toolsets' || toolName === 'activate_toolset' || toolName === 'deactivate_toolset';
 }
 
-function getArrayLength(value: unknown, key: string): number | null {
-  if (!value || typeof value !== 'object') return null;
-  const raw = (value as Record<string, unknown>)[key];
+function getArrayLength(value: ToolPayload, key: string): number | null {
+  const parsed = jsonObjectSchema.safeParse(value);
+  if (!parsed.success) return null;
+  const raw = parsed.data[key];
   return Array.isArray(raw) ? raw.length : null;
 }
 
@@ -285,26 +301,29 @@ function getToolMeta(call: ToolCallDisplayItem): string | undefined {
     return getStringArg(call.args, ['name', 'skill']) ?? undefined;
   }
 
-  const exitCode = (call.result as { metadata?: { exit?: unknown } } | undefined)?.metadata?.exit;
-  if (typeof exitCode === 'number' && exitCode !== 0) return `exit ${exitCode}`;
+  const result = toolMetadataSchema.safeParse(call.result);
+  const exitCode = result.success ? result.data.metadata?.exit : undefined;
+  if (exitCode !== undefined && exitCode !== 0) return `exit ${exitCode}`;
 
   const usedAccount = getStringArg(call.args, ['account']) ?? getStringArg(call.result, ['usedAccount', 'account']);
   return usedAccount ?? undefined;
 }
 
-function getBestGenericPreview(args: unknown, result: unknown): string | null {
+function getBestGenericPreview(args: ToolPayload, result: ToolPayload): string | null {
   return (
     getStringArg(args, ['description', 'query', 'title', 'name', 'id']) ?? getStringArg(result, ['title', 'name', 'id'])
   );
 }
 
-function getStringArg(value: unknown, keys: string[]): string | null {
-  if (!value || typeof value !== 'object') return null;
-  const record = value as Record<string, unknown>;
+function getStringArg(value: ToolPayload, keys: string[]): string | null {
+  const result = jsonObjectSchema.safeParse(value);
+  if (!result.success) return null;
+  const record = result.data;
 
   for (const key of keys) {
     const raw = record[key];
-    if (typeof raw === 'string' && raw.trim().length > 0) return truncateText(raw.trim(), 120);
+    const parsed = stringValueSchema.safeParse(raw);
+    if (parsed.success && parsed.data.trim().length > 0) return truncateText(parsed.data.trim(), 120);
   }
 
   return null;

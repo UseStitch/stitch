@@ -6,7 +6,7 @@ import { useSuspenseInfiniteQuery, useSuspenseQuery } from '@tanstack/react-quer
 import { useNavigate } from '@tanstack/react-router';
 
 import { extractTextFromParts } from '@stitch/shared/chat/messages';
-import { createMessageId, type PrefixedString } from '@stitch/shared/id';
+import { createMessageId, isIdOfType } from '@stitch/shared/id';
 
 import { ChatInput } from '@/components/chat/chat-input';
 import type { Attachment } from '@/components/chat/chat-input-parts/types';
@@ -83,13 +83,13 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
   })();
 
   const submitTextMessage = async (text: string) => {
-    if (!selectedModel || !canSend) return;
+    if (!selectedModel || !canSend || !isIdOfType(id, 'ses')) return;
 
     const assistantMessageId = createMessageId();
     startStream(id, assistantMessageId);
 
     await sendMessage.mutateAsync({
-      sessionId: id as PrefixedString<'ses'>,
+      sessionId: id,
       content: text,
       providerId: selectedModel.providerId,
       modelId: selectedModel.modelId,
@@ -107,7 +107,7 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
   });
 
   async function handleSubmit(text: string, attachments: Attachment[]) {
-    if ((!text.trim() && attachments.length === 0) || !selectedModel) return;
+    if ((!text.trim() && attachments.length === 0) || !selectedModel || !isIdOfType(id, 'ses')) return;
     if (!canSend) return;
 
     if (!editingMessage && attachments.length === 0 && slashCommands.tryRun(text)) {
@@ -123,7 +123,7 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
 
       try {
         await redoMessage.mutateAsync({
-          sessionId: id as PrefixedString<'ses'>,
+          sessionId: id,
           editedMessageId: editingMessage.id,
           content: text,
           attachments: attachments.map((a) => ({
@@ -155,7 +155,7 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
     startStream(id, assistantMessageId);
 
     await sendMessage.mutateAsync({
-      sessionId: id as PrefixedString<'ses'>,
+      sessionId: id,
       content: text,
       attachments: attachments.map((a) => ({
         path: a.path,
@@ -170,9 +170,11 @@ export function SessionChatPane({ sessionId, onGenerateAutomation }: SessionChat
   }
 
   async function handleSplit(msgId: string) {
+    if (!isIdOfType(id, 'ses') || !isIdOfType(msgId, 'msg')) return;
+
     const result = await splitSession.mutateAsync({
-      sessionId: id as PrefixedString<'ses'>,
-      msgId: msgId as PrefixedString<'msg'>,
+      sessionId: id,
+      msgId,
     });
     setNextSessionInputSeed(result.prefillText);
     void navigate({ to: '/session/$id', params: { id: result.session.id }, viewTransition: true });

@@ -1,8 +1,14 @@
+import { z } from 'zod';
+
+import type { JsonObject } from '@stitch/shared/json';
 import type { FieldDef } from '@stitch/shared/providers/types';
 
 export type FieldValues = Record<string, string>;
 
 type ProviderAuthMethod = { method: string; fields: FieldDef[] };
+
+const providerConfigSchema = z.record(z.string(), z.union([z.string(), z.record(z.string(), z.string())]));
+const authConfigSchema = z.object({ method: z.string() }).catchall(z.string());
 
 export function resolveDefaultAuthMethod(
   existingMethod: string | undefined,
@@ -19,29 +25,32 @@ export function resolveDefaultAuthMethod(
 }
 
 export function hydrateProviderConfigState(
-  existingConfig: Record<string, unknown> | undefined,
+  existingConfig: JsonObject | undefined,
   enabledAuthMethods: ProviderAuthMethod[],
-): { activeMethod: string | null; authFields: FieldValues; extraFields: FieldValues } {
+): ProviderConfigState {
   if (!existingConfig) {
     return { activeMethod: null, authFields: {}, extraFields: {} };
   }
 
-  const method = (existingConfig.auth as { method?: string } | undefined)?.method;
+  const parsedConfig = providerConfigSchema.safeParse(existingConfig);
+  if (!parsedConfig.success) return { activeMethod: null, authFields: {}, extraFields: {} };
 
+  const parsedAuth = authConfigSchema.safeParse(parsedConfig.data.auth);
+  const method = parsedAuth.success ? parsedAuth.data.method : undefined;
   const authFields: FieldValues = {};
-  const auth = existingConfig.auth as Record<string, unknown> | undefined;
-  if (auth) {
-    for (const [key, value] of Object.entries(auth)) {
-      if (key !== 'method' && typeof value === 'string') {
+  if (parsedAuth.success) {
+    for (const [key, value] of Object.entries(parsedAuth.data)) {
+      if (key !== 'method') {
         authFields[key] = value;
       }
     }
   }
 
   const extraFields: FieldValues = {};
-  for (const [key, value] of Object.entries(existingConfig)) {
-    if (key !== 'auth' && key !== 'providerId' && typeof value === 'string') {
-      extraFields[key] = value;
+  for (const [key, value] of Object.entries(parsedConfig.data)) {
+    const parsedValue = z.string().safeParse(value);
+    if (key !== 'auth' && key !== 'providerId' && parsedValue.success) {
+      extraFields[key] = parsedValue.data;
     }
   }
 
@@ -62,26 +71,26 @@ export function buildProviderConfigBody({
   currentMethodFields: FieldValues;
   extraFields: FieldValues;
   extraFieldDefs: FieldDef[];
-}): Record<string, unknown> {
-  const auth: Record<string, unknown> = { method: activeTab };
+}): ProviderConfigBody {
   const methodDef = enabledAuthMethods.find((authMethod) => authMethod.method === activeTab);
-
-  if (methodDef) {
-    for (const field of methodDef.fields) {
+  const authFields: FieldValues = Object.fromEntries(
+    (methodDef?.fields ?? []).flatMap((field): [string, string][] => {
       const value = currentMethodFields[field.key];
-      if (value) {
-        auth[field.key] = value;
-      }
-    }
-  }
+      return value ? [[field.key, value]] : [];
+    }),
+  );
+  const configuredExtraFields: FieldValues = Object.fromEntries(
+    extraFieldDefs.flatMap((field): [string, string][] => {
+      const value = extraFields[field.key];
+      return value ? [[field.key, value]] : [];
+    }),
+  );
 
-  const body: Record<string, unknown> = { auth };
-  for (const field of extraFieldDefs) {
-    const value = extraFields[field.key];
-    if (value) {
-      body[field.key] = value;
-    }
-  }
-
-  return body;
+  return { auth: { method: activeTab, ...authFields }, ...configuredExtraFields };
 }
+
+export type ProviderConfigState = { activeMethod: string | null; authFields: FieldValues; extraFields: FieldValues };
+export type ProviderConfigBody = { auth: { method: string } & FieldValues } & Record<
+  string,
+  string | Record<string, string>
+>;

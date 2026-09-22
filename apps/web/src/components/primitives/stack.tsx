@@ -12,7 +12,7 @@ import {
   stackWidthVariants,
   stackWrapVariants,
 } from '@/styles/tokens';
-import type { ComponentPropsWithRef, ElementType } from 'react';
+import { createElement, type ComponentPropsWithRef, type ElementType } from 'react';
 
 const stackVariants = cva('flex', {
   variants: {
@@ -61,13 +61,11 @@ function Stack<T extends StackElement = 'div'>({
   overflow,
   ...props
 }: StackProps<T>) {
-  const Component = (as ?? 'div') as ElementType;
-  return (
-    <Component
-      className={stackVariants({ direction, gap, align, justify, padding, wrap, grow, width, height, overflow })}
-      {...props}
-    />
-  );
+  const Component: ElementType = as ?? 'div';
+  return createElement(Component, {
+    className: stackVariants({ direction, gap, align, justify, padding, wrap, grow, width, height, overflow }),
+    ...props,
+  });
 }
 
 export { Stack };

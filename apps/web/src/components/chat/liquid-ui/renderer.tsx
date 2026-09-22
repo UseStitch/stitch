@@ -1,6 +1,9 @@
 import * as React from 'react';
 
+import { z } from 'zod';
+
 import { liquidUiNodeSchema, type LiquidUiSpec } from '@stitch/shared/liquid-ui/schema';
+import type { JsonValue } from '@stitch/shared/json';
 
 import { renderLiquidUiNode } from './registry.js';
 import { repairLiquidUiSpec } from './repair.js';
@@ -34,23 +37,22 @@ class LiquidUiErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBou
   }
 }
 
-function isObject(input: unknown): input is Record<string, unknown> {
-  return input !== null && typeof input === 'object';
-}
+const salvageableSpecSchema = z.object({ root: z.string(), nodes: z.array(z.json()) });
 
-function salvageSpec(input: unknown): LiquidUiSpec | null {
-  if (!isObject(input) || typeof input.root !== 'string' || !Array.isArray(input.nodes)) return null;
+function salvageSpec(input: JsonValue): LiquidUiSpec | null {
+  const parsed = salvageableSpecSchema.safeParse(input);
+  if (!parsed.success) return null;
 
-  const nodes = input.nodes.flatMap((node) => {
+  const nodes = parsed.data.nodes.flatMap((node) => {
     const result = liquidUiNodeSchema.safeParse(node);
     return result.success ? [result.data] : [];
   });
-  if (!nodes.some((node) => node.id === input.root)) return null;
+  if (!nodes.some((node) => node.id === parsed.data.root)) return null;
 
-  return { root: input.root, nodes };
+  return { root: parsed.data.root, nodes };
 }
 
-function toRenderableSpec(input: unknown): LiquidUiSpec | null {
+function toRenderableSpec(input: JsonValue): LiquidUiSpec | null {
   const repaired = repairLiquidUiSpec(input);
   if (repaired) return repaired;
   return salvageSpec(input);
@@ -85,7 +87,10 @@ function LiquidUiTree({ spec }: { spec: LiquidUiSpec }) {
 }
 
 export function LiquidUi({ spec }: LiquidUiProps) {
-  const renderableSpec = toRenderableSpec(spec);
+  const json = z.json().safeParse(spec);
+  if (!json.success) return null;
+
+  const renderableSpec = toRenderableSpec(json.data);
 
   if (!renderableSpec) return null;
 

@@ -10,7 +10,6 @@ import {
   isLocalProviderId,
   type FieldDef,
   type LocalProviderId,
-  type ProviderId,
 } from '@stitch/shared/providers/types';
 import { validateBaseURL } from '@stitch/shared/providers/validation';
 
@@ -47,6 +46,7 @@ type Props = {
 };
 
 type ProviderFormState = { fieldsByMethod: Record<string, FieldValues>; extraFields: FieldValues };
+const providerIdSchema = z.enum(PROVIDER_IDS);
 
 const EMPTY_PROVIDER_FORM: ProviderFormState = { fieldsByMethod: {}, extraFields: {} };
 
@@ -130,15 +130,14 @@ function NoFieldsNote({ method }: { method: string }) {
 }
 
 export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, showDisconnect = true }: Props) {
-  const meta = (PROVIDER_IDS as readonly string[]).includes(provider.id)
-    ? PROVIDER_META[provider.id as ProviderId]
-    : undefined;
+  const parsedProviderId = providerIdSchema.safeParse(provider.id);
+  const meta = parsedProviderId.success ? PROVIDER_META[parsedProviderId.data] : undefined;
   const enabledAuthMethods = React.useMemo(() => meta?.authMethods.filter((method) => method.enabled) ?? [], [meta]);
   const queryClient = useQueryClient();
   const { data: existingConfig } = useQuery({ ...providerConfigQueryOptions(provider.id), enabled: provider.enabled });
 
-  const existingMethod = (existingConfig?.auth as { method?: string } | undefined)?.method;
-  const defaultMethod = resolveDefaultAuthMethod(existingMethod, enabledAuthMethods);
+  const hydratedConfig = hydrateProviderConfigState(existingConfig ?? undefined, enabledAuthMethods);
+  const defaultMethod = resolveDefaultAuthMethod(hydratedConfig.activeMethod ?? undefined, enabledAuthMethods);
 
   const [activeTab, setActiveTab] = React.useState(defaultMethod);
   const hydrationRef = React.useRef<{ providerId: string; enabled: boolean; hydrated: boolean } | null>(null);
@@ -204,9 +203,7 @@ export function ProviderConfig({ provider, onBack, saveLabel = 'Save', onSaved, 
 
     if (hydrationRef.current?.hydrated || existingConfig === undefined) return;
 
-    const hydrated = existingConfig
-      ? hydrateProviderConfigState(existingConfig as Record<string, unknown>, enabledAuthMethods)
-      : null;
+    const hydrated = existingConfig ? hydrateProviderConfigState(existingConfig, enabledAuthMethods) : null;
     const activeMethod = hydrated?.activeMethod ?? defaultMethod;
     setActiveTab(activeMethod);
     formRef.current.reset({

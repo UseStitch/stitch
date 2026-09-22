@@ -30,7 +30,7 @@ type AutomationsTableProps = {
   onDelete: (automation: Automation) => void;
 };
 
-type AutomationsTableMeta = {
+type AutomationsTableColumnsProps = {
   modelLabelByKey: Map<string, string>;
   runPending: boolean;
   deletePending: boolean;
@@ -41,7 +41,8 @@ type AutomationsTableMeta = {
 
 const columnHelper = createAppColumnHelper<Automation>();
 
-const columns = columnHelper.columns([
+function getColumns({ modelLabelByKey, runPending, deletePending, onRun, onEdit, onDelete }: AutomationsTableColumnsProps) {
+  return columnHelper.columns([
   columnHelper.accessor('title', {
     header: 'Title',
     cell: ({ row }) => (
@@ -58,8 +59,7 @@ const columns = columnHelper.columns([
   columnHelper.display({
     id: 'model',
     header: 'Model',
-    cell: ({ row, table }) => {
-      const { modelLabelByKey } = table.options.meta as AutomationsTableMeta;
+    cell: ({ row }) => {
       const automation = row.original;
       const label = modelLabelByKey.get(`${automation.providerId}:${automation.modelId}`) ?? automation.modelId;
       return <Table.Badge>{label}</Table.Badge>;
@@ -75,8 +75,7 @@ const columns = columnHelper.columns([
   columnHelper.display({
     id: 'actions',
     header: '',
-    cell: ({ row, table }) => {
-      const { runPending, deletePending, onRun, onEdit, onDelete } = table.options.meta as AutomationsTableMeta;
+    cell: ({ row }) => {
       return (
         <Table.Actions>
           <Button
@@ -106,7 +105,8 @@ const columns = columnHelper.columns([
       );
     },
   }),
-]);
+  ]);
+}
 
 export function AutomationsTable({
   automations,
@@ -131,6 +131,7 @@ export function AutomationsTable({
     }
     return map;
   })();
+  const columns = getColumns({ modelLabelByKey, runPending, deletePending, onRun, onEdit, onDelete });
 
   const table = useAppTable({
     data: automations,
@@ -140,7 +141,6 @@ export function AutomationsTable({
     manualSorting: true,
     enableMultiSort: false,
     enableSortingRemoval: false,
-    meta: { modelLabelByKey, runPending, deletePending, onRun, onEdit, onDelete },
   });
 
   return (

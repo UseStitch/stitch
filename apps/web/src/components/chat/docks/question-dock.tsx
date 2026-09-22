@@ -17,7 +17,7 @@ type QuestionDockProps = {
 };
 
 function emptyAnswers(items: QuestionRequest['questions']) {
-  return items.map(() => [] as string[]);
+  return items.map<string[]>(() => []);
 }
 
 function emptyText(items: QuestionRequest['questions']) {

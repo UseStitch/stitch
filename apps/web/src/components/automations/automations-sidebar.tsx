@@ -24,7 +24,7 @@ export function AutomationsSidebarContent() {
     isLoading: isFetchingNextPage,
     onLoadMore: () => void fetchNextPage(),
   });
-  const selectedAutomationId = typeof params.automationId === 'string' ? params.automationId : null;
+  const selectedAutomationId = params.automationId ?? null;
 
   return (
     <>

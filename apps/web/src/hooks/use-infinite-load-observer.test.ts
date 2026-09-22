@@ -31,15 +31,20 @@ class FakeIntersectionObserver {
 }
 
 const OriginalIntersectionObserver = globalThis.IntersectionObserver;
+// No DOM in bun test: the observer is faked, so a stub stands in for the sentinel element.
+// SAFETY: the fake observer only stores the reference; no DOM APIs are ever called on it.
 const node = {} as Element;
 
 beforeEach(() => {
   FakeIntersectionObserver.instances = [];
-  globalThis.IntersectionObserver = FakeIntersectionObserver as unknown as typeof IntersectionObserver;
+  Object.defineProperty(globalThis, 'IntersectionObserver', { configurable: true, value: FakeIntersectionObserver });
 });
 
 afterEach(() => {
-  globalThis.IntersectionObserver = OriginalIntersectionObserver;
+  Object.defineProperty(globalThis, 'IntersectionObserver', {
+    configurable: true,
+    value: OriginalIntersectionObserver,
+  });
 });
 
 describe('watchInfiniteLoad', () => {

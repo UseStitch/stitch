@@ -8,7 +8,8 @@ import type { Options as SanitizeSchema } from 'rehype-sanitize';
  * rehype-katex, which means the classes remark-math emits must survive the pass.
  */
 
-const defaultAttributes = defaultSchema.attributes ?? {};
+const defaultAttributes: Record<string, NonNullable<NonNullable<SanitizeSchema['attributes']>[string]> | undefined> =
+  defaultSchema.attributes ?? {};
 
 export const markdownSanitizeSchema: SanitizeSchema = {
   ...defaultSchema,
@@ -16,12 +17,9 @@ export const markdownSanitizeSchema: SanitizeSchema = {
   tagNames: [...(defaultSchema.tagNames ?? []), 'abbr', 'mark', 'small', 'u'],
   attributes: {
     ...defaultAttributes,
-    blockquote: [...defaultAttributes.blockquote, ['className', /^markdown-callout(?:-|$)/]],
+    blockquote: [...(defaultAttributes.blockquote ?? []), ['className', /^markdown-callout(?:-|$)/]],
     // `math-inline`/`math-display` are how rehype-katex finds math to render.
     code: [['className', /^language-./, 'math-inline', 'math-display']],
-    p: [
-      ...defaultAttributes.p,
-      ['className', 'markdown-callout-title'],
-    ],
+    p: [...(defaultAttributes.p ?? []), ['className', 'markdown-callout-title']],
   },
 };

@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
+import type { DesktopUpdaterState } from '@/lib/api';
 import { sttProviderModelsQueryOptions, visibleProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { deleteSettingMutationOptions, saveSettingMutationOptions, settingsQueryOptions } from '@/lib/queries/settings';
 import { getClientTelemetryState, setClientTelemetryEnabled } from '@/lib/telemetry/client';
@@ -151,7 +152,8 @@ export function GeneralSettings() {
   );
 }
 
-const UPDATER_STATUS_LABELS: Record<string, string> = {
+const UPDATER_STATUS_LABELS: Record<Exclude<DesktopUpdaterState['status'] | 'installing', 'downloading'>, string> = {
+  idle: 'Check for updates manually.',
   checking: 'Checking for updates...',
   available: 'Update available. Downloading in background...',
   downloaded: 'Update ready. Restart Stitch to install.',
@@ -160,11 +162,11 @@ const UPDATER_STATUS_LABELS: Record<string, string> = {
   installing: 'Installing update and restarting...',
 };
 
-function updaterStatusLabel(status: string, progress?: number): string {
+function updaterStatusLabel(status: DesktopUpdaterState['status'] | 'installing', progress?: number): string {
   if (status === 'downloading') {
     return `Downloading update${progress ? ` (${Math.round(progress)}%)` : '...'}`;
   }
-  return UPDATER_STATUS_LABELS[status] ?? 'Check for updates manually.';
+  return UPDATER_STATUS_LABELS[status];
 }
 
 function AutoUpdatesContent() {

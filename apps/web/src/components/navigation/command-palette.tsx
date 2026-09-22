@@ -47,18 +47,13 @@ export function CommandPalette({ actions }: CommandPaletteProps) {
 
                 const info = shortcuts.get(action.id);
                 const hotkey = info?.hotkey ?? null;
-                const isLeaderShortcut = typeof hotkey === 'string' && hotkey.startsWith('LEADER+');
-                const leaderSuffix = isLeaderShortcut ? hotkey.slice('LEADER+'.length) : null;
+                const leaderSuffix = hotkey?.startsWith('LEADER+') ? hotkey.slice('LEADER+'.length) : null;
+                const isLeaderShortcut = leaderSuffix !== null;
                 const keyItems = toKeyItems(
                   hotkey === null
                     ? []
                     : isLeaderShortcut
-                      ? [
-                          'Leader',
-                          ...formatForDisplay(leaderSuffix ?? '')
-                            .split('+')
-                            .filter(Boolean),
-                        ]
+                      ? ['Leader', ...formatForDisplay(leaderSuffix).split('+').filter(Boolean)]
                       : info?.isSequence
                         ? [...formatForDisplay(hotkey).split('+'), ...formatForDisplay(hotkey).split('+')]
                         : formatForDisplay(hotkey).split('+'),

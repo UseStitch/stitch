@@ -1,4 +1,5 @@
 import type { LiquidUiSpec } from '@stitch/shared/liquid-ui/schema';
+import { z } from 'zod';
 
 import { repairLiquidUiSpec } from './repair.js';
 
@@ -21,7 +22,8 @@ export function parseInlineLiquidUiText(text: string): InlineLiquidUiSegment[] |
     }
 
     try {
-      const spec = repairLiquidUiSpec(JSON.parse(jsonText));
+      const json = z.json().parse(JSON.parse(jsonText));
+      const spec = repairLiquidUiSpec(json);
       if (!spec) return null;
       segments.push({ type: 'liquid-ui', spec });
     } catch {

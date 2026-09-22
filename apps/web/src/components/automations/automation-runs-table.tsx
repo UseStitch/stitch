@@ -12,11 +12,10 @@ import { createAppColumnHelper, useAppTable } from '@/hooks/table-hook';
 
 type AutomationRunsTableProps = { sessions: Session[]; onOpen: (sessionId: string) => void };
 
-type AutomationRunsTableMeta = { onOpen: (sessionId: string) => void };
-
 const columnHelper = createAppColumnHelper<Session>();
 
-const columns = columnHelper.columns([
+function getColumns(onOpen: (sessionId: string) => void) {
+  return columnHelper.columns([
   columnHelper.accessor('title', {
     header: 'Run',
     cell: ({ row }) => <Table.Title>{row.original.title ?? 'Untitled run'}</Table.Title>,
@@ -26,8 +25,7 @@ const columns = columnHelper.columns([
   columnHelper.display({
     id: 'actions',
     header: '',
-    cell: ({ row, table }) => {
-      const { onOpen } = table.options.meta as AutomationRunsTableMeta;
+    cell: ({ row }) => {
       return (
         <Table.Actions>
           <Button variant="outline" size="sm" onClick={() => onOpen(row.original.id)}>
@@ -38,17 +36,18 @@ const columns = columnHelper.columns([
       );
     },
   }),
-]);
+  ]);
+}
 
 export function AutomationRunsTable({ sessions, onOpen }: AutomationRunsTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'updatedAt', desc: true }]);
+  const columns = getColumns(onOpen);
 
   const table = useAppTable({
     data: sessions,
     columns,
     state: { sorting },
     onSortingChange: setSorting,
-    meta: { onOpen },
   });
 
   return (

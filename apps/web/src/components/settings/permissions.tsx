@@ -1,9 +1,8 @@
 import * as React from 'react';
 import { toast } from 'sonner';
+import { z } from 'zod';
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-
-import { SETTINGS_SCHEMAS } from '@stitch/shared/settings/types';
 
 import { PermissionPolicyEditor } from './permissions/permission-policy-editor';
 
@@ -38,6 +37,8 @@ import {
 
 type ScopeFilter = 'stitch' | 'native' | 'connectors' | 'mcp' | 'settings';
 type ToolsetDefaultScope = 'current_run' | 'ttl_turns' | 'until_deactivated';
+const scopeFilterSchema = z.enum(['stitch', 'native', 'connectors', 'mcp', 'settings']);
+const toolsetDefaultScopeSchema = z.enum(['current_run', 'ttl_turns', 'until_deactivated']);
 
 const DEFAULT_TOOLSET_SCOPE = 'ttl_turns' satisfies ToolsetDefaultScope;
 
@@ -53,10 +54,8 @@ function ToolsetActivationSettings() {
   const saveDefaultScope = useMutation(
     saveSettingMutationOptions('toolsets.defaultScope', queryClient, { silent: true }),
   );
-  const parsedDefaultScope = SETTINGS_SCHEMAS['toolsets.defaultScope'].safeParse(settings['toolsets.defaultScope']);
-  const defaultScope = parsedDefaultScope.success
-    ? (parsedDefaultScope.data as ToolsetDefaultScope)
-    : DEFAULT_TOOLSET_SCOPE;
+  const parsedDefaultScope = toolsetDefaultScopeSchema.safeParse(settings['toolsets.defaultScope']);
+  const defaultScope = parsedDefaultScope.success ? parsedDefaultScope.data : DEFAULT_TOOLSET_SCOPE;
   const selectedScopeLabel =
     TOOLSET_SCOPE_OPTIONS.find((option) => option.value === defaultScope)?.label ?? 'TTL turns';
 
@@ -170,7 +169,13 @@ export function ToolsSettings() {
           </div>
         )}
 
-        <Tabs value={scope} onValueChange={(value) => setScope(value as ScopeFilter)} className="space-y-space-xl">
+        <Tabs
+          value={scope}
+          onValueChange={(value) => {
+            const parsedScope = scopeFilterSchema.safeParse(value);
+            if (parsedScope.success) setScope(parsedScope.data);
+          }}
+          className="space-y-space-xl">
           <TabsList variant="line">
             <TabsTrigger value="stitch">Core tools</TabsTrigger>
             <TabsTrigger value="native">Native toolsets</TabsTrigger>

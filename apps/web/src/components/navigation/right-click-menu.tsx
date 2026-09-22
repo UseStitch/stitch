@@ -2,6 +2,7 @@ import { cn } from 'cnfast';
 import { BookPlus, Scissors, Copy, ClipboardPaste, Terminal, ChevronRight, SpellCheck } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useState, useRef, forwardRef } from 'react';
 import { createPortal } from 'react-dom';
+import { z } from 'zod';
 
 import { Icon } from '@/components/primitives/icon';
 import { Text } from '@/components/primitives/text';
@@ -20,6 +21,16 @@ interface MenuItemProps {
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
 }
+
+const contextMenuParamsSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  misspelledWord: z.string(),
+  dictionarySuggestions: z.array(z.string()),
+  selectionText: z.string(),
+  isEditable: z.boolean(),
+  editFlags: z.object({ canCut: z.boolean(), canCopy: z.boolean(), canPaste: z.boolean(), canSelectAll: z.boolean() }),
+});
 
 const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(function MenuItem(
   { onClick, children, className, hasSubmenu, onMouseEnter, onMouseLeave },
@@ -119,8 +130,11 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
 
   useEffect(() => {
     const unsub = window.electron?.subscribe('context-menu', (raw) => {
-      setParams(raw as ContextMenuParams);
-      setSpellingOpen(false);
+      const params = contextMenuParamsSchema.safeParse(raw);
+      if (params.success) {
+        setParams(params.data);
+        setSpellingOpen(false);
+      }
     });
     return unsub;
   }, []);
@@ -134,7 +148,8 @@ export function RightClickMenu({ children }: RightClickMenuProps) {
     if (!params) return;
 
     const handleMouseDown = (e: MouseEvent) => {
-      const target = e.target as Node;
+      const target = e.target;
+      if (!(target instanceof Node)) return;
       const inMenu = menuRef.current?.contains(target);
       const inSubmenu = submenuRef.current?.contains(target);
       if (!inMenu && !inSubmenu) {

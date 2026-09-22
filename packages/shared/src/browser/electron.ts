@@ -167,7 +167,7 @@ type _ActionsCoveredByResultMap = AssertExtends<
 
 import type { PrefixedString } from '../id/index.js';
 
-export type ElectronBrowserCommandMessage = {
+type ElectronBrowserCommandMessage = {
   id: string;
   type: 'browser:command';
   sessionId: PrefixedString<'ses'>;

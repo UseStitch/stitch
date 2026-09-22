@@ -10,12 +10,11 @@ import {
   encodeModelFilter,
   decodeModelFilter,
 } from '@/components/usage/utils/usage-dashboard-utils';
+import type { ModelOption } from './use-usage-dashboard-data';
 import { sttProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { sttUsageDashboardQueryOptions } from '@/lib/queries/usage';
 
 type SttProviderOption = { providerId: string; providerName: string };
-
-type SttModelOption = { label: string; providerId: string; providerName: string; modelId: string; modelName: string };
 
 export function useSttUsageDashboardData(rangeFilter: UsageDateRange) {
   const { data: sttProviderModels } = useSuspenseQuery(sttProviderModelsQueryOptions);
@@ -49,7 +48,7 @@ export function useSttUsageDashboardData(rangeFilter: UsageDateRange) {
     : ALL_FILTER;
 
   const usedModels = usageRangeData?.usedModels ?? [];
-  const availableModels = usedModels.reduce<SttModelOption[]>((acc, m) => {
+  const availableModels = usedModels.reduce<ModelOption[]>((acc, m) => {
     if (providerFilter !== ALL_FILTER && m.providerId !== providerFilter) return acc;
     const provider = providerById.get(m.providerId);
     const key = encodeModelFilter(m.providerId, m.modelId);

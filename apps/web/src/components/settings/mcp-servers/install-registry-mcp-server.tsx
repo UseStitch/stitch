@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { toast } from 'sonner';
+import { z } from 'zod';
 
 import { useForm, useSelector } from '@tanstack/react-form';
 
@@ -15,7 +16,6 @@ import {
   applyAuthConfigToForm,
   buildAuthConfig,
   describeAuthConfig,
-  type AddFormState,
 } from './shared';
 
 import { Text } from '@/components/primitives/text';
@@ -27,6 +27,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getErrorMessage } from '@/lib/errors';
 import { useAddMcpServer, useStartMcpAuth } from '@/lib/queries/mcp';
+
+const mcpAuthTypeSchema = z.enum(MCP_AUTH_TYPES);
 
 export function InstallRegistryMcpServer({
   server,
@@ -170,7 +172,10 @@ export function InstallRegistryMcpServer({
                   <Label className="text-xs font-medium text-muted-foreground">Authentication</Label>
                   <Select
                     value={field.state.value}
-                    onValueChange={(value) => field.handleChange(value as AddFormState['authType'])}>
+                    onValueChange={(value) => {
+                      const parsedValue = mcpAuthTypeSchema.safeParse(value);
+                      if (parsedValue.success) field.handleChange(parsedValue.data);
+                    }}>
                     <SelectTrigger className="w-full">
                       <SelectValue>{AUTH_TYPE_LABELS[field.state.value].label}</SelectValue>
                     </SelectTrigger>

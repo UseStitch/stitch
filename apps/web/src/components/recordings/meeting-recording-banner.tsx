@@ -21,16 +21,16 @@ import { sttProviderModelsQueryOptions } from '@/lib/queries/providers';
 import { activeRecordingQueryOptions, useStartRecording, useStopRecording } from '@/lib/queries/recordings';
 import { settingsQueryOptions } from '@/lib/queries/settings';
 
-const WARNING_LABELS: Record<string, string> = {
-  input_backpressure: 'Audio input is falling behind — some audio may be dropped.',
-  stream_callback_error: 'Audio stream encountered an error.',
-  resample_failed: 'Audio resampling failed.',
-  mic_stream_ended: 'Microphone stream ended — restarting audio capture.',
-  speaker_stream_ended: 'System audio stream ended — restarting audio capture.',
-  mic_resample_failed: 'Microphone resampling failed — restarting audio capture.',
-  speaker_resample_failed: 'System audio resampling failed — restarting audio capture.',
-  aec_resample_failed: 'Audio resampling failed — restarting audio capture.',
-};
+const WARNING_LABELS = new Map([
+  ['input_backpressure', 'Audio input is falling behind — some audio may be dropped.'],
+  ['stream_callback_error', 'Audio stream encountered an error.'],
+  ['resample_failed', 'Audio resampling failed.'],
+  ['mic_stream_ended', 'Microphone stream ended — restarting audio capture.'],
+  ['speaker_stream_ended', 'System audio stream ended — restarting audio capture.'],
+  ['mic_resample_failed', 'Microphone resampling failed — restarting audio capture.'],
+  ['speaker_resample_failed', 'System audio resampling failed — restarting audio capture.'],
+  ['aec_resample_failed', 'Audio resampling failed — restarting audio capture.'],
+]);
 
 const UNRECOVERABLE_WARNING_CODE = 'capture_restart_failed';
 
@@ -55,7 +55,7 @@ export function RecordingEventListener() {
         });
         return;
       }
-      const label = WARNING_LABELS[payload.code] ?? payload.message;
+      const label = WARNING_LABELS.get(payload.code) ?? payload.message;
       toast.warning(label, { id: `recording-warning-${payload.code}` });
     });
     const unsubscribeDeviceChanged = window.api.recording.onDeviceChanged((payload) => {

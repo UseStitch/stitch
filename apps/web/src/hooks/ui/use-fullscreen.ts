@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import { z } from 'zod';
+
+const fullscreenStateSchema = z.boolean();
 
 export function useFullScreen() {
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -7,7 +10,8 @@ export function useFullScreen() {
     void window.api.window.isFullScreen().then(setIsFullScreen);
 
     const unsubscribe = window.electron?.subscribe('window:fullscreen-changed', (value) => {
-      setIsFullScreen(value as boolean);
+      const result = fullscreenStateSchema.safeParse(value);
+      if (result.success) setIsFullScreen(result.data);
     });
 
     return () => unsubscribe?.();

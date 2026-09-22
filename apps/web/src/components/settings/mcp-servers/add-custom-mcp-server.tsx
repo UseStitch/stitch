@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import { z } from 'zod';
 
 import { useForm, useSelector } from '@tanstack/react-form';
 
@@ -6,7 +7,7 @@ import { MCP_AUTH_TYPES } from '@stitch/shared/mcp/types';
 
 import { HeaderRows } from './header-rows';
 import { OAuthFields } from './oauth-fields';
-import { AUTH_TYPE_LABELS, type AddFormState, EMPTY_ADD_FORM, addMcpServerSchema, buildAuthConfig } from './shared';
+import { AUTH_TYPE_LABELS, EMPTY_ADD_FORM, addMcpServerSchema, buildAuthConfig } from './shared';
 
 import { SettingSubPage } from '@/components/settings/settings-ui';
 import { Button } from '@/components/ui/button';
@@ -96,7 +97,10 @@ export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
                 <Label className="text-xs font-medium text-muted-foreground">Authentication</Label>
                 <Select
                   value={field.state.value}
-                  onValueChange={(value) => field.handleChange(value as AddFormState['authType'])}>
+                  onValueChange={(value) => {
+                    const parsedValue = mcpAuthTypeSchema.safeParse(value);
+                    if (parsedValue.success) field.handleChange(parsedValue.data);
+                  }}>
                   <SelectTrigger className="w-full">
                     <SelectValue>{AUTH_TYPE_LABELS[field.state.value].label}</SelectValue>
                   </SelectTrigger>
@@ -179,3 +183,4 @@ export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
     </SettingSubPage>
   );
 }
+const mcpAuthTypeSchema = z.enum(MCP_AUTH_TYPES);

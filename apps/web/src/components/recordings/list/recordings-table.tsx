@@ -15,11 +15,10 @@ import { Empty, EmptyDescription, EmptyMedia, EmptyTitle } from '@/components/ui
 import { Table } from '@/components/ui/table';
 import { createAppColumnHelper, useAppTable } from '@/hooks/table-hook';
 
-type RecordingsTableMeta = { activeRecordingId: string | null; onDelete: (recording: Recording) => void };
-
 const columnHelper = createAppColumnHelper<Recording>();
 
-const columns = columnHelper.columns([
+function createColumns(activeRecordingId: string | null, onDelete: (recording: Recording) => void) {
+  return columnHelper.columns([
   columnHelper.accessor('title', {
     header: 'Title',
     cell: ({ row }) => (
@@ -42,8 +41,7 @@ const columns = columnHelper.columns([
   columnHelper.display({
     id: 'duration',
     header: 'Duration',
-    cell: ({ row, table }) => {
-      const { activeRecordingId } = table.options.meta as RecordingsTableMeta;
+    cell: ({ row }) => {
       const recording = row.original;
       if (recording.id === activeRecordingId) {
         return <LiveDuration startedAt={recording.startedAt} />;
@@ -55,8 +53,7 @@ const columns = columnHelper.columns([
   columnHelper.display({
     id: 'actions',
     header: () => <div className="pr-space-xs text-right">Actions</div>,
-    cell: ({ row, table }) => {
-      const { activeRecordingId, onDelete } = table.options.meta as RecordingsTableMeta;
+    cell: ({ row }) => {
       return (
         <Table.Actions className="-mr-space-s">
           <Button
@@ -76,7 +73,8 @@ const columns = columnHelper.columns([
       );
     },
   }),
-]);
+  ]);
+}
 
 interface RecordingsTableProps {
   recordings: Recording[];
@@ -95,6 +93,7 @@ export function RecordingsTable({
   onDelete,
   onNavigate,
 }: RecordingsTableProps) {
+  const columns = createColumns(activeRecordingId, onDelete);
   const table = useAppTable({
     data: recordings,
     columns,
@@ -104,7 +103,6 @@ export function RecordingsTable({
     manualSorting: true,
     enableMultiSort: false,
     enableSortingRemoval: false,
-    meta: { activeRecordingId, onDelete },
   });
 
   return (

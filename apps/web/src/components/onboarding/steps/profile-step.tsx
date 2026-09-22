@@ -9,12 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 function getDetectedTimezone(): string {
   const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  return typeof resolved === 'string' && resolved.trim().length > 0 ? resolved.trim() : 'UTC';
+  return resolved.trim() || 'UTC';
 }
 
 function getTimezoneOptions(initialTimezone: string): string[] {
-  const intlWithSupportedValues = Intl as typeof Intl & { supportedValuesOf?: (key: string) => string[] };
-  const listed = intlWithSupportedValues.supportedValuesOf('timeZone');
+  const listed = Intl.supportedValuesOf('timeZone');
   const preferred = [initialTimezone].filter((value) => value.length > 0);
 
   if (listed.length === 0) {

@@ -4,8 +4,6 @@ import { toast } from 'sonner';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 
-import type { MeetingNoteTemplate } from '@stitch/shared/recordings/types';
-
 import { AnalysisHeader } from './analysis/analysis-header';
 import { TranscriptSidebar } from './analysis/transcript-sidebar';
 import { DeleteRecordingDialog } from './shared/delete-recording-dialog';
@@ -43,7 +41,7 @@ export function RecordingAnalysisPage({ recordingId }: { recordingId: string }) 
   const defaultTemplateId = settings['recordings.analysis.defaultTemplateId'];
   const defaultTemplate =
     templateData.templates.find((template) => template.id === defaultTemplateId) ??
-    (templateData.templates[0] as MeetingNoteTemplate | undefined);
+    templateData.templates.at(0);
   const [selectedTemplateId, setSelectedTemplateId] = React.useState<string>(defaultTemplate?.id ?? '');
   const selectedTemplate =
     templateData.templates.find((template) => template.id === selectedTemplateId) ?? defaultTemplate;

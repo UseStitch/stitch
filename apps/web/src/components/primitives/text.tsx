@@ -1,7 +1,7 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 
 import { textAlignClasses, textLineClampClasses, textToneClasses, textVariantClasses } from '@/styles/tokens';
-import type { ComponentPropsWithoutRef, ElementType } from 'react';
+import { createElement, type ComponentPropsWithoutRef, type ElementType } from 'react';
 
 const TEXT_ELEMENTS = ['code', 'div', 'h1', 'h2', 'h3', 'label', 'p', 'span'] as const;
 type TextElement = (typeof TEXT_ELEMENTS)[number];
@@ -37,13 +37,11 @@ type TextProps = Omit<ComponentPropsWithoutRef<TextElement>, 'as' | 'className' 
 
 function Text({ as, variant = 'body', tone, truncate, tabular, align, lineClamp, ...props }: TextProps) {
   const resolvedVariant = variant ?? 'body';
-  const Component = (as ?? defaultElement[resolvedVariant]) as ElementType;
-  return (
-    <Component
-      className={textVariants({ variant: resolvedVariant, tone, truncate, tabular, align, lineClamp })}
-      {...props}
-    />
-  );
+  const Component: ElementType = as ?? defaultElement[resolvedVariant];
+  return createElement(Component, {
+    className: textVariants({ variant: resolvedVariant, tone, truncate, tabular, align, lineClamp }),
+    ...props,
+  });
 }
 
 export { Text, type TextProps };

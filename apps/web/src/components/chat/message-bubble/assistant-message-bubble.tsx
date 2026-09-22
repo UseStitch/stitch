@@ -1,6 +1,6 @@
 import { toUserFacingStreamError } from '@stitch/shared/chat/errors';
-import type { StreamErrorDetails } from '@stitch/shared/chat/errors';
 import { extractTextFromParts, type StoredPart } from '@stitch/shared/chat/messages';
+import { z } from 'zod';
 
 import { buildDisplaySegments, collectToolResults } from './segment-utils';
 import { AssistantBubbleWrapper, FileBlock, InterruptedLabel, MessageCopyButton } from './shared-components';
@@ -14,9 +14,16 @@ import { SourceChip } from '@/components/chat/message-bubble/source-chip.js';
 import { buildStoredToolCallDisplayItems } from '@/components/chat/message-bubble/tool-call-display.js';
 import { ToolCallGroup } from '@/components/chat/message-bubble/tool-call-group.js';
 
-type AssistantMessageBubbleProps = { parts: StoredPart[]; finishReason?: string | null; onAbortTool?: () => void };
+type AssistantMessageBubbleProps = {
+  parts: StoredPart[];
+  finishReason?: string | null;
+  onAbortTool?: () => void;
+};
 
 type InlineSegments = NonNullable<ReturnType<typeof parseInlineLiquidUiText>>;
+type StreamErrorPart = Extract<StoredPart, { type: 'stream.error' }>;
+
+const liquidUiErrorResultSchema = z.looseObject({ error: z.json() });
 
 /**
  * Segments come from a linear scan of the message text, so each segment's start
@@ -57,13 +64,14 @@ export function AssistantMessageBubble({ parts, finishReason, onAbortTool }: Ass
   const hadError = finishReason === 'error';
 
   const streamErrorPart = hadError
-    ? (parts.find((part) => part.type === 'stream.error') as
-        | (StoredPart & { type: 'stream.error'; error: string; details?: StreamErrorDetails })
-        | undefined)
+    ? parts.find((part): part is StreamErrorPart => part.type === 'stream.error')
     : undefined;
 
   const userFacingError = streamErrorPart
-    ? toUserFacingStreamError({ error: streamErrorPart.error, details: streamErrorPart.details })
+    ? toUserFacingStreamError({
+        error: streamErrorPart.error,
+        details: streamErrorPart.details,
+      })
     : hadError && segments.length === 0
       ? {
           title: 'Request failed',
@@ -97,12 +105,7 @@ export function AssistantMessageBubble({ parts, finishReason, onAbortTool }: Ass
             );
           case 'liquid-ui': {
             const liquidUiResult = resultsByCallId.get(segment.part.toolCallId);
-            const hasError =
-              liquidUiResult &&
-              'output' in liquidUiResult &&
-              liquidUiResult.output !== null &&
-              typeof liquidUiResult.output === 'object' &&
-              'error' in (liquidUiResult.output as object);
+            const hasError = liquidUiErrorResultSchema.safeParse(liquidUiResult?.output).success;
             if (hasError) return null;
             return <LiquidUi key={segment.key} spec={segment.part.input} />;
           }

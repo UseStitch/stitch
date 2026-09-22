@@ -48,6 +48,7 @@ import { useAutomationStore } from '@/stores/automation-store';
 type AutomationsPageProps = { automationId?: string };
 
 const LOCAL_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const AUTOMATION_SORT_FIELDS: AutomationSortField[] = ['title', 'runCount', 'createdAt', 'updatedAt'];
 
 export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const navigate = useNavigate();
@@ -56,7 +57,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   const [page, setPage] = useState(1);
   const [sorting, setSorting] = useState<SortingState>([{ id: 'updatedAt', desc: true }]);
   const pageSize = 15;
-  const sort = (sorting[0]?.id ?? 'updatedAt') as AutomationSortField;
+  const sort = AUTOMATION_SORT_FIELDS.find((field) => field === sorting[0]?.id) ?? 'updatedAt';
   const sortDirection = sorting[0]?.desc === false ? 'asc' : 'desc';
   const { data: automationsPage } = useSuspenseQuery(
     automationsPageQueryOptions({ page, pageSize, sort, sortDirection }),
@@ -105,7 +106,7 @@ export function AutomationsPage({ automationId }: AutomationsPageProps) {
   };
 
   const handleSortingChange: Dispatch<SetStateAction<SortingState>> = (updater) => {
-    setSorting((current) => (typeof updater === 'function' ? updater(current) : updater));
+    setSorting(updater);
     setPage(1);
   };
 

@@ -279,7 +279,8 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
             onValueChange={(vals) => {
               const val = vals.at(0);
               if (val) {
-                const newFreq = val as Frequency;
+                const newFreq = FREQUENCIES.find((frequency) => frequency.value === val)?.value;
+                if (!newFreq) return;
                 setFrequency(newFreq);
 
                 // Ensure required fields are populated when switching

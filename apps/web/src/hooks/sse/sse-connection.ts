@@ -20,6 +20,15 @@ type Options = {
   getUrl: () => Promise<string>;
   onEvent: (name: SseEventName, raw: string) => void;
   onStatus: (status: SseConnectionStatus) => void;
+  createEventSource?: (url: string) => SseEventSource;
+};
+
+type SseEventSource = {
+  readonly readyState: number;
+  onopen: ((event: Event) => void) | null;
+  onerror: ((event: Event) => void) | null;
+  addEventListener: (name: string, listener: (event: MessageEvent<string>) => void) => void;
+  close: () => void;
 };
 
 export type SseConnection = {
@@ -38,8 +47,13 @@ export type SseConnection = {
  * the peer vanished without a TCP FIN. Both cases leave the app silently
  * disconnected, so reconnection is driven explicitly here.
  */
-export function createSseConnection({ getUrl, onEvent, onStatus }: Options): SseConnection {
-  let source: EventSource | null = null;
+export function createSseConnection({
+  getUrl,
+  onEvent,
+  onStatus,
+  createEventSource = (url) => new EventSource(url),
+}: Options): SseConnection {
+  let source: SseEventSource | null = null;
   let attempt = 0;
   let retryTimer: ReturnType<typeof setTimeout> | null = null;
   let lastMessageAt = Date.now();
@@ -66,7 +80,7 @@ export function createSseConnection({ getUrl, onEvent, onStatus }: Options): Sse
     const baseUrl = await getUrl();
     if (closed || currentGeneration !== generation) return;
 
-    const es = new EventSource(`${baseUrl}/events`);
+    const es = createEventSource(`${baseUrl}/events`);
     source = es;
 
     es.onopen = () => {
@@ -90,7 +104,7 @@ export function createSseConnection({ getUrl, onEvent, onStatus }: Options): Sse
       es.addEventListener(name, (event) => {
         if (source !== es) return;
         lastMessageAt = Date.now();
-        onEvent(name, (event as MessageEvent<string>).data);
+        onEvent(name, event.data);
       });
     }
   };

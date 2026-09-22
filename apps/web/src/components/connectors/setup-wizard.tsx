@@ -51,6 +51,31 @@ type ScopeValues = { selectedScopes: string[]; serviceAccess: Record<string, 'no
 
 type OAuthProgress = { credentials: CredentialValues; connectorRefId?: string; instanceId?: string };
 
+const oauthConfigSchema = z.object({
+  authUrl: z.string(),
+  tokenUrl: z.string(),
+  revokeUrl: z.string().optional(),
+  issuer: z.string().optional(),
+  defaultScopes: z.array(z.string()),
+  scopeDescriptions: z.record(z.string(), z.string()),
+  serviceAccessOptions: z
+    .array(
+      z.object({
+        id: z.string(),
+        label: z.string(),
+        description: z.string().optional(),
+        readScopes: z.array(z.string()),
+        writeScopes: z.array(z.string()).optional(),
+      }),
+    )
+    .optional(),
+  additionalParams: z.record(z.string(), z.string()).optional(),
+  incrementalAuth: z.object({ enabled: z.boolean(), params: z.record(z.string(), z.string()).optional() }).optional(),
+  scopeApiMap: z.record(z.string(), z.string()).optional(),
+});
+
+const apiKeyConfigSchema = z.object({ keyLabel: z.string(), placeholder: z.string().optional(), helpUrl: z.string().optional() });
+
 function credentialsSchema(isOAuth: boolean, keyLabel: string) {
   return z
     .object({ selectedConnectorRefId: z.string(), clientId: z.string(), clientSecret: z.string(), apiKey: z.string() })
@@ -76,13 +101,12 @@ function getInitialServiceAccess(
 ): Record<string, 'none' | 'read' | 'write'> {
   if (!options) return {};
   const selectedScopeSet = new Set(selectedScopes);
-  return Object.fromEntries(
-    options.map((option) => {
+  return options.reduce<Record<string, 'none' | 'read' | 'write'>>((serviceAccess, option) => {
       const hasWrite = (option.writeScopes ?? []).some((scope) => selectedScopeSet.has(scope));
       const hasRead = option.readScopes.some((scope) => selectedScopeSet.has(scope));
-      return [option.id, hasWrite ? 'write' : hasRead ? 'read' : 'none'];
-    }),
-  ) as Record<string, 'none' | 'read' | 'write'>;
+      serviceAccess[option.id] = hasWrite ? 'write' : hasRead ? 'read' : 'none';
+      return serviceAccess;
+    }, {});
 }
 
 export function SetupWizard({ definition, connectors, onClose }: Props) {
@@ -102,8 +126,8 @@ export function SetupWizard({ definition, connectors, onClose }: Props) {
   const authorize = useAuthorizeConnector();
 
   const isOAuth = definition.authType === 'oauth2';
-  const oauthConfig = isOAuth ? (definition.authConfig as OAuthConfig) : null;
-  const apiKeyConfig = !isOAuth ? (definition.authConfig as ApiKeyConfig) : null;
+  const oauthConfig = isOAuth ? oauthConfigSchema.parse(definition.authConfig) : null;
+  const apiKeyConfig = !isOAuth ? apiKeyConfigSchema.parse(definition.authConfig) : null;
   const defaultScopes = oauthConfig?.defaultScopes ?? [];
   const [scopeValues, setScopeValues] = useState<ScopeValues>(() => ({
     selectedScopes: defaultScopes,

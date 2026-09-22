@@ -39,7 +39,9 @@ export function RecordingsPage() {
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'startedAt', desc: true }]);
   const [title, setTitle] = React.useState('');
   const [recordingToDelete, setRecordingToDelete] = React.useState<Recording | null>(null);
-  const sort = (sorting[0]?.id ?? 'startedAt') as RecordingSortField;
+  const sortId = sorting[0]?.id;
+  const sort: RecordingSortField =
+    sortId === 'title' || sortId === 'platform' || sortId === 'status' || sortId === 'costUsd' ? sortId : 'startedAt';
   const sortDirection = sorting[0]?.desc === false ? 'asc' : 'desc';
 
   const { data } = useSuspenseQuery({
@@ -71,7 +73,7 @@ export function RecordingsPage() {
   };
 
   const handleSortingChange: React.Dispatch<React.SetStateAction<SortingState>> = (updater) => {
-    setSorting((current) => (typeof updater === 'function' ? updater(current) : updater));
+    setSorting(updater);
     setPage(1);
   };
 

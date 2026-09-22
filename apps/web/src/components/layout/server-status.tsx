@@ -24,6 +24,7 @@ import { serverFetch, type ServerConnectionConfig } from '@/lib/api';
 
 const HEALTH_POLL_INTERVAL_MS = 10_000;
 const HEALTH_TIMEOUT_MS = 5_000;
+const NO_SSE_HANDLERS = {};
 
 function useServerConfig() {
   const [config, setConfig] = React.useState<ServerConnectionConfig | null>(null);
@@ -64,7 +65,7 @@ export function ServerStatus() {
     retry: false,
   });
 
-  const { status: sseStatus, lastHeartbeat } = useSSE();
+  const { status: sseStatus, lastHeartbeat } = useSSE(NO_SSE_HANDLERS);
 
   useTicker(isOpen);
 

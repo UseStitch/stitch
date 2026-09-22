@@ -7,9 +7,9 @@ export type SandboxValue =
   | SandboxValue[]
   | { [key: string]: SandboxValue };
 
-export type JsonSchemaValue = boolean | null | number | string | JsonSchemaValue[] | { [key: string]: JsonSchemaValue };
+type JsonSchemaValue = boolean | null | number | string | JsonSchemaValue[] | { [key: string]: JsonSchemaValue };
 
-export type JsonSchema = { [keyword: string]: JsonSchemaValue };
+type JsonSchema = { [keyword: string]: JsonSchemaValue };
 
 export type ToolBinding<Input extends SandboxValue = SandboxValue, Output extends SandboxValue = SandboxValue> = {
   name: string;

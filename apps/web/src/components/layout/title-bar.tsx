@@ -1,6 +1,6 @@
 import { cn } from 'cnfast';
 import { Copy, Minus, PanelLeftClose, PanelLeftOpen, Square, X } from 'lucide-react';
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { ServerStatus } from '@/components/layout/server-status';
 import { Icon } from '@/components/primitives/icon';
@@ -12,14 +12,19 @@ export function TitleBar() {
   const isMac = window.electron?.platform === 'darwin';
   const isFullScreen = useFullScreen();
   const { open, toggleSidebar } = useSidebar();
+  const titleBarRef = useRef<HTMLDivElement>(null);
+  const leftControlsRef = useRef<HTMLDivElement>(null);
+  const rightControlsRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    titleBarRef.current?.style.setProperty('-webkit-app-region', 'drag');
+    leftControlsRef.current?.style.setProperty('-webkit-app-region', 'no-drag');
+    rightControlsRef.current?.style.setProperty('-webkit-app-region', 'no-drag');
+  }, []);
 
   return (
-    <div
-      className="flex h-9 items-center justify-between bg-sidebar select-none"
-      style={{ WebkitAppRegion: 'drag' } as CSSProperties}>
-      <div
-        className={cn('flex h-full items-center', isMac && !isFullScreen && 'pl-space-2xl')}
-        style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
+    <div ref={titleBarRef} className="flex h-9 items-center justify-between bg-sidebar select-none">
+      <div ref={leftControlsRef} className={cn('flex h-full items-center', isMac && !isFullScreen && 'pl-space-2xl')}>
         <div className="flex h-full w-9 items-center justify-center">
           <Button variant="ghost" size="icon" onClick={toggleSidebar}>
             {open ? (
@@ -30,9 +35,7 @@ export function TitleBar() {
           </Button>
         </div>
       </div>
-      <div
-        className={cn('flex h-full items-center', isMac && 'pr-space-m')}
-        style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
+      <div ref={rightControlsRef} className={cn('flex h-full items-center', isMac && 'pr-space-m')}>
         <ServerStatus />
         {!isMac && <WindowsControls />}
       </div>

@@ -4,18 +4,18 @@ import { StackedBarChart } from '@/components/usage/charts/stacked-bar-chart';
 import { getSourceLabel, useSourceOrder } from '@/components/usage/utils/usage-dashboard-utils';
 import { getChartColor } from '@/lib/chart-colors';
 
-const SOURCE_COLOR_INDEX: Record<string, number> = {
-  chat: 0,
-  automation: 1,
-  automation_generation: 4,
-  title_generation: 2,
-  memory_extraction: 3,
-  recording_analysis: 4,
-};
+const SOURCE_COLOR_INDEX = new Map([
+  ['chat', 0],
+  ['automation', 1],
+  ['automation_generation', 4],
+  ['title_generation', 2],
+  ['memory_extraction', 3],
+  ['recording_analysis', 4],
+]);
 
 function getSourceColor(source: string): string {
-  const index = SOURCE_COLOR_INDEX[source];
-  return getChartColor(index);
+  const index = SOURCE_COLOR_INDEX.get(source);
+  return getChartColor(index ?? 0);
 }
 
 type UsageDashboardCostChartProps = { usageData: UsageDashboardResponse | undefined };

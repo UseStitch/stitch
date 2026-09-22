@@ -1,5 +1,7 @@
 import { useHotkey, useHotkeySequence } from '@tanstack/react-hotkeys';
 
+import { toValidHotkey, toValidHotkeySequence } from './hotkey-utils';
+
 import type { Action } from '@/hooks/use-actions';
 import { useShortcuts } from '@/hooks/use-shortcuts';
 
@@ -10,13 +12,13 @@ export function useSessionHotkeys(actions: Action[]) {
   const renameSession = shortcuts.get('rename-session');
   const stopStream = shortcuts.get('stop-stream');
 
-  useHotkey(renameSession?.hotkey ?? 'Mod+Shift+R', () => actionMap.get('rename-session')?.run(), {
+  useHotkey(toValidHotkey(renameSession?.hotkey, 'Mod+Shift+R'), () => actionMap.get('rename-session')?.run(), {
     preventDefault: true,
     enabled: !!renameSession?.hotkey,
   });
 
   useHotkeySequence(
-    [stopStream?.hotkey ?? 'Escape', stopStream?.hotkey ?? 'Escape'],
+    toValidHotkeySequence([stopStream?.hotkey ?? 'Escape', stopStream?.hotkey ?? 'Escape'], ['Escape', 'Escape']),
     () => actionMap.get('stop-stream')?.run(),
     { enabled: !!stopStream?.hotkey, timeout: 500 },
   );

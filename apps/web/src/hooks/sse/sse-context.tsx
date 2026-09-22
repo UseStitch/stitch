@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { z } from 'zod';
 
 import {
   type SseConnectionStatus,
@@ -11,6 +12,24 @@ import {
 import { createSseConnection } from './sse-connection';
 
 import { getServerUrl } from '@/lib/api';
+
+const jsonMessageSchema = z
+  .string()
+  .transform((raw, context) => {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      context.addIssue({ code: 'custom', message: 'Invalid JSON SSE payload' });
+      return z.NEVER;
+    }
+  })
+  .pipe(z.json());
+
+const sessionIdSchema = z.object({ sessionId: z.string() });
+const questionSessionSchema = z.object({ question: sessionIdSchema });
+const permissionSessionSchema = z.object({ permissionResponse: sessionIdSchema });
+const elicitationSessionSchema = z.object({ elicitation: sessionIdSchema });
+const recordingIdSchema = z.object({ recordingId: z.string() });
 
 type SessionScopedName = {
   [K in SseEventName]: SseEventPayloadMap[K] extends { sessionId: string }
@@ -29,86 +48,55 @@ type RecordingScopedName = {
 type SseContextValue = {
   status: SseConnectionStatus;
   lastHeartbeat: Date | null;
-  subscribe: (handlers: SseHandlers) => () => void;
+  subscribe: <T extends SseHandlers>(
+    handlers: T,
+    shouldHandle?: (eventName: SseEventName, payload: SseEventPayloadMap[SseEventName]) => boolean,
+  ) => () => void;
+};
+
+type SseSubscription = {
+  handlers: SseHandlers;
+  shouldHandle?: (eventName: SseEventName, payload: SseEventPayloadMap[SseEventName]) => boolean;
 };
 
 const SseContext = React.createContext<SseContextValue | null>(null);
 
-function parseJson(raw: string): unknown {
-  try {
-    return JSON.parse(raw) as unknown;
-  } catch {
-    return raw;
-  }
+function parsePayload<K extends SseEventName>(raw: string): SseEventPayloadMap[K] | null {
+  const json = jsonMessageSchema.safeParse(raw);
+  if (!json.success) return null;
+
+  const payload = z.custom<SseEventPayloadMap[K]>().safeParse(json.data);
+  return payload.success ? payload.data : null;
 }
 
-/** `never` makes this a supertype of every `(data: SseEventPayloadMap[K]) => void`. */
-type StoredSseHandler = (data: never) => void;
-
-/** Restores the event-name→payload pairing that the single handler map erases. */
-function callHandler(handler: StoredSseHandler | undefined, payload: unknown): void {
-  (handler as ((data: unknown) => void) | undefined)?.(payload);
+function dispatchEvent<K extends SseEventName>(
+  handlers: SseHandlers,
+  eventName: K,
+  payload: SseEventPayloadMap[K],
+): void {
+  const handler = handlers[eventName];
+  if (handler) handler(payload);
 }
 
-function getSessionIdFromPayload(eventName: SseEventName, payload: unknown): string | null {
-  if (!payload || typeof payload !== 'object') return null;
-
-  if ('sessionId' in payload && typeof payload.sessionId === 'string') {
-    return payload.sessionId;
-  }
-
-  if (
-    eventName === 'question.asked' &&
-    'question' in payload &&
-    payload.question &&
-    typeof payload.question === 'object' &&
-    'sessionId' in payload.question &&
-    typeof payload.question.sessionId === 'string'
-  ) {
-    return payload.question.sessionId;
-  }
-
-  if (
-    eventName === 'permission.requested' &&
-    'permissionResponse' in payload &&
-    payload.permissionResponse &&
-    typeof payload.permissionResponse === 'object' &&
-    'sessionId' in payload.permissionResponse &&
-    typeof payload.permissionResponse.sessionId === 'string'
-  ) {
-    return payload.permissionResponse.sessionId;
-  }
-
-  if (
-    eventName === 'mcp.elicitation.requested' &&
-    'elicitation' in payload &&
-    payload.elicitation &&
-    typeof payload.elicitation === 'object' &&
-    'sessionId' in payload.elicitation &&
-    typeof payload.elicitation.sessionId === 'string'
-  ) {
-    return payload.elicitation.sessionId;
-  }
-
-  return null;
+function getSessionIdFromPayload(payload: SseEventPayloadMap[SseEventName]): string | null {
+  return (
+    sessionIdSchema.safeParse(payload).data?.sessionId ??
+    questionSessionSchema.safeParse(payload).data?.question.sessionId ??
+    permissionSessionSchema.safeParse(payload).data?.permissionResponse.sessionId ??
+    elicitationSessionSchema.safeParse(payload).data?.elicitation.sessionId ??
+    null
+  );
 }
 
-function getRecordingIdFromPayload(eventName: SseEventName, payload: unknown): string | null {
-  if (!payload || typeof payload !== 'object') return null;
-
-  if ('recordingId' in payload && typeof payload.recordingId === 'string') {
-    return payload.recordingId;
-  }
-
-  return null;
+function getRecordingIdFromPayload(payload: SseEventPayloadMap[SseEventName]): string | null {
+  return recordingIdSchema.safeParse(payload).data?.recordingId ?? null;
 }
 
 export function SseProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = React.useState<SseConnectionStatus>('connecting');
   const [lastHeartbeat, setLastHeartbeat] = React.useState<Date | null>(null);
 
-  // Map from event name → set of handlers so multiple subscribers can coexist per event.
-  const handlersRef = React.useRef<Map<SseEventName, Set<StoredSseHandler>>>(new Map());
+  const handlersRef = React.useRef<Set<SseSubscription>>(new Set());
 
   React.useEffect(() => {
     const connection = createSseConnection({
@@ -119,8 +107,12 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
         // meaningful for remote servers whose clock is skewed from the client's.
         if (eventName === 'heartbeat') setLastHeartbeat(new Date());
 
-        const payload = parseJson(raw);
-        handlersRef.current.get(eventName)?.forEach((handler) => callHandler(handler, payload));
+        const payload = parsePayload(raw);
+        if (payload) {
+          handlersRef.current.forEach(({ handlers, shouldHandle }) => {
+            if (!shouldHandle || shouldHandle(eventName, payload)) dispatchEvent(handlers, eventName, payload);
+          });
+        }
       },
     });
 
@@ -141,24 +133,17 @@ export function SseProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const subscribe = React.useCallback((handlers: SseHandlers) => {
-    const entries = Object.entries(handlers) as [SseEventName, StoredSseHandler][];
+  const subscribe = React.useCallback(
+    <T extends SseHandlers>(handlers: T, shouldHandle?: SseSubscription['shouldHandle']) => {
+      const subscription = { handlers, shouldHandle };
+      handlersRef.current.add(subscription);
 
-    entries.forEach(([eventName, handler]) => {
-      let eventHandlers = handlersRef.current.get(eventName);
-      if (!eventHandlers) {
-        eventHandlers = new Set();
-        handlersRef.current.set(eventName, eventHandlers);
-      }
-      eventHandlers.add(handler);
-    });
-
-    return () => {
-      entries.forEach(([eventName, handler]) => {
-        handlersRef.current.get(eventName)?.delete(handler);
-      });
-    };
-  }, []);
+      return () => {
+        handlersRef.current.delete(subscription);
+      };
+    },
+    [],
+  );
 
   const value = React.useMemo(() => ({ status, lastHeartbeat, subscribe }), [status, lastHeartbeat, subscribe]);
 
@@ -176,31 +161,9 @@ function useSseContext(): SseContextValue {
 export function useSSE(handlers: SseHandlers = {}): UseSseResult {
   const { status, lastHeartbeat, subscribe } = useSseContext();
 
-  // Stable ref so the subscribe effect only runs once per mount, not on every render.
-  // Synced in a layout effect so the latest handlers are in place before the browser
-  // can deliver another SSE message.
-  const handlersRef = React.useRef(handlers);
-  React.useLayoutEffect(() => {
-    handlersRef.current = handlers;
-  });
-
-  // Capture event names on mount for stable useEffect dependencies
-  const [eventNames] = React.useState(() => Object.keys(handlers) as SseEventName[]);
-
   React.useEffect(() => {
-    // Wrap each handler in a stable indirection so the Set entry identity is stable,
-    // but the call always dispatches through the latest ref value.
-    const stableHandlers = Object.fromEntries(
-      eventNames.map((key) => [
-        key,
-        (data: unknown) => {
-          callHandler(handlersRef.current[key], data);
-        },
-      ]),
-    ) as SseHandlers;
-
-    return subscribe(stableHandlers);
-  }, [subscribe, eventNames]);
+    return subscribe(handlers);
+  }, [subscribe, handlers]);
 
   return { status, lastHeartbeat };
 }
@@ -211,31 +174,9 @@ export function useSessionEvents(
 ): void {
   const { subscribe } = useSseContext();
 
-  const handlersRef = React.useRef(handlers);
-  const sessionIdRef = React.useRef(sessionId);
-  React.useLayoutEffect(() => {
-    handlersRef.current = handlers;
-    sessionIdRef.current = sessionId;
-  });
-
-  const [eventNames] = React.useState(() => Object.keys(handlers) as SessionScopedName[]);
-
   React.useEffect(() => {
-    const stableHandlers = Object.fromEntries(
-      eventNames.map((eventName) => [
-        eventName,
-        (payload: unknown) => {
-          const currentSessionId = sessionIdRef.current;
-          const payloadSessionId = getSessionIdFromPayload(eventName, payload);
-          if (payloadSessionId === currentSessionId) {
-            callHandler(handlersRef.current[eventName], payload);
-          }
-        },
-      ]),
-    ) as SseHandlers;
-
-    return subscribe(stableHandlers);
-  }, [subscribe, eventNames]);
+    return subscribe(handlers, (_eventName, payload) => getSessionIdFromPayload(payload) === sessionId);
+  }, [subscribe, sessionId, handlers]);
 }
 
 export function useRecordingEvents(
@@ -244,31 +185,7 @@ export function useRecordingEvents(
 ): void {
   const { subscribe } = useSseContext();
 
-  const handlersRef = React.useRef(handlers);
-  const recordingIdRef = React.useRef(recordingId);
-  React.useLayoutEffect(() => {
-    handlersRef.current = handlers;
-    recordingIdRef.current = recordingId;
-  });
-
-  const [eventNames] = React.useState(() => Object.keys(handlers) as RecordingScopedName[]);
-
   React.useEffect(() => {
-    const stableHandlers = Object.fromEntries(
-      eventNames.map((eventName) => [
-        eventName,
-        (payload: unknown) => {
-          const currentRecordingId = recordingIdRef.current;
-          if (!currentRecordingId) return;
-
-          const payloadRecordingId = getRecordingIdFromPayload(eventName, payload);
-          if (payloadRecordingId === currentRecordingId) {
-            callHandler(handlersRef.current[eventName], payload);
-          }
-        },
-      ]),
-    ) as SseHandlers;
-
-    return subscribe(stableHandlers);
-  }, [subscribe, eventNames]);
+    return subscribe(handlers, (_eventName, payload) => getRecordingIdFromPayload(payload) === recordingId);
+  }, [subscribe, recordingId, handlers]);
 }

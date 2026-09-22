@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { useForm, useSelector } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
-import type { MeetingNoteTemplate } from '@stitch/shared/recordings/types';
 
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { Stack } from '@/components/primitives/stack';
@@ -237,8 +236,7 @@ function RecordingsContent() {
   const autoAnalyzeEnabled = settings['recordings.autoAnalyze'] === 'true';
   const defaultTemplateId = settings['recordings.analysis.defaultTemplateId'];
   const defaultTemplate =
-    templateData.templates.find((template) => template.id === defaultTemplateId) ??
-    (templateData.templates[0] as MeetingNoteTemplate | undefined);
+    templateData.templates.find((template) => template.id === defaultTemplateId) ?? templateData.templates.at(0);
   const hasTranscriptionModel =
     !!settings['recordings.transcription.providerId'] && !!settings['recordings.transcription.modelId'];
   const hasAnalysisModel = !!settings['recordings.analysis.providerId'] && !!settings['recordings.analysis.modelId'];

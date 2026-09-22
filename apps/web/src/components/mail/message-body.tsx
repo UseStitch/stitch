@@ -268,7 +268,9 @@ function repairLowContrastText(doc: Document) {
 
     const blackContrast = contrastRatio([0, 0, 0], background);
     const whiteContrast = contrastRatio([255, 255, 255], background);
-    (element as HTMLElement).style.color = blackContrast >= whiteContrast ? '#000000' : '#ffffff';
+    if (element instanceof HTMLElement) {
+      element.style.color = blackContrast >= whiteContrast ? '#000000' : '#ffffff';
+    }
   });
 }
 

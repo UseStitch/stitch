@@ -42,6 +42,11 @@ export const sessionKeys = {
 };
 
 const SESSION_PAGE_SIZE = 30;
+type PageCursor = string | undefined;
+
+function createInitialPageCursor(): PageCursor {
+  return undefined;
+}
 
 export const sessionsInfiniteQueryOptions = (search: string) =>
   infiniteQueryOptions({
@@ -50,7 +55,7 @@ export const sessionsInfiniteQueryOptions = (search: string) =>
       serverRequest<SessionsPage>('/chat/sessions', {
         params: { type: 'chat', limit: SESSION_PAGE_SIZE, q: search || undefined, cursor: pageParam },
       }),
-    initialPageParam: undefined as string | undefined,
+    initialPageParam: createInitialPageCursor(),
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     placeholderData: keepPreviousData,
   });
@@ -104,7 +109,7 @@ export const sessionMessagesInfiniteQueryOptions = (id: string) =>
     queryKey: sessionKeys.messages(id),
     queryFn: ({ pageParam }): Promise<MessagesPage> =>
       serverRequest<MessagesPage>(`/chat/sessions/${id}/messages`, { params: { limit: PAGE_SIZE, cursor: pageParam } }),
-    initialPageParam: undefined as string | undefined,
+    initialPageParam: createInitialPageCursor(),
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
 
@@ -351,12 +356,8 @@ export function useSendMessage() {
         };
 
         // Append the optimistic message to the first page (most recent)
-        const updatedPages = [...previous.pages];
-        const firstPage = updatedPages[0] as MessagesPage | undefined;
-        if (firstPage) {
-          updatedPages[0] = { ...firstPage, messages: [...firstPage.messages, optimisticMessage] };
-        }
-
+        const [firstPage, ...remainingPages] = previous.pages;
+        const updatedPages = [{ ...firstPage, messages: [...firstPage.messages, optimisticMessage] }, ...remainingPages];
         queryClient.setQueryData<InfiniteData<MessagesPage>>(queryKey, { ...previous, pages: updatedPages });
       }
 

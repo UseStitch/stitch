@@ -63,7 +63,6 @@
     "test": "bun test"
   },
   "devDependencies": {
-    "@ai-sdk/provider": "catalog:ai",
     "@types/bun": "catalog:",
     "ai": "catalog:ai",
     "typescript": "catalog:",

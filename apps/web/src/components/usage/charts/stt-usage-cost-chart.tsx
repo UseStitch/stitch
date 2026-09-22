@@ -3,17 +3,23 @@ import type { SttUsageDashboardResponse } from '@stitch/shared/usage/types';
 import { StackedBarChart } from '@/components/usage/charts/stacked-bar-chart';
 import { getChartColor } from '@/lib/chart-colors';
 
-const SERVICE_COLOR_INDEX: Record<string, number> = { 'chat-input': 0, 'meeting-recording': 1 };
+const SERVICE_COLOR_INDEX = new Map([
+  ['chat-input', 0],
+  ['meeting-recording', 1],
+]);
 
-const SERVICE_LABELS: Record<string, string> = { 'chat-input': 'Chat Input', 'meeting-recording': 'Meeting Recording' };
+const SERVICE_LABELS = new Map([
+  ['chat-input', 'Chat Input'],
+  ['meeting-recording', 'Meeting Recording'],
+]);
 
 function getServiceColor(service: string): string {
-  const index = SERVICE_COLOR_INDEX[service];
-  return getChartColor(index);
+  const index = SERVICE_COLOR_INDEX.get(service);
+  return getChartColor(index ?? 0);
 }
 
 function getServiceLabel(service: string): string {
-  return SERVICE_LABELS[service] ?? service.replaceAll('-', ' ');
+  return SERVICE_LABELS.get(service) ?? service.replaceAll('-', ' ');
 }
 
 type SttUsageCostChartProps = { usageData: SttUsageDashboardResponse | undefined };

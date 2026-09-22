@@ -35,6 +35,10 @@ import {
 
 type Tab = 'memory' | 'user' | 'dreams';
 
+function isTab(value: string): value is Tab {
+  return ['memory', 'user', 'dreams'].includes(value);
+}
+
 export function MemoriesPage() {
   const queryClient = useQueryClient();
   const [tab, setTab] = React.useState<Tab>('memory');
@@ -136,7 +140,7 @@ export function MemoriesPage() {
           ) : null}
         </div>
 
-        <Tabs value={tab} onValueChange={(value) => setTab(value as Tab)} className="mt-space-xl">
+        <Tabs value={tab} onValueChange={(value) => isTab(value) && setTab(value)} className="mt-space-xl">
           <TabsList variant="line" className="max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto">
             <TabsTrigger value="memory">Long-term</TabsTrigger>
             <TabsTrigger value="user">User profile</TabsTrigger>

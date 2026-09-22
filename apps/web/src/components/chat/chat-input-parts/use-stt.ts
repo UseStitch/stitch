@@ -160,7 +160,7 @@ export function useStt(onTranscriptUpdate?: (committedText: string, partialText:
     ws.onmessage = (event) => {
       let msg: SttOutboundMessage;
       try {
-        msg = JSON.parse(event.data as string) as SttOutboundMessage;
+        msg = JSON.parse(event.data);
       } catch {
         return;
       }

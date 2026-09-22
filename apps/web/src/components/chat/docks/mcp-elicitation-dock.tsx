@@ -46,10 +46,11 @@ function optionsFor(schema: McpElicitationPropertySchema): Array<{ value: string
 
 function isValueValid(schema: McpElicitationPropertySchema, value: FormValue, required: boolean): boolean {
   if (value === undefined) return !required;
-  if (typeof value === 'string') {
-    if (required && value.length === 0) return false;
-    if ('minLength' in schema && schema.minLength !== undefined && value.length < schema.minLength) return false;
-    if ('maxLength' in schema && schema.maxLength !== undefined && value.length > schema.maxLength) return false;
+  if (schema.type === 'string') {
+    const textValue = String(value);
+    if (required && textValue.length === 0) return false;
+    if ('minLength' in schema && schema.minLength !== undefined && textValue.length < schema.minLength) return false;
+    if ('maxLength' in schema && schema.maxLength !== undefined && textValue.length > schema.maxLength) return false;
   }
   if (Array.isArray(value) && schema.type === 'array') {
     if (required && value.length === 0) return false;
@@ -206,7 +207,7 @@ export function McpElicitationDock({ request, isPending, onRespond }: McpElicita
                           ? 'date'
                           : 'text'
                 }
-                value={typeof value === 'string' || typeof value === 'number' ? value : ''}
+                value={value === undefined ? '' : String(value)}
                 required={required.has(name)}
                 min={'minimum' in property ? property.minimum : undefined}
                 max={'maximum' in property ? property.maximum : undefined}

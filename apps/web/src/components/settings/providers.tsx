@@ -1,9 +1,10 @@
 import * as React from 'react';
+import { z } from 'zod';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { PROVIDER_META } from '@stitch/shared/providers/catalog';
-import { PROVIDER_IDS, type ProviderId } from '@stitch/shared/providers/types';
+import { PROVIDER_IDS } from '@stitch/shared/providers/types';
 
 import { Stack } from '@/components/primitives/stack';
 import { ProviderConfig } from '@/components/settings/providers/provider-config';
@@ -12,12 +13,15 @@ import { SETTINGS_PAGE_BY_ID } from '@/components/settings/settings-metadata';
 import { SettingPage, SettingSection } from '@/components/settings/settings-ui';
 import { providersQueryOptions, type ProviderSummary } from '@/lib/queries/providers';
 
+const providerIdSchema = z.enum(PROVIDER_IDS);
+
 function ProviderList({ onSelect }: { onSelect: (provider: ProviderSummary) => void }) {
   const { data: providers } = useSuspenseQuery(providersQueryOptions);
 
   const providersWithEnabledAuth = providers.filter((provider) => {
-    if (!(PROVIDER_IDS as readonly string[]).includes(provider.id)) return false;
-    const meta = PROVIDER_META[provider.id as ProviderId];
+    const parsedProviderId = providerIdSchema.safeParse(provider.id);
+    if (!parsedProviderId.success) return false;
+    const meta = PROVIDER_META[parsedProviderId.data];
     return meta.authMethods.some((method) => method.enabled);
   });
 

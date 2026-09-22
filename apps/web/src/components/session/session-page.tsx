@@ -5,7 +5,6 @@ import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 
 import type { GeneratedAutomationDraft } from '@stitch/shared/automations/types';
-import type { PrefixedString } from '@stitch/shared/id';
 
 import { AutomationDialog } from '@/components/automations/automation-dialog';
 import { BrowserPanel } from '@/components/browser/browser-panel';
@@ -134,7 +133,7 @@ export function SessionPage({ sessionId }: SessionPageProps) {
               <ResizablePanel defaultSize="30%" minSize="24%" maxSize="55%">
                 {rightPanel === 'browser' ? (
                   <BrowserPanel
-                    sessionId={sessionId as PrefixedString<'ses'>}
+                    sessionId={sessionId}
                     onClose={() => setRequestedRightPanel('closed')}
                   />
                 ) : (

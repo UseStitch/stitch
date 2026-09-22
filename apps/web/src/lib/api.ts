@@ -1,4 +1,5 @@
 import type { DesktopBridge, ElectronBridge } from '@stitch/shared/desktop/bridge';
+import { z } from 'zod';
 
 export type ContextMenuParams = {
   x: number;
@@ -51,6 +52,7 @@ export async function serverFetch(path: string, init?: RequestInit): Promise<Res
 }
 
 type QueryParams = Record<string, string | number | undefined>;
+type ResponseBody = Awaited<ReturnType<Response['json']>>;
 
 class ServerRequestError extends Error {
   constructor(
@@ -62,6 +64,8 @@ class ServerRequestError extends Error {
   }
 }
 
+const serverErrorSchema = z.object({ error: z.string().optional(), code: z.string().optional() });
+
 export function toQueryString(params: QueryParams): string {
   const searchParams = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -71,18 +75,19 @@ export function toQueryString(params: QueryParams): string {
   return query ? `?${query}` : '';
 }
 
-export async function serverRequest<T>(path: string, init?: RequestInit & { params?: QueryParams }): Promise<T> {
+export function serverRequest<T>(path: string, init?: RequestInit & { params?: QueryParams }): Promise<T>;
+export async function serverRequest(path: string, init?: RequestInit & { params?: QueryParams }): Promise<ResponseBody> {
   const { params, ...requestInit } = init ?? {};
   const res = await serverFetch(params ? `${path}${toQueryString(params)}` : path, requestInit);
   if (!res.ok) {
     let errorMsg = `Request failed with status ${res.status}`;
     let errorCode: string | null = null;
     try {
-      const errJson = await res.json();
-      if (errJson?.error) {
-        errorMsg = errJson.error;
+      const result = serverErrorSchema.safeParse(await res.json());
+      if (result.success) {
+        errorMsg = result.data.error ?? errorMsg;
+        errorCode = result.data.code ?? errorCode;
       }
-      if (typeof errJson?.code === 'string') errorCode = errJson.code;
     } catch {
       // JSON parsing failed; use status code fallback
     }
@@ -90,7 +95,7 @@ export async function serverRequest<T>(path: string, init?: RequestInit & { para
   }
 
   if (res.status === 204) {
-    return undefined as T;
+    return;
   }
-  return res.json() as Promise<T>;
+  return res.json();
 }

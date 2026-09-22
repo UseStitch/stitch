@@ -168,7 +168,6 @@ export const SETTINGS_PAGES = [
 
 export const SETTINGS_SECTIONS = ['Desktop', 'Apps', 'AI'] as const satisfies readonly SettingsSection[];
 
-export const SETTINGS_PAGE_BY_ID = Object.fromEntries(SETTINGS_PAGES.map((page) => [page.id, page])) as Record<
-  (typeof SETTINGS_PAGES)[number]['id'],
-  (typeof SETTINGS_PAGES)[number]
->;
+export const SETTINGS_PAGE_BY_ID: Record<SettingsPageMetadata['id'], SettingsPageMetadata> = Object.fromEntries(
+  SETTINGS_PAGES.map((page) => [page.id, page]),
+);

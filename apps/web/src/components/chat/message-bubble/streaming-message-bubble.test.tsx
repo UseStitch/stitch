@@ -1,24 +1,33 @@
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import type { ToolCallStatus } from '@stitch/shared/chat/stream-events';
-
 import { StreamingMessageBubble } from './streaming-message-bubble.js';
 
 import type { StreamingPart } from '@/stores/stream-store';
 
 const DASHBOARD_SPEC = {
   root: 'n1',
-  nodes: [{ id: 'n1', component: 'Stat', label: 'Revenue', value: '$4.2k', caption: null, trend: 'up' }],
+  nodes: [
+    {
+      id: 'n1',
+      component: 'Stat',
+      label: 'Revenue',
+      value: '$4.2k',
+      caption: null,
+      trend: 'up',
+    },
+  ],
 };
 
-function toolCallPart(overrides: Partial<Extract<StreamingPart, { type: 'tool-call' }>>) {
+function toolCallPart(
+  overrides: Partial<Extract<StreamingPart, { type: 'tool-call' }>>,
+): Extract<StreamingPart, { type: 'tool-call' }> {
   return {
-    type: 'tool-call' as const,
+    type: 'tool-call',
     toolCallId: 'tc1',
     toolName: 'render_ui',
     input: DASHBOARD_SPEC,
-    status: 'completed' as ToolCallStatus,
+    status: 'completed',
     output: null,
     error: null,
     startedAt: 0,
@@ -28,7 +37,15 @@ function toolCallPart(overrides: Partial<Extract<StreamingPart, { type: 'tool-ca
 }
 
 function textPart(text: string, id: string): StreamingPart {
-  return { type: 'text', id, text, hasContent: true, status: 'complete', startedAt: 0, endedAt: 1 };
+  return {
+    type: 'text',
+    id,
+    text,
+    hasContent: true,
+    status: 'complete',
+    startedAt: 0,
+    endedAt: 1,
+  };
 }
 
 describe('StreamingMessageBubble liquid UI', () => {
@@ -43,7 +60,10 @@ describe('StreamingMessageBubble liquid UI', () => {
     const html = renderToStaticMarkup(
       <StreamingMessageBubble
         partIds={['t1', 'tc1']}
-        parts={{ t1: textPart('Here is the summary', 't1'), tc1: toolCallPart({}) }}
+        parts={{
+          t1: textPart('Here is the summary', 't1'),
+          tc1: toolCallPart({}),
+        }}
       />,
     );
 

@@ -3,6 +3,15 @@ import { Toaster as Sonner, type ToasterProps } from 'sonner';
 
 import { Spinner } from '@/components/ui/spinner';
 
+type ToasterStyle = React.CSSProperties & Record<'--normal-bg' | '--normal-text' | '--normal-border' | '--border-radius', string>;
+
+const toasterStyle: ToasterStyle = {
+  '--normal-bg': 'var(--popover)',
+  '--normal-text': 'var(--popover-foreground)',
+  '--normal-border': 'var(--border)',
+  '--border-radius': 'var(--radius)',
+};
+
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
@@ -15,14 +24,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         error: <OctagonXIcon className="size-4" />,
         loading: <Spinner />,
       }}
-      style={
-        {
-          '--normal-bg': 'var(--popover)',
-          '--normal-text': 'var(--popover-foreground)',
-          '--normal-border': 'var(--border)',
-          '--border-radius': 'var(--radius)',
-        } as React.CSSProperties
-      }
+      style={toasterStyle}
       toastOptions={{
         classNames: {
           toast: 'cn-toast',

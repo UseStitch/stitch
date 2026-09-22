@@ -49,7 +49,7 @@ export function MeetingDetectedNotification({ event, exiting, onDismiss }: Meeti
               setError(null);
               void startRecording.mutateAsync({ platform: event.payload.platform }).then(
                 () => onDismiss(event.id),
-                (nextError: unknown) => {
+                (nextError) => {
                   setError(getErrorMessage(nextError, 'Failed to start recording'));
                 },
               );
