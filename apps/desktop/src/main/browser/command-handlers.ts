@@ -1,17 +1,16 @@
+import { z } from 'zod';
+
 import type {
   ElectronBrowserCommand,
   ElectronBrowserCommandResultValue,
   ElectronBrowserDialogState,
-  ElectronBrowserDropdownOptionsResult,
   ElectronBrowserExecutionState,
-  ElectronBrowserExtractContentResult,
   ElectronBrowserFindElementsResult,
-  ElectronBrowserSearchPageResult,
   ElectronBrowserState,
 } from '@stitch/shared/browser/electron';
 
 import { clickRef, hoverRef, scroll, selectRef, typeIntoRef } from './input-actions.js';
-import { waitForPageStability } from './page-stability.js';
+import { LOAD_TIMEOUT_MS, waitForPageStability } from './page-stability.js';
 import { buildGetDropdownOptionsScript, buildSelectDropdownScript } from './scripts/dropdown.injected.js';
 import { buildExtractContentScript } from './scripts/extract-content.injected.js';
 import { buildFindElementsScript } from './scripts/find-elements.injected.js';
@@ -21,8 +20,6 @@ import { DEFAULT_URL, normalizeUrl, searchUrl } from './url.js';
 import type { RefResolver } from './ref-resolver.js';
 import type { SessionStore } from './session-store.js';
 import type { Rectangle, WebContents } from 'electron';
-
-const LOAD_TIMEOUT_MS = 15_000;
 
 type CommandContext = {
   browser: WebContents;
@@ -113,11 +110,12 @@ export async function executeBrowserCommand(
       await selectRef(ctx.browser, ctx.refResolver, command.ref, command.values);
       return `Selected ${command.values.join(', ')} in ${command.ref}`;
     case 'getDropdownOptions':
-      return ctx.refResolver.runOnRef<ElectronBrowserDropdownOptionsResult>(command.ref, buildGetDropdownOptionsScript);
+      return ctx.refResolver.runOnRef(command.ref, buildGetDropdownOptionsScript, dropdownOptionsSchema);
     case 'selectDropdown': {
-      const result = await ctx.refResolver.runOnRef<{ selected?: boolean; error?: string; text?: string }>(
+      const result = await ctx.refResolver.runOnRef(
         command.ref,
         (element) => buildSelectDropdownScript(element, command.text),
+        z.object({ selected: z.boolean().optional(), error: z.string().optional(), text: z.string().optional() }),
       );
       if (!result.selected) {
         throw new Error(result.error ?? `Dropdown option not found: ${command.text}`);
@@ -144,20 +142,18 @@ export async function executeBrowserCommand(
       await wait(ctx.getBrowser, command.timeMs, command.selector, command.timeoutMs);
       return command.selector ? `Selector appeared: ${command.selector}` : `Waited ${command.timeMs ?? 0}ms`;
     case 'extractPageContent':
-      return runScript<string | ElectronBrowserExtractContentResult>(ctx.browser, buildExtractContentScript(command));
+      return runScript(ctx.browser, buildExtractContentScript(command), extractContentSchema);
     case 'searchPage':
-      return runScript<ElectronBrowserSearchPageResult>(ctx.browser, buildSearchPageScript(command));
+      return runScript(ctx.browser, buildSearchPageScript(command), searchPageSchema);
     case 'findElements': {
-      type RawFindResult = {
-        elements: Array<{ tag: string; text?: string; attributes?: Record<string, string>; cssPath?: string }>;
-        total: number;
-      };
-      const raw = await runScript<RawFindResult>(ctx.browser, buildFindElementsScript(command));
+      const raw = await runScript(ctx.browser, buildFindElementsScript(command), rawFindResultSchema);
       const result: ElectronBrowserFindElementsResult = {
         total: raw.total,
         elements: raw.elements.map((el) => {
           const ref = el.cssPath ? ctx.refResolver.findRefBySelector(el.cssPath) : undefined;
-          return { tag: el.tag, text: el.text, attributes: { ...el.attributes, ...(ref ? { ref } : {}) } };
+          const attributes = { ...el.attributes };
+          if (ref) attributes.ref = ref;
+          return { tag: el.tag, text: el.text, attributes };
         }),
       };
       return result;
@@ -172,14 +168,43 @@ export async function executeBrowserCommand(
   }
 }
 
-async function runScript<T>(browser: WebContents, script: string): Promise<T> {
-  // The injected scripts are untyped strings; this is the single boundary where
-  // their results are trusted to match the declared shape.
-  return (await browser.executeJavaScript(script, true)) as T;
+const dropdownOptionsSchema = z.object({
+  type: z.string(),
+  options: z.array(
+    z.object({ index: z.number(), text: z.string(), value: z.string(), selected: z.boolean(), disabled: z.boolean() }),
+  ),
+});
+const extractContentSchema = z.union([
+  z.string(),
+  z.object({
+    text: z.string(),
+    links: z.array(z.object({ text: z.string(), href: z.string() })).optional(),
+    images: z.array(z.object({ alt: z.string(), src: z.string() })).optional(),
+    data: z.record(z.string(), z.union([z.string(), z.array(z.string())])).optional(),
+  }),
+]);
+const searchPageSchema = z.object({
+  matches: z.array(z.object({ match: z.string(), context: z.string(), index: z.number() })),
+  total: z.number(),
+});
+const rawFindResultSchema = z.object({
+  elements: z.array(
+    z.object({
+      tag: z.string(),
+      text: z.string().optional(),
+      attributes: z.record(z.string(), z.string()).optional(),
+      cssPath: z.string().optional(),
+    }),
+  ),
+  total: z.number(),
+});
+
+async function runScript<T>(browser: WebContents, script: string, resultSchema: z.ZodType<T>): Promise<T> {
+  return resultSchema.parse(await browser.executeJavaScript(script, true));
 }
 
 async function getExecutionState(browser: WebContents): Promise<ElectronBrowserExecutionState> {
-  return runScript<ElectronBrowserExecutionState>(
+  return runScript(
     browser,
     `(() => {
       function hash(value) {
@@ -219,6 +244,15 @@ async function getExecutionState(browser: WebContents): Promise<ElectronBrowserE
         bodyTextHash: hash(bodyText),
       };
     })()`,
+    z.object({
+      url: z.string(),
+      title: z.string(),
+      readyState: z.string(),
+      focusedElement: z.string(),
+      interactiveCount: z.number(),
+      interactiveHash: z.string(),
+      bodyTextHash: z.string(),
+    }),
   );
 }
 
@@ -239,16 +273,20 @@ async function getScreenshotRect(
 
   if (!fullPage) return undefined;
 
-  return (await ctx.browser.executeJavaScript(
-    `(() => ({
+  return rectangleSchema.parse(
+    await ctx.browser.executeJavaScript(
+      `(() => ({
       x: 0,
       y: 0,
       width: Math.max(document.documentElement.scrollWidth, document.body?.scrollWidth || 0, window.innerWidth),
       height: Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight || 0, window.innerHeight),
     }))()`,
-    true,
-  )) as Rectangle;
+      true,
+    ),
+  );
 }
+
+const rectangleSchema = z.object({ x: z.number(), y: z.number(), width: z.number(), height: z.number() });
 
 async function wait(
   getBrowser: () => Promise<WebContents>,

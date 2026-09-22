@@ -190,7 +190,7 @@ function registerScreenListeners(): void {
 function createNotificationWindow(event: DesktopNotificationEvent): BrowserWindow {
   const display = getActiveDisplay();
   const stackIndex = orderedIds.length;
-  const win = new BrowserWindow({
+  const windowOptions: Electron.BrowserWindowConstructorOptions = {
     ...getBounds(display, stackIndex, NOTIFICATION_DEFAULT_HEIGHT),
     title: 'Notification',
     frame: false,
@@ -210,14 +210,15 @@ function createNotificationWindow(event: DesktopNotificationEvent): BrowserWindo
     backgroundColor: '#00000000',
     titleBarStyle: 'hidden',
     trafficLightPosition: { x: -15, y: -16 },
-    ...(process.platform === 'darwin' ? { type: 'panel' as const } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
       devTools: !app.isPackaged,
     },
-  });
+  };
+  if (process.platform === 'darwin') windowOptions.type = 'panel';
+  const win = new BrowserWindow(windowOptions);
 
   win.setAlwaysOnTop(true, 'screen-saver');
   if (process.platform === 'darwin') {

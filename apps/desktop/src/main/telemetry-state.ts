@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
+import { z } from 'zod';
 
 import { createTelemetryClientId, ID_PREFIXES, isIdOfType } from '@stitch/shared/id';
 import type { TelemetryState } from '@stitch/shared/telemetry/types';
@@ -8,6 +9,12 @@ import type { TelemetryState } from '@stitch/shared/telemetry/types';
 const TELEMETRY_FILE = 'telemetry.json';
 let state: TelemetryState | null = null;
 let initPromise: Promise<TelemetryState> | null = null;
+const telemetryStateSchema = z.object({
+  clientInstallationId: z.string().refine((id) => isIdOfType(id, ID_PREFIXES.telemetryClient)),
+  enabled: z.boolean(),
+  lastActiveDate: z.string().nullable(),
+  lastMessageDate: z.string().nullable(),
+});
 
 function getTelemetryFilePath(): string {
   return path.join(app.getPath('userData'), TELEMETRY_FILE);
@@ -16,19 +23,7 @@ function getTelemetryFilePath(): string {
 function readStateFromDisk(): TelemetryState | null {
   try {
     const raw = fs.readFileSync(getTelemetryFilePath(), 'utf-8');
-    const parsed = JSON.parse(raw) as Partial<TelemetryState>;
-    if (
-      typeof parsed.clientInstallationId === 'string' &&
-      isIdOfType(parsed.clientInstallationId, ID_PREFIXES.telemetryClient) &&
-      typeof parsed.enabled === 'boolean'
-    ) {
-      return {
-        clientInstallationId: parsed.clientInstallationId,
-        enabled: parsed.enabled,
-        lastActiveDate: typeof parsed.lastActiveDate === 'string' ? parsed.lastActiveDate : null,
-        lastMessageDate: typeof parsed.lastMessageDate === 'string' ? parsed.lastMessageDate : null,
-      };
-    }
+    return telemetryStateSchema.parse(JSON.parse(raw));
   } catch {
     // missing, malformed, or unreadable — will bootstrap fresh
   }

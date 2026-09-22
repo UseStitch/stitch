@@ -1,19 +1,22 @@
+import { z } from 'zod';
+
 import { buildRefActionScript } from './scripts/ref-action.injected.js';
 
 import type { RefActionSuccess } from './scripts/ref-action.injected.js';
 import type { RefEntry } from './types.js';
 import type { WebContents } from 'electron';
 
-/** The injected script's return value before validation, since it crosses `executeJavaScript`. */
-type UnvalidatedRefAction = {
-  ok?: boolean;
-  error?: string;
-  result?: unknown;
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-};
+type ExecuteJavaScriptResult = Awaited<ReturnType<WebContents['executeJavaScript']>>;
+
+const refActionSchema = z.object({
+  ok: z.boolean(),
+  error: z.string().optional(),
+  result: z.unknown().optional(),
+  x: z.number(),
+  y: z.number(),
+  width: z.number(),
+  height: z.number(),
+});
 
 export class RefResolver {
   private refs = new Map<string, RefEntry>();
@@ -31,14 +34,14 @@ export class RefResolver {
     return undefined;
   }
 
-  async runOnRef<T = unknown>(ref: string, buildScript: (element: string) => string): Promise<T> {
+  async runOnRef<T>(ref: string, buildScript: (element: string) => string, resultSchema: z.ZodType<T>): Promise<T> {
     const result = await (
       await this.getBrowser()
     ).executeJavaScript(
       this.refActionScript(ref, (element) => buildScript(element)),
       true,
     );
-    return this.unwrapRefResult(ref, result) as T;
+    return resultSchema.parse(this.unwrapRefResult(ref, result));
   }
 
   async resolveRef(ref: string): Promise<{ x: number; y: number }> {
@@ -93,25 +96,19 @@ export class RefResolver {
     return buildRefActionScript(entry, buildScript);
   }
 
-  private unwrapRefResult(ref: string, result: unknown): unknown {
+  private unwrapRefResult(ref: string, result: ExecuteJavaScriptResult): z.output<typeof refActionSchema>['result'] {
     return this.unwrapRefSuccess(ref, result).result;
   }
 
-  private unwrapRefSuccess(ref: string, result: unknown): RefActionSuccess {
-    if (!result || typeof result !== 'object' || !('ok' in result)) {
-      throw new Error(`Browser interaction on ${ref} did not return a valid result.`);
-    }
-
-    const { ok, error, result: actionResult, x, y, width, height } = result as UnvalidatedRefAction;
+  private unwrapRefSuccess(ref: string, result: ExecuteJavaScriptResult): RefActionSuccess {
+    const parsed = refActionSchema.safeParse(result);
+    if (!parsed.success) throw new Error(`Browser interaction on ${ref} did not return a valid result.`);
+    const { ok, error, result: actionResult, x, y, width, height } = parsed.data;
 
     if (!ok) {
       throw new Error(
         `${error ?? 'Element interaction failed'}: ${ref}. Take a fresh browser_snapshot before retrying.`,
       );
-    }
-
-    if (typeof x !== 'number' || typeof y !== 'number' || typeof width !== 'number' || typeof height !== 'number') {
-      throw new Error(`Browser interaction on ${ref} did not return coordinates.`);
     }
 
     return { ok: true, result: actionResult, x, y, width, height };

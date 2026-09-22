@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import type { RefResolver } from './ref-resolver.js';
 import type { WebContents } from 'electron';
 
@@ -68,9 +70,10 @@ export async function typeIntoRef(
   submit?: boolean,
   slowly?: boolean,
 ): Promise<void> {
-  const isContentEditable = await refResolver.runOnRef<boolean>(
+  const isContentEditable = await refResolver.runOnRef(
     ref,
     (element) => `return ${element}.isContentEditable || ${element}.getAttribute('contenteditable') !== null`,
+    z.boolean(),
   );
 
   if (isContentEditable) {
@@ -136,6 +139,7 @@ async function typeIntoContentEditable(
   await refResolver.runOnRef(
     ref,
     (element) => `${element}.dispatchEvent(new Event('input', { bubbles: true })); return true;`,
+    z.literal(true),
   );
 
   if (submit) {
@@ -157,6 +161,7 @@ export async function selectRef(
     ref,
     (element) =>
       `for (const option of ${element}.options || []) option.selected = ${JSON.stringify(values)}.includes(option.value) || ${JSON.stringify(values)}.includes(option.textContent?.trim()); ${element}.dispatchEvent(new Event('input', { bubbles: true })); ${element}.dispatchEvent(new Event('change', { bubbles: true })); return true;`,
+    z.literal(true),
   );
 }
 
@@ -172,6 +177,7 @@ export async function scroll(
       ref,
       (element) =>
         `${element}.scrollBy(${direction === 'left' || direction === 'right' ? delta : 0}, ${direction === 'up' || direction === 'down' ? delta : 0}); return true;`,
+      z.literal(true),
     );
     return;
   }
@@ -207,7 +213,7 @@ async function selectSingleValueWithKeyboard(
   ref: string,
   value: string,
 ): Promise<boolean> {
-  const result = await refResolver.runOnRef<{ usable: boolean; targetIndex?: number }>(
+  const result = await refResolver.runOnRef(
     ref,
     (element) => `
       if (${element}.tagName?.toLowerCase() !== 'select' || ${element}.multiple) return { usable: false };
@@ -218,9 +224,10 @@ async function selectSingleValueWithKeyboard(
       ${element}.focus();
       return { usable: true, targetIndex };
     `,
+    z.object({ usable: z.boolean(), targetIndex: z.number().optional() }),
   );
 
-  if (!result.usable || typeof result.targetIndex !== 'number') {
+  if (!result.usable || result.targetIndex === undefined) {
     return false;
   }
 

@@ -54,9 +54,10 @@ let browserManager: ElectronBrowserManager | null = null;
 let browserBridgePort = 0;
 
 // Shared mutable server state — passed by reference to IPC handlers that own it.
-const serverState = {
+type ServerState = { serverUrl: string; serverConnectionConfig: ServerConnectionConfig };
+const serverState: ServerState = {
   serverUrl: '',
-  serverConnectionConfig: { mode: 'local', remoteUrl: null } as ServerConnectionConfig,
+  serverConnectionConfig: { mode: 'local', remoteUrl: null } satisfies ServerConnectionConfig,
 };
 
 async function startLocalServer(): Promise<string> {

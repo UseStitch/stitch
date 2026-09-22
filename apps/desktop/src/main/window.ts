@@ -57,12 +57,11 @@ export async function createWindow(
   const isMac = process.platform === 'darwin';
   const windowIcon = resolveWindowIcon();
 
-  const win = new BrowserWindow({
+  const windowOptions: Electron.BrowserWindowConstructorOptions = {
     width: 1280,
     height: 800,
-    ...(windowIcon ? { icon: windowIcon } : { icon: resolveResourcePath(WINDOW_ICON_NAME) }),
+    icon: windowIcon ?? resolveResourcePath(WINDOW_ICON_NAME),
     frame: false,
-    ...(isMac ? { titleBarStyle: 'hiddenInset' } : {}),
     minWidth: 800,
     minHeight: 600,
     webPreferences: {
@@ -74,7 +73,9 @@ export async function createWindow(
       // otherwise throttle timers to 1/min, stalling the SSE reconnect watchdog.
       backgroundThrottling: false,
     },
-  });
+  };
+  if (isMac) windowOptions.titleBarStyle = 'hiddenInset';
+  const win = new BrowserWindow(windowOptions);
 
   if (windowIcon) {
     win.setIcon(windowIcon);

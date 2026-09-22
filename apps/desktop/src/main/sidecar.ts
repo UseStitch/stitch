@@ -1,8 +1,9 @@
 import { app } from 'electron';
-import { execSync, spawn, type ChildProcess } from 'node:child_process';
+import { execSync, spawn, type ChildProcess, type SpawnOptions } from 'node:child_process';
 import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import treeKill from 'tree-kill';
+import { z } from 'zod';
 
 const HEALTH_POLL_INTERVAL_MS = 100;
 const HEALTH_TIMEOUT_MS = 30_000;
@@ -14,6 +15,9 @@ const STALE_POLL_INTERVAL_MS = 100;
 const SPAWN_MAX_ATTEMPTS = 3;
 
 let serverProcess: ChildProcess | null = null;
+type SidecarCommand = { cmd: string; args: string[]; cwd?: string };
+const socketAddressSchema = z.object({ address: z.string(), family: z.string(), port: z.number() });
+const portInUseErrorSchema = z.object({ portInUse: z.literal(true).optional() });
 
 function getMonorepoRoot(): string {
   // app.getAppPath() points to apps/desktop in dev (the package dir)
@@ -21,7 +25,7 @@ function getMonorepoRoot(): string {
   return resolve(app.getAppPath(), '../..');
 }
 
-function getSidecarCommand(port: number): { cmd: string; args: string[]; cwd?: string } {
+function getSidecarCommand(port: number): SidecarCommand {
   const portArgs = ['--port', String(port), '--hostname', HOSTNAME];
 
   if (app.isPackaged) {
@@ -42,12 +46,13 @@ export async function findAvailablePort(): Promise<number> {
     server.on('error', reject);
     server.listen(0, HOSTNAME, () => {
       const address = server.address();
-      if (typeof address !== 'object' || !address) {
+      const parsedAddress = socketAddressSchema.safeParse(address);
+      if (!parsedAddress.success) {
         server.close();
         reject(new Error('Failed to get port'));
         return;
       }
-      const port = address.port;
+      const { port } = parsedAddress.data;
       server.close(() => resolve(port));
     });
   });
@@ -160,31 +165,27 @@ async function spawnServerOnce(port: number, extraEnv: NodeJS.ProcessEnv): Promi
     sidecarEnv.SANDBOX_EXEC_PATH = join(root, 'packages/server/src/code-mode/sandbox-process.ts');
   }
 
-  serverProcess = spawn(cmd, args, {
-    stdio: ['ignore', 'pipe', 'pipe'],
-    windowsHide: true,
-    env: sidecarEnv,
-    ...(cwd && { cwd }),
-  });
+  const spawnOptions: SpawnOptions = { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, env: sidecarEnv };
+  if (cwd) spawnOptions.cwd = cwd;
+  const proc = spawn(cmd, args, spawnOptions);
+  serverProcess = proc;
 
   let logTail = '';
   const appendLog = (chunk: string) => {
     logTail = (logTail + chunk).slice(-MAX_LOG_BUFFER);
   };
 
-  serverProcess.stdout?.on('data', (data: Buffer) => {
+  proc.stdout?.on('data', (data: Buffer) => {
     const text = data.toString();
     appendLog(text);
     console.log(`[sidecar:stdout] ${text.trim()}`);
   });
 
-  serverProcess.stderr?.on('data', (data: Buffer) => {
+  proc.stderr?.on('data', (data: Buffer) => {
     const text = data.toString();
     appendLog(text);
     console.error(`[sidecar:stderr] ${text.trim()}`);
   });
-
-  const proc = serverProcess;
 
   const exitPromise = new Promise<never>((_resolve, reject) => {
     proc.on('exit', (code, signal) => {
@@ -192,7 +193,7 @@ async function spawnServerOnce(port: number, extraEnv: NodeJS.ProcessEnv): Promi
       const details = tail ? `\n\nServer output:\n${tail}` : ' (no output captured)';
       const error = new Error(`Server exited before becoming healthy (code=${code}, signal=${signal})${details}`);
       if (isPortInUseError(tail)) {
-        (error as Error & { portInUse?: boolean }).portInUse = true;
+        Object.assign(error, { portInUse: true });
       }
       reject(error);
     });
@@ -220,7 +221,7 @@ export async function spawnServer(extraEnv: NodeJS.ProcessEnv = {}): Promise<str
       return await spawnServerOnce(port, extraEnv);
     } catch (error) {
       lastError = error;
-      const portInUse = (error as Error & { portInUse?: boolean }).portInUse === true;
+      const portInUse = portInUseErrorSchema.safeParse(error).data?.portInUse === true;
       if (!portInUse || attempt === SPAWN_MAX_ATTEMPTS) {
         throw error;
       }

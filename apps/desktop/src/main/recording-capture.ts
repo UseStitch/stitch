@@ -1,7 +1,9 @@
+import { z } from 'zod';
+
 import { createAudioCaptureHandle } from '@stitch/audio-capture';
 import type { RecordingDeviceChangedPayload, RecordingWarningPayload } from '@stitch/shared/recordings/events';
 import type { StartRecordingResponse, StopRecordingInput } from '@stitch/shared/recordings/types';
-import type { SttInboundMessage, SttOutboundMessage } from '@stitch/shared/stt/types';
+import type { SttInboundMessage } from '@stitch/shared/stt/types';
 
 import { createCaptureRestarter, isRestartTriggerCode, type CaptureRestarter } from './capture-restart.js';
 
@@ -13,6 +15,13 @@ type StartCaptureInput = Pick<
 > & { serverUrl: string };
 
 const capture = createAudioCaptureHandle();
+const sttOutboundMessageSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('ready') }).loose(),
+  z.object({ type: z.literal('transcript') }).loose(),
+  z.object({ type: z.literal('error'), code: z.string(), message: z.string() }).loose(),
+  z.object({ type: z.literal('done') }).loose(),
+  z.object({ type: z.literal('unrecoverable') }).loose(),
+]);
 
 let activeSocket: WebSocket | null = null;
 let activeRecordingId: string | null = null;
@@ -161,7 +170,7 @@ export async function startRecordingCapture(
 
     ws.addEventListener('message', (event) => {
       try {
-        const msg = JSON.parse(String(event.data)) as SttOutboundMessage;
+        const msg = sttOutboundMessageSchema.parse(JSON.parse(String(event.data)));
         if (msg.type === 'error') {
           console.error('[recording-stt] error:', msg.code, msg.message);
         }

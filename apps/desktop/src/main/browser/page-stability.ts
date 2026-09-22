@@ -1,6 +1,6 @@
 import type { WebContents } from 'electron';
 
-const LOAD_TIMEOUT_MS = 15_000;
+export const LOAD_TIMEOUT_MS = 15_000;
 const PAGE_STABILITY_IDLE_MS = 500;
 const PAGE_STABILITY_POLL_MS = 100;
 

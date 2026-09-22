@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { z } from 'zod';
 
 type ServerMode = 'local' | 'remote';
 
@@ -9,16 +10,14 @@ export type ServerConnectionConfig = { mode: ServerMode; remoteUrl: string | nul
 const CONFIG_FILE_NAME = 'server-config.json';
 
 const DEFAULT_CONFIG: ServerConnectionConfig = { mode: 'local', remoteUrl: null };
+const serverConnectionConfigSchema = z.object({ mode: z.enum(['local', 'remote']), remoteUrl: z.string().nullable() });
 
 function getConfigPath(): string {
   return join(app.getPath('userData'), CONFIG_FILE_NAME);
 }
 
 function parseConfig(raw: string): ServerConnectionConfig {
-  const parsed = JSON.parse(raw) as Partial<ServerConnectionConfig>;
-  const mode = parsed.mode === 'remote' ? 'remote' : 'local';
-  const remoteUrl = typeof parsed.remoteUrl === 'string' ? parsed.remoteUrl : null;
-  return { mode, remoteUrl };
+  return serverConnectionConfigSchema.parse(JSON.parse(raw));
 }
 
 export function normalizeRemoteUrl(raw: string): string {

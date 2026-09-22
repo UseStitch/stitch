@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { z } from 'zod';
 
 import type { ElectronBrowserState } from '@stitch/shared/browser/electron';
 
@@ -9,6 +10,15 @@ import { DEFAULT_URL } from './url.js';
 import type { PersistedBrowserState, SessionTabState, TabInfo } from './types.js';
 
 type Persistence = { load: () => PersistedBrowserState; save: (state: PersistedBrowserState) => void };
+const persistedBrowserStateSchema = z.object({
+  sessions: z.record(
+    z.string(),
+    z.object({
+      tabs: z.array(z.object({ id: z.string(), title: z.string(), url: z.string() })),
+      activeTabId: z.string().nullable(),
+    }),
+  ),
+});
 
 function getStatePath(): string {
   return join(app.getPath('home'), '.stitch', 'browser-state.json');
@@ -19,7 +29,7 @@ function createDiskPersistence(): Persistence {
     load() {
       try {
         const raw = readFileSync(getStatePath(), 'utf8');
-        return JSON.parse(raw) as PersistedBrowserState;
+        return persistedBrowserStateSchema.parse(JSON.parse(raw));
       } catch {
         return { sessions: {} };
       }

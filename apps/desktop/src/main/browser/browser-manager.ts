@@ -1,4 +1,5 @@
 import { shell, webContents, type BrowserWindow, type WebContents } from 'electron';
+import { z } from 'zod';
 
 import type {
   ElectronBrowserCommand,
@@ -19,11 +20,8 @@ import { DIALOG_INTERCEPT_SCRIPT, DIALOG_SIGNAL } from './scripts/dialogs.inject
 import { buildSnapshotScript } from './scripts/snapshot.injected.js';
 import { WEBAUTHN_INTERCEPT_SCRIPT, WEBAUTHN_SIGNAL } from './scripts/webauthn.injected.js';
 import { SessionStore } from './session-store.js';
-import { normalizeUrl } from './url.js';
+import { DEFAULT_URL, normalizeUrl } from './url.js';
 
-import type { RefEntry } from './types.js';
-
-const DEFAULT_URL = 'about:blank';
 const BROWSER_READY_TIMEOUT_MS = 20_000;
 const BROWSER_READY_POLL_MS = 50;
 
@@ -229,21 +227,38 @@ export class ElectronBrowserManager {
   }
 
   private async snapshot(browser: WebContents): Promise<string> {
+    const snapshotSchema = z.object({
+      tree: z.string(),
+      refs: z.record(
+        z.string(),
+        z.object({
+          selector: z.string(),
+          tag: z.string(),
+          role: z.string(),
+          name: z.string(),
+          identity: z.string(),
+          inViewport: z.boolean(),
+          x: z.number(),
+          y: z.number(),
+          width: z.number(),
+          height: z.number(),
+        }),
+      ),
+      identities: z.array(z.string()),
+      viewport: z.object({ width: z.number(), height: z.number(), deviceScaleFactor: z.number() }),
+      scroll: z.object({
+        pagesAbove: z.number(),
+        pagesBelow: z.number(),
+        scrollTop: z.number(),
+        scrollLeft: z.number(),
+        scrollHeight: z.number(),
+        scrollWidth: z.number(),
+      }),
+    });
     const readSnapshot = async () =>
-      (await browser.executeJavaScript(buildSnapshotScript(this.store.getSnapshotIdentities()), true)) as {
-        tree: string;
-        refs: Record<string, RefEntry>;
-        identities: string[];
-        viewport: { width: number; height: number; deviceScaleFactor: number };
-        scroll: {
-          pagesAbove: number;
-          pagesBelow: number;
-          scrollTop: number;
-          scrollLeft: number;
-          scrollHeight: number;
-          scrollWidth: number;
-        };
-      };
+      snapshotSchema.parse(
+        await browser.executeJavaScript(buildSnapshotScript(this.store.getSnapshotIdentities()), true),
+      );
 
     let result = await readSnapshot();
     if (!result.tree.trim()) {
@@ -288,7 +303,14 @@ export class ElectronBrowserManager {
 
   private recordDialogMessage(payload: string): void {
     try {
-      const parsed = JSON.parse(payload) as ElectronBrowserDialogState;
+      const parsed = z
+        .object({
+          type: z.enum(['alert', 'confirm', 'prompt', 'beforeunload', 'popup']).optional(),
+          message: z.string().optional(),
+          defaultPromptText: z.string().optional(),
+          url: z.string().optional(),
+        })
+        .parse(JSON.parse(payload));
       this.dialogState = {
         open: true,
         type: parsed.type,
