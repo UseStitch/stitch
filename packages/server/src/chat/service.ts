@@ -107,7 +107,11 @@ async function buildUserMessageParts(input: {
 }
 
 function buildChatTitleContent(firstMessage: string, filenames: string[] = []): string {
-  const normalizedFilenames = filenames.values().map((name) => name.trim()).filter(Boolean).toArray();
+  const normalizedFilenames = filenames
+    .values()
+    .map((name) => name.trim())
+    .filter(Boolean)
+    .toArray();
   const filenameContext =
     normalizedFilenames.length > 0
       ? `\nAttached filenames:\n${normalizedFilenames.map((name) => `- ${name}`).join('\n')}`

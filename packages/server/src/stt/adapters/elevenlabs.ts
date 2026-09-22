@@ -3,8 +3,8 @@ import type { TranscriptEvent, STTUsage } from '@stitch/shared/stt/types';
 import * as Log from '@/lib/log.js';
 import { getModelDescriptor } from '@/models/stt/service.js';
 import type { STTAdapter, STTConnection } from '@/stt/adapter-iface.js';
-import { createManagedConnection, type STTErrorClassification } from '@/stt/base-adapter.js';
 import { CREDENTIALS_ERROR_REASON, QUOTA_ERROR_REASON } from '@/stt/adapters/error-reasons.js';
+import { createManagedConnection, type STTErrorClassification } from '@/stt/base-adapter.js';
 import type { ModelDescriptor, STTConnectionConfig } from '@/stt/types.js';
 import { createWsTransport, type WsMessageResult } from '@/stt/ws-transport.js';
 

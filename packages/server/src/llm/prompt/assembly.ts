@@ -27,8 +27,16 @@ export function composeWithFragments(messages: ModelMessage[], fragments: Prompt
   if (messages.length === 0) return messages;
 
   const result = [...messages];
-  const semiStaticFragments = active.values().filter((f) => f.layer === 'semiStatic').map((f) => f.content).toArray();
-  const dynamicFragments = active.values().filter((f) => f.layer === 'dynamic').map((f) => f.content).toArray();
+  const semiStaticFragments = active
+    .values()
+    .filter((f) => f.layer === 'semiStatic')
+    .map((f) => f.content)
+    .toArray();
+  const dynamicFragments = active
+    .values()
+    .filter((f) => f.layer === 'dynamic')
+    .map((f) => f.content)
+    .toArray();
 
   if (semiStaticFragments.length > 0) {
     const semiStaticIndex = result.findIndex((msg, i) => i > 0 && msg.role === 'system');

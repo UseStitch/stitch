@@ -210,12 +210,7 @@ export function buildHistoryMessages(
             toolName: string;
             input: unknown;
             providerOptions?: ProviderOptions;
-          } = {
-            type: 'tool-call',
-            toolCallId: tc.toolCallId,
-            toolName: tc.toolName,
-            input: tc.input,
-          };
+          } = { type: 'tool-call', toolCallId: tc.toolCallId, toolName: tc.toolName, input: tc.input };
           if (providerOptions) toolCallEntry.providerOptions = providerOptions;
           assistantContent.push(toolCallEntry);
         }
@@ -236,9 +231,7 @@ export function buildHistoryMessages(
                 type: 'tool-result';
                 toolCallId: string;
                 toolName: string;
-                output:
-                  | { type: 'error-json'; value: never }
-                  | { type: 'json'; value: never };
+                output: { type: 'error-json'; value: never } | { type: 'json'; value: never };
                 providerOptions?: ProviderOptions;
               } = {
                 type: 'tool-result' as const,

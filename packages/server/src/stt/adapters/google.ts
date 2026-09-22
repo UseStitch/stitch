@@ -3,12 +3,8 @@ import type { TranscriptEvent, STTUsage } from '@stitch/shared/stt/types';
 import * as Log from '@/lib/log.js';
 import { getModelDescriptor } from '@/models/stt/service.js';
 import type { STTAdapter, STTConnection } from '@/stt/adapter-iface.js';
+import { CREDENTIALS_ERROR_REASON, MODEL_ERROR_REASON, QUOTA_ERROR_REASON } from '@/stt/adapters/error-reasons.js';
 import { createManagedConnection, type STTErrorClassification } from '@/stt/base-adapter.js';
-import {
-  CREDENTIALS_ERROR_REASON,
-  MODEL_ERROR_REASON,
-  QUOTA_ERROR_REASON,
-} from '@/stt/adapters/error-reasons.js';
 import type { ModelDescriptor, STTConnectionConfig } from '@/stt/types.js';
 import { createWsTransport, type WsMessageResult } from '@/stt/ws-transport.js';
 
@@ -21,10 +17,7 @@ type ModalityTokenCount = { modality: string; tokenCount: number };
 
 type GeminiLiveMessage = {
   setupComplete?: Record<string, never>;
-  serverContent?: {
-    interimInputTranscription?: { text: string };
-    inputTranscription?: { text: string };
-  };
+  serverContent?: { interimInputTranscription?: { text: string }; inputTranscription?: { text: string } };
   usageMetadata?: {
     promptTokenCount?: number;
     responseTokenCount?: number;
@@ -116,7 +109,12 @@ function classifyGoogleError(err: Error): STTErrorClassification {
   const message = err.message.toLowerCase();
   const code = (err as Error & { code?: string }).code ?? '';
 
-  if (code === 'UNAUTHENTICATED' || code === 'PERMISSION_DENIED' || message.includes('401') || message.includes('403')) {
+  if (
+    code === 'UNAUTHENTICATED' ||
+    code === 'PERMISSION_DENIED' ||
+    message.includes('401') ||
+    message.includes('403')
+  ) {
     return { fatal: true, reason: CREDENTIALS_ERROR_REASON };
   }
   if (code === 'RESOURCE_EXHAUSTED' || message.includes('429') || message.includes('quota')) {
@@ -144,9 +142,7 @@ function createGoogleTransport(config: STTConnectionConfig) {
     },
     (chunk) =>
       JSON.stringify({
-        realtimeInput: {
-          audio: { data: chunk.samplesB64, mimeType: `audio/pcm;rate=${chunk.sampleRateHz}` },
-        },
+        realtimeInput: { audio: { data: chunk.samplesB64, mimeType: `audio/pcm;rate=${chunk.sampleRateHz}` } },
       }),
     () => JSON.stringify({ realtimeInput: { audioStreamEnd: true } }),
   );
