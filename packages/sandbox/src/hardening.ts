@@ -69,7 +69,7 @@ function removeGlobal(name: string): void {
     Object.defineProperty(globalThis, name, { value: undefined, writable: false, configurable: false });
   } catch {
     try {
-      delete (globalThis as Record<string, unknown>)[name];
+      Reflect.deleteProperty(globalThis, name);
     } catch {
       // Best effort for non-configurable host globals.
     }

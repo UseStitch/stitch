@@ -1,94 +1,80 @@
-import type { SandboxLibrary } from './types.js';
+import { z } from 'zod';
 
-type WorkerExecuteMessage = { type: 'execute'; code: string };
+import type { SandboxLibrary, SandboxValue } from './types.js';
 
-type WorkerToolResultMessage = { type: 'tool_result'; id: string; result: unknown };
+const sandboxValueSchema: z.ZodType<SandboxValue> = z.lazy(() =>
+  z.union([
+    z.boolean(),
+    z.null(),
+    z.number(),
+    z.string(),
+    z.undefined(),
+    z.array(sandboxValueSchema),
+    z.record(z.string(), sandboxValueSchema),
+  ]),
+);
 
-type WorkerToolErrorMessage = { type: 'tool_error'; id: string; error: string };
+const sandboxLibrarySchema = z.object({
+  specifier: z.string(),
+  globalName: z.string().optional(),
+  inject: z.boolean().optional(),
+});
 
-type WorkerInitMessage = {
-  type: 'init';
-  toolNames: string[];
-  libraries: Record<string, SandboxLibrary>;
-  memoryReportIntervalMs: number;
-};
+const workerMessageSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('tool_call'), id: z.string(), name: z.string(), args: sandboxValueSchema }),
+  z
+    .object({ type: z.literal('complete'), result: sandboxValueSchema, logs: z.array(z.string()) })
+    .refine((message) => Object.hasOwn(message, 'result')),
+  z.object({ type: z.literal('error'), error: z.string(), logs: z.array(z.string()) }),
+  z.object({ type: z.literal('memory_report'), rss: z.number().nonnegative() }),
+]);
 
-export type HostMessage = WorkerExecuteMessage | WorkerToolResultMessage | WorkerToolErrorMessage | WorkerInitMessage;
+const hostMessageSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('execute'), code: z.string() }),
+  z
+    .object({ type: z.literal('tool_result'), id: z.string(), result: sandboxValueSchema })
+    .refine((message) => Object.hasOwn(message, 'result')),
+  z.object({ type: z.literal('tool_error'), id: z.string(), error: z.string() }),
+  z.object({
+    type: z.literal('init'),
+    toolNames: z.array(z.string()),
+    libraries: z.record(z.string(), sandboxLibrarySchema),
+    memoryReportIntervalMs: z.number().positive(),
+  }),
+]);
 
-type SandboxToolCallMessage = { type: 'tool_call'; id: string; name: string; args: unknown };
-
-type SandboxCompleteMessage = { type: 'complete'; result: unknown; logs: string[] };
-
-type SandboxErrorMessage = { type: 'error'; error: string; logs: string[] };
-
-type SandboxMemoryReportMessage = { type: 'memory_report'; rss: number };
+export type HostMessage =
+  | { type: 'execute'; code: string }
+  | { type: 'tool_result'; id: string; result: SandboxValue }
+  | { type: 'tool_error'; id: string; error: string }
+  | {
+      type: 'init';
+      toolNames: string[];
+      libraries: { [name: string]: SandboxLibrary };
+      memoryReportIntervalMs: number;
+    };
 
 export type WorkerMessage =
-  | SandboxToolCallMessage
-  | SandboxCompleteMessage
-  | SandboxErrorMessage
-  | SandboxMemoryReportMessage;
+  | { type: 'tool_call'; id: string; name: string; args: SandboxValue }
+  | { type: 'complete'; result: SandboxValue; logs: string[] }
+  | { type: 'error'; error: string; logs: string[] }
+  | { type: 'memory_report'; rss: number };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
+export function isWorkerMessage(message: SandboxValue): message is WorkerMessage {
+  return workerMessageSchema.safeParse(message).success;
 }
 
-function hasUnknownField(value: Record<string, unknown>, field: string): boolean {
-  return Object.prototype.hasOwnProperty.call(value, field);
+export function isHostMessage(message: SandboxValue): message is HostMessage {
+  return hostMessageSchema.safeParse(message).success;
 }
 
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === 'string');
-}
-
-function isSandboxLibrary(value: unknown): value is SandboxLibrary {
-  if (!isRecord(value) || typeof value['specifier'] !== 'string') return false;
-  if (value['globalName'] !== undefined && typeof value['globalName'] !== 'string') return false;
-  return value['inject'] === undefined || typeof value['inject'] === 'boolean';
-}
-
-function isLibraryRecord(value: unknown): value is Record<string, SandboxLibrary> {
-  return isRecord(value) && Object.values(value).every(isSandboxLibrary);
-}
-
-export function isWorkerMessage(message: unknown): message is WorkerMessage {
-  if (!isRecord(message)) return false;
-
-  switch (message['type']) {
-    case 'tool_call':
-      return (
-        typeof message['id'] === 'string' && typeof message['name'] === 'string' && hasUnknownField(message, 'args')
-      );
-    case 'complete':
-      return hasUnknownField(message, 'result') && isStringArray(message['logs']);
-    case 'error':
-      return typeof message['error'] === 'string' && isStringArray(message['logs']);
-    case 'memory_report':
-      return typeof message['rss'] === 'number' && Number.isFinite(message['rss']) && message['rss'] >= 0;
-    default:
-      return false;
-  }
-}
-
-export function isHostMessage(message: unknown): message is HostMessage {
-  if (!isRecord(message)) return false;
-
-  switch (message['type']) {
-    case 'init':
-      return (
-        isStringArray(message['toolNames']) &&
-        isLibraryRecord(message['libraries']) &&
-        typeof message['memoryReportIntervalMs'] === 'number' &&
-        Number.isFinite(message['memoryReportIntervalMs']) &&
-        message['memoryReportIntervalMs'] > 0
-      );
-    case 'execute':
-      return typeof message['code'] === 'string';
-    case 'tool_result':
-      return typeof message['id'] === 'string' && hasUnknownField(message, 'result');
-    case 'tool_error':
-      return typeof message['id'] === 'string' && typeof message['error'] === 'string';
-    default:
-      return false;
+export function prepareHostMessageParser(): void {
+  for (const message of [
+    { type: 'execute', code: '' },
+    { type: 'tool_result', id: '', result: undefined },
+    { type: 'tool_error', id: '', error: '' },
+    { type: 'init', toolNames: [], libraries: {}, memoryReportIntervalMs: 1 },
+  ] satisfies SandboxValue[]) {
+    isHostMessage(message);
   }
 }

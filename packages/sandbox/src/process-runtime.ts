@@ -1,14 +1,23 @@
 import { SandboxError, toErrorMessage } from './errors.js';
 import { assertSafeCode, DANGEROUS_GLOBALS, harden } from './hardening.js';
-import { isHostMessage } from './protocol.js';
+import { isHostMessage, prepareHostMessageParser } from './protocol.js';
 
 import type { HostMessage, WorkerMessage } from './protocol.js';
+import type { SandboxValue } from './types.js';
 
 /** Global names shadowed as `undefined` in sandbox function params (includes 'Function'). */
 const HIDDEN_GLOBAL_NAMES: readonly string[] = [...DANGEROUS_GLOBALS, 'Function'];
 const HIDDEN_GLOBAL_VALUES: readonly undefined[] = HIDDEN_GLOBAL_NAMES.map(() => undefined);
 
-type PendingCall = { resolve: (value: unknown) => void; reject: (reason: Error) => void };
+type PendingCall = { resolve: (value: SandboxValue) => void; reject: (reason: Error) => void };
+type ModuleNamespace = object;
+type SandboxConsole = {
+  log: (...values: SandboxValue[]) => void;
+  info: (...values: SandboxValue[]) => void;
+  warn: (...values: SandboxValue[]) => void;
+  error: (...values: SandboxValue[]) => void;
+  debug: (...values: SandboxValue[]) => void;
+};
 
 type InitMessage = Extract<HostMessage, { type: 'init' }>;
 
@@ -20,23 +29,23 @@ type InitMessage = Extract<HostMessage, { type: 'init' }>;
  *   When running inside a compiled binary, libraries are statically imported by the entry
  *   and passed here so no dynamic import is needed at runtime.
  */
-export function startProcessRuntime(preloadedModules: Record<string, Record<string, unknown>> = {}): void {
-  if (typeof process.send !== 'function') {
+export function startProcessRuntime(preloadedModules: ReadonlyMap<string, ModuleNamespace> = new Map()): void {
+  const sandboxProcess = process;
+  if (!sandboxProcess.send) {
     throw new SandboxError('sandbox process requires IPC channel (process.send)');
   }
 
   // Capture IPC primitives before harden() removes `process` from globalThis.
-  const ipcSend = process.send.bind(process) as (message: unknown) => void;
-  const ipcOn = process.on.bind(process) as (event: string, listener: (message: unknown) => void) => void;
-  const getMemoryUsage = process.memoryUsage.bind(process) as () => NodeJS.MemoryUsage;
+  const ipcSend = (message: HostMessage | WorkerMessage) => sandboxProcess.send?.(message);
+  const ipcOn = (listener: (message: SandboxValue) => void) => sandboxProcess.on('message', listener);
+  const getMemoryUsage = () => sandboxProcess.memoryUsage();
 
   const pendingCalls = new Map<string, PendingCall>();
   let logs: string[] = [];
   const SandboxFunction = Function;
-  const importLibrary = new SandboxFunction('specifier', 'return import(specifier);') as (
-    specifier: string,
-  ) => Promise<Record<string, unknown>>;
-  let injectedLibraries: Record<string, unknown> = {};
+  const importLibrary = (specifier: string): Promise<ModuleNamespace> =>
+    Promise.resolve(SandboxFunction('specifier', 'return import(specifier);')(specifier));
+  let injectedLibraries = new Map<string, ModuleNamespace>();
   let toolNames: string[] = [];
   let libraries: InitMessage['libraries'] = {};
 
@@ -44,32 +53,33 @@ export function startProcessRuntime(preloadedModules: Record<string, Record<stri
     ipcSend(message);
   }
 
-  function stringifyLogValue(value: unknown): string {
-    if (typeof value === 'string') return value;
+  function stringifyLogValue(value: SandboxValue): string {
+    if (value === undefined) return 'undefined';
     if (Error.isError(value)) return value.stack ?? value.message;
     try {
-      return JSON.stringify(value);
+      const serialized = JSON.stringify(value);
+      return serialized.startsWith('"') ? JSON.parse(serialized) : serialized;
     } catch {
-      return String(value);
+      return '[unserializable]';
     }
   }
 
-  function createConsole(): Console {
-    const write = (level: string, values: unknown[]) => {
+  function createConsole(): SandboxConsole {
+    const write = (level: string, values: SandboxValue[]) => {
       logs.push(`[${level}] ${values.map(stringifyLogValue).join(' ')}`);
     };
 
     return {
-      log: (...values: unknown[]) => write('log', values),
-      info: (...values: unknown[]) => write('info', values),
-      warn: (...values: unknown[]) => write('warn', values),
-      error: (...values: unknown[]) => write('error', values),
-      debug: (...values: unknown[]) => write('debug', values),
-    } as Console;
+      log: (...values: SandboxValue[]) => write('log', values),
+      info: (...values: SandboxValue[]) => write('info', values),
+      warn: (...values: SandboxValue[]) => write('warn', values),
+      error: (...values: SandboxValue[]) => write('error', values),
+      debug: (...values: SandboxValue[]) => write('debug', values),
+    };
   }
 
-  function createToolProxy(name: string): (args: unknown) => Promise<unknown> {
-    return (args: unknown) => {
+  function createToolProxy(name: string): (args: SandboxValue) => Promise<SandboxValue> {
+    return (args: SandboxValue) => {
       const id = crypto.randomUUID();
       post({ type: 'tool_call', id, name, args });
       return new Promise((resolve, reject) => {
@@ -84,11 +94,11 @@ export function startProcessRuntime(preloadedModules: Record<string, Record<stri
     }
   }
 
-  async function loadLibraries(): Promise<Record<string, unknown>> {
-    const entries: Array<readonly [string, unknown]> = [];
+  async function loadLibraries(): Promise<Map<string, ModuleNamespace>> {
+    const entries: Array<readonly [string, ModuleNamespace]> = [];
     await Promise.all(
       Object.entries(libraries).map(async ([name, library]) => {
-        const preloaded = preloadedModules[library.specifier] as Record<string, unknown> | undefined;
+        const preloaded = preloadedModules.get(library.specifier);
         const moduleNamespace = preloaded ?? (await importLibrary(library.specifier));
         const exposedLibrary = Object.freeze({ ...moduleNamespace });
         if (library.globalName !== undefined) {
@@ -102,7 +112,7 @@ export function startProcessRuntime(preloadedModules: Record<string, Record<stri
       }),
     );
 
-    return Object.fromEntries(entries);
+    return new Map(entries);
   }
 
   async function executeCode(code: string): Promise<void> {
@@ -111,8 +121,8 @@ export function startProcessRuntime(preloadedModules: Record<string, Record<stri
 
     try {
       assertSafeCode(code);
-      const libraryNames = Object.keys(injectedLibraries);
-      const libraryValues = libraryNames.map((n) => injectedLibraries[n]);
+      const libraryNames = [...injectedLibraries.keys()];
+      const libraryValues = [...injectedLibraries.values()];
       const execute = new SandboxFunction(
         'console',
         ...HIDDEN_GLOBAL_NAMES,
@@ -120,12 +130,12 @@ export function startProcessRuntime(preloadedModules: Record<string, Record<stri
         `return (async () => {
           ${code}
         })();`,
-      ) as (console: Console, ...args: unknown[]) => Promise<unknown>;
+      );
 
       const result = await execute(sandboxConsole, ...HIDDEN_GLOBAL_VALUES, ...libraryValues);
       post({ type: 'complete', result, logs });
     } catch (err) {
-      post({ type: 'error', error: toErrorMessage(err), logs });
+      post({ type: 'error', error: toErrorMessage(Error.isError(err) ? err : String(err)), logs });
     }
   }
 
@@ -135,6 +145,8 @@ export function startProcessRuntime(preloadedModules: Record<string, Record<stri
     injectedLibraries = await loadLibraries();
     // Pre-import allowed modules before hardening freezes globals.
     await Promise.all([importLibrary('node:fs'), importLibrary('node:fs/promises')]);
+    // Zod compiles protocol parsers with Function on first use.
+    prepareHostMessageParser();
     harden();
     registerToolProxies();
 
@@ -153,7 +165,7 @@ export function startProcessRuntime(preloadedModules: Record<string, Record<stri
   function handleInit(data: InitMessage): void {
     initialization = initialize(data);
     initialization.catch((err) => {
-      post({ type: 'error', error: toErrorMessage(err), logs });
+      post({ type: 'error', error: toErrorMessage(Error.isError(err) ? err : String(err)), logs });
     });
   }
 
@@ -172,11 +184,11 @@ export function startProcessRuntime(preloadedModules: Record<string, Record<stri
     void ready
       .then(() => executeCode(msg.code))
       .catch((err) => {
-        post({ type: 'error', error: toErrorMessage(err), logs });
+        post({ type: 'error', error: toErrorMessage(Error.isError(err) ? err : String(err)), logs });
       });
   }
 
-  ipcOn('message', (message) => {
+  ipcOn((message: SandboxValue) => {
     if (!isHostMessage(message)) return;
 
     switch (message.type) {

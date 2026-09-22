@@ -5,9 +5,9 @@ export function double(value: number): number {
 }
 
 export function canReadFunctionPrototype(): boolean {
-  return typeof globalThis.Function.prototype === 'function';
+  return Object.hasOwn(globalThis.Function, 'prototype');
 }
 
 export function hasGlobalSampleWorker(): boolean {
-  return typeof (globalThis as { sampleGlobal?: unknown }).sampleGlobal === 'object';
+  return Object.hasOwn(globalThis, 'sampleGlobal');
 }

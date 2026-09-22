@@ -1,13 +1,26 @@
-export type ToolBinding = {
+export type SandboxValue =
+  | boolean
+  | null
+  | number
+  | string
+  | undefined
+  | SandboxValue[]
+  | { [key: string]: SandboxValue };
+
+export type JsonSchemaValue = boolean | null | number | string | JsonSchemaValue[] | { [key: string]: JsonSchemaValue };
+
+export type JsonSchema = { [keyword: string]: JsonSchemaValue };
+
+export type ToolBinding<Input extends SandboxValue = SandboxValue, Output extends SandboxValue = SandboxValue> = {
   name: string;
   description: string;
-  inputSchema: Record<string, unknown>;
-  validateInput: (input: unknown) => void | Promise<void>;
-  execute: (input: unknown, abortSignal?: AbortSignal) => Promise<unknown>;
+  inputSchema: JsonSchema;
+  validateInput: (input: Input) => void | Promise<void>;
+  execute: (input: Input, abortSignal?: AbortSignal) => Promise<Output>;
 };
 
 export type IsolateExecuteResult =
-  | { ok: true; result: unknown; logs: string[] }
+  | { ok: true; result: SandboxValue; logs: string[] }
   | { ok: false; error: string; logs: string[] };
 
 export type IsolateContext = { execute(code: string): Promise<IsolateExecuteResult>; dispose(): void };

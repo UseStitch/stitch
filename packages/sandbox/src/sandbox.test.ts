@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { fileURLToPath } from 'node:url';
+import { z } from 'zod';
 
 import { createProcessSandbox } from '../src/index.js';
 
@@ -46,17 +47,20 @@ describe('process sandbox', () => {
   });
 
   test('calls host tool bindings', async () => {
-    const bindings: Record<string, ToolBinding> = {
+    const sumInputSchema = z.object({ values: z.array(z.number()) });
+    const bindings = {
       external_sum: {
         name: 'external_sum',
         description: 'sum values',
         inputSchema: { type: 'object' },
-        validateInput: () => {},
+        validateInput: (input) => {
+          sumInputSchema.parse(input);
+        },
         execute: async (input) => {
-          const { values } = input as { values: number[] };
+          const { values } = sumInputSchema.parse(input);
           return values.reduce((total, value) => total + value, 0);
         },
-      },
+      } satisfies ToolBinding,
     };
 
     const result = await execute('return await external_sum({ values: [1, 2, 3] });', bindings);

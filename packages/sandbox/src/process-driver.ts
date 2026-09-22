@@ -9,6 +9,7 @@ import type {
   IsolateDriver,
   IsolateExecuteResult,
   IsolateOptions,
+  SandboxValue,
   SandboxProcessDriverOptions,
   ToolBinding,
 } from './types.js';
@@ -28,12 +29,12 @@ type ToolCallContext = {
   maxToolCalls: number;
   toolTimeoutMs: number;
   abortSignal: AbortSignal | undefined;
-  proc: { send(message: unknown): void };
+  proc: { send(message: HostMessage): void };
   timer: ReturnType<typeof createPausableTimer>;
   incrementToolCallCount: () => number;
 };
 
-function assertMessageSize(message: unknown): void {
+function assertMessageSize(message: HostMessage | WorkerMessage): void {
   // Serialization failure counts as oversized — can't trust it won't blow up the IPC channel.
   let size: number;
   try {
@@ -74,11 +75,11 @@ async function dispatchToolCall(
 
     assertMessageSize(message);
 
-    const binding = ctx.bindings[message.name] as ToolBinding | undefined;
-    if (!binding) {
+    if (!Object.hasOwn(ctx.bindings, message.name)) {
       ctx.proc.send({ type: 'tool_error', id: message.id, error: `Unknown tool: ${message.name}` });
       return;
     }
+    const binding = ctx.bindings[message.name];
 
     const timeoutRace = createTimeoutRace(ctx.toolTimeoutMs, `Tool call timed out after ${ctx.toolTimeoutMs}ms`);
     const abortRace = createAbortRace(ctx.abortSignal, 'Tool call aborted');
@@ -98,7 +99,11 @@ async function dispatchToolCall(
       abortRace.cleanup();
     }
   } catch (err) {
-    ctx.proc.send({ type: 'tool_error', id: message.id, error: toErrorMessage(err) });
+    ctx.proc.send({
+      type: 'tool_error',
+      id: message.id,
+      error: toErrorMessage(Error.isError(err) ? err : String(err)),
+    });
   } finally {
     ctx.timer.resume();
   }
@@ -134,7 +139,7 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
       let disposed = false;
       let toolCallCount = 0;
       const timer = createPausableTimer();
-      let messageHandler: ((message: unknown) => void) | null = null;
+      let messageHandler: ((message: SandboxValue) => void) | null = null;
 
       const proc = Bun.spawn(cmd, {
         env: { BUN_JSC_forceRAMSize: String(memoryLimitBytes) },
@@ -191,7 +196,7 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
               resolve(value);
             };
 
-            const onMessage = (message: unknown) => {
+            const onMessage = (message: SandboxValue) => {
               if (!isWorkerMessage(message)) return;
 
               if (message.type === 'memory_report') {
@@ -239,7 +244,9 @@ export function createProcessSandbox(driverOptions: SandboxProcessDriverOptions)
             terminate();
             return {
               ok: false,
-              error: timeoutRace.isTimedOut() ? `Execution timed out after ${timeoutMs}ms` : toErrorMessage(err),
+              error: timeoutRace.isTimedOut()
+                ? `Execution timed out after ${timeoutMs}ms`
+                : toErrorMessage(Error.isError(err) ? err : String(err)),
               logs: [],
             };
           } finally {

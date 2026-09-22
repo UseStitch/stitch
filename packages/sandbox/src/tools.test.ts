@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { fileURLToPath } from 'node:url';
+import { z } from 'zod';
 
 import { createProcessSandbox } from '../src/index.js';
 
@@ -18,6 +19,8 @@ const echoBinding: ToolBinding = {
   validateInput: () => {},
   execute: async (input) => input,
 };
+
+const requiredValueSchema = z.object({ value: z.json() });
 
 describe('sandbox tools', () => {
   test('propagates tool errors into user code', async () => {
@@ -56,9 +59,8 @@ describe('sandbox tools', () => {
         description: 'validate input',
         inputSchema: { type: 'object' },
         validateInput: (input) => {
-          if (typeof input !== 'object' || input === null || !('value' in input)) {
-            throw new Error('value is required');
-          }
+          const parsedInput = requiredValueSchema.safeParse(input);
+          if (!parsedInput.success) throw new Error('value is required');
         },
         execute: async () => {
           executed = true;

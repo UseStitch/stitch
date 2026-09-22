@@ -178,6 +178,9 @@
     "packages/sandbox": {
       "name": "@stitch/sandbox",
       "version": "0.0.0",
+      "dependencies": {
+        "zod": "catalog:",
+      },
       "devDependencies": {
         "@types/bun": "catalog:",
         "typescript": "catalog:",

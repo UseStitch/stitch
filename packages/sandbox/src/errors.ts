@@ -1,4 +1,4 @@
-export function toErrorMessage(error: unknown): string {
+export function toErrorMessage(error: Error | string): string {
   return Error.isError(error) ? error.message : String(error);
 }
 
