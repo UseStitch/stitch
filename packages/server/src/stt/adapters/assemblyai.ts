@@ -4,6 +4,7 @@ import * as Log from '@/lib/log.js';
 import { getModelDescriptor } from '@/models/stt/service.js';
 import type { STTAdapter, STTConnection } from '@/stt/adapter-iface.js';
 import { createManagedConnection, type STTErrorClassification } from '@/stt/base-adapter.js';
+import { CREDENTIALS_ERROR_REASON, QUOTA_ERROR_REASON } from '@/stt/adapters/error-reasons.js';
 import type { ModelDescriptor, STTConnectionConfig } from '@/stt/types.js';
 import { createWsTransport, type WsMessageResult } from '@/stt/ws-transport.js';
 
@@ -11,8 +12,6 @@ const log = Log.create({ service: 'stt.assemblyai' });
 
 const ASSEMBLYAI_STREAMING_URL = 'wss://streaming.assemblyai.com/v3/ws';
 const ASSEMBLYAI_VERSION = 'v3';
-const CREDENTIALS_ERROR_REASON = 'Invalid transcription API credentials. Please check your settings.';
-const QUOTA_ERROR_REASON = 'Transcription quota exceeded. Please check your billing.';
 const STREAM_LIMIT_REASON = 'AssemblyAI transcription stream limit reached.';
 
 // https://www.assemblyai.com/docs/streaming/

@@ -4,6 +4,11 @@ import * as Log from '@/lib/log.js';
 import { getModelDescriptor } from '@/models/stt/service.js';
 import type { STTAdapter, STTConnection } from '@/stt/adapter-iface.js';
 import { createManagedConnection, type STTErrorClassification } from '@/stt/base-adapter.js';
+import {
+  CREDENTIALS_ERROR_REASON,
+  MODEL_ERROR_REASON,
+  QUOTA_ERROR_REASON,
+} from '@/stt/adapters/error-reasons.js';
 import type { ModelDescriptor, STTConnectionConfig } from '@/stt/types.js';
 import { createWsTransport, type WsMessageResult } from '@/stt/ws-transport.js';
 
@@ -11,9 +16,6 @@ const log = Log.create({ service: 'stt.google' });
 
 const GEMINI_LIVE_URL =
   'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
-const CREDENTIALS_ERROR_REASON = 'Invalid transcription API credentials. Please check your settings.';
-const QUOTA_ERROR_REASON = 'Transcription quota exceeded. Please check your billing.';
-const MODEL_ERROR_REASON = 'Selected transcription model is unavailable. Please check your settings.';
 
 type ModalityTokenCount = { modality: string; tokenCount: number };
 
