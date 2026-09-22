@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { z } from 'zod';
 
 export type NativeWatchRow = { pid: number; processName: string; windowTitle?: string };
 
@@ -12,12 +13,29 @@ type NativeAddon = {
   stopWatcher: () => void;
 };
 
+const resourcesPathSchema = z.string().min(1);
+
+const nativeAddonSchema = z.object({
+  startWatcher: z.custom<NativeAddon['startWatcher']>((value) => value instanceof Function),
+  stopWatcher: z.custom<NativeAddon['stopWatcher']>((value) => value instanceof Function),
+});
+
 const require = createRequire(import.meta.url);
 
 const BINDING_FILE = 'binding.cjs';
 
+function getResourcesPath(): string | undefined {
+  if ('resourcesPath' in process) {
+    const parsed = resourcesPathSchema.safeParse(process.resourcesPath);
+    if (parsed.success) {
+      return parsed.data;
+    }
+  }
+  return undefined;
+}
+
 function resolveBindingPath(): string {
-  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
+  const resourcesPath = getResourcesPath();
   if (resourcesPath) {
     const packagedBinding = path.join(resourcesPath, 'meeting-detection', BINDING_FILE);
     if (existsSync(packagedBinding)) {
@@ -44,8 +62,18 @@ function resolveBindingPath(): string {
   return candidates[0];
 }
 
-// oxlint-disable-next-line no-dynamic-require -- the binding path is resolved at runtime (dev vs packaged resources)
-const native = require(resolveBindingPath()) as NativeAddon;
+function loadNativeAddon(): NativeAddon {
+  const bindingPath = resolveBindingPath();
+  // oxlint-disable-next-line no-dynamic-require -- the binding path is resolved at runtime (dev vs packaged resources)
+  const loaded: unknown = require(bindingPath);
+  const parsed = nativeAddonSchema.safeParse(loaded);
+  if (!parsed.success) {
+    throw new Error(`Invalid native meeting-detection addon at ${bindingPath}: missing startWatcher/stopWatcher`);
+  }
+  return parsed.data;
+}
+
+const native = loadNativeAddon();
 
 export const startWatcher = native.startWatcher;
 export const stopWatcher = native.stopWatcher;

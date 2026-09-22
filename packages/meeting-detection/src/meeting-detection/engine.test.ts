@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { createMeetingDetectionEngine } from './engine.js';
 
 import type { MeetingDetectionEvent } from '../types.js';
+import type { MeetingObservation } from './engine.js';
 
 describe('createMeetingDetectionEngine', () => {
   test('emits detected only after activation threshold', () => {
@@ -13,12 +14,12 @@ describe('createMeetingDetectionEngine', () => {
 
     engine.subscribe((event) => events.push(event));
 
-    const observation = {
+    const observation: MeetingObservation = {
       key: 'desktop:zoom',
-      platform: 'zoom' as const,
-      kind: 'desktop' as const,
+      platform: 'zoom',
+      kind: 'desktop',
       displayName: 'Zoom',
-      processNames: ['zoom'] as string[],
+      processNames: ['zoom'],
       windowTitle: 'Weekly Zoom Meeting',
     };
 
@@ -50,12 +51,12 @@ describe('createMeetingDetectionEngine', () => {
 
     engine.subscribe((event) => events.push(event));
 
-    const observation = {
+    const observation: MeetingObservation = {
       key: 'desktop:teams',
-      platform: 'teams' as const,
-      kind: 'desktop' as const,
+      platform: 'teams',
+      kind: 'desktop',
       displayName: 'Microsoft Teams',
-      processNames: ['ms-teams'] as string[],
+      processNames: ['ms-teams'],
       windowTitle: 'Teams Meeting',
     };
 
@@ -82,12 +83,12 @@ describe('createMeetingDetectionEngine', () => {
 
     engine.subscribe((event) => events.push(event));
 
-    const observation = {
+    const observation: MeetingObservation = {
       key: 'desktop:zoom',
-      platform: 'zoom' as const,
-      kind: 'desktop' as const,
+      platform: 'zoom',
+      kind: 'desktop',
       displayName: 'Zoom',
-      processNames: ['zoom'] as string[],
+      processNames: ['zoom'],
       windowTitle: 'Standup',
     };
 
@@ -116,12 +117,12 @@ describe('createMeetingDetectionEngine', () => {
 
     engine.subscribe((event) => events.push(event));
 
-    const observation = {
+    const observation: MeetingObservation = {
       key: 'desktop:zoom',
-      platform: 'zoom' as const,
-      kind: 'desktop' as const,
+      platform: 'zoom',
+      kind: 'desktop',
       displayName: 'Zoom',
-      processNames: ['zoom'] as string[],
+      processNames: ['zoom'],
       windowTitle: 'Standup',
     };
 
@@ -148,12 +149,12 @@ describe('createMeetingDetectionEngine', () => {
 
     engine.subscribe((event) => events.push(event));
 
-    const observation = {
+    const observation: MeetingObservation = {
       key: 'desktop:zoom',
-      platform: 'zoom' as const,
-      kind: 'desktop' as const,
+      platform: 'zoom',
+      kind: 'desktop',
       displayName: 'Zoom',
-      processNames: ['zoom'] as string[],
+      processNames: ['zoom'],
       windowTitle: 'Standup',
     };
 
@@ -182,12 +183,12 @@ describe('createMeetingDetectionEngine', () => {
 
     engine.subscribe((event) => events.push(event));
 
-    const observation = {
+    const observation: MeetingObservation = {
       key: 'desktop:zoom',
-      platform: 'zoom' as const,
-      kind: 'desktop' as const,
+      platform: 'zoom',
+      kind: 'desktop',
       displayName: 'Zoom',
-      processNames: ['zoom'] as string[],
+      processNames: ['zoom'],
       windowTitle: 'Standup',
     };
 
@@ -218,12 +219,12 @@ describe('createMeetingDetectionEngine', () => {
 
     engine.subscribe((event) => events.push(event));
 
-    const observation = {
+    const observation: MeetingObservation = {
       key: 'desktop:zoom',
-      platform: 'zoom' as const,
-      kind: 'desktop' as const,
+      platform: 'zoom',
+      kind: 'desktop',
       displayName: 'Zoom',
-      processNames: ['zoom'] as string[],
+      processNames: ['zoom'],
       windowTitle: 'Standup',
     };
 
@@ -254,20 +255,20 @@ describe('createMeetingDetectionEngine', () => {
 
     engine.subscribe((event) => events.push(event));
 
-    const zoom = {
+    const zoom: MeetingObservation = {
       key: 'desktop:zoom',
-      platform: 'zoom' as const,
-      kind: 'desktop' as const,
+      platform: 'zoom',
+      kind: 'desktop',
       displayName: 'Zoom',
-      processNames: ['zoom'] as string[],
+      processNames: ['zoom'],
       windowTitle: 'Standup',
     };
-    const teams = {
+    const teams: MeetingObservation = {
       key: 'desktop:teams',
-      platform: 'teams' as const,
-      kind: 'desktop' as const,
+      platform: 'teams',
+      kind: 'desktop',
       displayName: 'Microsoft Teams',
-      processNames: ['ms-teams'] as string[],
+      processNames: ['ms-teams'],
       windowTitle: 'Sync',
     };
 

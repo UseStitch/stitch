@@ -14,7 +14,8 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@stitch/shared": "workspace:*"
+    "@stitch/shared": "workspace:*",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@napi-rs/cli": "^3.7.2",
