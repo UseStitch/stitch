@@ -182,10 +182,9 @@ function mergeTools(parts: {
   inspectImageTool: Tool;
   dynamicTools: Record<string, Tool>;
 }): Record<string, Tool> {
-  return {
-    ...parts.staticTools,
-    ...(parts.taskTool ? { task: parts.taskTool } : {}),
-    inspect_image: parts.inspectImageTool,
-    ...parts.dynamicTools,
-  };
+  const merged: Record<string, Tool> = { ...parts.staticTools };
+  if (parts.taskTool) merged.task = parts.taskTool;
+  merged.inspect_image = parts.inspectImageTool;
+  Object.assign(merged, parts.dynamicTools);
+  return merged;
 }

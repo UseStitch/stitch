@@ -204,13 +204,20 @@ export function buildHistoryMessages(
 
         for (const tc of matchedToolCalls) {
           const providerOptions = getPartProviderOptions(tc);
-          assistantContent.push({
+          const toolCallEntry: {
+            type: 'tool-call';
+            toolCallId: string;
+            toolName: string;
+            input: unknown;
+            providerOptions?: ProviderOptions;
+          } = {
             type: 'tool-call',
             toolCallId: tc.toolCallId,
             toolName: tc.toolName,
             input: tc.input,
-            ...(providerOptions ? { providerOptions } : {}),
-          });
+          };
+          if (providerOptions) toolCallEntry.providerOptions = providerOptions;
+          assistantContent.push(toolCallEntry);
         }
 
         llmMessages.push({ role: 'assistant', content: assistantContent });
@@ -225,15 +232,24 @@ export function buildHistoryMessages(
               const compactedOutput = compactToolResultOutput(tr);
               const providerOptions = getPartProviderOptions(tr);
 
-              return {
+              const toolResultEntry: {
+                type: 'tool-result';
+                toolCallId: string;
+                toolName: string;
+                output:
+                  | { type: 'error-json'; value: never }
+                  | { type: 'json'; value: never };
+                providerOptions?: ProviderOptions;
+              } = {
                 type: 'tool-result' as const,
                 toolCallId: tr.toolCallId,
                 toolName: tr.toolName,
                 output: isToolResultError(tr.output)
                   ? { type: 'error-json' as const, value: compactedOutput as never }
                   : { type: 'json' as const, value: compactedOutput as never },
-                ...(providerOptions ? { providerOptions } : {}),
               };
+              if (providerOptions) toolResultEntry.providerOptions = providerOptions;
+              return toolResultEntry;
             }),
         });
       }

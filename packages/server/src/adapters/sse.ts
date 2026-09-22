@@ -92,16 +92,19 @@ export function registerSseAdapter(): void {
   // ─── Tool Lifecycle ──────────────────────────────────────────────────────
   // Five internal events collapse into one discriminated SSE event.
   for (const [event, status] of Object.entries(TOOL_STATUS_MAP) as [keyof typeof TOOL_STATUS_MAP, ToolCallStatus][]) {
-    forward(event, 'tool.state', (e) => ({
-      sessionId: e.sessionId,
-      messageId: e.messageId,
-      toolCallId: e.toolCallId,
-      toolName: e.toolName,
-      status,
-      ...('input' in e ? { input: e.input } : {}),
-      ...('output' in e ? { output: e.output } : {}),
-      ...('error' in e ? { error: e.error } : {}),
-    }));
+    forward(event, 'tool.state', (e) => {
+      const payload: SseEventPayloadMap['tool.state'] = {
+        sessionId: e.sessionId,
+        messageId: e.messageId,
+        toolCallId: e.toolCallId,
+        toolName: e.toolName,
+        status,
+      };
+      if ('input' in e) payload.input = e.input;
+      if ('output' in e) payload.output = e.output;
+      if ('error' in e) payload.error = e.error;
+      return payload;
+    });
   }
 
   // ─── Session → Stream Finish ────────────────────────────────────────────

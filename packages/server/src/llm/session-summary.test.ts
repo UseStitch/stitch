@@ -143,15 +143,25 @@ describe('buildHistoryMessages', () => {
   }
 
   function toolCallPart(toolCallId: string, toolName = 'bash', providerMetadata?: Record<string, unknown>): StoredPart {
-    return {
+    const part: {
+      type: 'tool-call';
+      id: StoredPart['id'];
+      toolCallId: string;
+      toolName: string;
+      input: { command: string };
+      startedAt: number;
+      endedAt: number;
+      providerMetadata?: Record<string, unknown>;
+    } = {
       type: 'tool-call',
       id: `prt_call_${toolCallId}` as StoredPart['id'],
       toolCallId,
       toolName,
       input: { command: 'pwd' },
-      ...(providerMetadata ? { providerMetadata } : {}),
       ...timing,
-    } as StoredPart;
+    };
+    if (providerMetadata) part.providerMetadata = providerMetadata;
+    return part as StoredPart;
   }
 
   function toolResultPart(
@@ -160,16 +170,27 @@ describe('buildHistoryMessages', () => {
     toolName = 'bash',
     providerMetadata?: Record<string, unknown>,
   ): StoredPart {
-    return {
+    const part: {
+      type: 'tool-result';
+      id: StoredPart['id'];
+      toolCallId: string;
+      toolName: string;
+      output: unknown;
+      truncated: boolean;
+      startedAt: number;
+      endedAt: number;
+      providerMetadata?: Record<string, unknown>;
+    } = {
       type: 'tool-result',
       id: `prt_result_${toolCallId}` as StoredPart['id'],
       toolCallId,
       toolName,
       output,
       truncated: false,
-      ...(providerMetadata ? { providerMetadata } : {}),
       ...timing,
-    } as StoredPart;
+    };
+    if (providerMetadata) part.providerMetadata = providerMetadata;
+    return part as StoredPart;
   }
 
   test('keeps matched tool-call and tool-result pairs', () => {
