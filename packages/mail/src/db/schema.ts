@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { check, index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
-import type { PrefixedString } from '@stitch/shared/id';
+import { createId, ID_PREFIXES, type PrefixedString } from '@stitch/shared/id';
 
 export type MailAccountId = PrefixedString<'macc'>;
 export type MailLabelId = PrefixedString<'mlbl'>;
@@ -26,27 +26,13 @@ export type MailOutboxOpType =
   | 'delete_draft';
 export type MailOutboxStatus = 'pending' | 'in_flight' | 'failed' | 'done';
 
-const ID_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-
-function randomBase62(length: number): string {
-  const bytes = new Uint8Array(length);
-  crypto.getRandomValues(bytes);
-  let result = '';
-  for (let i = 0; i < length; i++) result += ID_CHARS[bytes[i] % ID_CHARS.length];
-  return result;
-}
-
-function createMailId<P extends string>(prefix: P): PrefixedString<P> {
-  return `${prefix}_${Date.now().toString(16)}${randomBase62(14)}` as PrefixedString<P>;
-}
-
-export const createMailAccountId = () => createMailId('macc');
-export const createMailLabelId = () => createMailId('mlbl');
-export const createMailThreadId = () => createMailId('mthr');
-export const createMailMessageId = () => createMailId('mmsg');
-export const createMailAttachmentId = () => createMailId('matt');
-export const createMailDraftId = () => createMailId('mdrf');
-export const createMailOutboxId = () => createMailId('mob');
+export const createMailAccountId = () => createId(ID_PREFIXES.mailAccount);
+export const createMailLabelId = () => createId(ID_PREFIXES.mailLabel);
+export const createMailThreadId = () => createId(ID_PREFIXES.mailThread);
+export const createMailMessageId = () => createId(ID_PREFIXES.mailMessage);
+export const createMailAttachmentId = () => createId(ID_PREFIXES.mailAttachment);
+export const createMailDraftId = () => createId(ID_PREFIXES.mailDraft);
+export const createMailOutboxId = () => createId(ID_PREFIXES.mailOutbox);
 
 export const mailAccounts = sqliteTable(
   'mail_accounts',

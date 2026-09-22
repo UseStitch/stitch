@@ -24,6 +24,9 @@ export type GmailMessage = {
 
 const ADDRESS_SPLIT_REGEX = /,(?=(?:[^"]*"[^"]*")*[^"]*$)/;
 const ENCODED_WORD_REGEX = /=\?([^?]+)\?([bqBQ])\?([^?]+)\?=/g;
+type TextDecoderEncoding = Exclude<ConstructorParameters<typeof TextDecoder>[0], undefined>;
+
+const TEXT_DECODER_ENCODINGS: TextDecoderEncoding[] = ['utf-8', 'utf-16'];
 
 export function decodeBase64UrlBytes(data: string): Uint8Array {
   const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
@@ -55,7 +58,11 @@ function decodeEncodedWords(value: string): string {
   return value.replace(ENCODED_WORD_REGEX, (_match, charset: string, encoding: string, text: string) => {
     const bytes = encoding.toLowerCase() === 'b' ? Buffer.from(text, 'base64') : decodeQuotedPrintable(text);
     try {
-      return new TextDecoder(charset as ConstructorParameters<typeof TextDecoder>[0]).decode(bytes);
+      const textDecoderEncoding = TEXT_DECODER_ENCODINGS.find(
+        (candidate) => candidate.toLowerCase() === charset.toLowerCase(),
+      );
+      if (!textDecoderEncoding) return new TextDecoder().decode(bytes);
+      return new TextDecoder(textDecoderEncoding).decode(bytes);
     } catch {
       return new TextDecoder().decode(bytes);
     }
@@ -137,7 +144,11 @@ function walkPayload(
 
 export function parseGmailMessage(message: GmailMessage, hydration: 'metadata' | 'full'): SyncMessage {
   const headers = message.payload?.headers;
-  const body = { text: [] as string[], html: [] as string[], attachments: [] as SyncAttachmentMeta[] };
+  const body = { text: [], html: [], attachments: [] } satisfies {
+    text: string[];
+    html: string[];
+    attachments: SyncAttachmentMeta[];
+  };
   if (hydration === 'full') walkPayload(message.payload, body);
 
   return {

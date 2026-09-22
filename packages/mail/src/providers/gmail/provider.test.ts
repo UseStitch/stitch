@@ -1,12 +1,34 @@
 import { describe, expect, test } from 'bun:test';
 
+import { createId } from '@stitch/shared/id';
+
+import { createMailAccountId, type MailAccountRecord } from '../../db/schema.js';
 import { buildRfc2822Message, gmailOpsProvider, gmailProviderModule, gmailSyncProvider } from './provider.js';
 
 import type { MailProviderContext, OutgoingDraft } from '../../contracts.js';
 
+function createAccount(): MailAccountRecord {
+  return {
+    id: createMailAccountId(),
+    connectorInstanceId: createId('conn'),
+    provider: 'gmail',
+    email: 'test@example.com',
+    enabled: true,
+    syncPhase: 'idle',
+    syncCursor: null,
+    backfillCursor: null,
+    lastSyncedAt: null,
+    lastError: null,
+    syncFrequencySeconds: 90,
+    backfillDays: 30,
+    createdAt: 0,
+    updatedAt: 0,
+  };
+}
+
 function createContext(response: Response): MailProviderContext {
   return {
-    account: {} as MailProviderContext['account'],
+    account: createAccount(),
     http: { request: async () => response },
     logger: { info: () => undefined, warn: () => undefined, error: () => undefined },
     signal: new AbortController().signal,

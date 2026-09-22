@@ -35,7 +35,7 @@ export async function initMailDb(dbPath: string, migrationsDir: string): Promise
   sqlite.run('PRAGMA foreign_keys = ON');
 
   _sqlite = sqlite;
-  _db = drizzle({ client: sqlite, schema }) as MailDb;
+  _db = drizzle({ client: sqlite, schema });
   migrate(_db, { migrationsFolder: migrationsDir });
 }
 

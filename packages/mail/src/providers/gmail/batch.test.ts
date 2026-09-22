@@ -1,15 +1,38 @@
 import { describe, expect, test } from 'bun:test';
+import { z } from 'zod';
 
+import { createId } from '@stitch/shared/id';
+
+import { createMailAccountId, type MailAccountRecord } from '../../db/schema.js';
 import { GmailBatchError } from '../../errors.js';
 import { buildMultipartBody, gmailBatchRequest, parseGmailBatchResponse } from './batch.js';
 
 import type { MailProviderContext } from '../../contracts.js';
 
+function createAccount(): MailAccountRecord {
+  return {
+    id: createMailAccountId(),
+    connectorInstanceId: createId('conn'),
+    provider: 'gmail',
+    email: 'test@example.com',
+    enabled: true,
+    syncPhase: 'idle',
+    syncCursor: null,
+    backfillCursor: null,
+    lastSyncedAt: null,
+    lastError: null,
+    syncFrequencySeconds: 90,
+    backfillDays: 30,
+    createdAt: 0,
+    updatedAt: 0,
+  };
+}
+
 function createContext(
   handler: (url: string, init?: RequestInit) => Response | Promise<Response>,
 ): MailProviderContext {
   return {
-    account: {} as MailProviderContext['account'],
+    account: createAccount(),
     http: { request: async (url, init) => handler(url, init) },
     logger: { info: () => undefined, warn: () => undefined, error: () => undefined },
     signal: new AbortController().signal,
@@ -62,7 +85,7 @@ describe('gmailBatchRequest', () => {
     const ctx = createContext((_url, init) => {
       expect(init?.method).toBe('POST');
       expect(new Headers(init?.headers).get('content-type')).toContain('multipart/mixed; boundary=');
-      expect(init?.body as string).toContain('GET /messages/msg-1?format=metadata HTTP/1.1');
+      expect(z.string().parse(init?.body)).toContain('GET /messages/msg-1?format=metadata HTTP/1.1');
       return new Response(
         [
           '--batch_y',

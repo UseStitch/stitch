@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import type { MailAccountRecord, MailProviderId } from './db/schema.js';
 
 // ── Infrastructure injected by the server ────────────────────────────────
@@ -7,9 +9,15 @@ export type MailHttpClient = {
 };
 
 export type MailLogger = {
-  info(obj: object, msg: string): void;
-  warn(obj: object, msg: string): void;
-  error(obj: object, msg: string): void;
+  info(obj: MailLogContext, msg: string): void;
+  warn(obj: MailLogContext, msg: string): void;
+  error(obj: MailLogContext, msg: string): void;
+};
+
+type MailLogContext = {
+  error?: Error;
+  accountId?: string;
+  [key: string]: string | number | boolean | Error | undefined;
 };
 
 export type MailProviderContext = {
@@ -23,6 +31,12 @@ export type MailProviderContext = {
 export type SyncLabel = { providerLabelId: string; name: string; kind: 'system' | 'user'; color: string | null };
 
 export type SyncAddress = { name: string | null; email: string };
+
+const syncAddressSchema: z.ZodType<SyncAddress> = z.object({ name: z.string().nullable(), email: z.string() });
+
+export function parseSyncAddresses(value: string): SyncAddress[] {
+  return z.array(syncAddressSchema).parse(JSON.parse(value));
+}
 
 export type SyncAttachmentMeta = {
   providerAttachmentId: string;

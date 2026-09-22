@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import { GmailApiError, GmailAttachmentError } from '../../errors.js';
 import {
   createDraftRaw,
@@ -38,7 +40,7 @@ const BATCH_SIZE = 50;
 
 function parseBackfillCursor(cursor: string | undefined): BackfillCursor | undefined {
   if (!cursor) return undefined;
-  return JSON.parse(cursor) as BackfillCursor;
+  return backfillCursorSchema.parse(JSON.parse(cursor));
 }
 
 function encodeBackfillCursor(pageToken: string | undefined): string | undefined {
@@ -58,7 +60,7 @@ async function batchGetThreads(
 ): Promise<{ threadId: string; status: number; thread: GmailThread | null }[]> {
   const results: { threadId: string; status: number; thread: GmailThread | null }[] = [];
   for (const group of chunks(threadIds, BATCH_SIZE)) {
-    const batch = await gmailBatchRequest<GmailThread>(
+    const batch = await gmailBatchRequest(
       ctx,
       group.map((threadId) => ({
         id: threadId,
@@ -69,7 +71,8 @@ async function batchGetThreads(
     const byId = new Map(batch.map((item) => [item.id, item]));
     for (const threadId of group) {
       const item = byId.get(threadId);
-      results.push({ threadId, status: item?.status ?? 0, thread: item?.body ?? null });
+      const thread = gmailThreadSchema.safeParse(item?.body);
+      results.push({ threadId, status: item?.status ?? 0, thread: thread.success ? thread.data : null });
     }
   }
   return results;
@@ -112,7 +115,7 @@ function base64UrlEncode(value: string): string {
   return Buffer.from(value, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-export function buildRfc2822Message(draft: OutgoingDraft): { raw: string; threadId: string | undefined } {
+export function buildRfc2822Message(draft: OutgoingDraft) {
   const headers: string[] = [];
   const to = buildAddressListHeader(draft.to);
   const cc = buildAddressListHeader(draft.cc);
@@ -154,6 +157,32 @@ export function buildRfc2822Message(draft: OutgoingDraft): { raw: string; thread
     threadId: draft.inReplyTo?.providerThreadId,
   };
 }
+
+const backfillCursorSchema: z.ZodType<BackfillCursor> = z.object({ pageToken: z.string() });
+const gmailMessagePartSchema: z.ZodType<NonNullable<GmailMessage['payload']>> = z.lazy(() =>
+  z.object({
+    partId: z.string().optional(),
+    mimeType: z.string().optional(),
+    filename: z.string().optional(),
+    headers: z.array(z.object({ name: z.string(), value: z.string() })).optional(),
+    body: z
+      .object({ size: z.number().optional(), data: z.string().optional(), attachmentId: z.string().optional() })
+      .optional(),
+    parts: z.array(gmailMessagePartSchema).optional(),
+  }),
+);
+const gmailMessageSchema: z.ZodType<GmailMessage> = z.object({
+  id: z.string(),
+  threadId: z.string(),
+  labelIds: z.array(z.string()).optional(),
+  snippet: z.string().optional(),
+  payload: gmailMessagePartSchema.optional(),
+  internalDate: z.string().optional(),
+});
+const gmailThreadSchema: z.ZodType<GmailThread> = z.object({
+  id: z.string(),
+  messages: z.array(gmailMessageSchema).optional(),
+});
 
 function mapLabel(label: { id: string; name: string; type?: string; color?: { backgroundColor?: string } }): SyncLabel {
   return {

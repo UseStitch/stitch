@@ -154,6 +154,7 @@
       "dependencies": {
         "@stitch/shared": "workspace:*",
         "drizzle-orm": "^0.45.1",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
@@ -166,6 +167,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@stitch/shared": "workspace:*",
+        "zod": "catalog:",
       },
       "devDependencies": {
         "@napi-rs/cli": "^3.7.2",

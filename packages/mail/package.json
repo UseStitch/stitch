@@ -19,7 +19,8 @@
   },
   "dependencies": {
     "@stitch/shared": "workspace:*",
-    "drizzle-orm": "^0.45.1"
+    "drizzle-orm": "^0.45.1",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

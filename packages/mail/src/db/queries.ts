@@ -1,5 +1,7 @@
 import { and, asc, count, desc, eq, inArray, lt, or, sql } from 'drizzle-orm';
+import { z } from 'zod';
 
+import { isIdOfType } from '@stitch/shared/id';
 import type {
   MailAccountView,
   MailAddressView,
@@ -53,11 +55,19 @@ function parseThreadCursor(cursor: string | undefined): ThreadCursor | undefined
   if (separator === -1) return undefined;
   const lastMessageAt = Number(cursor.slice(0, separator));
   if (!Number.isFinite(lastMessageAt)) return undefined;
-  return { lastMessageAt, id: cursor.slice(separator + 1) as MailThreadId };
+  const id = cursor.slice(separator + 1);
+  if (!isIdOfType(id, 'mthr')) return undefined;
+  return { lastMessageAt, id };
 }
 
-function parseJson<T>(value: string): T {
-  return JSON.parse(value) as T;
+const mailAddressSchema: z.ZodType<MailAddressView> = z.object({ name: z.string().nullable(), email: z.string() });
+
+function parseAddress(value: string): MailAddressView | null {
+  return mailAddressSchema.nullable().parse(JSON.parse(value));
+}
+
+function parseAddresses(value: string): MailAddressView[] {
+  return z.array(mailAddressSchema).parse(JSON.parse(value));
 }
 
 function toLabelView(label: typeof mailLabels.$inferSelect): MailLabelView {
@@ -81,9 +91,9 @@ function toDraftView(draft: MailDraftRecord): MailDraftView {
     id: draft.id,
     accountId: draft.accountId,
     providerDraftId: draft.providerDraftId,
-    to: parseJson<MailAddressView[]>(draft.toJson),
-    cc: parseJson<MailAddressView[]>(draft.ccJson),
-    bcc: parseJson<MailAddressView[]>(draft.bccJson),
+    to: parseAddresses(draft.toJson),
+    cc: parseAddresses(draft.ccJson),
+    bcc: parseAddresses(draft.bccJson),
     subject: draft.subject,
     bodyText: draft.bodyText,
     bodyHtml: draft.bodyHtml,
@@ -130,7 +140,7 @@ async function sendersForThreads(
 
   for (const row of rows) {
     if (!sendersByThread.has(row.threadId)) {
-      sendersByThread.set(row.threadId, parseJson<MailAddressView | null>(row.fromJson));
+      sendersByThread.set(row.threadId, parseAddress(row.fromJson));
     }
   }
 
@@ -227,10 +237,10 @@ export async function getThread(threadId: MailThreadId, dbOption?: MailDb): Prom
     accountId: message.accountId,
     threadId: message.threadId,
     providerMessageId: message.providerMessageId,
-    from: parseJson<MailAddressView | null>(message.fromJson),
-    to: parseJson<MailAddressView[]>(message.toJson),
-    cc: parseJson<MailAddressView[]>(message.ccJson),
-    bcc: parseJson<MailAddressView[]>(message.bccJson),
+    from: parseAddress(message.fromJson),
+    to: parseAddresses(message.toJson),
+    cc: parseAddresses(message.ccJson),
+    bcc: parseAddresses(message.bccJson),
     subject: message.subject,
     snippet: message.snippet,
     internalDate: message.internalDate,

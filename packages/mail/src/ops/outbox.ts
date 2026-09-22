@@ -1,4 +1,5 @@
 import { and, asc, eq, lt, lte, or } from 'drizzle-orm';
+import { z } from 'zod';
 
 import { getMailDb } from '../db/client.js';
 import {
@@ -22,12 +23,23 @@ const BASE_BACKOFF_MS = 30_000;
 const MAX_BACKOFF_MS = 3_600_000;
 const MAX_ATTEMPTS = 8;
 
-type OutboxPayload =
-  | { draft: OutgoingDraft }
-  | { draftId: MailDraftId; providerDraftId: string | null; draft: OutgoingDraft }
-  | { threadId: MailThreadId; providerThreadId: string }
-  | { messageId: MailMessageId; providerMessageId: string; addProviderIds: string[]; removeProviderIds: string[] }
-  | { draftId: MailDraftId; providerDraftId: string | null };
+type OutboxPayloads = {
+  send: { draft: OutgoingDraft };
+  send_draft: { draftId: MailDraftId; providerDraftId: string | null; draft: OutgoingDraft };
+  trash_thread: { threadId: MailThreadId; providerThreadId: string };
+  untrash_thread: { threadId: MailThreadId; providerThreadId: string };
+  modify_labels: {
+    messageId: MailMessageId;
+    providerMessageId: string;
+    addProviderIds: string[];
+    removeProviderIds: string[];
+  };
+  create_draft: { draftId: MailDraftId; providerDraftId: string | null; draft: OutgoingDraft };
+  update_draft: { draftId: MailDraftId; providerDraftId: string | null; draft: OutgoingDraft };
+  delete_draft: { draftId: MailDraftId; providerDraftId: string | null };
+};
+
+type OutboxPayload = { [Type in MailOutboxOpType]: { opType: Type } & OutboxPayloads[Type] }[MailOutboxOpType];
 
 type OutboxDeps = {
   createContext(account: MailAccountRecord): MailProviderContext;
@@ -41,23 +53,27 @@ type OutboxDeps = {
 };
 
 export type OutboxController = {
-  enqueue(accountId: MailAccountId, opType: MailOutboxOpType, payload: OutboxPayload): Promise<MailOutboxId>;
+  enqueue<Type extends MailOutboxOpType>(
+    accountId: MailAccountId,
+    opType: Type,
+    payload: OutboxPayloads[Type],
+  ): Promise<MailOutboxId>;
   flushOutbox(): Promise<void>;
 };
 
-function parsePayload(payloadJson: string): OutboxPayload {
-  return JSON.parse(payloadJson) as OutboxPayload;
+function parsePayload(opType: MailOutboxOpType, payloadJson: string): OutboxPayload {
+  return outboxPayloadSchema.parse({ opType, ...JSON.parse(payloadJson) });
 }
 
 function nextAttemptAt(attempts: number): number {
   return Date.now() + Math.min(BASE_BACKOFF_MS * 2 ** attempts, MAX_BACKOFF_MS);
 }
 
-function errorMessage(error: unknown): string {
+function errorMessage(error: Error | string): string {
   return Error.isError(error) ? error.message : String(error);
 }
 
-async function markFailed(id: MailOutboxId, attempts: number, error: unknown): Promise<void> {
+async function markFailed(id: MailOutboxId, attempts: number, error: Error | string): Promise<void> {
   const db = getMailDb();
   await db
     .update(mailOutbox)
@@ -88,73 +104,53 @@ async function processOutboxRow(deps: OutboxDeps, row: typeof mailOutbox.$inferS
   if (!account) return;
   const ctx = deps.createContext(account);
   const provider = getMailProvider(account.provider);
-  const payload = parsePayload(row.payloadJson);
+  const payload = parsePayload(row.opType, row.payloadJson);
 
-  if (row.opType === 'send') {
-    const result = await provider.ops.send(ctx, (payload as Extract<OutboxPayload, { draft: OutgoingDraft }>).draft);
-    await processSentMessage(deps, ctx, provider, result.providerThreadId);
-  }
-  if (row.opType === 'send_draft') {
-    const draftPayload = payload as Extract<
-      OutboxPayload,
-      { draftId: MailDraftId; providerDraftId: string | null; draft: OutgoingDraft }
-    >;
-    const result = draftPayload.providerDraftId
-      ? await provider.ops.sendDraft(ctx, draftPayload.providerDraftId)
-      : await provider.ops.send(ctx, draftPayload.draft);
-    await db.delete(mailDrafts).where(eq(mailDrafts.id, draftPayload.draftId));
-    await processSentMessage(deps, ctx, provider, result.providerThreadId);
-  }
-  if (row.opType === 'trash_thread') {
-    await provider.ops.trashThread(
-      ctx,
-      (payload as Extract<OutboxPayload, { providerThreadId: string }>).providerThreadId,
-    );
-  }
-  if (row.opType === 'untrash_thread') {
-    await provider.ops.untrashThread(
-      ctx,
-      (payload as Extract<OutboxPayload, { providerThreadId: string }>).providerThreadId,
-    );
-  }
-  if (row.opType === 'modify_labels') {
-    const labelPayload = payload as Extract<
-      OutboxPayload,
-      { providerMessageId: string; addProviderIds: string[]; removeProviderIds: string[] }
-    >;
-    await provider.ops.modifyMessageLabels(
-      ctx,
-      labelPayload.providerMessageId,
-      labelPayload.addProviderIds,
-      labelPayload.removeProviderIds,
-    );
-  }
-  if (row.opType === 'create_draft') {
-    const draftPayload = payload as Extract<
-      OutboxPayload,
-      { draftId: MailDraftId; providerDraftId: string | null; draft: OutgoingDraft }
-    >;
-    const result = await provider.ops.createDraft(ctx, draftPayload.draft);
-    await db
-      .update(mailDrafts)
-      .set({ providerDraftId: result.providerDraftId, dirty: false, updatedAt: Date.now() })
-      .where(eq(mailDrafts.id, draftPayload.draftId));
-  }
-  if (row.opType === 'update_draft') {
-    const draftPayload = payload as Extract<
-      OutboxPayload,
-      { draftId: MailDraftId; providerDraftId: string | null; draft: OutgoingDraft }
-    >;
-    if (draftPayload.providerDraftId)
-      await provider.ops.updateDraft(ctx, draftPayload.providerDraftId, draftPayload.draft);
-    await db
-      .update(mailDrafts)
-      .set({ dirty: false, updatedAt: Date.now() })
-      .where(eq(mailDrafts.id, draftPayload.draftId));
-  }
-  if (row.opType === 'delete_draft') {
-    const draftPayload = payload as Extract<OutboxPayload, { draftId: MailDraftId; providerDraftId: string | null }>;
-    if (draftPayload.providerDraftId) await provider.ops.deleteDraft(ctx, draftPayload.providerDraftId);
+  switch (payload.opType) {
+    case 'send': {
+      const result = await provider.ops.send(ctx, payload.draft);
+      await processSentMessage(deps, ctx, provider, result.providerThreadId);
+      break;
+    }
+    case 'send_draft': {
+      const result = payload.providerDraftId
+        ? await provider.ops.sendDraft(ctx, payload.providerDraftId)
+        : await provider.ops.send(ctx, payload.draft);
+      await db.delete(mailDrafts).where(eq(mailDrafts.id, payload.draftId));
+      await processSentMessage(deps, ctx, provider, result.providerThreadId);
+      break;
+    }
+    case 'trash_thread':
+      await provider.ops.trashThread(ctx, payload.providerThreadId);
+      break;
+    case 'untrash_thread':
+      await provider.ops.untrashThread(ctx, payload.providerThreadId);
+      break;
+    case 'modify_labels':
+      await provider.ops.modifyMessageLabels(
+        ctx,
+        payload.providerMessageId,
+        payload.addProviderIds,
+        payload.removeProviderIds,
+      );
+      break;
+    case 'create_draft': {
+      const result = await provider.ops.createDraft(ctx, payload.draft);
+      await db
+        .update(mailDrafts)
+        .set({ providerDraftId: result.providerDraftId, dirty: false, updatedAt: Date.now() })
+        .where(eq(mailDrafts.id, payload.draftId));
+      break;
+    }
+    case 'update_draft':
+      if (payload.providerDraftId) await provider.ops.updateDraft(ctx, payload.providerDraftId, payload.draft);
+      await db
+        .update(mailDrafts)
+        .set({ dirty: false, updatedAt: Date.now() })
+        .where(eq(mailDrafts.id, payload.draftId));
+      break;
+    case 'delete_draft':
+      if (payload.providerDraftId) await provider.ops.deleteDraft(ctx, payload.providerDraftId);
   }
 }
 
@@ -188,7 +184,7 @@ export function createOutbox(deps: OutboxDeps): OutboxController {
             await db.update(mailOutbox).set({ status: 'done', lastError: null }).where(eq(mailOutbox.id, row.id));
           } catch (error) {
             const attempts = row.attempts + 1;
-            await markFailed(row.id, attempts, error);
+            await markFailed(row.id, attempts, Error.isError(error) ? error : String(error));
             if (attempts >= MAX_ATTEMPTS) deps.emitAccountUpdated(row.accountId);
           }
         }
@@ -202,10 +198,10 @@ export function createOutbox(deps: OutboxDeps): OutboxController {
     }
   }
 
-  async function enqueue(
+  async function enqueue<Type extends MailOutboxOpType>(
     accountId: MailAccountId,
-    opType: MailOutboxOpType,
-    payload: OutboxPayload,
+    opType: Type,
+    payload: OutboxPayloads[Type],
   ): Promise<MailOutboxId> {
     const db = getMailDb();
     const [row] = await db
@@ -225,3 +221,39 @@ export function createOutbox(deps: OutboxDeps): OutboxController {
 
   return { enqueue, flushOutbox };
 }
+
+const mailDraftIdSchema: z.ZodType<MailDraftId> = z.templateLiteral([z.literal('mdrf'), z.string()]);
+const mailThreadIdSchema: z.ZodType<MailThreadId> = z.templateLiteral([z.literal('mthr'), z.string()]);
+const mailMessageIdSchema: z.ZodType<MailMessageId> = z.templateLiteral([z.literal('mmsg'), z.string()]);
+const addressSchema = z.object({ name: z.string().nullable(), email: z.string() });
+const outgoingDraftSchema: z.ZodType<OutgoingDraft> = z.object({
+  to: z.array(addressSchema),
+  cc: z.array(addressSchema),
+  bcc: z.array(addressSchema),
+  subject: z.string(),
+  bodyText: z.string(),
+  bodyHtml: z.string().nullable(),
+  inReplyTo: z.object({ providerMessageId: z.string(), providerThreadId: z.string() }).nullable(),
+});
+const draftPayloadSchema = z.object({
+  draftId: mailDraftIdSchema,
+  providerDraftId: z.string().nullable(),
+  draft: outgoingDraftSchema,
+});
+const threadPayloadSchema = z.object({ threadId: mailThreadIdSchema, providerThreadId: z.string() });
+const outboxPayloadSchema: z.ZodType<OutboxPayload> = z.discriminatedUnion('opType', [
+  z.object({ opType: z.literal('send'), draft: outgoingDraftSchema }),
+  z.object({ opType: z.literal('send_draft') }).extend(draftPayloadSchema.shape),
+  z.object({ opType: z.literal('trash_thread') }).extend(threadPayloadSchema.shape),
+  z.object({ opType: z.literal('untrash_thread') }).extend(threadPayloadSchema.shape),
+  z.object({
+    opType: z.literal('modify_labels'),
+    messageId: mailMessageIdSchema,
+    providerMessageId: z.string(),
+    addProviderIds: z.array(z.string()),
+    removeProviderIds: z.array(z.string()),
+  }),
+  z.object({ opType: z.literal('create_draft') }).extend(draftPayloadSchema.shape),
+  z.object({ opType: z.literal('update_draft') }).extend(draftPayloadSchema.shape),
+  z.object({ opType: z.literal('delete_draft'), draftId: mailDraftIdSchema, providerDraftId: z.string().nullable() }),
+]);

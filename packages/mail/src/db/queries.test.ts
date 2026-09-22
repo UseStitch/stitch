@@ -17,7 +17,7 @@ const migrationsDir = fileURLToPath(new URL('../../drizzle', import.meta.url));
 beforeEach(() => {
   sqlite = new Database(':memory:');
   sqlite.run('PRAGMA foreign_keys = ON');
-  db = drizzle({ client: sqlite, schema }) as MailDb;
+  db = drizzle({ client: sqlite, schema });
   migrate(db, { migrationsFolder: migrationsDir });
 });
 

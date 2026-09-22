@@ -6,7 +6,7 @@ const GMAIL_BATCH_URL = 'https://gmail.googleapis.com/batch/gmail/v1';
 const MAX_BATCH_OPERATIONS = 50;
 
 export type GmailBatchOperation = { id: string; method: 'GET'; path: string };
-export type GmailBatchResult<T = unknown> = { id: string; status: number; body: T | null };
+export type GmailBatchResult = { id: string; status: number; body: unknown };
 
 export function buildMultipartBody(boundary: string, operations: GmailBatchOperation[]): string {
   return `${operations
@@ -61,10 +61,10 @@ export function parseGmailBatchResponse(contentType: string | null, body: string
     .filter((part): part is GmailBatchResult => part !== null);
 }
 
-export async function gmailBatchRequest<T = unknown>(
+export async function gmailBatchRequest(
   ctx: MailProviderContext,
   operations: GmailBatchOperation[],
-): Promise<GmailBatchResult<T>[]> {
+): Promise<GmailBatchResult[]> {
   if (operations.length > MAX_BATCH_OPERATIONS) {
     throw new GmailBatchError(`Gmail batch requests support at most ${MAX_BATCH_OPERATIONS} operations`);
   }
@@ -80,5 +80,5 @@ export async function gmailBatchRequest<T = unknown>(
 
   if (!response.ok) throw new GmailBatchError(`Gmail batch request failed with status ${response.status}`);
 
-  return parseGmailBatchResponse(response.headers.get('content-type'), await response.text()) as GmailBatchResult<T>[];
+  return parseGmailBatchResponse(response.headers.get('content-type'), await response.text());
 }

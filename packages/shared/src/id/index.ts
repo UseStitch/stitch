@@ -27,6 +27,7 @@ export const ID_PREFIXES = {
   mailMessage: 'mmsg',
   mailAttachment: 'matt',
   mailDraft: 'mdrf',
+  mailOutbox: 'mob',
   telemetryClient: 'tcli',
 } as const;
 
@@ -46,7 +47,7 @@ function randomBase62(length: number): string {
   return result;
 }
 
-function createId<P extends IdPrefix>(prefix: P): PrefixedString<P> {
+export function createId<P extends IdPrefix>(prefix: P): PrefixedString<P> {
   const currentTimestamp = Date.now();
 
   if (currentTimestamp !== lastTimestamp) {
@@ -66,7 +67,9 @@ function createId<P extends IdPrefix>(prefix: P): PrefixedString<P> {
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 
-  return (prefix + '_' + hexPart + randomBase62(14)) as PrefixedString<P>;
+  const id = prefix + '_' + hexPart + randomBase62(14);
+  if (!isIdOfType(id, prefix)) throw new Error('Generated ID has an invalid prefix');
+  return id;
 }
 
 function createIdFactory<P extends IdPrefix>(prefix: P): () => PrefixedString<P> {
@@ -98,8 +101,8 @@ export const createTelemetryClientId = createIdFactory(ID_PREFIXES.telemetryClie
 /**
  * Check whether an ID string belongs to a given prefix type.
  */
-export function isIdOfType(id: string, prefix: IdPrefix): boolean {
-  return typeof id === 'string' && id.startsWith(prefix + '_') && id.length > prefix.length + 1 && id.length <= 80;
+export function isIdOfType<P extends IdPrefix>(id: string, prefix: P): id is PrefixedString<P> {
+  return id.startsWith(prefix + '_') && id.length > prefix.length + 1 && id.length <= 80;
 }
 
 export function extractTimestamp(id: string): number {

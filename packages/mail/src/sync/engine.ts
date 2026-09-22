@@ -96,11 +96,7 @@ type RunningSync = { controller: AbortController; promise: Promise<void> };
 const ACCOUNT_CONCURRENCY = 3;
 const THREADS_CHANGED_DEBOUNCE_MS = 500;
 
-function errorMessage(error: unknown): string {
-  return Error.isError(error) ? error.message : String(error);
-}
-
-function isAbortError(error: unknown): boolean {
+function isAbortError(error: Error): boolean {
   return error instanceof DOMException && error.name === 'AbortError';
 }
 
@@ -201,11 +197,18 @@ export function createMailEngine(deps: MailEngineDeps): MailEngine {
         }
         emitAccountUpdated(accountId);
       } catch (error) {
-        if (isAbortError(error) || controller.signal.aborted) return;
-        deps.logger.error({ error, accountId }, 'Mail sync failed');
+        if ((Error.isError(error) && isAbortError(error)) || controller.signal.aborted) return;
+        deps.logger.error(
+          { error: Error.isError(error) ? error : new Error(String(error)), accountId },
+          'Mail sync failed',
+        );
         await db
           .update(mailAccounts)
-          .set({ syncPhase: 'error', lastError: errorMessage(error), updatedAt: Date.now() })
+          .set({
+            syncPhase: 'error',
+            lastError: Error.isError(error) ? error.message : String(error),
+            updatedAt: Date.now(),
+          })
           .where(eq(mailAccounts.id, account.id));
         emitAccountUpdated(accountId);
       }
