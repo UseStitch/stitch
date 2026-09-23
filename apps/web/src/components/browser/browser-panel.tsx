@@ -168,7 +168,8 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
 
           <form className="min-w-0 flex-1" onSubmit={submitAddress}>
             <Input
-              className="h-7 w-full rounded-sm border-border bg-surface-sunken px-space-m py-space-none text-xs focus:border-primary focus-visible:ring-0"
+              variant="sunken"
+              className="w-full px-space-m py-space-none"
               value={address}
               onChange={(event) => setAddress(event.target.value)}
             />

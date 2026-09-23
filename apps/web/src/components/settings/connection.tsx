@@ -103,9 +103,7 @@ export function ConnectionSettings() {
 
         <SettingSection title="Connection details">
           <div>
-            <Label htmlFor="remote-server-url" className="text-sm font-medium">
-              Remote server URL
-            </Label>
+            <Label htmlFor="remote-server-url">Remote server URL</Label>
             <div className="mt-space-xs">
               <Text variant="caption" tone="muted">
                 Used only when remote server mode is selected. Example: http://192.168.1.10:3000

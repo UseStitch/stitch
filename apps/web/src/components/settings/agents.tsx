@@ -43,7 +43,8 @@ export function AgentsSettings() {
           onChange={(event) => setInstructions(event.target.value)}
           onBlur={saveInstructions}
           placeholder="Example: Prefer concise answers. Ask one focused question when requirements are unclear."
-          className="min-h-90 resize-y font-mono text-sm"
+          variant="mono"
+          className="min-h-90 resize-y"
         />
       </SettingSection>
     </SettingPage>

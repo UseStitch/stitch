@@ -208,6 +208,7 @@ export function ChatInputInner({
             ref={textareaRef}
             value={value}
             {...textareaProps}
+            variant="ghost"
             onPaste={(event) => {
               void handlePaste(event);
             }}
@@ -215,11 +216,9 @@ export function ChatInputInner({
             disabled={disabled}
             rows={1}
             className={cn(
-              'min-h-0 w-full resize-none rounded-none border-0 bg-transparent px-space-xl pt-space-xl pb-space-m text-sm leading-relaxed',
-              'placeholder:text-text-faint',
-              'max-h-48 overflow-y-auto thin-scrollbar',
+              'min-h-0 w-full resize-none px-space-xl pt-space-xl pb-space-m',
+              'max-h-48 overflow-y-auto',
               'field-sizing-content',
-              'focus-visible:ring-0 disabled:bg-transparent',
             )}
           />
         )}

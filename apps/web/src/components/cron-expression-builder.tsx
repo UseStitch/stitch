@@ -148,7 +148,7 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
   const renderMinutes = () => (
     <div className="space-y-space-m">
       <Stack direction="row" align="center" gap="m">
-        <Label className="text-xs font-semibold text-muted-foreground uppercase">Minute</Label>
+        <Label variant="section">Minute</Label>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger>
@@ -166,12 +166,11 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
           const val = vals.at(0);
           if (val) emit({ minutes: [Number.parseInt(val)] });
         }}
+        variant="outline"
+        size="sm"
         className="flex flex-wrap justify-start gap-space-xs">
         {MINUTES.map((m) => (
-          <ToggleGroupItem
-            key={m}
-            value={m.toString()}
-            className="h-8 w-9 p-space-none text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
+          <ToggleGroupItem key={m} value={m.toString()} className="w-9">
             {m.toString().padStart(2, '0')}
           </ToggleGroupItem>
         ))}
@@ -181,19 +180,18 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
 
   const renderHours = () => (
     <div className="space-y-space-m">
-      <Label className="text-xs font-semibold text-muted-foreground uppercase">Hours</Label>
+      <Label variant="section">Hours</Label>
       <ToggleGroup
         multiple
         value={hours.map((h) => h.toString())}
         onValueChange={(vals) => {
           if (vals.length > 0) emit({ hours: vals.map((v) => Number.parseInt(v)).toSorted((a, b) => a - b) });
         }}
+        variant="outline"
+        size="sm"
         className="flex flex-wrap justify-start gap-space-xs">
         {HOURS.map((h) => (
-          <ToggleGroupItem
-            key={h}
-            value={h.toString()}
-            className="h-8 w-9 p-space-none text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
+          <ToggleGroupItem key={h} value={h.toString()} className="w-9">
             {h.toString().padStart(2, '0')}
           </ToggleGroupItem>
         ))}
@@ -203,19 +201,18 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
 
   const renderWeekdays = () => (
     <div className="space-y-space-m">
-      <Label className="text-xs font-semibold text-muted-foreground uppercase">Days of Week</Label>
+      <Label variant="section">Days of Week</Label>
       <ToggleGroup
         multiple
         value={daysOfWeek.map((d) => d.toString())}
         onValueChange={(vals) => {
           if (vals.length > 0) emit({ daysOfWeek: vals.map((v) => Number.parseInt(v)) });
         }}
+        variant="outline"
+        size="sm"
         className="flex flex-wrap justify-start gap-space-xs">
         {DAYS_OF_WEEK.map((day) => (
-          <ToggleGroupItem
-            key={day.value}
-            value={day.value}
-            className="h-8 min-w-12 px-space-m text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
+          <ToggleGroupItem key={day.value} value={day.value} className="min-w-12">
             {day.label}
           </ToggleGroupItem>
         ))}
@@ -225,19 +222,18 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
 
   const renderDaysOfMonth = () => (
     <div className="space-y-space-m">
-      <Label className="text-xs font-semibold text-muted-foreground uppercase">Days of Month</Label>
+      <Label variant="section">Days of Month</Label>
       <ToggleGroup
         multiple
         value={daysOfMonth.map((d) => d.toString())}
         onValueChange={(vals) => {
           if (vals.length > 0) emit({ daysOfMonth: vals.map((v) => Number.parseInt(v)).toSorted((a, b) => a - b) });
         }}
+        variant="outline"
+        size="sm"
         className="flex flex-wrap justify-start gap-space-xs">
         {DAYS_OF_MONTH.map((d) => (
-          <ToggleGroupItem
-            key={d}
-            value={d.toString()}
-            className="h-8 w-9 p-space-none text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
+          <ToggleGroupItem key={d} value={d.toString()} className="w-9">
             {d}
           </ToggleGroupItem>
         ))}
@@ -247,7 +243,7 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
 
   const renderMonths = () => (
     <div className="space-y-space-m">
-      <Label className="text-xs font-semibold text-muted-foreground uppercase">Months</Label>
+      <Label variant="section">Months</Label>
       <ToggleGroup
         multiple
         value={months.map((m) => m.toString())}
@@ -255,12 +251,11 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
           // If empty, it means all months (cron *)
           emit({ months: vals.map((v) => Number.parseInt(v)).toSorted((a, b) => a - b) });
         }}
+        variant="outline"
+        size="sm"
         className="flex flex-wrap justify-start gap-space-xs">
         {MONTHS_SHORT.map((m, i) => (
-          <ToggleGroupItem
-            key={m}
-            value={(i + 1).toString()}
-            className="h-8 w-10 p-space-none text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-primary! aria-pressed:text-primary-foreground! aria-pressed:shadow-sm">
+          <ToggleGroupItem key={m} value={(i + 1).toString()} className="w-10">
             {m}
           </ToggleGroupItem>
         ))}
@@ -274,33 +269,34 @@ export function CronExpressionBuilder({ value, onChange, timezone = 'UTC', class
         {/* Frequency Selector */}
         <Stack gap="m">
           <Label>Frequency</Label>
-          <ToggleGroup
-            value={[frequency]}
-            onValueChange={(vals) => {
-              const val = vals.at(0);
-              if (val) {
-                const newFreq = FREQUENCIES.find((frequency) => frequency.value === val)?.value;
-                if (!newFreq) return;
-                setFrequency(newFreq);
+          <div className="w-fit rounded-md border bg-surface-sunken">
+            <ToggleGroup
+              value={[frequency]}
+              onValueChange={(vals) => {
+                const val = vals.at(0);
+                if (val) {
+                  const newFreq = FREQUENCIES.find((frequency) => frequency.value === val)?.value;
+                  if (!newFreq) return;
+                  setFrequency(newFreq);
 
-                // Ensure required fields are populated when switching
-                emit({
-                  frequency: newFreq,
-                  daysOfMonth: newFreq === 'monthly' && daysOfMonth.length === 0 ? [1] : daysOfMonth,
-                  daysOfWeek: newFreq === 'weekly' && daysOfWeek.length === 0 ? [1] : daysOfWeek, // Monday
-                });
-              }
-            }}
-            className="w-fit justify-start rounded-md border bg-surface-sunken p-space-xs">
-            {FREQUENCIES.map((f) => (
-              <ToggleGroupItem
-                key={f.value}
-                value={f.value}
-                className="h-8 rounded-sm px-space-l text-xs hover:bg-accent hover:text-accent-foreground aria-pressed:bg-background! aria-pressed:text-foreground! aria-pressed:shadow-sm">
-                {f.label}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
+                  // Ensure required fields are populated when switching
+                  emit({
+                    frequency: newFreq,
+                    daysOfMonth: newFreq === 'monthly' && daysOfMonth.length === 0 ? [1] : daysOfMonth,
+                    daysOfWeek: newFreq === 'weekly' && daysOfWeek.length === 0 ? [1] : daysOfWeek, // Monday
+                  });
+                }
+              }}
+              variant="outline"
+              size="sm"
+              className="justify-start p-space-xs">
+              {FREQUENCIES.map((f) => (
+                <ToggleGroupItem key={f.value} value={f.value}>
+                  {f.label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
         </Stack>
 
         <div className="flex h-full min-h-0 flex-col gap-space-2xl lg:flex-row">

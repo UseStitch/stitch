@@ -294,13 +294,11 @@ export function AgendaItemDetailSheet({ item, open, onOpenChange }: Props) {
                   <Label>Due Date</Label>
                   <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                     <Stack direction="row" align="center" gap="s">
-                      <PopoverTrigger
-                        className={cn(
-                          'flex h-8 w-full items-center gap-space-m rounded-lg border border-input bg-transparent px-space-m text-sm transition-colors hover:bg-accent',
-                          !field.state.value && 'text-muted-foreground',
-                        )}>
+                      <PopoverTrigger render={<Button type="button" variant="outline" width="full" align="start" />}>
                         <Icon as={CalendarIcon} size="s" tone="muted" />
-                        {field.state.value ? formatDateInTz(dateToMs(field.state.value), timeZone) : 'Pick a date'}
+                        <span className={cn(!field.state.value && 'text-muted-foreground')}>
+                          {field.state.value ? formatDateInTz(dateToMs(field.state.value), timeZone) : 'Pick a date'}
+                        </span>
                       </PopoverTrigger>
                       {field.state.value && (
                         <Button

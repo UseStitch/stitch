@@ -16,6 +16,7 @@ import {
 import { Icon } from '@/components/primitives/icon';
 import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
+import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { StatusDot } from '@/components/ui/status-dot';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -79,15 +80,13 @@ export function ServerStatus() {
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger
-        className="relative flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-accent"
+        render={<Button type="button" variant="ghost" size="icon-sm" />}
+        className="relative"
         aria-label="Server status">
         <Icon as={HardDrive} size="s" tone="muted" />
         <StatusDot color={STATE_COLOR[overallState]} bordered className="absolute top-1 right-1" />
       </PopoverTrigger>
-      <PopoverContent
-        side="bottom"
-        align="start"
-        className="w-70 overflow-hidden rounded-xl border-border p-space-none shadow-lg">
+      <PopoverContent side="bottom" align="start" className="w-70 overflow-hidden p-space-none">
         <Tabs defaultValue="servers" className="gap-space-none">
           <div className="bg-surface-sunken px-space-xl pt-space-l">
             <TabsList variant="line" className="h-auto gap-space-xl p-space-none">

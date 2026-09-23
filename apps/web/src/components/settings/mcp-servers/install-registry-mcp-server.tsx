@@ -137,7 +137,7 @@ export function InstallRegistryMcpServer({
           <form.Field name="name">
             {(field) => (
               <div className="space-y-space-s">
-                <Label className="text-xs font-medium text-muted-foreground">Name</Label>
+                <Label variant="muted">Name</Label>
                 <Input
                   value={field.state.value}
                   aria-invalid={!!fieldErrorMessage(field.state.meta)}
@@ -151,7 +151,7 @@ export function InstallRegistryMcpServer({
 
           {authOptions.length > 1 ? (
             <div className="space-y-space-s">
-              <Label className="text-xs font-medium text-muted-foreground">Auth preset</Label>
+              <Label variant="muted">Auth preset</Label>
               <Select value={selectedAuthId} onValueChange={handleAuthPresetChange}>
                 <SelectTrigger className="w-full">
                   <SelectValue>{selectedAuthOption.label}</SelectValue>
@@ -169,7 +169,7 @@ export function InstallRegistryMcpServer({
             <form.Field name="authType">
               {(field) => (
                 <div className="space-y-space-s">
-                  <Label className="text-xs font-medium text-muted-foreground">Authentication</Label>
+                  <Label variant="muted">Authentication</Label>
                   <Select
                     value={field.state.value}
                     onValueChange={(value) => {
@@ -196,7 +196,7 @@ export function InstallRegistryMcpServer({
         <form.Field name="url">
           {(field) => (
             <div className="space-y-space-s">
-              <Label className="text-xs font-medium text-muted-foreground">URL</Label>
+              <Label variant="muted">URL</Label>
               <Input
                 value={field.state.value}
                 type="url"
@@ -213,7 +213,7 @@ export function InstallRegistryMcpServer({
           <form.Field name="apiKey">
             {(field) => (
               <div className="space-y-space-s">
-                <Label className="text-xs font-medium text-muted-foreground">API Key</Label>
+                <Label variant="muted">API Key</Label>
                 <Input
                   value={field.state.value}
                   onBlur={field.handleBlur}
@@ -232,7 +232,7 @@ export function InstallRegistryMcpServer({
           <form.Field name="headers">
             {(field) => (
               <div className="space-y-space-s">
-                <Label className="text-xs font-medium text-muted-foreground">Headers</Label>
+                <Label variant="muted">Headers</Label>
                 <HeaderRows rows={field.state.value} onChange={field.handleChange} />
                 <FieldError meta={field.state.meta} />
               </div>

@@ -33,7 +33,11 @@ import {
   useUpdateAgendaList,
 } from '@/lib/queries/agenda';
 
-function getFilterValue<T extends string>(filters: ColumnFiltersState, id: string, allowedValues: readonly T[]): T | undefined {
+function getFilterValue<T extends string>(
+  filters: ColumnFiltersState,
+  id: string,
+  allowedValues: readonly T[],
+): T | undefined {
   const value = filters.find((filter) => filter.id === id)?.value;
   return allowedValues.find((allowedValue) => allowedValue === value);
 }
@@ -177,13 +181,14 @@ export function AgendaPage({ listId }: { listId?: string }) {
                 <Input
                   ref={titleInputRef}
                   value={editTitleValue}
+                  variant="title"
                   onChange={(e) => setEditTitleValue(e.target.value)}
                   onBlur={commitRename}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') commitRename();
                     if (e.key === 'Escape') setEditingTitle(false);
                   }}
-                  className="-ml-space-xs h-auto w-full rounded-sm border-none bg-transparent px-space-xs py-space-none text-xl font-semibold ring-1 ring-primary focus-visible:ring-1 focus-visible:ring-primary"
+                  className="-ml-space-xs h-auto w-full px-space-xs py-space-none"
                 />
               ) : currentList ? (
                 <Button

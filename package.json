@@ -20,6 +20,7 @@
     "website:dev": "bun run --cwd apps/website dev"
   },
   "dependencies": {
+    "cnfast": "^0.2.0",
     "dompurify": "^3.4.11"
   },
   "devDependencies": {

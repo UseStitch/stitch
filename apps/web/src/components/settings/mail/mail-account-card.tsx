@@ -78,7 +78,8 @@ function MailNumberInput({
       min={String(min)}
       value={localValue}
       disabled={disabled}
-      className="h-7 w-20 px-space-m text-xs"
+      variant="compact"
+      className="w-20 px-space-m"
       onChange={(event) => setLocalValue(event.target.value)}
       onBlur={handleBlur}
     />

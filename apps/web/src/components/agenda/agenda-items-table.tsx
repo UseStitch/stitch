@@ -168,9 +168,10 @@ function AgendaItemRow({
 
       <Table.Cell className="w-28">
         <Popover open={dateOpen} onOpenChange={setDateOpen}>
-          <PopoverTrigger
-            className={`inline-flex cursor-pointer rounded-sm px-space-xs py-space-2xs text-xs transition-colors hover:bg-muted ${isOverdue ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
-            {item.dueAt ? formatDateInTz(item.dueAt, timeZone) : '—'}
+          <PopoverTrigger render={<Button type="button" variant="ghost" size="inline" />} className="cursor-pointer">
+            <span className={isOverdue ? 'font-medium text-destructive' : 'text-muted-foreground'}>
+              {item.dueAt ? formatDateInTz(item.dueAt, timeZone) : '—'}
+            </span>
           </PopoverTrigger>
           <PopoverContent align="start" className="w-auto p-space-none">
             <Calendar

@@ -1,4 +1,3 @@
-import { cn } from 'cnfast';
 import { CheckIcon, ChevronDownIcon, CpuIcon, SearchIcon } from 'lucide-react';
 import * as React from 'react';
 
@@ -10,6 +9,7 @@ import {
 } from '@/components/model-selectors/provider-model-utils';
 import { Icon } from '@/components/primitives/icon.js';
 import { Text } from '@/components/primitives/text.js';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { ProviderModels } from '@/lib/queries/providers';
@@ -29,12 +29,7 @@ export function ModelSelectorPopover({ selectedValue, onSelect, providerModels }
 
   return (
     <Popover>
-      <PopoverTrigger
-        className={cn(
-          'flex items-center gap-space-s rounded-md px-space-m py-space-xs text-xs font-medium transition-colors',
-          'text-muted-foreground hover:text-foreground hover:bg-accent',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        )}>
+      <PopoverTrigger render={<Button type="button" variant="quiet" size="sm" />}>
         <Icon as={CpuIcon} size="s" />
         <span>{selectedOption?.modelName ?? 'Select model'}</span>
         <span className="opacity-60">
@@ -42,18 +37,15 @@ export function ModelSelectorPopover({ selectedValue, onSelect, providerModels }
         </span>
       </PopoverTrigger>
 
-      <PopoverContent
-        side="top"
-        sideOffset={6}
-        align="start"
-        className="max-h-80 w-96 gap-space-none p-space-none shadow-lg outline-none">
+      <PopoverContent side="top" sideOffset={6} align="start" className="max-h-80 w-96 gap-space-none p-space-none">
         <div className="flex items-center gap-space-m border-b border-border-subtle px-space-l py-space-m">
           <Icon as={SearchIcon} size="s" color="var(--muted-foreground)" />
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search models"
-            className="h-auto flex-1 rounded-none border-0 bg-transparent px-space-none py-space-none text-sm focus-visible:ring-0"
+            variant="ghost"
+            className="h-auto flex-1 px-space-none py-space-none"
           />
         </div>
 
@@ -81,13 +73,8 @@ export function ModelSelectorPopover({ selectedValue, onSelect, providerModels }
                     <PopoverClose
                       key={model.id}
                       onClick={() => onSelect({ providerId: provider.providerId, modelId: model.id })}
-                      className={cn(
-                        'w-full flex items-center justify-between rounded-md px-space-m py-space-s text-sm cursor-default',
-                        'transition-colors hover:bg-accent hover:text-accent-foreground',
-                        'focus-visible:outline-none focus-visible:bg-accent',
-                        isSelected && 'font-medium',
-                      )}>
-                      <span>{model.name}</span>
+                      render={<Button type="button" variant="ghost" width="full" align="between" />}>
+                      <span className={isSelected ? 'font-medium' : undefined}>{model.name}</span>
                       {isSelected && <Icon as={CheckIcon} size="s" />}
                     </PopoverClose>
                   );

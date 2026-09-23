@@ -152,9 +152,7 @@ export function SettingRow({ label, description, htmlFor, className, children }:
   return (
     <div className={cn('flex items-center justify-between gap-space-xl py-space-l', className)}>
       <div className="flex min-w-0 flex-col gap-space-2xs">
-        <Label htmlFor={htmlFor} className="text-sm font-medium">
-          {label}
-        </Label>
+        <Label htmlFor={htmlFor}>{label}</Label>
         {description ? (
           <Text variant="caption" tone="muted">
             {description}

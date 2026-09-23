@@ -78,7 +78,7 @@ export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
           <form.Field name="name">
             {(field) => (
               <div className="space-y-space-s">
-                <Label className="text-xs font-medium text-muted-foreground">Name</Label>
+                <Label variant="muted">Name</Label>
                 <Input
                   value={field.state.value}
                   placeholder="e.g. GitHub MCP"
@@ -94,7 +94,7 @@ export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
           <form.Field name="authType">
             {(field) => (
               <div className="space-y-space-s">
-                <Label className="text-xs font-medium text-muted-foreground">Authentication</Label>
+                <Label variant="muted">Authentication</Label>
                 <Select
                   value={field.state.value}
                   onValueChange={(value) => {
@@ -120,7 +120,7 @@ export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
         <form.Field name="url">
           {(field) => (
             <div className="space-y-space-s">
-              <Label className="text-xs font-medium text-muted-foreground">URL</Label>
+              <Label variant="muted">URL</Label>
               <Input
                 value={field.state.value}
                 placeholder="https://mcp.example.com"
@@ -138,7 +138,7 @@ export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
           <form.Field name="apiKey">
             {(field) => (
               <div className="space-y-space-s">
-                <Label className="text-xs font-medium text-muted-foreground">API Key</Label>
+                <Label variant="muted">API Key</Label>
                 <Input
                   value={field.state.value}
                   placeholder="sk-..."
@@ -157,7 +157,7 @@ export function AddCustomMcpServer({ onBack }: { onBack: () => void }) {
           <form.Field name="headers">
             {(field) => (
               <div className="space-y-space-s">
-                <Label className="text-xs font-medium text-muted-foreground">Headers</Label>
+                <Label variant="muted">Headers</Label>
                 <HeaderRows rows={field.state.value} onChange={field.handleChange} />
                 <FieldError meta={field.state.meta} />
               </div>

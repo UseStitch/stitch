@@ -211,7 +211,9 @@ function SkillEditor({ skill, onBack }: { skill: Skill | null; onBack: () => voi
                 value={field.state.value}
                 readOnly={isReadOnly}
                 placeholder="# Skill Instructions\n\nDescribe the workflow, constraints, examples, and expected behavior."
-                className="thin-scrollbar min-h-0 resize-none overflow-auto font-mono text-xs"
+                variant="mono"
+                size="sm"
+                className="min-h-0 resize-none overflow-auto"
                 aria-invalid={!!fieldErrorMessage(field.state.meta)}
                 onBlur={field.handleBlur}
                 onChange={(event) => field.handleChange(event.target.value)}

@@ -202,60 +202,62 @@ export function MeetingRecordingBanner() {
         </Stack>
         <Stack direction="row" align="center" gap="m">
           {sttProviders.length > 0 ? (
-            <ButtonGroup className="overflow-hidden rounded-lg border border-primary-subtle bg-primary shadow-sm shadow-primary-subtle">
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => {
-                  void startRecording.mutateAsync({ platform: detection.platform }).then(
-                    () => {
-                      requestDismissMeeting(detection.key);
-                      toast.success('Recording started', { id: 'meeting-recording-start-3' });
-                    },
-                    (error: Error) => {
-                      toast.error(getErrorMessage(error, 'Failed to start recording'), {
-                        id: 'meeting-recording-start-3',
-                      });
-                    },
-                  );
-                }}
-                disabled={startRecording.isPending}>
-                Start recording
-              </Button>
-              <ButtonGroupSeparator className="bg-primary-foreground" />
-              <SttModelSelectorPopover
-                defaultValue={defaultSttModel}
-                onSelect={(value) => {
-                  void startRecording
-                    .mutateAsync({
-                      platform: detection.platform,
-                      sttProviderId: value.providerId,
-                      sttModelId: value.modelId,
-                    })
-                    .then(
+            <div className="overflow-hidden rounded-lg border border-primary-subtle bg-primary shadow-sm shadow-primary-subtle">
+              <ButtonGroup>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    void startRecording.mutateAsync({ platform: detection.platform }).then(
                       () => {
                         requestDismissMeeting(detection.key);
-                        toast.success('Recording started', { id: 'meeting-recording-start-stt' });
+                        toast.success('Recording started', { id: 'meeting-recording-start-3' });
                       },
                       (error: Error) => {
                         toast.error(getErrorMessage(error, 'Failed to start recording'), {
-                          id: 'meeting-recording-start-stt',
+                          id: 'meeting-recording-start-3',
                         });
                       },
                     );
-                }}
-                sttProviders={sttProviders}
-                triggerRender={
-                  <Button
-                    type="button"
-                    size="icon-sm"
-                    disabled={startRecording.isPending}
-                    title="Choose transcription model and start">
-                    <Icon as={ChevronDownIcon} size="s" />
-                  </Button>
-                }
-              />
-            </ButtonGroup>
+                  }}
+                  disabled={startRecording.isPending}>
+                  Start recording
+                </Button>
+                <ButtonGroupSeparator />
+                <SttModelSelectorPopover
+                  defaultValue={defaultSttModel}
+                  onSelect={(value) => {
+                    void startRecording
+                      .mutateAsync({
+                        platform: detection.platform,
+                        sttProviderId: value.providerId,
+                        sttModelId: value.modelId,
+                      })
+                      .then(
+                        () => {
+                          requestDismissMeeting(detection.key);
+                          toast.success('Recording started', { id: 'meeting-recording-start-stt' });
+                        },
+                        (error: Error) => {
+                          toast.error(getErrorMessage(error, 'Failed to start recording'), {
+                            id: 'meeting-recording-start-stt',
+                          });
+                        },
+                      );
+                  }}
+                  sttProviders={sttProviders}
+                  triggerRender={
+                    <Button
+                      type="button"
+                      size="icon-sm"
+                      disabled={startRecording.isPending}
+                      title="Choose transcription model and start">
+                      <Icon as={ChevronDownIcon} size="s" />
+                    </Button>
+                  }
+                />
+              </ButtonGroup>
+            </div>
           ) : (
             <Button
               type="button"

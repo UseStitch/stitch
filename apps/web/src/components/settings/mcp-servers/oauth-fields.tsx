@@ -24,7 +24,7 @@ export function OAuthFields({
   return (
     <div className="space-y-space-l">
       <div className="space-y-space-s">
-        <Label className="text-xs font-medium text-muted-foreground">Scopes (optional)</Label>
+        <Label variant="muted">Scopes (optional)</Label>
         <Input
           value={form.oauthScopes}
           onChange={(e) => set('oauthScopes', e.target.value)}
@@ -38,7 +38,7 @@ export function OAuthFields({
             Provide a pre-registered client only if the server does not support dynamic client registration.
           </Text>
           <div className="space-y-space-s">
-            <Label className="text-xs font-medium text-muted-foreground">Client ID</Label>
+            <Label variant="muted">Client ID</Label>
             <Input
               value={form.oauthClientId}
               onChange={(e) => set('oauthClientId', e.target.value)}
@@ -46,7 +46,7 @@ export function OAuthFields({
             />
           </div>
           <div className="space-y-space-s">
-            <Label className="text-xs font-medium text-muted-foreground">Client Secret</Label>
+            <Label variant="muted">Client Secret</Label>
             <Input
               value={form.oauthClientSecret}
               onChange={(e) => set('oauthClientSecret', e.target.value)}

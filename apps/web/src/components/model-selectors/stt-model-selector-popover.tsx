@@ -1,4 +1,3 @@
-import { cn } from 'cnfast';
 import { CheckIcon, ChevronDownIcon, SearchIcon } from 'lucide-react';
 import * as React from 'react';
 
@@ -6,6 +5,7 @@ import type { SttProviderModels } from '@stitch/shared/stt/types';
 
 import { Icon } from '@/components/primitives/icon';
 import { Text } from '@/components/primitives/text';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
@@ -45,25 +45,12 @@ export function SttModelSelectorPopover({
   return (
     <Popover>
       <PopoverTrigger
-        render={triggerRender}
-        title="Choose STT model"
-        className={
-          triggerRender
-            ? undefined
-            : cn(
-                'flex items-center justify-center rounded-md p-space-xs transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                'text-muted-foreground hover:text-foreground hover:bg-accent',
-              )
-        }>
+        render={triggerRender ?? <Button type="button" variant="quiet" size="icon-xs" />}
+        title="Choose STT model">
         {!triggerRender && <Icon as={ChevronDownIcon} size="xs" />}
       </PopoverTrigger>
 
-      <PopoverContent
-        side="top"
-        sideOffset={6}
-        align="start"
-        className="max-h-80 w-72 gap-space-none p-space-none shadow-lg outline-none">
+      <PopoverContent side="top" sideOffset={6} align="start" className="max-h-80 w-72 gap-space-none p-space-none">
         <div className="border-b border-border-subtle px-space-l py-space-m">
           <Text variant="label" tone="muted">
             STT Model
@@ -76,7 +63,8 @@ export function SttModelSelectorPopover({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search models"
-            className="h-auto flex-1 rounded-none border-0 bg-transparent px-space-none py-space-none text-sm focus-visible:ring-0"
+            variant="ghost"
+            className="h-auto flex-1 px-space-none py-space-none"
           />
         </div>
 
@@ -97,13 +85,8 @@ export function SttModelSelectorPopover({
                     <PopoverClose
                       key={model.id}
                       onClick={() => onSelect({ providerId: provider.providerId, modelId: model.id })}
-                      className={cn(
-                        'w-full flex items-center justify-between rounded-md px-space-m py-space-s text-sm cursor-default',
-                        'transition-colors hover:bg-accent hover:text-accent-foreground',
-                        'focus-visible:outline-none focus-visible:bg-accent',
-                        isDefault && 'font-medium',
-                      )}>
-                      <span>{model.name}</span>
+                      render={<Button type="button" variant="ghost" width="full" align="between" />}>
+                      <span className={isDefault ? 'font-medium' : undefined}>{model.name}</span>
                       {isDefault && <Icon as={CheckIcon} size="s" />}
                     </PopoverClose>
                   );

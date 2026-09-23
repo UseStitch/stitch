@@ -245,7 +245,8 @@ function ToolPermissionEditor({
                     value={newPattern}
                     onChange={(event) => setNewPattern(event.target.value)}
                     placeholder={isFileTool ? '/path/to/dir/*' : 'git *'}
-                    className={isFileTool ? 'pr-space-3xl font-mono text-xs' : 'font-mono text-xs'}
+                    variant="code"
+                    className={isFileTool ? 'pr-space-3xl' : undefined}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') handleAddRule();
                     }}

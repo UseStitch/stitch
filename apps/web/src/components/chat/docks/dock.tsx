@@ -95,15 +95,7 @@ function DockActions({ className, ...props }: DockActionsProps) {
 }
 
 function DockInput({ className, ...props }: DockInputProps) {
-  return (
-    <Input
-      className={cn(
-        'flex-1 rounded-md border-border bg-background px-space-m text-sm focus:ring-1 focus:ring-primary focus-visible:ring-1 focus-visible:ring-primary',
-        className,
-      )}
-      {...props}
-    />
-  );
+  return <Input variant="filled" className={cn('flex-1', className)} {...props} />;
 }
 
 function DockSelectable({ selected, description, children, className, ...props }: DockSelectableProps) {
@@ -178,10 +170,7 @@ function CollapsibleDockItem({ title, defaultExpanded = true, children, isLast, 
       </div>
 
       <div
-        className={cn(
-          'grid transition-dock duration-slow ease-standard',
-          isExpanded ? 'opacity-100' : 'opacity-0',
-        )}
+        className={cn('grid transition-dock duration-slow ease-standard', isExpanded ? 'opacity-100' : 'opacity-0')}
         style={{ gridTemplateRows: isExpanded ? '1fr' : '0fr' }}>
         <div className="min-h-0 overflow-hidden">
           <div className="px-space-xl pt-space-xs pb-space-xl">{children}</div>

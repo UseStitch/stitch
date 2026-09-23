@@ -68,23 +68,25 @@ export function RecordingStartStopBar({
             Stop recording (<LiveDurationText startedAt={activeRecording.startedAt} />)
           </Button>
         ) : sttProviders.length > 0 ? (
-          <ButtonGroup className="overflow-hidden rounded-lg border border-primary-subtle bg-primary shadow-sm shadow-primary-subtle">
-            <Button onClick={() => onStart()} disabled={isStarting}>
-              <Icon as={MicIcon} size="m" data-icon="inline-start" />
-              Start recording
-            </Button>
-            <ButtonGroupSeparator className="bg-primary-foreground" />
-            <SttModelSelectorPopover
-              defaultValue={defaultSttModel}
-              onSelect={(value) => onStart(value)}
-              sttProviders={sttProviders}
-              triggerRender={
-                <Button size="icon-sm" disabled={isStarting} title="Choose transcription model and start">
-                  <Icon as={ChevronDownIcon} size="s" />
-                </Button>
-              }
-            />
-          </ButtonGroup>
+          <div className="overflow-hidden rounded-lg border border-primary-subtle bg-primary shadow-sm shadow-primary-subtle">
+            <ButtonGroup>
+              <Button onClick={() => onStart()} disabled={isStarting}>
+                <Icon as={MicIcon} size="m" data-icon="inline-start" />
+                Start recording
+              </Button>
+              <ButtonGroupSeparator />
+              <SttModelSelectorPopover
+                defaultValue={defaultSttModel}
+                onSelect={(value) => onStart(value)}
+                sttProviders={sttProviders}
+                triggerRender={
+                  <Button size="icon-sm" disabled={isStarting} title="Choose transcription model and start">
+                    <Icon as={ChevronDownIcon} size="s" />
+                  </Button>
+                }
+              />
+            </ButtonGroup>
+          </div>
         ) : (
           <Button onClick={() => onStart()} disabled={isStarting}>
             <Icon as={MicIcon} size="m" data-icon="inline-start" />

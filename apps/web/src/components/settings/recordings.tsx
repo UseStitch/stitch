@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { useForm, useSelector } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 
-
 import ChatMarkdown from '@/components/chat/chat-markdown';
 import { Stack } from '@/components/primitives/stack';
 import { Text } from '@/components/primitives/text';
@@ -472,7 +471,7 @@ function MeetingNoteTemplatesSettings() {
       <form.Field name="name">
         {(field) => (
           <div className="space-y-space-s">
-            <Label className="text-xs text-muted-foreground">Title</Label>
+            <Label variant="muted">Title</Label>
             <Input
               value={field.state.value}
               aria-invalid={!!fieldErrorMessage(field.state.meta)}
@@ -495,7 +494,8 @@ function MeetingNoteTemplatesSettings() {
                 value={field.state.value}
                 onBlur={field.handleBlur}
                 onChange={(event) => field.handleChange(event.target.value)}
-                className="min-h-96 resize-y font-mono text-sm"
+                variant="mono"
+                className="min-h-96 resize-y"
                 placeholder="Write the markdown structure for this meeting note template."
               />
             )}

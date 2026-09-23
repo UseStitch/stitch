@@ -368,7 +368,8 @@ function AutomationForm({
                       id="automation-message"
                       value={field.state.value}
                       placeholder="Write the prompt that should be sent when this automation starts..."
-                      className="min-h-55 flex-1 resize-none overflow-y-auto border-0 bg-transparent px-space-s py-space-xs text-sm leading-6 shadow-none focus-visible:ring-0"
+                      variant="ghost"
+                      className="min-h-55 flex-1 resize-none overflow-y-auto px-space-s py-space-xs"
                       onBlur={field.handleBlur}
                       onChange={(event) => field.handleChange(event.target.value)}
                     />

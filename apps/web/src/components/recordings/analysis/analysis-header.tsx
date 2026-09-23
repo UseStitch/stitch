@@ -88,36 +88,38 @@ export function AnalysisHeader({
           />
         ) : null}
         {!showRecordingControls ? (
-          <ButtonGroup className="overflow-hidden rounded-lg shadow-sm">
-            <Button
-              onClick={onStartAnalysis}
-              disabled={analysisDisabled}
-              variant={hasCompletedAnalysis ? 'outline' : 'default'}
-              aria-label={hasCompletedAnalysis ? 'Re-run analysis' : 'Analyze recording'}
-              title={hasCompletedAnalysis ? 'Re-run analysis' : 'Analyze recording'}>
-              {isStarting || isRunning ? (
-                <Spinner data-icon="inline-start" />
-              ) : (
-                <Icon as={SparklesIcon} size="m" data-icon="inline-start" />
-              )}
-            </Button>
-            <ButtonGroupSeparator />
-            <Select
-              value={selectedTemplateId}
-              onValueChange={(value) => value && onTemplateChange(value)}
-              disabled={analysisDisabled}>
-              <SelectTrigger className="h-9 w-44 border-0 bg-background px-space-m text-xs shadow-none">
-                <SelectValue>{selectedTemplate?.name ?? 'Template'}</SelectValue>
-              </SelectTrigger>
-              <SelectContent align="end">
-                {templates.map((template) => (
-                  <SelectItem key={template.id} value={template.id}>
-                    {template.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </ButtonGroup>
+          <div className="overflow-hidden rounded-lg shadow-sm">
+            <ButtonGroup>
+              <Button
+                onClick={onStartAnalysis}
+                disabled={analysisDisabled}
+                variant={hasCompletedAnalysis ? 'outline' : 'default'}
+                aria-label={hasCompletedAnalysis ? 'Re-run analysis' : 'Analyze recording'}
+                title={hasCompletedAnalysis ? 'Re-run analysis' : 'Analyze recording'}>
+                {isStarting || isRunning ? (
+                  <Spinner data-icon="inline-start" />
+                ) : (
+                  <Icon as={SparklesIcon} size="m" data-icon="inline-start" />
+                )}
+              </Button>
+              <ButtonGroupSeparator />
+              <Select
+                value={selectedTemplateId}
+                onValueChange={(value) => value && onTemplateChange(value)}
+                disabled={analysisDisabled}>
+                <SelectTrigger className="h-9 w-44 border-0 bg-background px-space-m text-xs shadow-none">
+                  <SelectValue>{selectedTemplate?.name ?? 'Template'}</SelectValue>
+                </SelectTrigger>
+                <SelectContent align="end">
+                  {templates.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </ButtonGroup>
+          </div>
         ) : null}
         {!showRecordingControls ? (
           <Button
