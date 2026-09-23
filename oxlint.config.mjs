@@ -13,7 +13,10 @@ export default defineConfig({
   rules: {
     ...deslopConfigs.recommended.rules,
     'deslop/canonical-class-names': ['error', { cssPath: 'apps/web/src/styles/global.css' }],
-    'deslop/no-duplicate-types': ['error', { message: 'Consolidate this duplicate domain contract.', minProperties: 3 }],
+    'deslop/no-duplicate-types': [
+      'error',
+      { message: 'Consolidate this duplicate domain contract.', minProperties: 3 },
+    ],
     'deslop/no-duplicate-consts': 'error',
     'unicorn/no-useless-fallback-in-spread': 'error',
     'unicorn/prefer-set-has': 'error',
@@ -46,7 +49,16 @@ export default defineConfig({
     'react/exhaustive-deps': 'error',
     'react/require-render-return': 'error',
     'shadcn/no-raw-colors': 'error',
-    'shadcn/no-restyle': ['error', { allow: ['layout'] }],
+    'shadcn/no-restyle': [
+      'error',
+      {
+        allow: ['layout'],
+        contracts: [
+          // App shell frame in routes/__root.tsx and navigation/app-sidebar.tsx.
+          { pattern: '^(Sidebar|SidebarInset)$', allow: ['layout', 'color', 'shape', 'effects'] },
+        ],
+      },
+    ],
     'shadcn/no-arbitrary-values': ['error', { allow: ['layout'] }],
     'jsx-a11y/anchor-has-content': 'error',
     'jsx-a11y/control-has-associated-label': 'error',
@@ -149,10 +161,7 @@ export default defineConfig({
         'react-doctor/client-passive-event-listeners': 'error',
       },
     },
-    {
-      files: ['apps/web/**'],
-      rules: { 'react/incompatible-library': 'off' },
-    },
+    { files: ['apps/web/**'], rules: { 'react/incompatible-library': 'off' } },
     {
       files: [
         'apps/web/src/components/ui/button-group.tsx',
@@ -171,10 +180,7 @@ export default defineConfig({
     },
     {
       files: ['apps/web/src/components/ui/**'],
-      rules: {
-        'shadcn/no-restyle': 'off',
-        'shadcn/no-arbitrary-values': 'off',
-      },
+      rules: { 'shadcn/no-restyle': 'off', 'shadcn/no-arbitrary-values': 'off' },
     },
   ],
   ignorePatterns: ['node_modules', 'dist', 'out', 'dist-electron', '.turbo', 'apps/website'],

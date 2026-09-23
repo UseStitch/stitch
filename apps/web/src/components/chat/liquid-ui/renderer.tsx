@@ -1,9 +1,8 @@
 import * as React from 'react';
-
 import { z } from 'zod';
 
-import { liquidUiNodeSchema, type LiquidUiSpec } from '@stitch/shared/liquid-ui/schema';
 import type { JsonValue } from '@stitch/shared/json';
+import { liquidUiNodeSchema, type LiquidUiSpec } from '@stitch/shared/liquid-ui/schema';
 
 import { renderLiquidUiNode } from './registry.js';
 import { repairLiquidUiSpec } from './repair.js';
@@ -59,7 +58,7 @@ function toRenderableSpec(input: JsonValue): LiquidUiSpec | null {
 }
 
 function MissingNode() {
-  return <Skeleton className="h-10 w-full rounded-lg" />;
+  return <Skeleton className="h-10 w-full" />;
 }
 
 function LiquidUiTree({ spec }: { spec: LiquidUiSpec }) {

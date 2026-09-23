@@ -55,7 +55,7 @@ export function CopyButton({
           )}
         />
       </span>
-      {showLabel ? <span>{copied ? copiedLabel : copyLabel}</span> : null}
+      {showLabel ? <span className="leading-none">{copied ? copiedLabel : copyLabel}</span> : null}
     </Button>
   );
 }

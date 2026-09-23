@@ -24,7 +24,7 @@ export function UsageDashboardPage() {
   const stt = useSttUsageDashboardData(llm.filters.range);
 
   return (
-    <Page className="thin-scrollbar">
+    <Page>
       <PageContent className="pb-space-3xl">
         <PageHeader>
           <PageHeaderContent>

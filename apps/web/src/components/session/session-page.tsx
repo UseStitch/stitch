@@ -128,14 +128,11 @@ export function SessionPage({ sessionId }: SessionPageProps) {
 
           {rightPanelOpen ? (
             <>
-              <ResizableHandle className="hidden bg-border after:w-0 lg:flex" />
+              <ResizableHandle className="hidden after:w-0 lg:flex" />
 
               <ResizablePanel defaultSize="30%" minSize="24%" maxSize="55%">
                 {rightPanel === 'browser' ? (
-                  <BrowserPanel
-                    sessionId={sessionId}
-                    onClose={() => setRequestedRightPanel('closed')}
-                  />
+                  <BrowserPanel sessionId={sessionId} onClose={() => setRequestedRightPanel('closed')} />
                 ) : (
                   <SessionDetailsSheet {...details} sessionId={sessionId} className="hidden lg:block" />
                 )}

@@ -19,60 +19,60 @@ const columnHelper = createAppColumnHelper<Recording>();
 
 function createColumns(activeRecordingId: string | null, onDelete: (recording: Recording) => void) {
   return columnHelper.columns([
-  columnHelper.accessor('title', {
-    header: 'Title',
-    cell: ({ row }) => (
-      <div className="flex min-w-0 flex-col">
-        <Table.Title>{getRecordingDisplayTitle(row.original)}</Table.Title>
-      </div>
-    ),
-  }),
-  columnHelper.accessor('platform', {
-    header: 'Platform',
-    cell: ({ cell }) => <PlatformBadge platform={cell.getValue()} />,
-  }),
-  columnHelper.accessor('status', {
-    header: 'Capturing',
-    cell: ({ cell }) => (
-      <Table.Badge variant={STATUS_VARIANTS[cell.getValue()]}>{STATUS_LABELS[cell.getValue()]}</Table.Badge>
-    ),
-  }),
-  columnHelper.accessor('startedAt', { header: 'Date', cell: ({ cell }) => <cell.TimeCell /> }),
-  columnHelper.display({
-    id: 'duration',
-    header: 'Duration',
-    cell: ({ row }) => {
-      const recording = row.original;
-      if (recording.id === activeRecordingId) {
-        return <LiveDuration startedAt={recording.startedAt} />;
-      }
-      return <Table.Duration>{formatClockDuration(recording.durationMs)}</Table.Duration>;
-    },
-  }),
-  columnHelper.accessor('costUsd', { header: 'Cost', cell: ({ cell }) => <cell.MoneyCell /> }),
-  columnHelper.display({
-    id: 'actions',
-    header: () => <div className="pr-space-xs text-right">Actions</div>,
-    cell: ({ row }) => {
-      return (
-        <Table.Actions className="-mr-space-s">
-          <Button
-            type="button"
-            variant="destructive-quiet"
-            size="icon-sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(row.original);
-            }}
-            title="Delete recording"
-            aria-label="Delete recording"
-            disabled={row.original.id === activeRecordingId}>
-            <Icon as={Trash2Icon} size="m" />
-          </Button>
-        </Table.Actions>
-      );
-    },
-  }),
+    columnHelper.accessor('title', {
+      header: 'Title',
+      cell: ({ row }) => (
+        <div className="flex min-w-0 flex-col">
+          <Table.Title>{getRecordingDisplayTitle(row.original)}</Table.Title>
+        </div>
+      ),
+    }),
+    columnHelper.accessor('platform', {
+      header: 'Platform',
+      cell: ({ cell }) => <PlatformBadge platform={cell.getValue()} />,
+    }),
+    columnHelper.accessor('status', {
+      header: 'Capturing',
+      cell: ({ cell }) => (
+        <Table.Badge variant={STATUS_VARIANTS[cell.getValue()]}>{STATUS_LABELS[cell.getValue()]}</Table.Badge>
+      ),
+    }),
+    columnHelper.accessor('startedAt', { header: 'Date', cell: ({ cell }) => <cell.TimeCell /> }),
+    columnHelper.display({
+      id: 'duration',
+      header: 'Duration',
+      cell: ({ row }) => {
+        const recording = row.original;
+        if (recording.id === activeRecordingId) {
+          return <LiveDuration startedAt={recording.startedAt} />;
+        }
+        return <Table.Duration>{formatClockDuration(recording.durationMs)}</Table.Duration>;
+      },
+    }),
+    columnHelper.accessor('costUsd', { header: 'Cost', cell: ({ cell }) => <cell.MoneyCell /> }),
+    columnHelper.display({
+      id: 'actions',
+      header: () => <div className="pr-space-xs text-right">Actions</div>,
+      cell: ({ row }) => {
+        return (
+          <Table.Actions className="-mr-space-s">
+            <Button
+              type="button"
+              variant="destructive-quiet"
+              size="icon-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(row.original);
+              }}
+              title="Delete recording"
+              aria-label="Delete recording"
+              disabled={row.original.id === activeRecordingId}>
+              <Icon as={Trash2Icon} size="m" />
+            </Button>
+          </Table.Actions>
+        );
+      },
+    }),
   ]);
 }
 
@@ -110,14 +110,14 @@ export function RecordingsTable({
       <Table.Root>
         <Table.Header>
           {table.getHeaderGroups().map((headerGroup) => (
-            <Table.Row key={headerGroup.id} className="hover:bg-transparent">
+            <Table.Row key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
                 <Table.Head
                   key={header.id}
                   className={
                     header.column.id === 'title'
-                      ? 'w-full max-w-xs min-w-48 px-space-xl py-space-m font-medium'
-                      : 'px-space-xl py-space-m font-medium whitespace-nowrap'
+                      ? 'w-full max-w-xs min-w-48 px-space-xl py-space-m'
+                      : 'px-space-xl py-space-m whitespace-nowrap'
                   }>
                   {header.isPlaceholder ? null : <table.FlexRender header={header} />}
                 </Table.Head>

@@ -5,7 +5,7 @@ import { Icon } from '@/components/primitives/icon.js';
 import { Text } from '@/components/primitives/text.js';
 import { CopyButton } from '@/components/ui/copy-button';
 
-export const MESSAGE_ACTION_BUTTON_CLASS = 'items-center gap-space-xs leading-none';
+export const MESSAGE_ACTION_BUTTON_CLASS = 'items-center gap-space-xs';
 
 export function InterruptedLabel() {
   return (

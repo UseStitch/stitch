@@ -89,8 +89,8 @@ export function QuestionDock({ request, onReply, onReject }: QuestionDockProps) 
         {total > 1 && (
           <TabsList variant="line" className="w-full justify-start">
             {items.map((item, idx) => (
-              <TabsTrigger key={item.question} value={String(idx)} className="gap-space-s text-xs">
-                {item.header}
+              <TabsTrigger key={item.question} value={String(idx)} className="gap-space-s">
+                <span className="text-xs">{item.header}</span>
                 {isAnswered(idx) && <Icon as={CheckIcon} size="xs" color="var(--primary)" />}
               </TabsTrigger>
             ))}

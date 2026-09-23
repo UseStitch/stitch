@@ -125,8 +125,8 @@ function ShortcutRow({
             {entry.label}
           </Text>
           {!isDefault && (
-            <Badge variant="soft" size="xs" className="uppercase">
-              Custom
+            <Badge variant="soft" size="xs">
+              <span className="uppercase">Custom</span>
             </Badge>
           )}
         </Stack>
@@ -274,7 +274,8 @@ function ShortcutsContent() {
     <Stack gap="3xl">
       <Stack direction="row" align="center" gap="l">
         <SearchInput
-          containerClassName="flex-1 border-border-subtle bg-surface-sunken shadow-inner"
+          variant="sunken"
+          containerClassName="flex-1"
           placeholder="Search shortcuts..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -340,8 +341,10 @@ function ShortcutsContent() {
                 </SettingRows>
               ) : (
                 <Empty surface="muted" size="compact">
-                  <EmptyDescription className="font-medium">
-                    No {category.toLowerCase()} shortcuts match "{search}"
+                  <EmptyDescription>
+                    <span className="font-medium">
+                      No {category.toLowerCase()} shortcuts match "{search}"
+                    </span>
                   </EmptyDescription>
                 </Empty>
               )}

@@ -12,8 +12,8 @@ function MemoriesErrorComponent({ error }: { error: Error }) {
     <Page>
       <PageContent>
         <Empty className="mt-space-3xl">
-          <EmptyMedia className="text-text-faint">
-            <BrainIcon size={40} />
+          <EmptyMedia>
+            <BrainIcon size={40} className="text-text-faint" />
           </EmptyMedia>
           <EmptyTitle>Memory unavailable</EmptyTitle>
           <EmptyDescription>

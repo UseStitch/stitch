@@ -86,7 +86,7 @@ export function UsageDashboardFilters({
     <div className="rounded-xl bg-surface-sunken p-space-l">
       <div className="grid grid-cols-1 gap-space-l md:grid-cols-3">
         <Select value={filters.provider} onValueChange={(value) => onProviderChange(value ?? ALL_FILTER)}>
-          <SelectTrigger className="w-full bg-background">
+          <SelectTrigger variant="filled" className="w-full">
             <SelectValue placeholder="Filter by provider">{labels.provider}</SelectValue>
           </SelectTrigger>
           <SelectContent>
@@ -104,11 +104,9 @@ export function UsageDashboardFilters({
           onValueChange={handleModelChange}
           isItemEqualToValue={(a, b) => a.providerId === b.providerId && a.modelId === b.modelId}
           items={modelGroups}>
-          <ComboboxInput
-            className="w-full bg-background"
-            placeholder={labels.model}
-            showClear={filters.model !== ALL_FILTER}
-          />
+          <div className="rounded-lg bg-background">
+            <ComboboxInput className="w-full" placeholder={labels.model} showClear={filters.model !== ALL_FILTER} />
+          </div>
           <ComboboxContent side="bottom" sideOffset={4} align="start">
             <ComboboxEmpty>No models found</ComboboxEmpty>
             <ComboboxList>
@@ -133,7 +131,7 @@ export function UsageDashboardFilters({
 
         <Stack direction="row" align="center" gap="m">
           <Select value={filters.range} onValueChange={(value) => onRangeChange(value ?? '30d')}>
-            <SelectTrigger className="w-full bg-background">
+            <SelectTrigger variant="filled" className="w-full">
               <SelectValue placeholder="Select date range">{labels.range}</SelectValue>
             </SelectTrigger>
             <SelectContent>

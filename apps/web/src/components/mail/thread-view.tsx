@@ -53,7 +53,7 @@ function LabelCombobox({
       <PopoverContent side="bottom" sideOffset={4} align="end" className="w-72 p-space-none">
         <Command>
           <CommandInput placeholder="Search labels..." />
-          <CommandList className="thin-scrollbar max-h-72">
+          <CommandList className="max-h-72">
             <CommandEmpty>No labels found.</CommandEmpty>
             <CommandGroup>
               {labels.map((label) => {

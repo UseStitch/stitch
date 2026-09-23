@@ -56,7 +56,7 @@ function Search({
   inputClassName,
   ...props
 }: React.ComponentProps<typeof SearchInput> & { inputClassName?: string }) {
-  return <SearchInput containerClassName={cn('bg-background', className)} className={inputClassName} {...props} />;
+  return <SearchInput variant="filled" containerClassName={className} className={inputClassName} {...props} />;
 }
 
 function Content(props: React.ComponentProps<typeof SidebarContent>) {

@@ -267,9 +267,7 @@ export function ToolsSettings() {
                       name={toolset.name}
                       description={toolset.description}
                       icon={
-                        toolset.icon ? (
-                          <ConnectorIcon icon={toolset.icon} className="size-4 shrink-0 text-muted-foreground" />
-                        ) : undefined
+                        toolset.icon ? <ConnectorIcon icon={toolset.icon} className="size-4 shrink-0" /> : undefined
                       }
                       enabled={getEnabled('toolset', toolset.id)}
                       settingsAlign="end"

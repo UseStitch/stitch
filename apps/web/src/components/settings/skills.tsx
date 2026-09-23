@@ -311,8 +311,8 @@ export function SkillsSettings() {
                     <Text variant="body-strong" truncate>
                       {skill.name}
                     </Text>
-                    <Badge variant="soft" size="xs" className="capitalize">
-                      {skill.type}
+                    <Badge variant="soft" size="xs">
+                      <span className="capitalize">{skill.type}</span>
                     </Badge>
                   </Stack>
                   <Text variant="caption" tone="muted" lineClamp="2">

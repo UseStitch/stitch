@@ -1,10 +1,10 @@
+import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from 'cnfast';
 import * as React from 'react';
 
 import { Badge, type badgeVariants } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatUsdCost } from '@/lib/format';
-import type { VariantProps } from 'class-variance-authority';
 
 type TableContainerProps = React.HTMLAttributes<HTMLDivElement> & { bordered?: boolean };
 
@@ -64,8 +64,17 @@ function TableBody({ className, ...props }: React.HTMLAttributes<HTMLTableSectio
   return <tbody className={cn('divide-y divide-border', className)} {...props} />;
 }
 
-function TableRow({ className, ...props }: React.HTMLAttributes<HTMLTableRowElement>) {
-  return <tr className={cn('group align-middle transition-colors hover:bg-muted/40', className)} {...props} />;
+const tableRowVariants = cva('group align-middle transition-colors in-[tbody]:hover:bg-muted/40', {
+  variants: { dimmed: { true: 'opacity-50', false: '' } },
+  defaultVariants: { dimmed: false },
+});
+
+function TableRow({
+  className,
+  dimmed = false,
+  ...props
+}: React.HTMLAttributes<HTMLTableRowElement> & VariantProps<typeof tableRowVariants>) {
+  return <tr data-dimmed={dimmed || undefined} className={cn(tableRowVariants({ dimmed }), className)} {...props} />;
 }
 
 function TableHead({ className, ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) {
@@ -95,7 +104,7 @@ function TableSkeletonRows({ rows = 5, columns }: { rows?: number; columns: Tabl
   return (
     <>
       {rowKeys.map((rowKey) => (
-        <TableRow key={rowKey} className="hover:bg-transparent">
+        <TableRow key={rowKey}>
           {cells.map(({ column, key }) => (
             <TableCell key={key} className={column.className}>
               {column.skeletonClassName ? <Skeleton className={column.skeletonClassName} /> : null}

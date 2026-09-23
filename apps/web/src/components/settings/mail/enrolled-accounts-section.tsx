@@ -27,7 +27,7 @@ export function EnrolledAccountsSection({
 }) {
   if (accounts.length === 0) {
     return (
-      <Empty className="border">
+      <Empty surface="bordered">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <MailIcon />

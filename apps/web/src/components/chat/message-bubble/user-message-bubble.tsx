@@ -120,7 +120,7 @@ export function UserMessageBubble({ parts, onSplit, onEdit }: UserMessageBubbleP
               aria-label="Edit and redo from here"
               className={MESSAGE_ACTION_BUTTON_CLASS}>
               <Icon as={PencilIcon} size="s" />
-              Edit
+              <span className="leading-none">Edit</span>
             </Button>
           )}
 
@@ -133,7 +133,7 @@ export function UserMessageBubble({ parts, onSplit, onEdit }: UserMessageBubbleP
               aria-label="Split from here"
               className={MESSAGE_ACTION_BUTTON_CLASS}>
               <Icon as={GitForkIcon} size="s" />
-              Split
+              <span className="leading-none">Split</span>
             </Button>
           )}
         </div>

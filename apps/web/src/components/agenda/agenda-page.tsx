@@ -251,7 +251,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
         {/* Toolbar */}
         <Stack direction="row" wrap align="center" gap="m">
           <Select value={filterStatus ?? 'all'} onValueChange={(value) => setFilter('status', value)}>
-            <SelectTrigger className="w-40 bg-background">
+            <SelectTrigger variant="filled" className="w-40">
               <Text as="span" variant="body" truncate>
                 <Text as="span" variant="body" tone="muted">
                   Status:{' '}
@@ -270,7 +270,7 @@ export function AgendaPage({ listId }: { listId?: string }) {
           </Select>
 
           <Select value={filterPriority ?? 'all'} onValueChange={(value) => setFilter('priority', value)}>
-            <SelectTrigger className="w-40 bg-background">
+            <SelectTrigger variant="filled" className="w-40">
               <Text as="span" variant="body" truncate>
                 <Text as="span" variant="body" tone="muted">
                   Priority:{' '}

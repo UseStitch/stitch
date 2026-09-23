@@ -90,23 +90,19 @@ export function ServerStatus() {
         <Tabs defaultValue="servers" className="gap-space-none">
           <div className="bg-surface-sunken px-space-xl pt-space-l">
             <TabsList variant="line" className="h-auto gap-space-xl p-space-none">
-              <TabsTrigger
-                value="servers"
-                className="h-auto flex-none cursor-default rounded-none px-space-none pb-space-m">
+              <TabsTrigger value="servers" className="h-auto flex-none cursor-default px-space-none pb-space-m">
                 Servers
               </TabsTrigger>
-              <TabsTrigger
-                value="info"
-                className="h-auto flex-none cursor-default rounded-none px-space-none pb-space-m">
+              <TabsTrigger value="info" className="h-auto flex-none cursor-default px-space-none pb-space-m">
                 Info
               </TabsTrigger>
             </TabsList>
           </div>
-          <TabsContent value="servers" className="flex flex-col gap-space-xl bg-popover p-space-xl">
+          <TabsContent value="servers" className="flex flex-col gap-space-xl p-space-xl">
             <StatusItem state={serverState} label={serverLabel} subtitle={serverSubtitle} />
             <StatusItem state={eventBusState} label="Event Bus" subtitle={formatEventBusSubtitle(lastHeartbeat)} />
           </TabsContent>
-          <TabsContent value="info" className="bg-popover p-space-xl">
+          <TabsContent value="info" className="p-space-xl">
             <div className="cursor-default">
               <Stack direction="row" align="center" justify="between">
                 <Text as="span" variant="body" tone="muted">

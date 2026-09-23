@@ -16,26 +16,26 @@ const columnHelper = createAppColumnHelper<Session>();
 
 function getColumns(onOpen: (sessionId: string) => void) {
   return columnHelper.columns([
-  columnHelper.accessor('title', {
-    header: 'Run',
-    cell: ({ row }) => <Table.Title>{row.original.title ?? 'Untitled run'}</Table.Title>,
-  }),
-  columnHelper.accessor('createdAt', { header: 'Started', cell: ({ cell }) => <cell.TimeCell /> }),
-  columnHelper.accessor('updatedAt', { header: 'Updated', cell: ({ cell }) => <cell.TimeCell /> }),
-  columnHelper.display({
-    id: 'actions',
-    header: '',
-    cell: ({ row }) => {
-      return (
-        <Table.Actions>
-          <Button variant="outline" size="sm" onClick={() => onOpen(row.original.id)}>
-            <Icon as={ArrowUpRightIcon} size="m" data-icon="inline-start" />
-            View
-          </Button>
-        </Table.Actions>
-      );
-    },
-  }),
+    columnHelper.accessor('title', {
+      header: 'Run',
+      cell: ({ row }) => <Table.Title>{row.original.title ?? 'Untitled run'}</Table.Title>,
+    }),
+    columnHelper.accessor('createdAt', { header: 'Started', cell: ({ cell }) => <cell.TimeCell /> }),
+    columnHelper.accessor('updatedAt', { header: 'Updated', cell: ({ cell }) => <cell.TimeCell /> }),
+    columnHelper.display({
+      id: 'actions',
+      header: '',
+      cell: ({ row }) => {
+        return (
+          <Table.Actions>
+            <Button variant="outline" size="sm" onClick={() => onOpen(row.original.id)}>
+              <Icon as={ArrowUpRightIcon} size="m" data-icon="inline-start" />
+              View
+            </Button>
+          </Table.Actions>
+        );
+      },
+    }),
   ]);
 }
 
@@ -43,12 +43,7 @@ export function AutomationRunsTable({ sessions, onOpen }: AutomationRunsTablePro
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'updatedAt', desc: true }]);
   const columns = getColumns(onOpen);
 
-  const table = useAppTable({
-    data: sessions,
-    columns,
-    state: { sorting },
-    onSortingChange: setSorting,
-  });
+  const table = useAppTable({ data: sessions, columns, state: { sorting }, onSortingChange: setSorting });
 
   return (
     <Table.Container>
@@ -56,7 +51,7 @@ export function AutomationRunsTable({ sessions, onOpen }: AutomationRunsTablePro
         <Table.Root className="min-w-180">
           <Table.Header>
             {table.getHeaderGroups().map((headerGroup) => (
-              <Table.Row key={headerGroup.id} className="hover:bg-transparent">
+              <Table.Row key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <Table.Head key={header.id}>
                     {header.isPlaceholder ? null : <table.FlexRender header={header} />}

@@ -96,7 +96,9 @@ export function MemoriesPage() {
             <Card key={label} size="sm">
               <CardHeader>
                 <CardDescription>{label}</CardDescription>
-                <CardTitle className="capitalize">{value}</CardTitle>
+                <CardTitle>
+                  <span className="capitalize">{value}</span>
+                </CardTitle>
               </CardHeader>
             </Card>
           ))}
@@ -109,34 +111,36 @@ export function MemoriesPage() {
             onChange={(event) => setSearch(event.target.value)}
           />
           {search.trim() && searchQuery.data ? (
-            <Card className="absolute z-20 mt-space-s max-h-80 w-full overflow-y-auto shadow-lg">
-              <CardContent className="space-y-space-s">
-                {searchQuery.data.results.map((result) => (
-                  <Button
-                    key={`${result.filePath}:${result.lineStart}`}
-                    type="button"
-                    variant="ghost"
-                    size="inline"
-                    width="full"
-                    align="start"
-                    onClick={() => openSearchResult(result.filePath)}>
-                    <span className="block w-full p-space-s">
-                      <div>
-                        <Text as="span" variant="caption" tone="muted">
-                          {result.filePath}:{result.lineStart}
-                        </Text>
-                      </div>
-                      <span className="block">{result.excerpt}</span>
-                    </span>
-                  </Button>
-                ))}
-                {searchQuery.data.results.length === 0 ? (
-                  <Text as="p" variant="body" tone="muted">
-                    No matches.
-                  </Text>
-                ) : null}
-              </CardContent>
-            </Card>
+            <div className="absolute z-20 mt-space-s max-h-80 w-full overflow-y-auto rounded-xl shadow-lg">
+              <Card>
+                <CardContent className="space-y-space-s">
+                  {searchQuery.data.results.map((result) => (
+                    <Button
+                      key={`${result.filePath}:${result.lineStart}`}
+                      type="button"
+                      variant="ghost"
+                      size="inline"
+                      width="full"
+                      align="start"
+                      onClick={() => openSearchResult(result.filePath)}>
+                      <span className="block w-full p-space-s">
+                        <div>
+                          <Text as="span" variant="caption" tone="muted">
+                            {result.filePath}:{result.lineStart}
+                          </Text>
+                        </div>
+                        <span className="block">{result.excerpt}</span>
+                      </span>
+                    </Button>
+                  ))}
+                  {searchQuery.data.results.length === 0 ? (
+                    <Text as="p" variant="body" tone="muted">
+                      No matches.
+                    </Text>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </div>
           ) : null}
         </div>
 

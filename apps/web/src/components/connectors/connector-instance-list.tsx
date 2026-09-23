@@ -150,10 +150,12 @@ export function ConnectorInstanceList({ instances, definitions }: Props) {
               <div className="min-w-0 flex-1">
                 <Stack direction="row" align="start" gap="xl">
                   <div className="shrink-0 rounded-xl border border-border-subtle bg-surface-sunken p-space-m">
-                    <ConnectorIcon
-                      icon={def?.icon ?? { type: 'simpleIcons', slug: instance.connectorId }}
-                      className="size-8 rounded-lg"
-                    />
+                    <span className="block size-8 overflow-hidden rounded-lg">
+                      <ConnectorIcon
+                        icon={def?.icon ?? { type: 'simpleIcons', slug: instance.connectorId }}
+                        className="size-8"
+                      />
+                    </span>
                   </div>
 
                   <div className="min-w-0 flex-1 space-y-space-m">

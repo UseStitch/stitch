@@ -48,7 +48,7 @@ export function AgendaItemsTable({
       <Table.Scroller>
         <Table.Root className="min-w-175 table-fixed">
           <Table.Header>
-            <Table.Row className="hover:bg-transparent">
+            <Table.Row>
               <Table.Head className="w-10 text-center" />
               <Table.Head className="w-full min-w-0">Title</Table.Head>
               <Table.Head className="w-24 text-center">Status</Table.Head>
@@ -132,7 +132,7 @@ function AgendaItemRow({
   const isOverdue = item.dueAt && item.dueAt < nowMs && item.status !== 'done' && item.status !== 'cancelled';
 
   return (
-    <Table.Row className={isDone ? 'opacity-50' : undefined}>
+    <Table.Row dimmed={isDone}>
       <Table.Cell className="w-10 text-center">
         <Checkbox
           checked={item.status === 'done'}
@@ -142,11 +142,13 @@ function AgendaItemRow({
       </Table.Cell>
 
       <Table.Cell className="w-full max-w-0 min-w-0 overflow-hidden">
-        <Table.Title className={`block ${isDone ? 'text-muted-foreground line-through' : ''}`}>
-          {item.title}
+        <Table.Title className="block">
+          <span className={isDone ? 'text-muted-foreground line-through' : undefined}>{item.title}</span>
         </Table.Title>
         {item.description && (
-          <Table.Text className={`block truncate ${isDone ? 'line-through' : ''}`}>{item.description}</Table.Text>
+          <Table.Text className="block">
+            <span className={isDone ? 'block truncate line-through' : 'block truncate'}>{item.description}</span>
+          </Table.Text>
         )}
       </Table.Cell>
 
@@ -163,7 +165,9 @@ function AgendaItemRow({
       </Table.Cell>
 
       {showListColumn && (
-        <Table.Cell className="w-24 text-center text-xs text-muted-foreground">{item.listName ?? '—'}</Table.Cell>
+        <Table.Cell className="w-24 text-center">
+          <span className="text-xs text-muted-foreground">{item.listName ?? '—'}</span>
+        </Table.Cell>
       )}
 
       <Table.Cell className="w-28">

@@ -184,14 +184,14 @@ function LabelItem({
       <SidebarMenuButton
         isActive={active}
         onClick={onSelect}
-        className={cn(
-          'justify-start gap-space-m',
-          getLabelDepthClassName(depth),
-          depth > 0 && 'text-muted-foreground',
-          label.unreadCount > 0 && 'font-medium',
-        )}>
+        className={cn('justify-start gap-space-m', getLabelDepthClassName(depth))}>
         <LabelIcon label={label} />
-        <div className="min-w-0 flex-1">
+        <div
+          className={cn(
+            'min-w-0 flex-1',
+            depth > 0 && 'text-muted-foreground',
+            label.unreadCount > 0 && 'font-medium',
+          )}>
           <Text as="span" variant="body" truncate>
             {getLabelDisplayName(label)}
           </Text>
@@ -249,7 +249,7 @@ function UserLabelTreeItem({
         <SidebarMenuItem>
           <SidebarMenuButton
             onClick={() => toggleCollapsedLabel(node.key)}
-            className={cn('justify-start gap-space-m text-muted-foreground', getLabelDepthClassName(depth))}>
+            className={cn('justify-start gap-space-m', getLabelDepthClassName(depth))}>
             <Icon as={TagIcon} size="s" color="var(--muted-foreground)" />
             <div className="min-w-0 flex-1">
               <Text as="span" variant="body" tone="muted" truncate>

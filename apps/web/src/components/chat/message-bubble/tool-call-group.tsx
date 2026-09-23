@@ -301,9 +301,8 @@ function ToolCallRowStatus() {
         variant="destructive-quiet"
         size="inline"
         onClick={() => onViewErrorDetails(errorDetails)}
-        className="hover:underline"
         title="View full error">
-        {status.label}
+        <span className="hover:underline">{status.label}</span>
       </Button>
     </span>
   );
@@ -402,13 +401,12 @@ function ToolStatusIcon({ status, summary }: { status: StatusPresentation; summa
   }
 
   if (summary.connectorIconSlug) {
+    const iconTone = status.icon === 'error' ? 'destructive' : status.icon === 'muted' ? 'muted' : 'success';
     return (
       <ConnectorIcon
         icon={{ type: 'simpleIcons', slug: summary.connectorIconSlug }}
-        className={cn(
-          'size-3.5 shrink-0',
-          status.icon === 'muted' ? 'bg-muted-foreground' : status.icon === 'error' ? 'bg-destructive' : 'bg-success',
-        )}
+        tone={iconTone}
+        className="size-3.5 shrink-0"
       />
     );
   }

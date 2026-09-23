@@ -30,7 +30,7 @@ export function EligibleAccountsSection() {
 
   if (!eligibleAccounts || eligibleAccounts.length === 0) {
     return (
-      <Empty className="border">
+      <Empty surface="bordered">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <MailIcon />
@@ -60,7 +60,7 @@ export function EligibleAccountsSection() {
           <div className="flex min-w-0 items-center gap-space-xl">
             <div className="shrink-0">
               <Text as="span" tone="muted">
-                <SimpleIcon slug="gmail" className="size-5 bg-foreground" fallback={<Icon as={MailIcon} size="l" />} />
+                <SimpleIcon slug="gmail" className="size-5" fallback={<Icon as={MailIcon} size="l" />} />
               </Text>
             </div>
             <div className="flex min-w-0 flex-col gap-space-xs">

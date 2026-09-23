@@ -74,7 +74,11 @@ const oauthConfigSchema = z.object({
   scopeApiMap: z.record(z.string(), z.string()).optional(),
 });
 
-const apiKeyConfigSchema = z.object({ keyLabel: z.string(), placeholder: z.string().optional(), helpUrl: z.string().optional() });
+const apiKeyConfigSchema = z.object({
+  keyLabel: z.string(),
+  placeholder: z.string().optional(),
+  helpUrl: z.string().optional(),
+});
 
 function credentialsSchema(isOAuth: boolean, keyLabel: string) {
   return z
@@ -102,11 +106,11 @@ function getInitialServiceAccess(
   if (!options) return {};
   const selectedScopeSet = new Set(selectedScopes);
   return options.reduce<Record<string, 'none' | 'read' | 'write'>>((serviceAccess, option) => {
-      const hasWrite = (option.writeScopes ?? []).some((scope) => selectedScopeSet.has(scope));
-      const hasRead = option.readScopes.some((scope) => selectedScopeSet.has(scope));
-      serviceAccess[option.id] = hasWrite ? 'write' : hasRead ? 'read' : 'none';
-      return serviceAccess;
-    }, {});
+    const hasWrite = (option.writeScopes ?? []).some((scope) => selectedScopeSet.has(scope));
+    const hasRead = option.readScopes.some((scope) => selectedScopeSet.has(scope));
+    serviceAccess[option.id] = hasWrite ? 'write' : hasRead ? 'read' : 'none';
+    return serviceAccess;
+  }, {});
 }
 
 export function SetupWizard({ definition, connectors, onClose }: Props) {
@@ -205,7 +209,9 @@ export function SetupWizard({ definition, connectors, onClose }: Props) {
       <DialogContent className="flex max-h-[90vh] min-h-0 w-[min(56rem,calc(100vw-2rem))] flex-col overflow-hidden sm:max-w-4xl">
         <DialogHeader className="shrink-0">
           <Stack direction="row" align="center" gap="m">
-            <ConnectorIcon icon={definition.icon} className="size-7 rounded-md" />
+            <span className="block size-7 overflow-hidden rounded-md">
+              <ConnectorIcon icon={definition.icon} className="size-7" />
+            </span>
             <DialogTitle>Connect {definition.name}</DialogTitle>
           </Stack>
           <WizardProgress step={step} isOAuth={isOAuth} />
@@ -355,32 +361,34 @@ function InstructionsStep({ instructions, onNext }: { instructions: ConnectorSet
   return (
     <div className="h-full min-h-0 *:h-full">
       <Stack gap="l">
-        <ScrollArea className="max-h-[45vh] min-h-0 flex-1 rounded-lg border border-border-subtle bg-surface-sunken p-space-l">
-          <ol className="list-inside list-decimal space-y-space-m">
-            {instructions.map((instruction) => {
-              const href = instruction.href;
-              return (
-                <li key={instruction.text}>
-                  <Text as="span" variant="body">
-                    {instruction.text}
-                  </Text>
-                  {href ? (
-                    <Button
-                      type="button"
-                      variant="link"
-                      size="inline"
-                      onClick={() => {
-                        void window.api.shell.openExternal(href);
-                      }}>
-                      {instruction.hrefLabel ?? 'Open'}
-                      <Icon as={ExternalLinkIcon} size="xs" />
-                    </Button>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ol>
-        </ScrollArea>
+        <div className="max-h-[45vh] min-h-0 flex-1 rounded-lg border border-border-subtle bg-surface-sunken p-space-l">
+          <ScrollArea className="h-full min-h-0">
+            <ol className="list-inside list-decimal space-y-space-m">
+              {instructions.map((instruction) => {
+                const href = instruction.href;
+                return (
+                  <li key={instruction.text}>
+                    <Text as="span" variant="body">
+                      {instruction.text}
+                    </Text>
+                    {href ? (
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="inline"
+                        onClick={() => {
+                          void window.api.shell.openExternal(href);
+                        }}>
+                        {instruction.hrefLabel ?? 'Open'}
+                        <Icon as={ExternalLinkIcon} size="xs" />
+                      </Button>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ol>
+          </ScrollArea>
+        </div>
         <DialogFooter className="shrink-0">
           <Button onClick={onNext}>
             I have my credentials

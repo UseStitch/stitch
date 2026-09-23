@@ -87,12 +87,8 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
     void window.api.browser.userNavigate(address);
   };
 
-  const controllerBadgeClass =
-    state.controller === 'agent'
-      ? 'bg-warning-subtle text-warning'
-      : state.controller === 'human'
-        ? 'bg-success-subtle text-success'
-        : 'bg-muted text-muted-foreground';
+  const controllerBadgeVariant =
+    state.controller === 'agent' ? 'warning' : state.controller === 'human' ? 'success' : 'soft';
 
   const controllerLabel = state.controller === 'agent' ? 'Agent' : state.controller === 'human' ? 'You' : 'Ready';
 
@@ -119,7 +115,7 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
                   variant="ghost"
                   size="inline"
                   align="start"
-                  className="min-w-0 flex-1 truncate"
+                  className="min-w-0 flex-1"
                   onClick={() => void window.api.browser.focusTab(tab.id)}
                   type="button"
                   title={tab.url}>
@@ -175,7 +171,7 @@ export function BrowserPanel({ sessionId, onClose }: BrowserPanelProps) {
             />
           </form>
 
-          <Badge variant="soft" size="xs" className={cn('shrink-0', controllerBadgeClass)}>
+          <Badge variant={controllerBadgeVariant} size="xs" className="shrink-0">
             {controllerLabel}
           </Badge>
 

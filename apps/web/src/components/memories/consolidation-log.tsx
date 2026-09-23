@@ -86,8 +86,8 @@ export function ConsolidationLog({ markdown }: { markdown: string }) {
                       {formatTimestamp(run.timestamp)}
                     </Text>
                   </time>
-                  <Badge variant={statusVariant(run.status)} className="capitalize">
-                    {run.status}
+                  <Badge variant={statusVariant(run.status)}>
+                    <span className="capitalize">{run.status}</span>
                   </Badge>
                 </Stack>
                 <Text as="p" variant="body" lineClamp="3">

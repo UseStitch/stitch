@@ -1,4 +1,3 @@
-import { cn } from 'cnfast';
 import { AlertCircleIcon, RefreshCwIcon, TrashIcon } from 'lucide-react';
 import * as React from 'react';
 import { toast } from 'sonner';
@@ -88,8 +87,8 @@ function MailNumberInput({
 
 function SyncPhaseBadge({ phase }: { phase: MailSyncPhase }) {
   return (
-    <Badge variant="outline" className={cn('capitalize', SYNC_PHASE_CLASSES[phase])}>
-      {SYNC_PHASE_LABELS[phase]}
+    <Badge variant="outline" className={SYNC_PHASE_CLASSES[phase]}>
+      <span className="capitalize">{SYNC_PHASE_LABELS[phase]}</span>
     </Badge>
   );
 }

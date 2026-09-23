@@ -68,7 +68,9 @@ export function AnalysisHeader({
         <div>
           <PageTitle>{analysis?.title || recording?.title || 'Recording analysis'}</PageTitle>
           {costLabel ? (
-            <PageDescription className="text-xs tabular-nums">Recording cost {costLabel}</PageDescription>
+            <PageDescription>
+              <span className="text-xs tabular-nums">Recording cost {costLabel}</span>
+            </PageDescription>
           ) : null}
         </div>
       </PageHeaderContent>
@@ -80,12 +82,7 @@ export function AnalysisHeader({
           </Button>
         ) : null}
         {!showRecordingControls && analysisMarkdown ? (
-          <CopyButton
-            value={analysisMarkdown}
-            copyLabel="Copy analysis markdown"
-            copiedLabel="Copied analysis"
-            className="shadow-sm"
-          />
+          <CopyButton value={analysisMarkdown} copyLabel="Copy analysis markdown" copiedLabel="Copied analysis" />
         ) : null}
         {!showRecordingControls ? (
           <div className="overflow-hidden rounded-lg shadow-sm">
@@ -107,7 +104,7 @@ export function AnalysisHeader({
                 value={selectedTemplateId}
                 onValueChange={(value) => value && onTemplateChange(value)}
                 disabled={analysisDisabled}>
-                <SelectTrigger className="h-9 w-44 border-0 bg-background px-space-m text-xs shadow-none">
+                <SelectTrigger variant="ghost" className="h-9 w-44 px-space-m">
                   <SelectValue>{selectedTemplate?.name ?? 'Template'}</SelectValue>
                 </SelectTrigger>
                 <SelectContent align="end">
