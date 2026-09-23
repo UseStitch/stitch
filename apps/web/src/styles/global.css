@@ -30,6 +30,11 @@
   --color-warning-subtle: color-mix(in oklab, var(--warning) 10%, transparent);
   --color-info-subtle: color-mix(in oklab, var(--info) 10%, transparent);
 
+  --shadow-success-glow: 0 0 8px var(--success);
+  --shadow-destructive-glow: 0 0 8px var(--destructive);
+  --shadow-warning-glow: 0 0 8px var(--warning);
+  --shadow-info-glow: 0 0 8px var(--info);
+
   --ease-*: initial;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-emphasized: cubic-bezier(0.3, 0, 0.8, 0.15);
@@ -221,22 +226,6 @@
 
   .thin-scrollbar::-webkit-scrollbar-thumb:hover {
     background-color: var(--muted-foreground);
-  }
-
-  .shadow-success-glow {
-    box-shadow: 0 0 8px var(--success);
-  }
-
-  .shadow-destructive-glow {
-    box-shadow: 0 0 8px var(--destructive);
-  }
-
-  .shadow-warning-glow {
-    box-shadow: 0 0 8px var(--warning);
-  }
-
-  .shadow-info-glow {
-    box-shadow: 0 0 8px var(--info);
   }
 
   .desktop-notification-surface {
