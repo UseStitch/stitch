@@ -31,7 +31,7 @@ export function MicLevelMeter({ level, className }: MicLevelMeterProps) {
           return (
             <span
               key={id}
-              className="w-0.5 rounded-full bg-destructive transition-[height] duration-fast ease-standard"
+              className="w-0.5 rounded-full bg-destructive transition-meter duration-fast ease-standard"
               style={{ height: `${height}px` }}
             />
           );

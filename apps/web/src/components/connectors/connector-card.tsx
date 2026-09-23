@@ -16,7 +16,7 @@ export function ConnectorCard({ definition, instanceCount, onSetup }: ConnectorC
   const isConnected = instanceCount > 0;
 
   return (
-    <Card className="border-border-subtle bg-card transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-md hover:shadow-border-subtle">
+    <Card className="border-border-subtle bg-card transition hover:-translate-y-0.5 hover:shadow-md hover:shadow-border-subtle">
       <CardHeader className="gap-space-l border-b border-border-subtle pb-space-l">
         <Stack direction="row" align="start" gap="l">
           <div className="shrink-0 rounded-lg border border-border-subtle bg-surface-sunken p-space-s">

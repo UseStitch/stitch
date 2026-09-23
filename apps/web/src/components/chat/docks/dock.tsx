@@ -179,7 +179,7 @@ function CollapsibleDockItem({ title, defaultExpanded = true, children, isLast, 
 
       <div
         className={cn(
-          'grid transition-[opacity,grid-template-rows] duration-slow ease-standard',
+          'grid transition-dock duration-slow ease-standard',
           isExpanded ? 'opacity-100' : 'opacity-0',
         )}
         style={{ gridTemplateRows: isExpanded ? '1fr' : '0fr' }}>
@@ -217,7 +217,7 @@ export function DockContainer({ docks, className }: DockContainerProps) {
   return (
     <div
       className={cn(
-        'pointer-events-auto grid transition-[grid-template-rows,opacity]',
+        'pointer-events-auto grid transition-dock',
         isOpen ? 'duration-slow ease-standard opacity-100' : 'duration-slow ease-emphasized opacity-0',
         className,
       )}

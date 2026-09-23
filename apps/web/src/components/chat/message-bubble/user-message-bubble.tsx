@@ -77,7 +77,7 @@ export function UserMessageBubble({ parts, onSplit, onEdit }: UserMessageBubbleP
             <div
               ref={contentRef}
               className={cn(
-                'transition-[max-height] duration-base',
+                'transition-expand duration-base',
                 !isExpanded && isOverflowing && 'max-h-37.5 overflow-y-auto thin-scrollbar',
               )}>
               <ChatMarkdown text={text} className="text-sm" />

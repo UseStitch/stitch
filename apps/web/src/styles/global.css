@@ -42,6 +42,10 @@
   --transition-duration-base: 200ms;
   --transition-duration-slow: 320ms;
 
+  --transition-property-expand: max-height;
+  --transition-property-meter: height;
+  --transition-property-dock: opacity, grid-template-rows;
+
   --size-icon-xs: 12px;
   --size-icon-s: 14px;
   --size-icon-m: 16px;
