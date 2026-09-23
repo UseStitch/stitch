@@ -150,6 +150,10 @@ export default defineConfig({
       },
     },
     {
+      files: ['apps/web/**'],
+      rules: { 'react/incompatible-library': 'off' },
+    },
+    {
       files: [
         'apps/web/src/components/ui/button-group.tsx',
         'apps/web/src/components/ui/input-group.tsx',
