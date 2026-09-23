@@ -5,11 +5,10 @@
     "": {
       "name": "stitch",
       "dependencies": {
-        "cnfast": "^0.2.0",
         "dompurify": "^3.4.11",
       },
       "devDependencies": {
-        "@shadcn/lint": "^0.2.0",
+        "@shadcn/lint": "0.2.0",
         "ai-deslop": "^0.4.4",
         "eslint-plugin-unicorn": "^72.0.0",
         "knip": "^6.3.1",

@@ -36,6 +36,8 @@ const config: KnipConfig = {
     'oxfmt',
     'eslint-plugin-unicorn',
     'ai-deslop',
+    // Loaded via jsPlugins strings in oxlint.config.mjs, not TS imports
+    '@shadcn/lint',
     'oxlint',
     'oxlint-plugin-react-doctor',
     'oxlint-tsgolint',

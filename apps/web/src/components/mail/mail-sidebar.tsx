@@ -13,6 +13,7 @@ import {
 import * as React from 'react';
 
 import { useQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 
 import type { MailAccountId, MailLabelView } from '@stitch/shared/mail/types';
 
@@ -37,6 +38,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { SidebarMenuAction, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { getDefaultMailLabel, mailAccountsQueryOptions, mailLabelsQueryOptions } from '@/lib/queries/mail';
 
@@ -389,11 +391,44 @@ function MailLabelList({ accountId }: { accountId: MailAccountId }) {
 export function MailSidebarContent() {
   const { selectedAccountId, setSelectedAccountId } = useMailStore();
   const { data: accounts = [] } = useQuery(mailAccountsQueryOptions);
-  const selectedAccount = accounts.find((account) => account.id === selectedAccountId) ?? accounts[0];
 
   React.useEffect(() => {
     if (!selectedAccountId && accounts[0]) setSelectedAccountId(accounts[0].id);
   }, [accounts, selectedAccountId, setSelectedAccountId]);
+
+  if (accounts.length === 0) {
+    return (
+      <InternalSidebar>
+        <InternalSidebar.Header>
+          <InternalSidebar.Top>
+            <InternalSidebar.TopTitle>
+              <Icon as={MailIcon} size="m" />
+              <Text as="span" variant="body">
+                Mail
+              </Text>
+            </InternalSidebar.TopTitle>
+          </InternalSidebar.Top>
+        </InternalSidebar.Header>
+        <div className="p-space-l">
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <MailIcon />
+              </EmptyMedia>
+              <EmptyTitle>No mail account</EmptyTitle>
+              <EmptyDescription>
+                <Link to="/settings/mail" className="underline underline-offset-4 hover:text-primary">
+                  Enroll an account in Mail settings
+                </Link>
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        </div>
+      </InternalSidebar>
+    );
+  }
+
+  const selectedAccount = accounts.find((account) => account.id === selectedAccountId) ?? accounts[0];
 
   return (
     <InternalSidebar>

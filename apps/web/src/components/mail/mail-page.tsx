@@ -2,6 +2,7 @@ import { EditIcon, MailIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { useSuspenseQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 
 import type { MailAccountId, MailLabelId, MailThreadId } from '@stitch/shared/mail/types';
 
@@ -18,6 +19,30 @@ import { getDefaultMailLabel, mailAccountsQueryOptions, mailLabelsQueryOptions }
 export function MailPage() {
   const { selectedAccountId, selectedLabelId } = useMailStore();
   const { data: accounts } = useSuspenseQuery(mailAccountsQueryOptions);
+
+  if (accounts.length === 0) {
+    return (
+      <div className="flex h-full min-h-0 items-center justify-center bg-background p-space-3xl">
+        <Empty>
+          <EmptyContent>
+            <EmptyHeader>
+              <EmptyMedia>
+                <MailIcon />
+              </EmptyMedia>
+              <EmptyTitle>No mail accounts</EmptyTitle>
+              <EmptyDescription>
+                Enroll a connected Google account to start reading mail.{' '}
+                <Link to="/settings/mail" className="underline underline-offset-4 hover:text-primary">
+                  Go to Mail settings
+                </Link>
+              </EmptyDescription>
+            </EmptyHeader>
+          </EmptyContent>
+        </Empty>
+      </div>
+    );
+  }
+
   const accountId = selectedAccountId ?? accounts[0].id;
 
   return <MailPageContent accountId={accountId} selectedLabelId={selectedLabelId} />;

@@ -34,5 +34,3 @@ export function ConnectorIcon({ icon, tone = 'default', className }: ConnectorIc
 
   return <MaskedIcon src={logoUrl} label="connector icon" className={cn('bg-foreground', toneClass, className)} />;
 }
-
-export { connectorIconVariants };
