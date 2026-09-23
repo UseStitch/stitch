@@ -3,6 +3,7 @@ import { spawn, type ChildProcess, type SpawnOptions } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises';
 import { z } from 'zod';
 
+import type { JsonObject } from '@stitch/shared/json';
 import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
 import { toolError } from '@stitch/shared/tools/types';
 
@@ -10,7 +11,6 @@ import { resolvePreferredShell } from '@/lib/shell.js';
 import { ToolValidationError } from '@/tools/errors.js';
 import { deriveCommandFamilies, getCommandFamilySuggestion } from '@/tools/runtime/bash-families.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
-import type { ToolInput } from '@/tools/runtime/runtime.js';
 import { validateExistingDirectoryPath } from '@/tools/runtime/shared.js';
 
 const SIGKILL_TIMEOUT_MS = 200;
@@ -212,13 +212,13 @@ Parameter sourcing:
   permission: { getPatternTargets, getSuggestion },
 };
 
-function getPatternTargets(input: ToolInput): string[] {
+function getPatternTargets(input: JsonObject): string[] {
   const parsedCommand = z.string().safeParse(input.command);
   if (!parsedCommand.success || parsedCommand.data.trim().length === 0) return [];
   return deriveCommandFamilies(parsedCommand.data).map((family) => family.pattern);
 }
 
-function getSuggestion(input: ToolInput): PermissionSuggestion | null {
+function getSuggestion(input: JsonObject): PermissionSuggestion | null {
   const parsedCommand = z.string().safeParse(input.command);
   if (!parsedCommand.success || parsedCommand.data.trim().length === 0) return null;
   return getCommandFamilySuggestion(parsedCommand.data);

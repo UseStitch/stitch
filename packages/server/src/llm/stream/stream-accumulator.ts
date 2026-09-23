@@ -4,6 +4,7 @@ import type { PartId, StoredPart } from '@stitch/shared/chat/messages';
 import type { PartDelta, PartUpdate } from '@stitch/shared/chat/stream-events';
 import type { PrefixedString } from '@stitch/shared/id';
 import { createPartId } from '@stitch/shared/id';
+import type { JsonValue } from '@stitch/shared/json';
 import { getToolFailureMessage } from '@stitch/shared/tools/types';
 
 import { internalBus } from '@/lib/internal-bus.js';
@@ -217,7 +218,8 @@ export class StreamAccumulator {
         const now = Date.now();
         const partId = createPartId();
 
-        this.toolCalls.push({ toolName: part.toolName, inputJson: stableStringify(part.input) });
+        // SAFETY: AI SDK tool-call input is JSON-compatible by contract; stableStringify only reads it for hashing.
+        this.toolCalls.push({ toolName: part.toolName, inputJson: stableStringify(part.input as JsonValue) });
 
         internalBus.emit('tool.started', {
           sessionId: this.sessionId,

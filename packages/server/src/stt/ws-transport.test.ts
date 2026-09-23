@@ -4,6 +4,8 @@ import { createWsTransport } from '@/stt/ws-transport.js';
 
 type Listener = (event: Event) => void;
 
+type FakeEventProps = Record<string, string | number>;
+
 class FakeWebSocket {
   static CONNECTING = 0;
   static OPEN = 1;
@@ -20,7 +22,7 @@ class FakeWebSocket {
 
   constructor(
     readonly url: string,
-    readonly init: unknown,
+    readonly init: string | string[] | undefined,
   ) {
     FakeWebSocket.last = this;
   }
@@ -65,7 +67,7 @@ class FakeWebSocket {
     this.emit('pong', {});
   }
 
-  private emit(type: string, props: object): void {
+  private emit(type: string, props: FakeEventProps): void {
     const event = Object.assign(new Event(type), props);
     for (const listener of this.listeners.get(type) ?? []) listener(event);
   }

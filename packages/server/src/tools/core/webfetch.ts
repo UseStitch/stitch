@@ -2,11 +2,11 @@ import { tool } from 'ai';
 import TurndownService from 'turndown';
 import { z } from 'zod';
 
+import type { JsonObject } from '@stitch/shared/json';
 import type { PermissionSuggestion } from '@stitch/shared/permissions/types';
 
 import { WebFetchHttpError, WebFetchResponseTooLargeError, WebFetchUrlValidationError } from '@/tools/errors.js';
 import type { ToolDefinition } from '@/tools/runtime/pipeline.js';
-import type { ToolInput } from '@/tools/runtime/runtime.js';
 
 const MAX_RESPONSE_SIZE_BYTES = 5 * 1024 * 1024;
 const DEFAULT_TIMEOUT_SECONDS = 30;
@@ -208,14 +208,14 @@ Parameter sourcing:
   truncation: { maxLines: 1200, maxBytes: 24 * 1024 },
 };
 
-function getPatternTargets(input: ToolInput): string[] {
+function getPatternTargets(input: JsonObject): string[] {
   const parsedUrl = z.string().min(1).safeParse(input.url);
   if (!parsedUrl.success) return [];
   const domain = extractDomainForPermission(parsedUrl.data);
   return domain ? [domain] : [];
 }
 
-function getSuggestion(input: ToolInput): PermissionSuggestion | null {
+function getSuggestion(input: JsonObject): PermissionSuggestion | null {
   const parsedUrl = z.string().min(1).safeParse(input.url);
   if (!parsedUrl.success) return null;
   const domain = extractDomainForPermission(parsedUrl.data);

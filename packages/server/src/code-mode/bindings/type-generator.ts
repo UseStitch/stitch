@@ -4,19 +4,18 @@ import type { JsonObject } from '@stitch/shared/json';
 
 import type { ToolTypeInfo } from '@/code-mode/bindings/tool-binding.js';
 
-type JsonSchema = JsonObject;
 const StringSchema = z.string();
 
 function isString(value: unknown): value is string {
   return StringSchema.safeParse(value).success;
 }
 
-function jsonSchemaToTypeScript(schema: JsonSchema, indent = 0): string {
+function jsonSchemaToTypeScript(schema: JsonObject, indent = 0): string {
   const pad = '  '.repeat(indent);
 
   const anyOf = schema['anyOf'] ?? schema['oneOf'];
   if (Array.isArray(anyOf)) {
-    return (anyOf as JsonSchema[]).map((s) => jsonSchemaToTypeScript(s, indent)).join(' | ');
+    return (anyOf as JsonObject[]).map((s) => jsonSchemaToTypeScript(s, indent)).join(' | ');
   }
 
   const type = schema['type'];
@@ -26,7 +25,7 @@ function jsonSchemaToTypeScript(schema: JsonSchema, indent = 0): string {
 
   const enumValues = schema['enum'];
   if (Array.isArray(enumValues)) {
-    return enumValues.map((value) => (isString(value) ? `"${value}"` : String(value))).join(' | ');
+    return enumValues.map((value) => (isString(value) ? `"${value}"` : JSON.stringify(value))).join(' | ');
   }
 
   switch (type) {
@@ -40,12 +39,12 @@ function jsonSchemaToTypeScript(schema: JsonSchema, indent = 0): string {
     case 'null':
       return 'null';
     case 'array': {
-      const items = schema['items'] as JsonSchema | undefined;
+      const items = schema['items'] as JsonObject | undefined;
       const itemType = items ? jsonSchemaToTypeScript(items, indent) : 'unknown';
       return `${itemType}[]`;
     }
     case 'object': {
-      const properties = schema['properties'] as Record<string, JsonSchema> | undefined;
+      const properties = schema['properties'] as Record<string, JsonObject> | undefined;
       const required = new Set<string>(Array.isArray(schema['required']) ? (schema['required'] as string[]) : []);
       const additionalProperties = schema['additionalProperties'];
 
@@ -80,7 +79,7 @@ export function generateTypeStubs(bindings: Record<string, ToolTypeInfo>): strin
 
   for (const [name, binding] of Object.entries(bindings)) {
     const inputTypeName = `${toPascalCase(name)}Input`;
-    const inputSchema = binding.inputSchema as JsonSchema;
+    const inputSchema = binding.inputSchema as JsonObject;
 
     const inputType = jsonSchemaToTypeScript(inputSchema);
     lines.push(`type ${inputTypeName} = ${inputType};`);

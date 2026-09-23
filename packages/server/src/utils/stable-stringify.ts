@@ -1,13 +1,15 @@
+import type { JsonValue } from '@stitch/shared/json';
+
 /**
  * Recursively sorts object keys so that semantically identical values always
  * produce the same JSON string regardless of original key order.
  */
-export function stableStringify(value: unknown): string {
+export function stableStringify(value: JsonValue): string {
   return JSON.stringify(sortKeys(value));
 }
 
-function sortKeys(value: unknown): unknown {
-  if (value === null || value === undefined || Object(value) !== value || Function.prototype.isPrototypeOf(value)) {
+function sortKeys(value: JsonValue): JsonValue {
+  if (value === null || Object(value) !== value) {
     return value;
   }
 

@@ -8,13 +8,12 @@ export type ToolContext = { sessionId: PrefixedString<'ses'>; messageId: Prefixe
 
 export type RuntimeToolSource = 'core' | 'toolset' | 'mcp' | 'meta' | 'task' | 'code-mode';
 
-export type ToolInput = JsonObject;
 export type ToolExecuteOptions = ToolExecutionOptions & { skipTruncation?: boolean };
 export type ToolTruncationLimits = { maxLines?: number; maxBytes?: number };
 
 export type ToolPermissionBehavior = {
-  getPatternTargets: (input: ToolInput) => string[];
-  getSuggestion?: (input: ToolInput) => PermissionSuggestion | null;
+  getPatternTargets: (input: JsonObject) => string[];
+  getSuggestion?: (input: JsonObject) => PermissionSuggestion | null;
 };
 
 export type RuntimeToolMetadata = {
@@ -26,7 +25,7 @@ export type RuntimeToolMetadata = {
 
 export type ToolExecutionInput = {
   toolName: string;
-  args: ToolInput;
+  args: JsonObject;
   executeOptions: ToolExecuteOptions;
   tool: Tool;
   context: ToolContext;

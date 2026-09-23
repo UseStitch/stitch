@@ -1,3 +1,5 @@
+import type { JsonObject } from '@stitch/shared/json';
+
 import {
   permissionMiddleware,
   resultNormalizationMiddleware,
@@ -9,7 +11,6 @@ import type {
   ToolContext,
   ToolExecuteOptions,
   ToolExecutionInput,
-  ToolInput,
   ToolPermissionBehavior,
   ToolTruncationLimits,
 } from '@/tools/runtime/runtime.js';
@@ -44,7 +45,7 @@ export function wrapTool(context: ToolContext, def: ToolDefinition): Tool {
 
   return {
     ...def.tool,
-    execute: async (args: ToolInput, executeOptions: ToolExecuteOptions) =>
+    execute: async (args: JsonObject, executeOptions: ToolExecuteOptions) =>
       executor({ toolName: def.name, args, executeOptions, tool: def.tool, context, metadata }),
   };
 }

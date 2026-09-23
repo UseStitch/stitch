@@ -44,7 +44,7 @@ function sanitizeGemini<T>(node: T): T {
   const result: SchemaObject = {};
   for (const [key, value] of Object.entries(node)) {
     if (key === 'enum' && Array.isArray(value)) {
-      result[key] = value.map((entry) => String(entry));
+      result[key] = value.map((entry) => (typeof entry === 'string' ? entry : JSON.stringify(entry)));
     } else if (Array.isArray(value) || plainObjectSchema.safeParse(value).success) {
       result[key] = sanitizeGemini(value);
     } else {
