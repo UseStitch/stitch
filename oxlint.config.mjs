@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: ['unicorn', 'typescript', 'oxc', 'import', 'react', 'jsx-a11y'],
   jsPlugins: [
     'ai-deslop',
+    '@shadcn/lint',
     { name: 'unicorn-js', specifier: 'eslint-plugin-unicorn' },
     { name: 'react-doctor', specifier: 'oxlint-plugin-react-doctor' },
   ],
@@ -44,7 +45,9 @@ export default defineConfig({
     'react/rules-of-hooks': 'error',
     'react/exhaustive-deps': 'error',
     'react/require-render-return': 'error',
-    'react/react-compiler': 'error',
+    'shadcn/no-raw-colors': 'error',
+    'shadcn/no-restyle': ['error', { allow: ['layout'] }],
+    'shadcn/no-arbitrary-values': ['error', { allow: ['layout'] }],
     'jsx-a11y/anchor-has-content': 'error',
     'jsx-a11y/control-has-associated-label': 'error',
     'jsx-a11y/label-has-associated-control': 'error',
@@ -148,14 +151,6 @@ export default defineConfig({
     },
     {
       files: [
-        'apps/web/src/components/chat/message-list.tsx',
-        'apps/web/src/components/mail/thread-list.tsx',
-        'apps/web/src/components/recordings/analysis/transcript-sidebar.tsx',
-      ],
-      rules: { 'react/react-compiler': 'off' },
-    },
-    {
-      files: [
         'apps/web/src/components/ui/button-group.tsx',
         'apps/web/src/components/ui/input-group.tsx',
         'apps/web/src/components/ui/textarea-completions.tsx',
@@ -168,6 +163,13 @@ export default defineConfig({
       rules: {
         'jsx-a11y/click-events-have-key-events': 'off',
         'jsx-a11y/no-noninteractive-element-interactions': 'off',
+      },
+    },
+    {
+      files: ['apps/web/src/components/ui/**'],
+      rules: {
+        'shadcn/no-restyle': 'off',
+        'shadcn/no-arbitrary-values': 'off',
       },
     },
   ],
